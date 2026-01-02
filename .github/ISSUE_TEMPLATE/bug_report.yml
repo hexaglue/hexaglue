@@ -1,0 +1,125 @@
+name: Bug Report
+description: Report a bug in HexaGlue
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug! Please fill out the form below.
+
+  - type: input
+    id: version
+    attributes:
+      label: HexaGlue Version
+      description: What version of HexaGlue are you using?
+      placeholder: "2.0.0-SNAPSHOT"
+    validations:
+      required: true
+
+  - type: input
+    id: java-version
+    attributes:
+      label: Java Version
+      description: Output of `java --version`
+      placeholder: "openjdk 17.0.9 2023-10-17"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Affected Module
+      description: Which module is affected?
+      options:
+        - hexaglue-core (Analysis engine)
+        - hexaglue-spi (Service Provider Interface)
+        - hexaglue-maven-plugin (Maven integration)
+        - hexaglue-plugin-jpa (JPA generator)
+        - hexaglue-plugin-living-doc (Documentation generator)
+        - hexaglue-testing (Testing harness)
+        - Other / Unknown
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what happened...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+      placeholder: I expected...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happened?
+      placeholder: Instead, what happened was...
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Create a domain class with...
+        2. Run `mvn compile`
+        3. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code
+    attributes:
+      label: Relevant Code
+      description: If applicable, provide the domain code that triggers the bug
+      render: java
+      placeholder: |
+        public class Order {
+            private OrderId id;
+            // ...
+        }
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error Logs
+      description: If applicable, paste relevant error logs or diagnostic codes
+      render: shell
+      placeholder: |
+        [ERROR] HG-CORE-210: Unable to classify type...
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: If applicable, paste your hexaglue.yaml configuration
+      render: yaml
+      placeholder: |
+        hexaglue:
+          plugins:
+            io.hexaglue.plugin.jpa:
+              basePackage: com.example.infrastructure
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing issues to ensure this bug hasn't been reported
+          required: true
+        - label: I have provided all the information needed to reproduce the bug
+          required: true

@@ -1,0 +1,51 @@
+{
+  "domain": {
+    "types": [
+      {
+        "qualifiedName": "com.coffeeshop.domain.order.LineItem",
+        "simpleName": "LineItem",
+        "kind": "VALUE_OBJECT",
+        "confidence": "MEDIUM",
+        "construct": "RECORD",
+        "properties": [{"name": "productName", "typeName": "java.lang.String", "cardinality": "SINGLE"}, {"name": "quantity", "typeName": "int", "cardinality": "SINGLE"}, {"name": "unitPrice", "typeName": "java.math.BigDecimal", "cardinality": "SINGLE"}]
+      },
+      {
+        "qualifiedName": "com.coffeeshop.domain.order.Order",
+        "simpleName": "Order",
+        "kind": "AGGREGATE_ROOT",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "identity": {"fieldName": "id", "typeName": "com.coffeeshop.domain.order.OrderId"},
+        "properties": [{"name": "id", "typeName": "com.coffeeshop.domain.order.OrderId", "cardinality": "SINGLE"}, {"name": "customerName", "typeName": "java.lang.String", "cardinality": "SINGLE"}, {"name": "location", "typeName": "com.coffeeshop.domain.order.Location", "cardinality": "SINGLE"}, {"name": "items", "typeName": "com.coffeeshop.domain.order.LineItem", "cardinality": "COLLECTION"}]
+      },
+      {
+        "qualifiedName": "com.coffeeshop.domain.order.OrderId",
+        "simpleName": "OrderId",
+        "kind": "IDENTIFIER",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "properties": [{"name": "value", "typeName": "java.util.UUID", "cardinality": "SINGLE"}]
+      }
+    ]
+  },
+  "ports": {
+    "ports": [
+      {
+        "qualifiedName": "com.coffeeshop.ports.in.OrderingCoffee",
+        "simpleName": "OrderingCoffee",
+        "kind": "COMMAND",
+        "direction": "DRIVING",
+        "confidence": "HIGH",
+        "methods": ["createOrder", "findOrder"]
+      },
+      {
+        "qualifiedName": "com.coffeeshop.ports.out.Orders",
+        "simpleName": "Orders",
+        "kind": "REPOSITORY",
+        "direction": "DRIVEN",
+        "confidence": "HIGH",
+        "methods": ["findById", "save"]
+      }
+    ]
+  }
+}

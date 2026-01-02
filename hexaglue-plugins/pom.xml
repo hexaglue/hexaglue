@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.hexaglue</groupId>
+        <artifactId>hexaglue-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+    </parent>
+
+    <groupId>io.hexaglue.plugins</groupId>
+    <artifactId>hexaglue-plugins</artifactId>
+    <packaging>pom</packaging>
+
+    <name>HexaGlue Plugins</name>
+    <description>Official HexaGlue plugins for infrastructure code generation</description>
+
+    <modules>
+        <module>hexaglue-plugins-bom</module>
+        <module>hexaglue-plugin-jpa</module>
+        <module>hexaglue-plugin-living-doc</module>
+    </modules>
+
+    <properties>
+        <!-- HexaGlue core version (explicit, cannot use ${project.version} because plugins have their own version) -->
+        <hexaglue.version>2.0.0-SNAPSHOT</hexaglue.version>
+        <!-- Plugin-specific dependencies -->
+        <jakarta-persistence.version>3.1.0</jakarta-persistence.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Override hexaglue-spi version to use core version, not plugin version -->
+            <dependency>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-spi</artifactId>
+                <version>${hexaglue.version}</version>
+            </dependency>
+            <!-- Jakarta Persistence API (for JPA plugin) -->
+            <dependency>
+                <groupId>jakarta.persistence</groupId>
+                <artifactId>jakarta.persistence-api</artifactId>
+                <version>${jakarta-persistence.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+</project>

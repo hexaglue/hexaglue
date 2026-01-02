@@ -1,0 +1,83 @@
+package io.hexaglue.core.classification;
+
+import io.hexaglue.core.graph.model.NodeId;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Stream;
+
+/**
+ * Holds all classification results from a classification run.
+ *
+ * <p>This is the output of {@link TwoPassClassifier} and contains
+ * both domain type and port classifications.
+ *
+ * @param allClassifications all classification results by node ID
+ */
+public record ClassificationResults(Map<NodeId, ClassificationResult> allClassifications) {
+
+    /**
+     * Returns the classification for a specific node.
+     */
+    public Optional<ClassificationResult> get(NodeId nodeId) {
+        return Optional.ofNullable(allClassifications.get(nodeId));
+    }
+
+    /**
+     * Returns all domain type classifications (non-port).
+     */
+    public List<ClassificationResult> domainClassifications() {
+        return allClassifications.values().stream()
+                .filter(c -> c.target() == ClassificationTarget.DOMAIN)
+                .toList();
+    }
+
+    /**
+     * Returns all port classifications.
+     */
+    public List<ClassificationResult> portClassifications() {
+        return allClassifications.values().stream()
+                .filter(c -> c.target() == ClassificationTarget.PORT)
+                .toList();
+    }
+
+    /**
+     * Returns all classified results (both domain and port).
+     */
+    public List<ClassificationResult> classifiedResults() {
+        return allClassifications.values().stream()
+                .filter(ClassificationResult::isClassified)
+                .toList();
+    }
+
+    /**
+     * Returns all conflict results.
+     */
+    public List<ClassificationResult> conflicts() {
+        return allClassifications.values().stream()
+                .filter(c -> c.status() == ClassificationStatus.CONFLICT)
+                .toList();
+    }
+
+    /**
+     * Returns all results as a stream.
+     */
+    public Stream<ClassificationResult> stream() {
+        return allClassifications.values().stream();
+    }
+
+    /**
+     * Returns the total number of classifications.
+     */
+    public int size() {
+        return allClassifications.size();
+    }
+
+    /**
+     * Converts to a list of all classification results.
+     */
+    public List<ClassificationResult> toList() {
+        return new ArrayList<>(allClassifications.values());
+    }
+}

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/hexaglue/hexaglue/tree/main/docs
+    about: Check the documentation before opening an issue
+  - name: Discussions
+    url: https://github.com/hexaglue/hexaglue/discussions
+    about: Ask questions and discuss ideas
+  - name: Security Issues
+    url: mailto:info@hexaglue.io
+    about: Report security vulnerabilities privately via email

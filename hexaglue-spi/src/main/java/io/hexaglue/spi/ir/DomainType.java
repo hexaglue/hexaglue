@@ -1,0 +1,126 @@
+package io.hexaglue.spi.ir;
+
+import java.util.List;
+import java.util.Optional;
+
+/**
+ * A domain type extracted from the application source code.
+ *
+ * @param qualifiedName the fully qualified class name
+ * @param simpleName the simple class name
+ * @param packageName the package name
+ * @param kind the DDD classification
+ * @param confidence how confident the classification is
+ * @param construct the Java construct (CLASS, RECORD, ENUM)
+ * @param identity the identity information, if applicable
+ * @param properties the domain properties
+ * @param relations the relationships to other domain types
+ * @param annotations the annotation qualified names present on this type
+ * @param sourceRef source location for diagnostics
+ */
+public record DomainType(
+        String qualifiedName,
+        String simpleName,
+        String packageName,
+        DomainKind kind,
+        ConfidenceLevel confidence,
+        JavaConstruct construct,
+        Optional<Identity> identity,
+        List<DomainProperty> properties,
+        List<DomainRelation> relations,
+        List<String> annotations,
+        SourceRef sourceRef) {
+
+    /**
+     * Backward-compatible constructor without relations.
+     */
+    public DomainType(
+            String qualifiedName,
+            String simpleName,
+            String packageName,
+            DomainKind kind,
+            ConfidenceLevel confidence,
+            JavaConstruct construct,
+            Optional<Identity> identity,
+            List<DomainProperty> properties,
+            List<String> annotations,
+            SourceRef sourceRef) {
+        this(
+                qualifiedName,
+                simpleName,
+                packageName,
+                kind,
+                confidence,
+                construct,
+                identity,
+                properties,
+                List.of(),
+                annotations,
+                sourceRef);
+    }
+
+    /**
+     * Returns true if this type has an identity field.
+     */
+    public boolean hasIdentity() {
+        return identity.isPresent();
+    }
+
+    /**
+     * Returns true if this type is an aggregate root.
+     */
+    public boolean isAggregateRoot() {
+        return kind == DomainKind.AGGREGATE_ROOT;
+    }
+
+    /**
+     * Returns true if this type is an entity (including aggregate roots).
+     */
+    public boolean isEntity() {
+        return kind == DomainKind.ENTITY || kind == DomainKind.AGGREGATE_ROOT;
+    }
+
+    /**
+     * Returns true if this type is a value object.
+     */
+    public boolean isValueObject() {
+        return kind == DomainKind.VALUE_OBJECT;
+    }
+
+    /**
+     * Returns true if this type is a record.
+     */
+    public boolean isRecord() {
+        return construct == JavaConstruct.RECORD;
+    }
+
+    /**
+     * Returns true if this type has any relationships.
+     */
+    public boolean hasRelations() {
+        return !relations.isEmpty();
+    }
+
+    /**
+     * Returns relations of a specific kind.
+     */
+    public List<DomainRelation> relationsOfKind(RelationKind kind) {
+        return relations.stream().filter(r -> r.kind() == kind).toList();
+    }
+
+    /**
+     * Returns the embedded relations (value objects).
+     */
+    public List<DomainRelation> embeddedRelations() {
+        return relations.stream()
+                .filter(r -> r.kind() == RelationKind.EMBEDDED || r.kind() == RelationKind.ELEMENT_COLLECTION)
+                .toList();
+    }
+
+    /**
+     * Returns the entity relations (one-to-many, many-to-one, etc.).
+     */
+    public List<DomainRelation> entityRelations() {
+        return relations.stream().filter(DomainRelation::targetsEntity).toList();
+    }
+}
