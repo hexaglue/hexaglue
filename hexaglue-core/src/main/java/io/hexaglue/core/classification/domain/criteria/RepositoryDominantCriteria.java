@@ -120,12 +120,28 @@ public final class RepositoryDominantCriteria implements ClassificationCriteria<
     }
 
     private Optional<FieldNode> findIdentityField(TypeNode node, GraphQuery query) {
-        return query.fieldsOf(node).stream().filter(this::isIdentityField).findFirst();
+        List<FieldNode> fields = query.fieldsOf(node);
+
+        // Priority 1: Look for explicit @Identity annotation
+        Optional<FieldNode> annotatedId = fields.stream().filter(this::hasIdentityAnnotation).findFirst();
+        if (annotatedId.isPresent()) {
+            return annotatedId;
+        }
+
+        // Priority 2: Look for field named exactly "id"
+        Optional<FieldNode> exactIdField = fields.stream().filter(f -> f.simpleName().equals("id")).findFirst();
+        if (exactIdField.isPresent()) {
+            return exactIdField;
+        }
+
+        // Priority 3: Look for field ending with "Id"
+        return fields.stream().filter(f -> f.simpleName().endsWith("Id")).findFirst();
     }
 
-    private boolean isIdentityField(FieldNode field) {
-        String name = field.simpleName();
-        // Match "id" exactly or fields ending with "Id" (like orderId, customerId)
-        return name.equals("id") || name.endsWith("Id");
+    private boolean hasIdentityAnnotation(FieldNode field) {
+        return field.annotations().stream()
+                .anyMatch(a -> a.qualifiedName().equals("org.jmolecules.ddd.annotation.Identity")
+                        || a.simpleName().equals("Identity")
+                        || a.simpleName().equals("Id"));
     }
 }

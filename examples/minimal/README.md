@@ -16,9 +16,10 @@ This example demonstrates the core concepts of HexaGlue with a minimal task mana
 ```
 minimal/
 └── src/main/java/com/example/
+    ├── MinimalApplication.java    # Spring Boot entry point
     ├── domain/
-    │   ├── Task.java          # Aggregate Root
-    │   └── TaskId.java        # Identifier (Value Object)
+    │   ├── Task.java              # Aggregate Root
+    │   └── TaskId.java            # Identifier (Value Object)
     └── ports/
         ├── in/
         │   └── TaskUseCases.java     # Driving Port (Use Cases)
@@ -43,6 +44,28 @@ ls target/generated-sources/hexaglue/
 # Documentation
 ls target/generated-sources/generated-docs/
 ```
+
+### 3. Run the Application
+
+```bash
+mvn spring-boot:run
+```
+
+Expected output:
+
+```
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+...
+Started MinimalApplication in X.XXX seconds
+```
+
+> **Note**: The application starts and then exits immediately. This is expected behavior: without `spring-boot-starter-web`, there is no embedded HTTP server (Tomcat, Jetty...) to keep the application running. The "Started MinimalApplication" message confirms that the Spring context initializes correctly.
 
 ## What Gets Generated
 
@@ -135,3 +158,14 @@ public interface TaskRepository {
 1. **Add More Complexity**: See the [coffeeshop](../coffeeshop/) example
 2. **Rich Domain**: See the [ecommerce](../ecommerce/) example
 3. **Configuration**: Add `hexaglue.yaml` to customize generation
+
+---
+
+<div align="center">
+
+**HexaGlue - Focus on business code, not infrastructure glue.**
+
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
+</div>

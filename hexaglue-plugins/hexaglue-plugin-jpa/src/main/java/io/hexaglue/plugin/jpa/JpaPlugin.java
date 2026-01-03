@@ -77,14 +77,14 @@ public final class JpaPlugin implements HexaGluePlugin {
         diagnostics.info("JPA Plugin starting with package: " + infraPackage);
         logConfig(diagnostics, config);
 
+        // Collect all domain types for mapper and entity references
+        List<DomainType> allTypes = new ArrayList<>(ir.domain().types());
+
         // Create generators
-        JpaEntityGenerator entityGenerator = new JpaEntityGenerator(infraPackage, config);
+        JpaEntityGenerator entityGenerator = new JpaEntityGenerator(infraPackage, config, allTypes);
         JpaRepositoryGenerator repositoryGenerator = new JpaRepositoryGenerator(infraPackage, config);
         JpaMapperGenerator mapperGenerator = new JpaMapperGenerator(infraPackage, basePackage, config);
         JpaAdapterGenerator adapterGenerator = new JpaAdapterGenerator(infraPackage, config);
-
-        // Collect all domain types for mapper references
-        List<DomainType> allTypes = new ArrayList<>(ir.domain().types());
 
         // Counters for summary
         int entityCount = 0;

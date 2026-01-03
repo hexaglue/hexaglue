@@ -63,6 +63,14 @@ final class TestFixtures {
         return TypeRef.of("java.lang.Integer");
     }
 
+    static TypeRef booleanPrimitiveType() {
+        return TypeRef.of("boolean");
+    }
+
+    static TypeRef intPrimitiveType() {
+        return TypeRef.of("int");
+    }
+
     static TypeRef uuidType() {
         return TypeRef.of("java.util.UUID");
     }

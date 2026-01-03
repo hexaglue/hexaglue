@@ -32,7 +32,6 @@ final class JpaAdapterGenerator {
      */
     String generateAdapter(Port port, DomainType managedType) {
         String domainName = managedType.simpleName();
-        String entityName = domainName + config.entitySuffix();
         String repositoryName = domainName + config.repositorySuffix();
         String mapperName = domainName + config.mapperSuffix();
         String adapterName = domainName + config.adapterSuffix();
@@ -47,7 +46,7 @@ final class JpaAdapterGenerator {
         imports.add(managedType.qualifiedName());
 
         if (managedType.hasIdentity()) {
-            String idTypeName = managedType.identity().get().typeName();
+            String idTypeName = managedType.identity().get().type().qualifiedName();
             if (idTypeName.contains(".")) {
                 imports.add(idTypeName);
             }
@@ -69,12 +68,28 @@ final class JpaAdapterGenerator {
                 if (returnType.contains("Collection") || returnType.equals("Collection")) {
                     imports.add("java.util.Collection");
                 }
+                if (returnType.contains("Iterable") || returnType.equals("Iterable")) {
+                    // Iterable is in java.lang, no explicit import needed
+                }
+                if (returnType.contains("Stream") || returnType.contains("stream.Stream")) {
+                    imports.add("java.util.stream.Stream");
+                }
+                if (returnType.contains("Page<") || returnType.contains("data.domain.Page")) {
+                    imports.add("org.springframework.data.domain.Page");
+                }
             }
 
-            // Add imports for parameter types (domain value objects like Email, CustomerId, etc.)
+            // Add imports for parameter types
             for (String paramType : method.parameters()) {
-                if (paramType != null && paramType.contains(".") && !paramType.startsWith("java.")) {
-                    imports.add(paramType);
+                if (paramType != null && paramType.contains(".")) {
+                    if (paramType.contains("Pageable")) {
+                        imports.add("org.springframework.data.domain.Pageable");
+                    } else if (paramType.contains("data.domain.Sort")) {
+                        imports.add("org.springframework.data.domain.Sort");
+                    } else if (!paramType.startsWith("java.")) {
+                        // Domain value objects like Email, CustomerId, etc.
+                        imports.add(paramType);
+                    }
                 }
             }
         }
@@ -226,6 +241,24 @@ final class JpaAdapterGenerator {
                 body.append("        return ").append(mapperField).append(".toDomain(saved);\n");
             }
 
+        } else if (methodName.equals("saveAll") || methodName.equals("updateAll")) {
+            // saveAll(List<Domain>) -> List<Domain> or Iterable<Domain>
+            body.append("        var entities = ").append(mapperField).append(".toEntityList(param0);\n");
+            body.append("        var saved = ").append(repoField).append(".saveAll(entities);\n");
+            body.append("        return ").append(mapperField).append(".toDomainList(saved);\n");
+
+        } else if (methodName.equals("update")) {
+            // update(Domain) -> Domain (same as save)
+            body.append("        var entity = ").append(mapperField).append(".toEntity(param0);\n");
+            body.append("        var saved = ").append(repoField).append(".save(entity);\n");
+            if (returnType.contains(domainName)) {
+                body.append("        return ").append(mapperField).append(".toDomain(saved);\n");
+            } else if (returnType.equals("void")) {
+                // No return needed
+            } else {
+                body.append("        return ").append(mapperField).append(".toDomain(saved);\n");
+            }
+
         } else if (methodName.equals("findById") || methodName.equals("getById") || methodName.equals("get")) {
             // findById(Id) -> Optional<Domain>
             // Check if param is a wrapper type (e.g., OrderId) or a primitive type (e.g., UUID)
@@ -238,12 +271,39 @@ final class JpaAdapterGenerator {
             body.append("                .map(").append(mapperField).append("::toDomain);\n");
 
         } else if (methodName.equals("findAll") || methodName.equals("getAll") || methodName.equals("all")) {
-            // findAll() -> List<Domain>
+            // Handle different parameter types for findAll
+            if (params.isEmpty()) {
+                // findAll() -> List<Domain>
+                body.append("        return ")
+                        .append(mapperField)
+                        .append(".toDomainList(")
+                        .append(repoField)
+                        .append(".findAll());\n");
+            } else if (hasPageableParameter(params)) {
+                // findAll(Pageable) -> Page<Domain>
+                body.append("        return ")
+                        .append(repoField)
+                        .append(".findAll(param0)\n");
+                body.append("                .map(").append(mapperField).append("::toDomain);\n");
+            } else if (hasSortParameter(params)) {
+                // findAll(Sort) -> List<Domain>
+                body.append("        return ")
+                        .append(mapperField)
+                        .append(".toDomainList(")
+                        .append(repoField)
+                        .append(".findAll(param0));\n");
+            } else {
+                // Unknown parameter pattern - generate TODO
+                body.append("        // TODO: Implement findAll with custom parameters\n");
+                body.append("        throw new UnsupportedOperationException(\"Not yet implemented\");\n");
+            }
+
+        } else if (methodName.equals("findAllAsStream") || methodName.equals("streamAll") || returnType.startsWith("Stream<")) {
+            // findAllAsStream() -> Stream<Domain>
             body.append("        return ")
-                    .append(mapperField)
-                    .append(".toDomainList(")
                     .append(repoField)
-                    .append(".findAll());\n");
+                    .append(".findAll().stream()\n");
+            body.append("                .map(").append(mapperField).append("::toDomain);\n");
 
         } else if (methodName.equals("delete") || methodName.equals("remove")) {
             // delete(Domain) or delete(Id)
@@ -269,6 +329,23 @@ final class JpaAdapterGenerator {
                     .append(".deleteById(")
                     .append(paramExpr)
                     .append(");\n");
+
+        } else if (methodName.equals("deleteAll") || methodName.equals("removeAll")) {
+            // deleteAll() or deleteAll(List<Domain>)
+            if (params.isEmpty()) {
+                // deleteAll() - delete all entities
+                body.append("        ").append(repoField).append(".deleteAll();\n");
+            } else {
+                // deleteAll(List<Domain>) - delete specific entities
+                body.append("        ").append(repoField).append(".deleteAll(\n");
+                body.append("                ").append(mapperField).append(".toEntityList(param0));\n");
+            }
+
+        } else if (methodName.equals("deleteAllById") || methodName.equals("removeAllById")) {
+            // deleteAllById(List<Id>) - unwrap each wrapper ID
+            body.append("        param0.stream()\n");
+            body.append("                .map(id -> id.value())\n");
+            body.append("                .forEach(").append(repoField).append("::deleteById);\n");
 
         } else if (methodName.equals("exists") || methodName.equals("existsById")) {
             // existsById(Id) -> boolean
@@ -394,5 +471,19 @@ final class JpaAdapterGenerator {
             return str;
         }
         return Character.toLowerCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
+     * Checks if the method has a Pageable parameter.
+     */
+    private boolean hasPageableParameter(List<String> params) {
+        return params.stream().anyMatch(p -> p != null && p.contains("Pageable"));
+    }
+
+    /**
+     * Checks if the method has a Sort parameter.
+     */
+    private boolean hasSortParameter(List<String> params) {
+        return params.stream().anyMatch(p -> p != null && p.contains("data.domain.Sort"));
     }
 }

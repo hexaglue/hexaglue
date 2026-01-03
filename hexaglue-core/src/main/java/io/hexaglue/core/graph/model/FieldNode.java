@@ -88,8 +88,21 @@ public final class FieldNode extends MemberNode {
 
     /**
      * Returns true if this field looks like an identity field.
+     *
+     * <p>A field looks like an identity if:
+     * <ul>
+     *   <li>It's named "id" or ends with "Id" (e.g., "orderId")</li>
+     *   <li>AND it's not a collection or map type (identities are simple values)</li>
+     * </ul>
+     *
+     * <p>This prevents false positives like "linesByProductId" (a Map indexed by product ID)
+     * from being considered identity fields.
      */
     public boolean looksLikeIdentity() {
+        // Collections and maps are not identity fields
+        if (type.isCollectionLike() || type.isMapLike()) {
+            return false;
+        }
         return simpleName.equals("id") || simpleName.endsWith("Id");
     }
 
@@ -116,6 +129,13 @@ public final class FieldNode extends MemberNode {
      */
     public boolean isOptionalType() {
         return type.isOptionalLike();
+    }
+
+    /**
+     * Returns true if this field is marked as transient.
+     */
+    public boolean isTransient() {
+        return modifiers.contains(JavaModifier.TRANSIENT);
     }
 
     public static final class Builder {

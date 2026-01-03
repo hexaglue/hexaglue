@@ -91,15 +91,24 @@ public final class IrExporter {
         // Extract relations using the RelationAnalyzer
         List<DomainRelation> relations = relationAnalyzer.analyzeRelations(node, query, context);
 
+        DomainKind domainKind = toDomainKind(classification.kind());
+
+        // Extract identity first to know the actual identity field name
+        // Domain events and value objects do NOT have identity
+        Optional<Identity> identity = shouldHaveIdentity(domainKind)
+                ? extractIdentity(graph, node)
+                : Optional.empty();
+        String identityFieldName = identity.map(Identity::fieldName).orElse(null);
+
         return new DomainType(
                 node.qualifiedName(),
                 node.simpleName(),
                 node.packageName(),
-                toDomainKind(classification.kind()),
+                domainKind,
                 toSpiConfidence(classification.confidence()),
                 toJavaConstruct(node.form()),
-                extractIdentity(graph, node),
-                extractProperties(graph, node),
+                identity,
+                extractProperties(graph, node, identityFieldName),
                 relations,
                 extractAnnotationNames(node),
                 SourceRef.toSpi(node.sourceRef()));
@@ -127,6 +136,15 @@ public final class IrExporter {
 
     private DomainKind toDomainKind(String kind) {
         return DomainKind.valueOf(kind);
+    }
+
+    private boolean shouldHaveIdentity(DomainKind kind) {
+        // Only aggregate roots and entities have identity
+        // Value objects, domain events, identifiers, and domain services do NOT
+        return switch (kind) {
+            case AGGREGATE_ROOT, ENTITY -> true;
+            case VALUE_OBJECT, DOMAIN_EVENT, IDENTIFIER, DOMAIN_SERVICE -> false;
+        };
     }
 
     private PortKind toPortKind(String kind) {
@@ -180,18 +198,25 @@ public final class IrExporter {
     private Optional<Identity> extractIdentity(ApplicationGraph graph, TypeNode node) {
         List<FieldNode> fields = graph.fieldsOf(node);
 
-        // First, look for explicit @Identity annotation
+        // Priority 1: Look for explicit @Identity annotation
         Optional<FieldNode> annotatedId =
                 fields.stream().filter(this::hasIdentityAnnotation).findFirst();
         if (annotatedId.isPresent()) {
             return Optional.of(createIdentity(annotatedId.get(), graph));
         }
 
-        // Then, look for field named "id" or ending with "Id"
-        Optional<FieldNode> identityField =
-                fields.stream().filter(FieldNode::looksLikeIdentity).findFirst();
+        // Priority 2: Look for field named exactly "id"
+        Optional<FieldNode> exactIdField =
+                fields.stream().filter(f -> f.simpleName().equals("id")).findFirst();
+        if (exactIdField.isPresent()) {
+            return Optional.of(createIdentity(exactIdField.get(), graph));
+        }
 
-        return identityField.map(field -> createIdentity(field, graph));
+        // Priority 3: Look for field ending with "Id" (e.g., orderId, customerId)
+        Optional<FieldNode> suffixIdField =
+                fields.stream().filter(f -> f.simpleName().endsWith("Id")).findFirst();
+
+        return suffixIdField.map(field -> createIdentity(field, graph));
     }
 
     private boolean hasIdentityAnnotation(FieldNode field) {
@@ -265,17 +290,31 @@ public final class IrExporter {
 
     // === Property extraction ===
 
-    private List<DomainProperty> extractProperties(ApplicationGraph graph, TypeNode node) {
+    private List<DomainProperty> extractProperties(
+            ApplicationGraph graph, TypeNode node, String identityFieldName) {
         List<FieldNode> fields = graph.fieldsOf(node);
 
         return fields.stream()
-                .map(field -> toDomainProperty(field, graph, node))
+                .filter(this::shouldIncludeField)
+                .map(field -> toDomainProperty(field, identityFieldName))
                 .toList();
     }
 
-    private DomainProperty toDomainProperty(FieldNode field, ApplicationGraph graph, TypeNode owner) {
+    /**
+     * Determines if a field should be included in the domain properties.
+     * Static and transient fields are excluded as they don't represent domain state.
+     */
+    private boolean shouldIncludeField(FieldNode field) {
+        return !field.isStatic() && !field.isTransient();
+    }
+
+    private DomainProperty toDomainProperty(FieldNode field, String identityFieldName) {
         TypeRef typeRef = field.type();
-        boolean isIdentity = field.looksLikeIdentity() || hasIdentityAnnotation(field);
+
+        // Only mark as identity if this is the actual identity field, not just any field ending with "Id"
+        // Fields like "customerId" are inter-aggregate references, not identity fields
+        boolean isIdentity =
+                identityFieldName != null && field.simpleName().equals(identityFieldName);
 
         return new DomainProperty(
                 field.simpleName(),

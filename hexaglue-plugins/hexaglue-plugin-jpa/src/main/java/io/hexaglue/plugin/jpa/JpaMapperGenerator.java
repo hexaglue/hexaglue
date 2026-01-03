@@ -1,12 +1,14 @@
 package io.hexaglue.plugin.jpa;
 
 import io.hexaglue.spi.ir.Cardinality;
+import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.RelationKind;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -15,12 +17,12 @@ import java.util.Set;
 final class JpaMapperGenerator {
 
     private final String infrastructurePackage;
-    private final String domainPackage;
     private final JpaConfig config;
 
+    @SuppressWarnings("unused")
     JpaMapperGenerator(String infrastructurePackage, String domainPackage, JpaConfig config) {
         this.infrastructurePackage = infrastructurePackage;
-        this.domainPackage = domainPackage;
+        // domainPackage kept for API compatibility
         this.config = config;
     }
 
@@ -83,10 +85,10 @@ final class JpaMapperGenerator {
         sb.append("public interface ").append(mapperName).append(" {\n\n");
 
         // toEntity method
-        generateToEntityMethod(sb, domainType, domainName, entityName);
+        generateToEntityMethod(sb, domainType, domainName, entityName, allTypes);
 
         // toDomain method
-        generateToDomainMethod(sb, domainType, domainName, entityName);
+        generateToDomainMethod(sb, domainType, domainName, entityName, allTypes);
 
         // List mappings
         generateListMethods(sb, domainName, entityName);
@@ -109,8 +111,10 @@ final class JpaMapperGenerator {
         sb.append("package ").append(infrastructurePackage).append(";\n\n");
 
         // Imports
+        sb.append("import org.mapstruct.BeanMapping;\n");
         sb.append("import org.mapstruct.Mapper;\n");
         sb.append("import org.mapstruct.MappingConstants;\n");
+        sb.append("import org.mapstruct.ReportingPolicy;\n");
         sb.append("import ").append(valueObject.qualifiedName()).append(";\n");
         sb.append("\n");
 
@@ -138,6 +142,7 @@ final class JpaMapperGenerator {
         sb.append("     * @param domain the domain value object\n");
         sb.append("     * @return the JPA embeddable\n");
         sb.append("     */\n");
+        sb.append("    @BeanMapping(unmappedTargetPolicy = ReportingPolicy.IGNORE)\n");
         sb.append("    ")
                 .append(embeddableName)
                 .append(" toEmbeddable(")
@@ -151,6 +156,7 @@ final class JpaMapperGenerator {
         sb.append("     * @param entity the JPA embeddable\n");
         sb.append("     * @return the domain value object\n");
         sb.append("     */\n");
+        sb.append("    @BeanMapping(unmappedTargetPolicy = ReportingPolicy.IGNORE)\n");
         sb.append("    ")
                 .append(domainName)
                 .append(" toDomain(")
@@ -189,6 +195,10 @@ final class JpaMapperGenerator {
                 // Value object mappers
                 String targetMapper = rel.targetSimpleName() + config.mapperSuffix();
                 mappers.add(targetMapper);
+            } else if (rel.kind() == RelationKind.ONE_TO_MANY && rel.targetsEntity()) {
+                // Entity mappers for one-to-many relationships (e.g., Order -> OrderLine)
+                String targetMapper = rel.targetSimpleName() + config.mapperSuffix();
+                mappers.add(targetMapper);
             }
         }
 
@@ -205,10 +215,25 @@ final class JpaMapperGenerator {
             }
         }
 
+        // Check if identity is a composite identifier (multi-property) - needs embedded mapper
+        if (domainType.hasIdentity()) {
+            var id = domainType.identity().get();
+            String idTypeName = id.type().qualifiedName();
+            Optional<DomainType> idType = allTypes.stream()
+                    .filter(t -> t.qualifiedName().equals(idTypeName))
+                    .filter(t -> t.kind() == DomainKind.IDENTIFIER)
+                    .filter(t -> t.properties().size() > 1) // Composite = multiple properties
+                    .findFirst();
+            if (idType.isPresent()) {
+                mappers.add(idType.get().simpleName() + config.mapperSuffix());
+            }
+        }
+
         return mappers;
     }
 
-    private void generateToEntityMethod(StringBuilder sb, DomainType domainType, String domainName, String entityName) {
+    private void generateToEntityMethod(
+            StringBuilder sb, DomainType domainType, String domainName, String entityName, List<DomainType> allTypes) {
         sb.append("    /**\n");
         sb.append("     * Converts domain object to JPA entity.\n");
         sb.append("     *\n");
@@ -221,12 +246,29 @@ final class JpaMapperGenerator {
             var id = domainType.identity().get();
             String idField = id.fieldName();
             // If identity is a wrapped type (like OrderId with UUID value), add mapping
-            if (!id.unwrappedType().qualifiedName().equals(id.typeName())) {
+            if (!id.unwrappedType().qualifiedName().equals(id.type().qualifiedName())) {
                 sb.append("    @Mapping(source = \"")
                         .append(idField)
                         .append(".value\", target = \"")
                         .append(idField)
                         .append("\")\n");
+            }
+        }
+
+        // Add @Mapping annotations for single-property Identifiers (like CustomerId -> UUID)
+        // Composite identifiers use embeddable mapping via MapStruct's uses clause
+        for (DomainProperty prop : domainType.properties()) {
+            if (!prop.isIdentity() && !prop.isEmbedded() && !prop.hasRelation()) {
+                String propTypeName = prop.type().unwrapElement().qualifiedName();
+                Optional<DomainType> identifierType = findSinglePropertyIdentifier(propTypeName, allTypes);
+                if (identifierType.isPresent()) {
+                    // Map customerId.value -> customerId (unwrap single-property ID)
+                    sb.append("    @Mapping(source = \"")
+                            .append(prop.name())
+                            .append(".value\", target = \"")
+                            .append(prop.name())
+                            .append("\")\n");
+                }
             }
         }
 
@@ -244,7 +286,20 @@ final class JpaMapperGenerator {
                 .append(" domain);\n\n");
     }
 
-    private void generateToDomainMethod(StringBuilder sb, DomainType domainType, String domainName, String entityName) {
+    /**
+     * Finds a single-property Identifier type by its qualified name.
+     * Returns empty for composite identifiers (multi-property) which need embeddable mapping.
+     */
+    private Optional<DomainType> findSinglePropertyIdentifier(String qualifiedName, List<DomainType> allTypes) {
+        return allTypes.stream()
+                .filter(t -> t.qualifiedName().equals(qualifiedName))
+                .filter(t -> t.kind() == DomainKind.IDENTIFIER)
+                .filter(t -> t.properties().size() == 1) // Only single-property identifiers
+                .findFirst();
+    }
+
+    private void generateToDomainMethod(
+            StringBuilder sb, DomainType domainType, String domainName, String entityName, List<DomainType> allTypes) {
         sb.append("    /**\n");
         sb.append("     * Converts JPA entity to domain object.\n");
         sb.append("     *\n");
@@ -257,8 +312,8 @@ final class JpaMapperGenerator {
             var id = domainType.identity().get();
             String idField = id.fieldName();
             // If identity is a wrapped type, we need custom expression
-            if (!id.unwrappedType().qualifiedName().equals(id.typeName())) {
-                String idTypeName = getSimpleName(id.typeName());
+            if (!id.unwrappedType().qualifiedName().equals(id.type().qualifiedName())) {
+                String idTypeName = getSimpleName(id.type().qualifiedName());
                 sb.append("    @Mapping(target = \"")
                         .append(idField)
                         .append("\", expression = \"java(new ")
@@ -266,6 +321,26 @@ final class JpaMapperGenerator {
                         .append("(entity.get")
                         .append(capitalize(idField))
                         .append("()))\")\n");
+            }
+        }
+
+        // Add @Mapping annotations for single-property Identifiers (like UUID -> CustomerId)
+        // Composite identifiers use embeddable mapping via MapStruct's uses clause
+        for (DomainProperty prop : domainType.properties()) {
+            if (!prop.isIdentity() && !prop.isEmbedded() && !prop.hasRelation()) {
+                String propTypeName = prop.type().unwrapElement().qualifiedName();
+                Optional<DomainType> identifierType = findSinglePropertyIdentifier(propTypeName, allTypes);
+                if (identifierType.isPresent()) {
+                    // Map entity.getCustomerId() -> new CustomerId(...) (wrap single-property ID)
+                    String idTypeName = getSimpleName(propTypeName);
+                    sb.append("    @Mapping(target = \"")
+                            .append(prop.name())
+                            .append("\", expression = \"java(new ")
+                            .append(idTypeName)
+                            .append("(entity.get")
+                            .append(capitalize(prop.name()))
+                            .append("()))\")\n");
+                }
             }
         }
 

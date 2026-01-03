@@ -1,11 +1,14 @@
 package io.hexaglue.plugin.jpa;
 
 import io.hexaglue.spi.ir.Cardinality;
+import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -13,12 +16,88 @@ import java.util.Set;
  */
 final class JpaEntityGenerator {
 
+    private static final Set<String> JDK_PACKAGES = Set.of(
+            "java.", "javax.", "jakarta.", "sun.", "com.sun.", "jdk.");
+
+    private static final Set<String> PRIMITIVE_TYPES = Set.of(
+            "boolean", "byte", "char", "short", "int", "long", "float", "double", "void");
+
     private final String infrastructurePackage;
     private final JpaConfig config;
+    private final List<DomainType> allTypes;
 
-    JpaEntityGenerator(String infrastructurePackage, JpaConfig config) {
+    JpaEntityGenerator(String infrastructurePackage, JpaConfig config, List<DomainType> allTypes) {
         this.infrastructurePackage = infrastructurePackage;
         this.config = config;
+        this.allTypes = allTypes;
+    }
+
+    /**
+     * Checks if a type is likely an enum (custom type not in domain types).
+     */
+    private boolean isLikelyEnum(String qualifiedName) {
+        // Primitive types are not enums
+        if (PRIMITIVE_TYPES.contains(qualifiedName)) {
+            return false;
+        }
+        // JDK types are not enums we care about
+        for (String prefix : JDK_PACKAGES) {
+            if (qualifiedName.startsWith(prefix)) {
+                return false;
+            }
+        }
+        // If it's a known domain type, it's not an enum
+        return allTypes.stream()
+                .noneMatch(t -> t.qualifiedName().equals(qualifiedName));
+    }
+
+    /**
+     * Checks if a property needs @Column(precision, scale) for currency.
+     */
+    private boolean isCurrencyAmount(DomainProperty prop) {
+        String typeName = prop.type().unwrapElement().qualifiedName();
+        return (typeName.equals("java.math.BigDecimal") || typeName.equals("BigDecimal"))
+                && prop.name().equalsIgnoreCase("amount");
+    }
+
+    /**
+     * Checks if a property is a byte array (large binary data).
+     */
+    private boolean isByteArray(DomainProperty prop) {
+        String typeName = prop.type().qualifiedName();
+        return typeName.equals("byte[]") || typeName.equals("[B");
+    }
+
+    /**
+     * Finds an Identifier type by its qualified name and returns its unwrapped type.
+     * Returns empty if the type is not an Identifier or has multiple properties (composite ID).
+     *
+     * <p>Single-property Identifiers (like {@code record CustomerId(UUID value)}) are unwrapped
+     * to their inner type (UUID) for JPA mapping. Multi-property identifiers are treated as
+     * composite keys and should use embeddables instead.
+     */
+    private Optional<String> findIdentifierUnwrappedType(String qualifiedName) {
+        return allTypes.stream()
+                .filter(t -> t.qualifiedName().equals(qualifiedName))
+                .filter(t -> t.kind() == DomainKind.IDENTIFIER)
+                .findFirst()
+                .filter(t -> t.properties().size() == 1) // Only unwrap single-property identifiers
+                .map(t -> t.properties().get(0).type().qualifiedName());
+    }
+
+    /**
+     * Checks if a type is a composite Identifier (multi-property).
+     *
+     * <p>Composite identifiers (like {@code record CompositeOrderId(String region, Long sequence)})
+     * should be treated as embeddables for JPA mapping.
+     */
+    private boolean isCompositeIdentifier(String qualifiedName) {
+        return allTypes.stream()
+                .filter(t -> t.qualifiedName().equals(qualifiedName))
+                .filter(t -> t.kind() == DomainKind.IDENTIFIER)
+                .findFirst()
+                .map(t -> t.properties().size() > 1)
+                .orElse(false);
     }
 
     /**
@@ -195,6 +274,14 @@ final class JpaEntityGenerator {
     }
 
     private void collectIdImports(Set<String> imports, Identity id) {
+        String declaredTypeName = id.type().qualifiedName();
+
+        // Check if this is a composite identifier (multi-property)
+        if (isCompositeIdentifier(declaredTypeName)) {
+            imports.add("jakarta.persistence.EmbeddedId");
+            return;
+        }
+
         String typeName = id.unwrappedType().qualifiedName();
         if (typeName.equals("java.util.UUID")) {
             imports.add("java.util.UUID");
@@ -209,13 +296,52 @@ final class JpaEntityGenerator {
     private void collectPropertyImports(Set<String> imports, DomainType type) {
         for (DomainProperty prop : type.properties()) {
             String typeName = prop.type().unwrapElement().qualifiedName();
-            if (needsImport(typeName)) {
+
+            // Check if this is a composite identifier - needs @Embedded
+            if (isCompositeIdentifier(typeName)) {
+                imports.add("jakarta.persistence.Embedded");
+                continue;
+            }
+
+            // Check if this is a single-property Identifier type - unwrap to primitive
+            Optional<String> unwrappedType = findIdentifierUnwrappedType(typeName);
+            if (unwrappedType.isPresent()) {
+                // Add import for the unwrapped type (e.g., UUID)
+                if (needsImport(unwrappedType.get())) {
+                    imports.add(unwrappedType.get());
+                }
+            } else if (needsImport(typeName)) {
                 imports.add(typeName);
             }
+
             if (prop.cardinality() == Cardinality.COLLECTION) {
-                imports.add("java.util.List");
-                imports.add("java.util.ArrayList");
+                // Check if collection of enums
+                if (isLikelyEnum(typeName)) {
+                    imports.add("java.util.Set");
+                    imports.add("java.util.HashSet");
+                    imports.add("jakarta.persistence.ElementCollection");
+                    imports.add("jakarta.persistence.Enumerated");
+                    imports.add("jakarta.persistence.EnumType");
+                } else {
+                    imports.add("java.util.List");
+                    imports.add("java.util.ArrayList");
+                }
+            } else if (isLikelyEnum(typeName)) {
+                // Single enum property
+                imports.add("jakarta.persistence.Enumerated");
+                imports.add("jakarta.persistence.EnumType");
             }
+
+            // Check for @Lob (byte arrays)
+            if (isByteArray(prop)) {
+                imports.add("jakarta.persistence.Lob");
+            }
+
+            // Check for @Column with precision/scale (currency amounts)
+            if (isCurrencyAmount(prop)) {
+                imports.add("jakarta.persistence.Column");
+            }
+
             if (prop.isEmbedded()) {
                 imports.add("jakarta.persistence.Embedded");
             }
@@ -254,6 +380,20 @@ final class JpaEntityGenerator {
     }
 
     private void generateIdentityField(StringBuilder sb, Identity id) {
+        String declaredTypeName = id.type().qualifiedName();
+
+        // Check if this is a composite identifier (multi-property)
+        if (isCompositeIdentifier(declaredTypeName)) {
+            String embeddableType = id.type().simpleName() + "Embeddable";
+            sb.append("    @EmbeddedId\n");
+            sb.append("    private ")
+                    .append(embeddableType)
+                    .append(" ")
+                    .append(id.fieldName())
+                    .append(";\n\n");
+            return;
+        }
+
         sb.append("    @Id\n");
 
         if (id.strategy() == io.hexaglue.spi.ir.IdentityStrategy.AUTO) {
@@ -369,7 +509,55 @@ final class JpaEntityGenerator {
     }
 
     private void generateSimpleField(StringBuilder sb, DomainProperty prop) {
-        String jpaType = mapToJpaType(prop.type().unwrapElement().qualifiedName());
+        String propTypeName = prop.type().unwrapElement().qualifiedName();
+
+        // Check if this is a composite identifier (multi-property) - treat as embedded
+        if (isCompositeIdentifier(propTypeName)) {
+            String embeddableType = prop.type().simpleName() + "Embeddable";
+            sb.append("    @Embedded\n");
+            sb.append("    private ")
+                    .append(embeddableType)
+                    .append(" ")
+                    .append(prop.name())
+                    .append(";\n\n");
+            return;
+        }
+
+        // Check if this is a single-property identifier - unwrap to primitive type
+        String jpaType = findIdentifierUnwrappedType(propTypeName)
+                .map(this::mapToJpaType)
+                .orElseGet(() -> mapToJpaType(propTypeName));
+
+        // Handle collection of enums
+        if (prop.cardinality() == Cardinality.COLLECTION && isLikelyEnum(propTypeName)) {
+            sb.append("    @ElementCollection\n");
+            sb.append("    @Enumerated(EnumType.STRING)\n");
+            sb.append("    private Set<")
+                    .append(jpaType)
+                    .append("> ")
+                    .append(prop.name())
+                    .append(";\n\n");
+            return;
+        }
+
+        // Handle @Lob for byte arrays
+        if (isByteArray(prop)) {
+            sb.append("    @Lob\n");
+            sb.append("    private byte[] ")
+                    .append(prop.name())
+                    .append(";\n\n");
+            return;
+        }
+
+        // Handle @Column with precision/scale for currency amounts
+        if (isCurrencyAmount(prop)) {
+            sb.append("    @Column(precision = 19, scale = 2)\n");
+        }
+
+        // Handle single enum property
+        if (prop.cardinality() != Cardinality.COLLECTION && isLikelyEnum(propTypeName)) {
+            sb.append("    @Enumerated(EnumType.STRING)\n");
+        }
 
         if (prop.cardinality() == Cardinality.COLLECTION) {
             sb.append("    private List<")
@@ -516,7 +704,13 @@ final class JpaEntityGenerator {
             };
         }
 
-        String baseType = mapToJpaType(prop.type().unwrapElement().qualifiedName());
+        String propTypeName = prop.type().unwrapElement().qualifiedName();
+
+        // Check if this is an inter-aggregate reference (Identifier type like CustomerId)
+        String baseType = findIdentifierUnwrappedType(propTypeName)
+                .map(this::mapToJpaType)
+                .orElseGet(() -> mapToJpaType(propTypeName));
+
         if (prop.isEmbedded()) {
             return prop.type().simpleName() + "Embeddable";
         }

@@ -433,6 +433,116 @@ class IrExporterTest {
                     .orElseThrow();
             assertThat(activeProp.nullability()).isEqualTo(Nullability.NON_NULL);
         }
+
+        @Test
+        @DisplayName("should NOT include static fields in properties")
+        void shouldNotIncludeStaticFields() throws IOException {
+            writeSource(
+                    "com/example/Order.java",
+                    """
+                    package com.example;
+                    public class Order {
+                        private static final String TABLE_NAME = "orders";
+                        private static int instanceCount = 0;
+                        private String id;
+                        private String customerName;
+                    }
+                    """);
+            writeSource(
+                    "com/example/OrderRepository.java",
+                    """
+                    package com.example;
+                    public interface OrderRepository {
+                        Order findById(String id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            List<ClassificationResult> classifications = classifyAll(graph);
+
+            IrSnapshot snapshot = exporter.export(graph, classifications);
+
+            DomainType order = snapshot.domain().types().get(0);
+            assertThat(order.properties())
+                    .as("Static fields should not be included in domain properties")
+                    .extracting(DomainProperty::name)
+                    .containsExactlyInAnyOrder("id", "customerName")
+                    .doesNotContain("TABLE_NAME", "instanceCount");
+        }
+
+        @Test
+        @DisplayName("should NOT include transient fields in properties")
+        void shouldNotIncludeTransientFields() throws IOException {
+            writeSource(
+                    "com/example/Customer.java",
+                    """
+                    package com.example;
+                    public class Customer {
+                        private String id;
+                        private String name;
+                        private transient String cachedDisplayName;
+                        private transient java.time.Instant lastAccessTime;
+                    }
+                    """);
+            writeSource(
+                    "com/example/CustomerRepository.java",
+                    """
+                    package com.example;
+                    public interface CustomerRepository {
+                        Customer findById(String id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            List<ClassificationResult> classifications = classifyAll(graph);
+
+            IrSnapshot snapshot = exporter.export(graph, classifications);
+
+            DomainType customer = snapshot.domain().types().get(0);
+            assertThat(customer.properties())
+                    .as("Transient fields should not be included in domain properties")
+                    .extracting(DomainProperty::name)
+                    .containsExactlyInAnyOrder("id", "name")
+                    .doesNotContain("cachedDisplayName", "lastAccessTime");
+        }
+
+        @Test
+        @DisplayName("should NOT include static transient fields in properties")
+        void shouldNotIncludeStaticTransientFields() throws IOException {
+            writeSource(
+                    "com/example/Product.java",
+                    """
+                    package com.example;
+                    public class Product {
+                        private static final String CATEGORY = "default";
+                        private transient String computedHash;
+                        private static transient java.util.Map<String, Product> cache;
+                        private String id;
+                        private String name;
+                        private double price;
+                    }
+                    """);
+            writeSource(
+                    "com/example/ProductRepository.java",
+                    """
+                    package com.example;
+                    public interface ProductRepository {
+                        Product findById(String id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            List<ClassificationResult> classifications = classifyAll(graph);
+
+            IrSnapshot snapshot = exporter.export(graph, classifications);
+
+            DomainType product = snapshot.domain().types().get(0);
+            assertThat(product.properties())
+                    .as("Static and transient fields should not be included")
+                    .extracting(DomainProperty::name)
+                    .containsExactlyInAnyOrder("id", "name", "price")
+                    .doesNotContain("CATEGORY", "computedHash", "cache");
+        }
     }
 
     // =========================================================================

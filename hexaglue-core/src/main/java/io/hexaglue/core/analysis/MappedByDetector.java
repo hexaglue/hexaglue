@@ -100,4 +100,34 @@ public final class MappedByDetector {
 
         return Optional.empty();
     }
+
+    /**
+     * Detects the mappedBy field name for a single reference (ONE_TO_ONE relationship).
+     *
+     * <p>Given a single reference field on the owner type, this method looks for
+     * a back-reference field on the target type that points to the owner.
+     *
+     * @param ownerType the type containing the reference field
+     * @param field the reference field (e.g., profile: UserProfile)
+     * @param targetType the target type of the reference
+     * @param query the graph query interface
+     * @return the name of the back-reference field, if found
+     */
+    public Optional<String> detectMappedByForSingleReference(
+            TypeNode ownerType, FieldNode field, TypeNode targetType, GraphQuery query) {
+
+        // Look for a field in the target type that references the owner type
+        List<FieldNode> targetFields = query.fieldsOf(targetType);
+
+        for (FieldNode targetField : targetFields) {
+            String targetFieldTypeName = targetField.type().rawQualifiedName();
+
+            // Check if this field references the owner type
+            if (targetFieldTypeName.equals(ownerType.qualifiedName())) {
+                return Optional.of(targetField.simpleName());
+            }
+        }
+
+        return Optional.empty();
+    }
 }

@@ -51,22 +51,23 @@ Secondary ports for infrastructure:
 
 ```
 src/main/java/com/ecommerce/
+├── EcommerceApplication.java      # Spring Boot entry point
 ├── domain/
 │   ├── order/
-│   │   ├── Order.java          # Aggregate root
-│   │   ├── OrderId.java        # Identifier
-│   │   ├── OrderLine.java      # Entity
-│   │   ├── OrderStatus.java    # Value object (enum)
-│   │   ├── Money.java          # Value object
-│   │   ├── Quantity.java       # Value object
-│   │   └── Address.java        # Value object
+│   │   ├── Order.java             # Aggregate root
+│   │   ├── OrderId.java           # Identifier
+│   │   ├── OrderLine.java         # Entity
+│   │   ├── OrderStatus.java       # Value object (enum)
+│   │   ├── Money.java             # Value object
+│   │   ├── Quantity.java          # Value object
+│   │   └── Address.java           # Value object
 │   ├── customer/
-│   │   ├── Customer.java       # Aggregate root
-│   │   ├── CustomerId.java     # Identifier
-│   │   └── Email.java          # Value object
+│   │   ├── Customer.java          # Aggregate root
+│   │   ├── CustomerId.java        # Identifier
+│   │   └── Email.java             # Value object
 │   └── product/
-│       ├── Product.java        # Aggregate root
-│       └── ProductId.java      # Identifier
+│       ├── Product.java           # Aggregate root
+│       └── ProductId.java         # Identifier
 └── ports/
     ├── in/
     │   ├── OrderingProducts.java
@@ -77,23 +78,6 @@ src/main/java/com/ecommerce/
         ├── CustomerRepository.java
         ├── ProductRepository.java
         └── PaymentGateway.java
-```
-
-## HexaGlue Configuration
-
-```yaml
-hexaglue:
-  plugins:
-    io.hexaglue.plugin.jpa:
-      basePackage: com.ecommerce.infrastructure.persistence
-      idStrategy: ASSIGNED
-      enableAuditing: true
-      entitySuffix: Entity
-      repositorySuffix: JpaRepository
-
-    io.hexaglue.plugin.portdocs:
-      outputDir: docs/ports/
-      mergeMode: OVERWRITE
 ```
 
 ## Generated Code
@@ -114,15 +98,11 @@ public class OrderEntity {
     @Embedded
     private AddressEmbeddable shippingAddress;
 
-    @ElementCollection
-    @CollectionTable(name = "order_lines")
-    private List<OrderLineEmbeddable> lines;
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderLineEntity> lines;
 
     @Enumerated(EnumType.STRING)
     private OrderStatus status;
-
-    @Version
-    private Long version;
     // ...
 }
 ```
@@ -139,7 +119,8 @@ public interface OrderJpaRepository extends JpaRepository<OrderEntity, UUID> {
 ### MapStruct Mappers
 
 ```java
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring",
+        uses = {AddressMapper.class, OrderLineMapper.class})
 public interface OrderMapper {
     @Mapping(source = "id.value", target = "id")
     OrderEntity toEntity(Order domain);
@@ -148,6 +129,8 @@ public interface OrderMapper {
     Order toDomain(OrderEntity entity);
 }
 ```
+
+> **Note**: The `uses` clause includes mappers for related types (embedded value objects and entity relationships). This allows MapStruct to properly convert nested objects like `Address` and `OrderLine` collections.
 
 ### Port Adapters
 
@@ -180,7 +163,29 @@ cd examples/ecommerce
 mvn clean compile
 ```
 
-Generated sources will be in `target/generated-sources/annotations/`.
+Generated sources will be in `target/generated-sources/hexaglue/`.
+
+## Run the Application
+
+```bash
+mvn spring-boot:run
+```
+
+Expected output:
+
+```
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+...
+Started EcommerceApplication in X.XXX seconds
+```
+
+> **Note**: The application starts and then exits immediately. This is expected behavior: without `spring-boot-starter-web`, there is no embedded HTTP server (Tomcat, Jetty...) to keep the application running. The "Started EcommerceApplication" message confirms that the Spring context initializes correctly.
 
 ## Key Patterns Demonstrated
 

@@ -532,12 +532,12 @@ Update your `pom.xml` to include the JPA plugin:
             </executions>
             <dependencies>
                 <dependency>
-                    <groupId>io.hexaglue</groupId>
+                    <groupId>io.hexaglue.plugins</groupId>
                     <artifactId>hexaglue-plugin-living-doc</artifactId>
                     <version>${hexaglue.version}</version>
                 </dependency>
                 <dependency>
-                    <groupId>io.hexaglue</groupId>
+                    <groupId>io.hexaglue.plugins</groupId>
                     <artifactId>hexaglue-plugin-jpa</artifactId>
                     <version>${hexaglue.version}</version>
                 </dependency>

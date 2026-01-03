@@ -16,8 +16,7 @@
     <properties>
         <!-- Each plugin has its own version -->
         <hexaglue-plugin-jpa.version>1.0.0-SNAPSHOT</hexaglue-plugin-jpa.version>
-        <!-- Future plugins will be added here -->
-        <!-- <hexaglue-plugin-docs.version>1.0.0-SNAPSHOT</hexaglue-plugin-docs.version> -->
+        <hexaglue-plugin-living-doc.version>1.0.0-SNAPSHOT</hexaglue-plugin-living-doc.version>
     </properties>
 
     <dependencyManagement>
@@ -27,7 +26,11 @@
                 <artifactId>hexaglue-plugin-jpa</artifactId>
                 <version>${hexaglue-plugin-jpa.version}</version>
             </dependency>
-            <!-- Future plugins will be added here -->
+            <dependency>
+                <groupId>io.hexaglue.plugins</groupId>
+                <artifactId>hexaglue-plugin-living-doc</artifactId>
+                <version>${hexaglue-plugin-living-doc.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 

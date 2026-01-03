@@ -67,15 +67,27 @@ public final class HasIdentityCriteria implements ClassificationCriteria<DomainK
     private Optional<FieldNode> findIdentityField(TypeNode node, GraphQuery query) {
         List<FieldNode> fields = query.fieldsOf(node);
 
-        // First, look for a field named exactly "id"
+        // Priority 1: Look for explicit @Identity annotation
+        Optional<FieldNode> annotatedId = fields.stream().filter(this::hasIdentityAnnotation).findFirst();
+        if (annotatedId.isPresent()) {
+            return annotatedId;
+        }
+
+        // Priority 2: Look for field named exactly "id"
         Optional<FieldNode> idField =
                 fields.stream().filter(f -> f.simpleName().equals("id")).findFirst();
-
         if (idField.isPresent()) {
             return idField;
         }
 
-        // Then look for fields ending with "Id"
+        // Priority 3: Look for fields ending with "Id"
         return fields.stream().filter(f -> f.simpleName().endsWith("Id")).findFirst();
+    }
+
+    private boolean hasIdentityAnnotation(FieldNode field) {
+        return field.annotations().stream()
+                .anyMatch(a -> a.qualifiedName().equals("org.jmolecules.ddd.annotation.Identity")
+                        || a.simpleName().equals("Identity")
+                        || a.simpleName().equals("Id"));
     }
 }

@@ -8,11 +8,15 @@ import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.criteria.CollectionElementEntityCriteria;
 import io.hexaglue.core.classification.domain.criteria.EmbeddedValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitAggregateRootCriteria;
+import io.hexaglue.core.classification.domain.criteria.ExplicitDomainEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitEntityCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitIdentifierCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.HasIdentityCriteria;
 import io.hexaglue.core.classification.domain.criteria.ImmutableNoIdCriteria;
+import io.hexaglue.core.classification.domain.criteria.ImplementsJMoleculesInterfaceCriteria;
+import io.hexaglue.core.classification.domain.criteria.InheritedClassificationCriteria;
+import io.hexaglue.core.classification.domain.criteria.NamingDomainEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.RecordSingleIdCriteria;
 import io.hexaglue.core.classification.domain.criteria.RepositoryDominantCriteria;
 import io.hexaglue.core.classification.domain.criteria.UnreferencedInPortsCriteria;
@@ -73,15 +77,22 @@ public final class DomainClassifier {
                 new ExplicitEntityCriteria(),
                 new ExplicitValueObjectCriteria(),
                 new ExplicitIdentifierCriteria(),
+                new ExplicitDomainEventCriteria(),
+                // Explicit interfaces (priority 100)
+                new ImplementsJMoleculesInterfaceCriteria(),
                 // Strong heuristics (priority 80)
                 new RepositoryDominantCriteria(),
                 new RecordSingleIdCriteria(),
+                // Inherited classification (priority 75)
+                new InheritedClassificationCriteria(),
                 // Medium heuristics (priority 70)
                 new EmbeddedValueObjectCriteria(),
                 // Medium heuristics (priority 60)
                 new HasIdentityCriteria(),
                 new CollectionElementEntityCriteria(),
                 new ImmutableNoIdCriteria(),
+                // Naming heuristics (priority 55)
+                new NamingDomainEventCriteria(),
                 // Lower heuristics (priority 50)
                 new UnreferencedInPortsCriteria());
     }

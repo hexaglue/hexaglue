@@ -8,16 +8,17 @@ This example models a coffee shop ordering system using Hexagonal Architecture (
 
 ```
 com.coffeeshop/
-├── domain/order/          # Domain layer
-│   ├── Order.java         # Aggregate Root
-│   ├── OrderId.java       # Identifier (Value Object)
-│   ├── LineItem.java      # Value Object
-│   ├── Location.java      # Enum
-│   └── OrderStatus.java   # Enum
-├── ports/in/              # Driving (Primary) Ports
+├── CoffeeshopApplication.java  # Spring Boot entry point
+├── domain/order/               # Domain layer
+│   ├── Order.java              # Aggregate Root
+│   ├── OrderId.java            # Identifier (Value Object)
+│   ├── LineItem.java           # Value Object
+│   ├── Location.java           # Enum
+│   └── OrderStatus.java        # Enum
+├── ports/in/                   # Driving (Primary) Ports
 │   └── OrderingCoffee.java
-└── ports/out/             # Driven (Secondary) Ports
-    └── Orders.java        # Repository interface
+└── ports/out/                  # Driven (Secondary) Ports
+    └── Orders.java             # Repository interface
 ```
 
 ## Domain Model
@@ -69,6 +70,28 @@ ls target/generated-sources/hexaglue/
 ls target/generated-sources/generated-docs/
 ```
 
+## Run the Application
+
+```bash
+mvn spring-boot:run
+```
+
+Expected output:
+
+```
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+...
+Started CoffeeshopApplication in X.XXX seconds
+```
+
+> **Note**: The application starts and then exits immediately. This is expected behavior: without `spring-boot-starter-web`, there is no embedded HTTP server (Tomcat, Jetty...) to keep the application running. The "Started CoffeeshopApplication" message confirms that the Spring context initializes correctly.
+
 ## Generated Code Example
 
 ### OrderEntity.java
@@ -80,11 +103,16 @@ public class OrderEntity {
     @Id
     private UUID id;
     private String customerName;
+
+    @Enumerated(EnumType.STRING)
     private Location location;
 
     @ElementCollection
     @CollectionTable(name = "items")
     private List<LineItemEmbeddable> items;
+
+    @Enumerated(EnumType.STRING)
+    private OrderStatus status;
     // ...
 }
 ```
@@ -106,24 +134,6 @@ public class OrderAdapter implements Orders {
     }
     // ...
 }
-```
-
-## Configuration Options
-
-You can customize generation by adding a `hexaglue.yaml` file:
-
-```yaml
-hexaglue:
-  plugins:
-    io.hexaglue.plugin.jpa:
-      entitySuffix: Entity
-      repositorySuffix: JpaRepository
-      enableAuditing: true
-      enableOptimisticLocking: true
-    io.hexaglue.plugin.livingdoc:
-      outputDir: docs/architecture/
-      generateDiagrams: true
-      diagramFormat: mermaid
 ```
 
 ## Project Structure After Generation

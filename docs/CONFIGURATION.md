@@ -26,7 +26,7 @@ HexaGlue is primarily configured through the Maven plugin in your `pom.xml`:
     <dependencies>
         <!-- Add plugins here -->
         <dependency>
-            <groupId>io.hexaglue</groupId>
+            <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
             <version>${hexaglue.version}</version>
         </dependency>
@@ -110,14 +110,14 @@ Plugins are added as dependencies to the Maven plugin:
     <dependencies>
         <!-- Living Documentation Plugin -->
         <dependency>
-            <groupId>io.hexaglue</groupId>
+            <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
             <version>${hexaglue.plugin.version}</version>
         </dependency>
 
         <!-- JPA Repository Plugin -->
         <dependency>
-            <groupId>io.hexaglue</groupId>
+            <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
             <version>${hexaglue.plugin.version}</version>
         </dependency>

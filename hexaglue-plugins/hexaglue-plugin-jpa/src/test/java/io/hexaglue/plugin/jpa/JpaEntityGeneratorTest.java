@@ -23,7 +23,7 @@ class JpaEntityGeneratorTest {
     @BeforeEach
     void setUp() {
         config = JpaConfig.defaults();
-        generator = new JpaEntityGenerator(INFRA_PKG, config);
+        generator = new JpaEntityGenerator(INFRA_PKG, config, List.of());
     }
 
     @Nested
@@ -65,7 +65,7 @@ class JpaEntityGeneratorTest {
         void shouldGenerateTableWithPrefix() {
             JpaConfig customConfig = new JpaConfig(
                     "Entity", "JpaRepository", "Adapter", "Mapper", "app_", false, false, true, true, true);
-            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, customConfig);
+            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, customConfig, List.of());
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = gen.generateEntity(type);
@@ -284,7 +284,7 @@ class JpaEntityGeneratorTest {
         void shouldGenerateAuditingFieldsWhenEnabled() {
             JpaConfig auditConfig =
                     new JpaConfig("Entity", "JpaRepository", "Adapter", "Mapper", "", true, false, true, true, true);
-            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, auditConfig);
+            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, auditConfig, List.of());
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = gen.generateEntity(type);
@@ -301,7 +301,7 @@ class JpaEntityGeneratorTest {
         void shouldGenerateAuditingAccessorsWhenEnabled() {
             JpaConfig auditConfig =
                     new JpaConfig("Entity", "JpaRepository", "Adapter", "Mapper", "", true, false, true, true, true);
-            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, auditConfig);
+            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, auditConfig, List.of());
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = gen.generateEntity(type);
@@ -332,7 +332,7 @@ class JpaEntityGeneratorTest {
         void shouldGenerateVersionFieldWhenEnabled() {
             JpaConfig versionConfig =
                     new JpaConfig("Entity", "JpaRepository", "Adapter", "Mapper", "", false, true, true, true, true);
-            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, versionConfig);
+            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, versionConfig, List.of());
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = gen.generateEntity(type);
@@ -466,7 +466,7 @@ class JpaEntityGeneratorTest {
         void shouldUseCustomEntitySuffix() {
             JpaConfig customConfig =
                     new JpaConfig("Jpa", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true);
-            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, customConfig);
+            JpaEntityGenerator gen = new JpaEntityGenerator(INFRA_PKG, customConfig, List.of());
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = gen.generateEntity(type);

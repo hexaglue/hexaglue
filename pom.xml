@@ -28,19 +28,19 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <!-- Dependencies -->
-        <spoon.version>11.1.0</spoon.version>
-        <junit.version>5.11.3</junit.version>
-        <assertj.version>3.26.3</assertj.version>
-        <slf4j.version>2.0.16</slf4j.version>
-        <snakeyaml.version>2.3</snakeyaml.version>
+        <spoon.version>11.3.0</spoon.version>
+        <junit.version>5.14.1</junit.version>
+        <assertj.version>3.27.6</assertj.version>
+        <slf4j.version>2.0.17</slf4j.version>
+        <snakeyaml.version>2.5</snakeyaml.version>
         <jmolecules-bom.version>2025.0.2</jmolecules-bom.version>
 
         <!-- Maven plugins -->
-        <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
-        <maven-surefire-plugin.version>3.5.2</maven-surefire-plugin.version>
-        <maven-plugin-plugin.version>3.15.0</maven-plugin-plugin.version>
-        <spotless-maven-plugin.version>2.43.0</spotless-maven-plugin.version>
-        <palantir-java-format.version>2.50.0</palantir-java-format.version>
+        <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
+        <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+        <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
+        <spotless-maven-plugin.version>3.1.0</spotless-maven-plugin.version>
+        <palantir-java-format.version>2.83.0</palantir-java-format.version>
     </properties>
 
     <dependencyManagement>
