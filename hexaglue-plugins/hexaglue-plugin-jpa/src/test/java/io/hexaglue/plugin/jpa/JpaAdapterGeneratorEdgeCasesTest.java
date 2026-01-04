@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.plugin.jpa;
 
 import static io.hexaglue.plugin.jpa.TestFixtures.*;
@@ -124,7 +137,8 @@ class JpaAdapterGeneratorEdgeCasesTest {
             // Until implemented, should generate placeholder
             assertThat(code).contains("saveAll");
             // Either implemented or TODO
-            assertThat(code.contains("toDomainList") || code.contains("UnsupportedOperationException")).isTrue();
+            assertThat(code.contains("toDomainList") || code.contains("UnsupportedOperationException"))
+                    .isTrue();
         }
     }
 
@@ -148,8 +162,7 @@ class JpaAdapterGeneratorEdgeCasesTest {
                     PortDirection.DRIVEN,
                     ConfidenceLevel.HIGH,
                     List.of(DOMAIN_PKG + ".Order"),
-                    List.of(new PortMethod(
-                            "deleteAll", "void", List.of("java.util.List<" + DOMAIN_PKG + ".Order>"))),
+                    List.of(new PortMethod("deleteAll", "void", List.of("java.util.List<" + DOMAIN_PKG + ".Order>"))),
                     List.of(),
                     SourceRef.unknown());
 
@@ -199,9 +212,7 @@ class JpaAdapterGeneratorEdgeCasesTest {
                     ConfidenceLevel.HIGH,
                     List.of(DOMAIN_PKG + ".Order"),
                     List.of(new PortMethod(
-                            "deleteAllById",
-                            "void",
-                            List.of("java.util.List<" + DOMAIN_PKG + ".OrderId>"))),
+                            "deleteAllById", "void", List.of("java.util.List<" + DOMAIN_PKG + ".OrderId>"))),
                     List.of(),
                     SourceRef.unknown());
 
@@ -346,17 +357,15 @@ class JpaAdapterGeneratorEdgeCasesTest {
                     List.of(new PortMethod(
                             "findByCustomerAndStatusAndDateAfter",
                             "java.util.List<" + DOMAIN_PKG + ".Order>",
-                            List.of(
-                                    DOMAIN_PKG + ".CustomerId",
-                                    DOMAIN_PKG + ".OrderStatus",
-                                    "java.time.LocalDate"))),
+                            List.of(DOMAIN_PKG + ".CustomerId", DOMAIN_PKG + ".OrderStatus", "java.time.LocalDate"))),
                     List.of(),
                     SourceRef.unknown());
 
             String code = generator.generateAdapter(port, type);
 
             assertThat(code)
-                    .contains("findByCustomerAndStatusAndDateAfter(CustomerId param0, OrderStatus param1, LocalDate param2)");
+                    .contains(
+                            "findByCustomerAndStatusAndDateAfter(CustomerId param0, OrderStatus param1, LocalDate param2)");
         }
     }
 
@@ -401,8 +410,7 @@ class JpaAdapterGeneratorEdgeCasesTest {
                     PortDirection.DRIVEN,
                     ConfidenceLevel.HIGH,
                     List.of(DOMAIN_PKG + ".Order"),
-                    List.of(new PortMethod(
-                            "existsByCustomerId", "boolean", List.of(DOMAIN_PKG + ".CustomerId"))),
+                    List.of(new PortMethod("existsByCustomerId", "boolean", List.of(DOMAIN_PKG + ".CustomerId"))),
                     List.of(),
                     SourceRef.unknown());
 

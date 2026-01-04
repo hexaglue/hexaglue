@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
@@ -60,9 +73,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export empty snapshot for no classifications")
         void exportEmptySnapshot() throws IOException {
-            writeSource(
-                    "com/example/Dummy.java",
-                    """
+            writeSource("com/example/Dummy.java", """
                     package com.example;
                     public class Dummy {}
                     """);
@@ -82,9 +93,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export aggregate root with identity")
         void exportAggregateRootWithIdentity() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -92,9 +101,7 @@ class IrExporterTest {
                         private double total;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -135,17 +142,13 @@ class IrExporterTest {
         @Test
         @DisplayName("should export repository port with methods")
         void exportRepositoryPort() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -192,9 +195,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export record as VALUE_OBJECT")
         void exportRecordValueObject() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
@@ -221,9 +222,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export identifier type with wrapped identity")
         void exportIdentifierWithWrappedIdentity() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
@@ -243,9 +242,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export entity with explicit annotation")
         void exportExplicitEntity() throws IOException {
-            writeSource(
-                    "com/example/LineItem.java",
-                    """
+            writeSource("com/example/LineItem.java", """
                     package com.example;
                     @org.jmolecules.ddd.annotation.Entity
                     public class LineItem {
@@ -281,18 +278,14 @@ class IrExporterTest {
         @Test
         @DisplayName("should extract collection property with correct cardinality")
         void extractCollectionProperty() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private java.util.List<String> items;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -317,18 +310,14 @@ class IrExporterTest {
         @Test
         @DisplayName("should extract optional property with correct cardinality")
         void extractOptionalProperty() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
                         private java.util.Optional<String> middleName;
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(String id);
@@ -354,18 +343,14 @@ class IrExporterTest {
         @Test
         @DisplayName("should mark identity property correctly")
         void markIdentityProperty() throws IOException {
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository {
                         Product findById(String id);
@@ -395,9 +380,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should extract primitive property as NON_NULL")
         void extractPrimitiveNonNull() throws IOException {
-            writeSource(
-                    "com/example/Counter.java",
-                    """
+            writeSource("com/example/Counter.java", """
                     package com.example;
                     public class Counter {
                         private String id;
@@ -405,9 +388,7 @@ class IrExporterTest {
                         private boolean active;
                     }
                     """);
-            writeSource(
-                    "com/example/CounterRepository.java",
-                    """
+            writeSource("com/example/CounterRepository.java", """
                     package com.example;
                     public interface CounterRepository {
                         Counter findById(String id);
@@ -437,9 +418,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should NOT include static fields in properties")
         void shouldNotIncludeStaticFields() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private static final String TABLE_NAME = "orders";
@@ -448,9 +427,7 @@ class IrExporterTest {
                         private String customerName;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -473,9 +450,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should NOT include transient fields in properties")
         void shouldNotIncludeTransientFields() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
@@ -484,9 +459,7 @@ class IrExporterTest {
                         private transient java.time.Instant lastAccessTime;
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(String id);
@@ -509,9 +482,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should NOT include static transient fields in properties")
         void shouldNotIncludeStaticTransientFields() throws IOException {
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private static final String CATEGORY = "default";
@@ -522,9 +493,7 @@ class IrExporterTest {
                         private double price;
                     }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository {
                         Product findById(String id);
@@ -556,17 +525,13 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect UUID identity as UUID strategy")
         void detectUuidAsUuidStrategy() throws IOException {
-            writeSource(
-                    "com/example/Entity.java",
-                    """
+            writeSource("com/example/Entity.java", """
                     package com.example;
                     public class Entity {
                         private java.util.UUID id;
                     }
                     """);
-            writeSource(
-                    "com/example/EntityRepository.java",
-                    """
+            writeSource("com/example/EntityRepository.java", """
                     package com.example;
                     public interface EntityRepository {
                         Entity findById(java.util.UUID id);
@@ -589,17 +554,13 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect Long identity as AUTO strategy")
         void detectLongAsAutoStrategy() throws IOException {
-            writeSource(
-                    "com/example/Entity.java",
-                    """
+            writeSource("com/example/Entity.java", """
                     package com.example;
                     public class Entity {
                         private Long id;
                     }
                     """);
-            writeSource(
-                    "com/example/EntityRepository.java",
-                    """
+            writeSource("com/example/EntityRepository.java", """
                     package com.example;
                     public interface EntityRepository {
                         Entity findById(Long id);
@@ -621,24 +582,18 @@ class IrExporterTest {
         @Test
         @DisplayName("should unwrap wrapped identity type")
         void unwrapWrappedIdentity() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private OrderId id;
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(OrderId id);
@@ -677,24 +632,18 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect RECORD wrapper kind for record identity type")
         void detectRecordWrapperKind() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private OrderId id;
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(OrderId id);
@@ -721,9 +670,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect CLASS wrapper kind for class identity type")
         void detectClassWrapperKind() throws IOException {
-            writeSource(
-                    "com/example/CustomerId.java",
-                    """
+            writeSource("com/example/CustomerId.java", """
                     package com.example;
                     public class CustomerId {
                         private final java.util.UUID value;
@@ -731,18 +678,14 @@ class IrExporterTest {
                         public java.util.UUID getValue() { return value; }
                     }
                     """);
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private CustomerId id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(CustomerId id);
@@ -769,18 +712,14 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect NONE wrapper kind for direct UUID identity")
         void detectNoneWrapperKindForUuid() throws IOException {
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private java.util.UUID id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository {
                         Product findById(java.util.UUID id);
@@ -807,18 +746,14 @@ class IrExporterTest {
         @Test
         @DisplayName("should detect NONE wrapper kind for direct Long identity")
         void detectNoneWrapperKindForLong() throws IOException {
-            writeSource(
-                    "com/example/Item.java",
-                    """
+            writeSource("com/example/Item.java", """
                     package com.example;
                     public class Item {
                         private Long id;
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/ItemRepository.java",
-                    """
+            writeSource("com/example/ItemRepository.java", """
                     package com.example;
                     public interface ItemRepository {
                         Item findById(Long id);
@@ -845,23 +780,17 @@ class IrExporterTest {
         @Test
         @DisplayName("should provide TypeRef with full information")
         void identityTypeRefHasFullInformation() throws IOException {
-            writeSource(
-                    "com/example/TaskId.java",
-                    """
+            writeSource("com/example/TaskId.java", """
                     package com.example;
                     public record TaskId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/Task.java",
-                    """
+            writeSource("com/example/Task.java", """
                     package com.example;
                     public class Task {
                         private TaskId id;
                     }
                     """);
-            writeSource(
-                    "com/example/TaskRepository.java",
-                    """
+            writeSource("com/example/TaskRepository.java", """
                     package com.example;
                     public interface TaskRepository {
                         Task findById(TaskId id);
@@ -904,9 +833,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should export use case port as DRIVING")
         void exportUseCaseAsDriving() throws IOException {
-            writeSource(
-                    "com/example/port/in/CreateOrderUseCase.java",
-                    """
+            writeSource("com/example/port/in/CreateOrderUseCase.java", """
                     package com.example.port.in;
                     public interface CreateOrderUseCase {
                         void execute(String customerId);
@@ -927,17 +854,13 @@ class IrExporterTest {
         @Test
         @DisplayName("should export method parameter types correctly")
         void exportMethodParameters() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         void save(Order order);
@@ -978,17 +901,13 @@ class IrExporterTest {
         @Test
         @DisplayName("should infer base package from types")
         void inferBasePackage() throws IOException {
-            writeSource(
-                    "com/example/domain/Order.java",
-                    """
+            writeSource("com/example/domain/Order.java", """
                     package com.example.domain;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/domain/OrderRepository.java",
-                    """
+            writeSource("com/example/domain/OrderRepository.java", """
                     package com.example.domain;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -1006,9 +925,7 @@ class IrExporterTest {
         @Test
         @DisplayName("should have timestamp and version")
         void hasTimestampAndVersion() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -1037,9 +954,7 @@ class IrExporterTest {
         @DisplayName("should skip UNCLASSIFIED types")
         void skipUnclassifiedTypes() throws IOException {
             // A class without an id field and without a repository
-            writeSource(
-                    "com/example/Helper.java",
-                    """
+            writeSource("com/example/Helper.java", """
                     package com.example;
                     public class Helper {
                         public static void doSomething() {}

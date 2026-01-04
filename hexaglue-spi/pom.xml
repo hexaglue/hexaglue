@@ -16,6 +16,10 @@
     <name>HexaGlue SPI</name>
     <description>Service Provider Interface for HexaGlue plugins - contains IR types and plugin contracts</description>
 
+    <properties>
+        <hexaglue.root>${project.basedir}/..</hexaglue.root>
+    </properties>
+
     <!--
         This module has ZERO external dependencies by design.
         Plugins should depend ONLY on this module.

@@ -16,6 +16,10 @@
     <name>HexaGlue Core</name>
     <description>Core analysis engine - builds graph model, classifies types, exports IR</description>
 
+    <properties>
+        <hexaglue.root>${project.basedir}/..</hexaglue.root>
+    </properties>
+
     <dependencies>
         <!-- Internal -->
         <dependency>

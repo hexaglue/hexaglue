@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.graph;
 
 import static org.assertj.core.api.Assertions.*;
@@ -277,21 +290,15 @@ class GraphInvariantsTest {
 
         private void writeSourceFiles() throws IOException {
             // Write files in non-alphabetical order to test sorting
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {}
                     """);
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {}
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -421,15 +428,11 @@ class GraphInvariantsTest {
 
         @Test
         void shouldBeIdempotent_computeTwice() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {}
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -448,15 +451,11 @@ class GraphInvariantsTest {
 
         @Test
         void shouldBeIdempotent_computeThrice() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {}
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     import java.util.List;
                     public interface OrderRepository {
@@ -479,15 +478,11 @@ class GraphInvariantsTest {
 
         @Test
         void shouldNotDuplicateDerivedEdges() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {}
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);

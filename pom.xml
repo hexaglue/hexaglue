@@ -11,14 +11,40 @@
 
     <name>HexaGlue</name>
     <description>Code generation engine for Java applications following Hexagonal Architecture</description>
+    <url>https://github.com/hexaglue</url>
+
+    <licenses>
+        <license>
+            <name>Mozilla Public License, Version 2.0</name>
+            <url>https://www.mozilla.org/MPL/2.0/</url>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>jeanjerome</id>
+            <name>Jean-Jerome Levy</name>
+            <email>info@hexaglue.io</email>
+            <organization>HexaGlue</organization>
+        </developer>
+    </developers>
 
     <modules>
+        <module>build/tools</module>
         <module>hexaglue-spi</module>
         <module>hexaglue-core</module>
-        <module>hexaglue-maven-plugin</module>
         <module>hexaglue-testing</module>
         <module>hexaglue-plugins</module>
+        <module>hexaglue-maven-plugin</module>
+        <module>build</module>
     </modules>
+
+    <scm>
+        <connection>scm:git:git:https://github.com/hexaglue/hexaglue</connection>
+        <developerConnection>scm:git:ssh://git@github.com/hexaglue/hexaglue.git</developerConnection>
+        <tag>HEAD</tag>
+        <url>https://github.com/hexaglue/hexaglue/tree/main</url>
+    </scm>
 
     <properties>
         <!-- Java -->
@@ -39,8 +65,27 @@
         <maven-compiler-plugin.version>3.14.1</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
         <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
+        <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
         <spotless-maven-plugin.version>3.1.0</spotless-maven-plugin.version>
         <palantir-java-format.version>2.83.0</palantir-java-format.version>
+
+        <!-- Release plugins -->
+        <maven-source-plugin.version>3.4.0</maven-source-plugin.version>
+        <maven-javadoc-plugin.version>3.12.0</maven-javadoc-plugin.version>
+        <maven-gpg-plugin.version>3.2.8</maven-gpg-plugin.version>
+        <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
+
+        <!-- Quality plugins -->
+        <maven-checkstyle-plugin.version>3.6.0</maven-checkstyle-plugin.version>
+        <checkstyle.version>12.3.1</checkstyle.version>
+        <spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
+        <maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
+
+        <!-- Build tools version (fixed, not ${project.version} to work with child modules) -->
+        <hexaglue-build-tools.version>2.0.0-SNAPSHOT</hexaglue-build-tools.version>
+
+        <!-- Root directory for license header (overridden in child modules) -->
+        <hexaglue.root>${project.basedir}</hexaglue.root>
     </properties>
 
     <dependencyManagement>
@@ -59,6 +104,11 @@
             <dependency>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-testing</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-build-tools</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
@@ -129,10 +179,8 @@
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>${maven-surefire-plugin.version}</version>
                     <configuration>
-                        <argLine>
-                            --add-opens java.base/java.lang=ALL-UNNAMED
-                            --add-opens java.base/java.util=ALL-UNNAMED
-                        </argLine>
+                        <!-- @{argLine} includes JaCoCo agent set by prepare-agent goal -->
+                        <argLine>@{argLine} --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED</argLine>
                     </configuration>
                 </plugin>
 
@@ -143,11 +191,35 @@
                 </plugin>
 
                 <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco-maven-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>prepare-agent</id>
+                            <goals>
+                                <goal>prepare-agent</goal>
+                            </goals>
+                        </execution>
+                        <execution>
+                            <id>report</id>
+                            <goals>
+                                <goal>report</goal>
+                            </goals>
+                            <phase>test</phase>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
                     <groupId>com.diffplug.spotless</groupId>
                     <artifactId>spotless-maven-plugin</artifactId>
                     <version>${spotless-maven-plugin.version}</version>
                     <configuration>
                         <java>
+                            <licenseHeader>
+                                <file>${hexaglue.root}/docs/licence/header.java</file>
+                            </licenseHeader>
                             <palantirJavaFormat>
                                 <version>${palantir-java-format.version}</version>
                                 <style>PALANTIR</style>
@@ -157,6 +229,159 @@
                             <endWithNewline/>
                         </java>
                     </configuration>
+                </plugin>
+
+                <!-- Release plugins -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-source-plugin</artifactId>
+                    <version>${maven-source-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>attach-sources</id>
+                            <goals>
+                                <goal>jar-no-fork</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-javadoc-plugin</artifactId>
+                    <version>${maven-javadoc-plugin.version}</version>
+                    <configuration>
+                        <doclint>none</doclint>
+                        <quiet>true</quiet>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>attach-javadocs</id>
+                            <goals>
+                                <goal>jar</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-gpg-plugin</artifactId>
+                    <version>${maven-gpg-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>sign-artifacts</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>sign</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.sonatype.central</groupId>
+                    <artifactId>central-publishing-maven-plugin</artifactId>
+                    <version>${central-publishing-maven-plugin.version}</version>
+                    <extensions>true</extensions>
+                    <configuration>
+                        <publishingServerId>central</publishingServerId>
+                        <autoPublish>true</autoPublish>
+                        <waitUntil>published</waitUntil>
+                    </configuration>
+                </plugin>
+
+                <!-- Quality plugins -->
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-checkstyle-plugin</artifactId>
+                    <version>${maven-checkstyle-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>com.puppycrawl.tools</groupId>
+                            <artifactId>checkstyle</artifactId>
+                            <version>${checkstyle.version}</version>
+                        </dependency>
+                        <dependency>
+                            <groupId>io.hexaglue</groupId>
+                            <artifactId>hexaglue-build-tools</artifactId>
+                            <version>${hexaglue-build-tools.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <configLocation>hexaglue-checkstyle.xml</configLocation>
+                        <suppressionsLocation>hexaglue-checkstyle-suppressions.xml</suppressionsLocation>
+                        <consoleOutput>true</consoleOutput>
+                        <failsOnError>false</failsOnError>
+                        <includeTestSourceDirectory>true</includeTestSourceDirectory>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>checkstyle</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>com.github.spotbugs</groupId>
+                    <artifactId>spotbugs-maven-plugin</artifactId>
+                    <version>${spotbugs-maven-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>io.hexaglue</groupId>
+                            <artifactId>hexaglue-build-tools</artifactId>
+                            <version>${hexaglue-build-tools.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <excludeFilterFile>hexaglue-spotbugs-exclude.xml</excludeFilterFile>
+                        <effort>Max</effort>
+                        <threshold>Medium</threshold>
+                        <failOnError>false</failOnError>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>spotbugs</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-pmd-plugin</artifactId>
+                    <version>${maven-pmd-plugin.version}</version>
+                    <dependencies>
+                        <dependency>
+                            <groupId>io.hexaglue</groupId>
+                            <artifactId>hexaglue-build-tools</artifactId>
+                            <version>${hexaglue-build-tools.version}</version>
+                        </dependency>
+                    </dependencies>
+                    <configuration>
+                        <rulesets>
+                            <ruleset>hexaglue-pmd-ruleset.xml</ruleset>
+                        </rulesets>
+                        <failOnViolation>false</failOnViolation>
+                        <printFailingErrors>true</printFailingErrors>
+                        <includeTests>true</includeTests>
+                    </configuration>
+                    <executions>
+                        <execution>
+                            <id>pmd</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
                 </plugin>
             </plugins>
         </pluginManagement>
@@ -171,10 +396,64 @@
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+            </plugin>
+            <plugin>
                 <groupId>com.diffplug.spotless</groupId>
                 <artifactId>spotless-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
+
+    <profiles>
+        <!-- Release profile for Maven Central publication -->
+        <!-- Usage: mvn clean deploy -Prelease -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+
+        <!-- Quality profile for code analysis -->
+        <!-- Usage: mvn clean verify -Pquality -->
+        <profile>
+            <id>quality</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-checkstyle-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.spotbugs</groupId>
+                        <artifactId>spotbugs-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-pmd-plugin</artifactId>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>

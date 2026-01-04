@@ -1,0 +1,119 @@
+<?xml version="1.0"?>
+<ruleset name="HexaGlue PMD Ruleset"
+         xmlns="http://pmd.sourceforge.net/ruleset/2.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://pmd.sourceforge.net/ruleset/2.0.0
+                             https://pmd.sourceforge.io/ruleset_2_0_0.xsd">
+
+    <description>
+        HexaGlue PMD Rules - Focus on code quality and maintainability
+    </description>
+
+    <!-- Best Practices -->
+    <rule ref="category/java/bestpractices.xml">
+        <!-- Allow abstract class without abstract methods (marker interfaces) -->
+        <exclude name="AbstractClassWithoutAbstractMethod"/>
+        <!-- Allow guard log statements (SLF4J handles this) -->
+        <exclude name="GuardLogStatement"/>
+    </rule>
+
+    <!-- Code Style -->
+    <rule ref="category/java/codestyle.xml">
+        <!-- Allow short variable names in lambdas -->
+        <exclude name="ShortVariable"/>
+        <!-- Allow long variable names -->
+        <exclude name="LongVariable"/>
+        <!-- Allow static imports -->
+        <exclude name="TooManyStaticImports"/>
+        <!-- Allow method argument reassignment -->
+        <exclude name="MethodArgumentCouldBeFinal"/>
+        <exclude name="LocalVariableCouldBeFinal"/>
+        <!-- Conflicts with records -->
+        <exclude name="AtLeastOneConstructor"/>
+        <!-- Allow default access modifier without comment -->
+        <exclude name="CommentDefaultAccessModifier"/>
+        <!-- Allow short method names like ir() -->
+        <exclude name="ShortMethodName"/>
+        <!-- Control statement braces already checked by Checkstyle -->
+        <exclude name="ControlStatementBraces"/>
+        <!-- Allow multiple return statements for early exits -->
+        <exclude name="OnlyOneReturn"/>
+    </rule>
+
+    <!-- Design -->
+    <rule ref="category/java/design.xml">
+        <!-- Allow high coupling in orchestrator/facade classes -->
+        <exclude name="CouplingBetweenObjects"/>
+        <!-- Allow deep nesting in complex algorithms -->
+        <exclude name="AvoidDeeplyNestedIfStmts"/>
+        <!-- Allow more public methods in service classes -->
+        <exclude name="ExcessivePublicCount"/>
+        <!-- Allow more imports -->
+        <exclude name="ExcessiveImports"/>
+        <!-- Relax data class restrictions -->
+        <exclude name="DataClass"/>
+        <!-- Allow law of demeter violations in fluent APIs -->
+        <exclude name="LawOfDemeter"/>
+        <!-- Allow cognitive complexity in analyzers -->
+        <exclude name="CognitiveComplexity"/>
+        <!-- God class metric not always relevant for utility classes -->
+        <exclude name="GodClass"/>
+        <!-- Requires package configuration not provided -->
+        <exclude name="LoosePackageCoupling"/>
+    </rule>
+
+    <!-- Configure TooManyMethods -->
+    <rule ref="category/java/design.xml/TooManyMethods">
+        <properties>
+            <property name="maxmethods" value="20"/>
+        </properties>
+    </rule>
+
+    <!-- Configure CyclomaticComplexity -->
+    <rule ref="category/java/design.xml/CyclomaticComplexity">
+        <properties>
+            <property name="methodReportLevel" value="15"/>
+        </properties>
+    </rule>
+
+    <!-- Documentation -->
+    <rule ref="category/java/documentation.xml">
+        <!-- Javadoc is optional -->
+        <exclude name="CommentRequired"/>
+        <exclude name="CommentSize"/>
+    </rule>
+
+    <!-- Error Prone -->
+    <rule ref="category/java/errorprone.xml">
+        <!-- Allow empty catch for expected exceptions -->
+        <exclude name="EmptyCatchBlock"/>
+        <!-- Allow null assignment in cleanup -->
+        <exclude name="NullAssignment"/>
+        <!-- Allow avoiding literals in conditionals -->
+        <exclude name="AvoidLiteralsInIfCondition"/>
+        <!-- Allow duplicate literals (common in tests) -->
+        <exclude name="AvoidDuplicateLiterals"/>
+        <!-- Allow field name matching method name (common in builders) -->
+        <exclude name="AvoidFieldNameMatchingMethodName"/>
+        <!-- Missing serialVersionUID acceptable for internal exceptions -->
+        <exclude name="MissingSerialVersionUID"/>
+        <!-- Allow calling overridable methods in constructors for builders -->
+        <exclude name="ConstructorCallsOverridableMethod"/>
+    </rule>
+
+    <!-- Multithreading -->
+    <rule ref="category/java/multithreading.xml">
+        <!-- Allow using volatile for simple flags -->
+        <exclude name="AvoidUsingVolatile"/>
+    </rule>
+
+    <!-- Performance -->
+    <rule ref="category/java/performance.xml">
+        <!-- Allow string concatenation in non-critical paths -->
+        <exclude name="ConsecutiveLiteralAppends"/>
+        <exclude name="AppendCharacterWithChar"/>
+        <!-- Allow instantiation in loops for clarity -->
+        <exclude name="AvoidInstantiatingObjectsInLoops"/>
+    </rule>
+
+</ruleset>

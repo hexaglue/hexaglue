@@ -451,4 +451,7 @@ Or use the Living Documentation plugin to generate a report of all detected type
 
 **HexaGlue - Focus on business code, not infrastructure glue.**
 
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
 </div>

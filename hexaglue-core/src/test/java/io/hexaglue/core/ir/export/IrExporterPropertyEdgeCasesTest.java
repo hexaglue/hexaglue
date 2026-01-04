@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
@@ -68,9 +81,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract List<String> property with COLLECTION cardinality")
         void shouldExtractListStringProperty() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     import java.util.List;
@@ -88,16 +99,13 @@ class IrExporterPropertyEdgeCasesTest {
             assertThat(tagsProperty.cardinality())
                     .as("List property should have COLLECTION cardinality")
                     .isEqualTo(Cardinality.COLLECTION);
-            assertThat(tagsProperty.type().qualifiedName())
-                    .isEqualTo("java.util.List");
+            assertThat(tagsProperty.type().qualifiedName()).isEqualTo("java.util.List");
         }
 
         @Test
         @DisplayName("should extract Set<UUID> property")
         void shouldExtractSetUuidProperty() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     import java.util.Set;
@@ -128,16 +136,12 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract Map<String, List<OrderId>> property")
         void shouldExtractMapWithListValue() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     import java.util.UUID;
                     public record OrderId(UUID value) {}
                     """);
-            writeSource(
-                    "com/example/OrderBatch.java",
-                    """
+            writeSource("com/example/OrderBatch.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     import java.util.Map;
@@ -161,9 +165,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract Optional<Set<Money>> property")
         void shouldExtractOptionalWithNestedCollection() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.ValueObject;
                     import java.math.BigDecimal;
@@ -171,9 +173,7 @@ class IrExporterPropertyEdgeCasesTest {
                     @ValueObject
                     public record Money(BigDecimal amount, String currency) {}
                     """);
-            writeSource(
-                    "com/example/Wallet.java",
-                    """
+            writeSource("com/example/Wallet.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     import java.util.Optional;
@@ -206,9 +206,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract String[] property with COLLECTION cardinality")
         void shouldExtractStringArrayProperty() throws IOException {
-            writeSource(
-                    "com/example/Document.java",
-                    """
+            writeSource("com/example/Document.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -230,9 +228,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract byte[] property")
         void shouldExtractByteArrayProperty() throws IOException {
-            writeSource(
-                    "com/example/Attachment.java",
-                    """
+            writeSource("com/example/Attachment.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -254,9 +250,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract int[][] multi-dimensional array")
         void shouldExtractMultiDimensionalArray() throws IOException {
-            writeSource(
-                    "com/example/Matrix.java",
-                    """
+            writeSource("com/example/Matrix.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -285,9 +279,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract Integer wrapper type")
         void shouldExtractIntegerProperty() throws IOException {
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -312,9 +304,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract primitive types correctly")
         void shouldExtractPrimitiveTypes() throws IOException {
-            writeSource(
-                    "com/example/Counter.java",
-                    """
+            writeSource("com/example/Counter.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -346,9 +336,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should extract java.time types")
         void shouldExtractJavaTimeTypes() throws IOException {
-            writeSource(
-                    "com/example/Event.java",
-                    """
+            writeSource("com/example/Event.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     import java.time.*;
@@ -366,16 +354,12 @@ class IrExporterPropertyEdgeCasesTest {
 
             DomainType event = classifyAndExport("com.example.Event");
 
-            assertThat(findProperty(event, "eventDate").type().qualifiedName())
-                    .isEqualTo("java.time.LocalDate");
-            assertThat(findProperty(event, "createdAt").type().qualifiedName())
-                    .isEqualTo("java.time.LocalDateTime");
-            assertThat(findProperty(event, "timestamp").type().qualifiedName())
-                    .isEqualTo("java.time.Instant");
+            assertThat(findProperty(event, "eventDate").type().qualifiedName()).isEqualTo("java.time.LocalDate");
+            assertThat(findProperty(event, "createdAt").type().qualifiedName()).isEqualTo("java.time.LocalDateTime");
+            assertThat(findProperty(event, "timestamp").type().qualifiedName()).isEqualTo("java.time.Instant");
             assertThat(findProperty(event, "scheduledAt").type().qualifiedName())
                     .isEqualTo("java.time.ZonedDateTime");
-            assertThat(findProperty(event, "duration").type().qualifiedName())
-                    .isEqualTo("java.time.Duration");
+            assertThat(findProperty(event, "duration").type().qualifiedName()).isEqualTo("java.time.Duration");
         }
     }
 
@@ -390,9 +374,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should NOT include static fields as properties")
         void shouldNotIncludeStaticFields() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -414,17 +396,13 @@ class IrExporterPropertyEdgeCasesTest {
                     .doesNotContain("TABLE_NAME", "instanceCount");
 
             // Instance fields should be included
-            assertThat(order.properties())
-                    .extracting(DomainProperty::name)
-                    .contains("id", "description");
+            assertThat(order.properties()).extracting(DomainProperty::name).contains("id", "description");
         }
 
         @Test
         @DisplayName("should NOT include transient fields as properties")
         void shouldNotIncludeTransientFields() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -446,17 +424,13 @@ class IrExporterPropertyEdgeCasesTest {
                     .doesNotContain("cachedDisplayName", "hashCodeCache");
 
             // Non-transient fields should be included
-            assertThat(customer.properties())
-                    .extracting(DomainProperty::name)
-                    .contains("id", "name");
+            assertThat(customer.properties()).extracting(DomainProperty::name).contains("id", "name");
         }
 
         @Test
         @DisplayName("should NOT include static transient fields")
         void shouldNotIncludeStaticTransientFields() throws IOException {
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
 
@@ -479,9 +453,7 @@ class IrExporterPropertyEdgeCasesTest {
         @Test
         @DisplayName("should include final instance fields (immutable properties)")
         void shouldIncludeFinalInstanceFields() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.ValueObject;
                     import java.math.BigDecimal;
@@ -521,7 +493,8 @@ class IrExporterPropertyEdgeCasesTest {
     private ApplicationGraph buildGraph() {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
         JavaSemanticModel model = frontend.build(input);
-        GraphMetadata metadata = GraphMetadata.of("com.example", 17, (int) model.types().count());
+        GraphMetadata metadata =
+                GraphMetadata.of("com.example", 17, (int) model.types().count());
         model = frontend.build(input);
         return builder.build(model, metadata);
     }

@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification.domain;
 
 import static org.assertj.core.api.Assertions.*;
@@ -55,9 +68,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify type with @AggregateRoot as AGGREGATE_ROOT")
         void shouldClassifyExplicitAggregateRoot() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     @AggregateRoot
@@ -83,9 +94,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify type with @Entity as ENTITY")
         void shouldClassifyExplicitEntity() throws IOException {
-            writeSource(
-                    "com/example/LineItem.java",
-                    """
+            writeSource("com/example/LineItem.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Entity;
                     @Entity
@@ -108,9 +117,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify type with @ValueObject as VALUE_OBJECT")
         void shouldClassifyExplicitValueObject() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.ValueObject;
                     @ValueObject
@@ -131,9 +138,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should return unclassified for plain class without markers")
         void shouldReturnUnclassifiedForPlainClass() throws IOException {
-            writeSource(
-                    "com/example/Utils.java",
-                    """
+            writeSource("com/example/Utils.java", """
                     package com.example;
                     public class Utils {
                         public static void doSomething() {}
@@ -162,17 +167,13 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify type used in Repository as AGGREGATE_ROOT")
         void shouldClassifyRepositoryDominantAsAggregateRoot() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -195,9 +196,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify class with id field as ENTITY")
         void shouldClassifyClassWithIdAsEntity() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
@@ -220,9 +219,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify record with *Id name as IDENTIFIER")
         void shouldClassifyRecordIdAsIdentifier() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(String value) {}
                     """);
@@ -242,9 +239,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should classify immutable record without id as VALUE_OBJECT")
         void shouldClassifyImmutableRecordAsValueObject() throws IOException {
-            writeSource(
-                    "com/example/Address.java",
-                    """
+            writeSource("com/example/Address.java", """
                     package com.example;
                     public record Address(String street, String city, String zip) {}
                     """);
@@ -274,9 +269,7 @@ class DomainClassifierTest {
         @DisplayName("Explicit annotation should win over heuristic")
         void explicitAnnotationShouldWinOverHeuristic() throws IOException {
             // Type has @Entity but also has id field (which would match has-identity)
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Entity;
                     @Entity
@@ -305,9 +298,7 @@ class DomainClassifierTest {
             // OrderId record: matches both record-single-id (80) and immutable-no-id (60)
             // But record-single-id targets IDENTIFIER while immutable-no-id targets VALUE_OBJECT
             // record-single-id should win due to higher priority
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(String value) {}
                     """);
@@ -325,17 +316,13 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Classification should be deterministic")
         void classificationShouldBeDeterministic() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -369,17 +356,13 @@ class DomainClassifierTest {
         void shouldDetectConflictsButClassifyWithWinner() throws IOException {
             // Order used in repository (AGGREGATE_ROOT) but also has id field (ENTITY)
             // AGGREGATE_ROOT and ENTITY are compatible, so should classify
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -403,9 +386,7 @@ class DomainClassifierTest {
         @DisplayName("Should report conflicts without failing for compatible kinds")
         void shouldReportConflictsForCompatibleKinds() throws IOException {
             // @AggregateRoot + id field -> AGGREGATE_ROOT wins, but ENTITY is compatible
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     @AggregateRoot
@@ -437,9 +418,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should handle interface types")
         void shouldHandleInterfaceTypes() throws IOException {
-            writeSource(
-                    "com/example/OrderService.java",
-                    """
+            writeSource("com/example/OrderService.java", """
                     package com.example;
                     public interface OrderService {
                         void processOrder(Object order);
@@ -459,9 +438,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should handle enum types")
         void shouldHandleEnumTypes() throws IOException {
-            writeSource(
-                    "com/example/OrderStatus.java",
-                    """
+            writeSource("com/example/OrderStatus.java", """
                     package com.example;
                     public enum OrderStatus {
                         PENDING, CONFIRMED, SHIPPED, DELIVERED
@@ -481,9 +458,7 @@ class DomainClassifierTest {
         @Test
         @DisplayName("Should handle empty class")
         void shouldHandleEmptyClass() throws IOException {
-            writeSource(
-                    "com/example/Empty.java",
-                    """
+            writeSource("com/example/Empty.java", """
                     package com.example;
                     public class Empty {}
                     """);

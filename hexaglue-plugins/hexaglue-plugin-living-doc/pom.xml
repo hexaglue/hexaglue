@@ -17,6 +17,10 @@
     <name>HexaGlue Living Documentation Plugin</name>
     <description>Generates living documentation (Markdown) from domain model and ports</description>
 
+    <properties>
+        <hexaglue.root>${project.basedir}/../..</hexaglue.root>
+    </properties>
+
     <dependencies>
         <!-- HexaGlue SPI (compile scope - needed at runtime) -->
         <dependency>

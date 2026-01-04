@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
@@ -63,15 +76,11 @@ class IrExportIntegrationTest {
         @DisplayName("should classify and export complete CoffeeShop domain model")
         void exportCoffeeShopDomainModel() throws IOException {
             // Setup: Complete CoffeeShop domain with Order, LineItem, Location
-            writeSource(
-                    "com/example/domain/OrderId.java",
-                    """
+            writeSource("com/example/domain/OrderId.java", """
                     package com.example.domain;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/domain/Order.java",
-                    """
+            writeSource("com/example/domain/Order.java", """
                     package com.example.domain;
                     import java.util.List;
                     public class Order {
@@ -82,9 +91,7 @@ class IrExportIntegrationTest {
                         private java.math.BigDecimal total;
                     }
                     """);
-            writeSource(
-                    "com/example/domain/LineItem.java",
-                    """
+            writeSource("com/example/domain/LineItem.java", """
                     package com.example.domain;
                     public class LineItem {
                         private Long id;
@@ -93,15 +100,11 @@ class IrExportIntegrationTest {
                         private java.math.BigDecimal price;
                     }
                     """);
-            writeSource(
-                    "com/example/domain/Location.java",
-                    """
+            writeSource("com/example/domain/Location.java", """
                     package com.example.domain;
                     public record Location(String city, String street, String zipCode) {}
                     """);
-            writeSource(
-                    "com/example/domain/Orders.java",
-                    """
+            writeSource("com/example/domain/Orders.java", """
                     package com.example.domain;
                     import java.util.List;
                     import java.util.Optional;
@@ -157,17 +160,13 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should export CoffeeShop with correct metadata")
         void exportCoffeeShopWithMetadata() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -196,9 +195,7 @@ class IrExportIntegrationTest {
         @DisplayName("should export complete hexagonal architecture with ports in/out")
         void exportHexagonalArchitecture() throws IOException {
             // Domain
-            writeSource(
-                    "com/example/domain/Product.java",
-                    """
+            writeSource("com/example/domain/Product.java", """
                     package com.example.domain;
                     public class Product {
                         private String id;
@@ -208,9 +205,7 @@ class IrExportIntegrationTest {
                     """);
 
             // Driving port (in) - use naming pattern for reliable classification
-            writeSource(
-                    "com/example/port/in/CreateProductUseCase.java",
-                    """
+            writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
                     public interface CreateProductUseCase {
@@ -219,9 +214,7 @@ class IrExportIntegrationTest {
                     """);
 
             // Driven port (out) - repository with naming pattern
-            writeSource(
-                    "com/example/port/out/ProductRepository.java",
-                    """
+            writeSource("com/example/port/out/ProductRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Product;
                     import java.util.Optional;
@@ -232,9 +225,7 @@ class IrExportIntegrationTest {
                     """);
 
             // Driven port (out) - gateway with naming pattern
-            writeSource(
-                    "com/example/port/out/NotificationGateway.java",
-                    """
+            writeSource("com/example/port/out/NotificationGateway.java", """
                     package com.example.port.out;
                     import com.example.domain.Product;
                     public interface NotificationGateway {
@@ -271,17 +262,13 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should correctly identify port directions from package and naming")
         void identifyPortDirections() throws IOException {
-            writeSource(
-                    "com/example/domain/Entity.java",
-                    """
+            writeSource("com/example/domain/Entity.java", """
                     package com.example.domain;
                     public class Entity { private String id; }
                     """);
 
             // Package .port.in with naming pattern = DRIVING
-            writeSource(
-                    "com/example/port/in/SomeHandler.java",
-                    """
+            writeSource("com/example/port/in/SomeHandler.java", """
                     package com.example.port.in;
                     public interface SomeHandler {
                         void handle(String command);
@@ -289,9 +276,7 @@ class IrExportIntegrationTest {
                     """);
 
             // Repository pattern = DRIVEN
-            writeSource(
-                    "com/example/port/out/EntityRepository.java",
-                    """
+            writeSource("com/example/port/out/EntityRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Entity;
                     public interface EntityRepository {
@@ -324,35 +309,27 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should produce identical snapshots for same input")
         void identicalSnapshotsForSameInput() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
                         private String email;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(String id);
@@ -388,39 +365,27 @@ class IrExportIntegrationTest {
         @DisplayName("should sort domain types alphabetically by qualified name")
         void sortDomainTypesAlphabetically() throws IOException {
             // Create types in non-alphabetical order
-            writeSource(
-                    "com/example/Zebra.java",
-                    """
+            writeSource("com/example/Zebra.java", """
                     package com.example;
                     public class Zebra { private String id; }
                     """);
-            writeSource(
-                    "com/example/Apple.java",
-                    """
+            writeSource("com/example/Apple.java", """
                     package com.example;
                     public class Apple { private String id; }
                     """);
-            writeSource(
-                    "com/example/Mango.java",
-                    """
+            writeSource("com/example/Mango.java", """
                     package com.example;
                     public class Mango { private String id; }
                     """);
-            writeSource(
-                    "com/example/ZebraRepository.java",
-                    """
+            writeSource("com/example/ZebraRepository.java", """
                     package com.example;
                     public interface ZebraRepository { Zebra findById(String id); }
                     """);
-            writeSource(
-                    "com/example/AppleRepository.java",
-                    """
+            writeSource("com/example/AppleRepository.java", """
                     package com.example;
                     public interface AppleRepository { Apple findById(String id); }
                     """);
-            writeSource(
-                    "com/example/MangoRepository.java",
-                    """
+            writeSource("com/example/MangoRepository.java", """
                     package com.example;
                     public interface MangoRepository { Mango findById(String id); }
                     """);
@@ -454,9 +419,7 @@ class IrExportIntegrationTest {
         @DisplayName("should handle types with no classification")
         void handleUnclassifiedTypes() throws IOException {
             // A utility class with no domain characteristics
-            writeSource(
-                    "com/example/Utils.java",
-                    """
+            writeSource("com/example/Utils.java", """
                     package com.example;
                     public class Utils {
                         public static String format(String s) { return s; }
@@ -490,9 +453,7 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should export type with jMolecules annotations")
         void exportJMoleculesAnnotatedType() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     @org.jmolecules.ddd.annotation.AggregateRoot
                     public class Customer {
@@ -522,9 +483,7 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should handle nested collections and optionals")
         void handleNestedCollectionsAndOptionals() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.*;
                     public class Order {
@@ -534,9 +493,7 @@ class IrExportIntegrationTest {
                         private Set<String> categories;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -560,39 +517,27 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should handle multiple aggregate roots")
         void handleMultipleAggregateRoots() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order { private String id; }
                     """);
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer { private String id; }
                     """);
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product { private String id; }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository { Order findById(String id); }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository { Customer findById(String id); }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository { Product findById(String id); }
                     """);

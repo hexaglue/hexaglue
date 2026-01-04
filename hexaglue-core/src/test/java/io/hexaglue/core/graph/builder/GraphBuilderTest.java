@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.graph.builder;
 
 import static org.assertj.core.api.Assertions.*;
@@ -34,9 +47,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateTypeNodesFromClasses() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                 }
@@ -55,9 +66,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateTypeNodesFromInterfaces() throws IOException {
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     void save(Object order);
@@ -72,9 +81,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateTypeNodesFromRecords() throws IOException {
-        writeSource(
-                "com/example/OrderId.java",
-                """
+        writeSource("com/example/OrderId.java", """
                 package com.example;
                 public record OrderId(String value) {}
                 """);
@@ -89,15 +96,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateExtendsEdge() throws IOException {
-        writeSource(
-                "com/example/BaseEntity.java",
-                """
+        writeSource("com/example/BaseEntity.java", """
                 package com.example;
                 public abstract class BaseEntity {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order extends BaseEntity {}
                 """);
@@ -115,15 +118,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateImplementsEdge() throws IOException {
-        writeSource(
-                "com/example/Identifiable.java",
-                """
+        writeSource("com/example/Identifiable.java", """
                 package com.example;
                 public interface Identifiable {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order implements Identifiable {}
                 """);
@@ -140,9 +139,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldNotCreateEdgeForExternalTypes() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.io.Serializable;
                 public class Order implements Serializable {}
@@ -158,9 +155,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateFieldNodes() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     private String id;
@@ -183,9 +178,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateDeclaresEdgeForField() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     private String id;
@@ -207,15 +200,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateFieldTypeEdge() throws IOException {
-        writeSource(
-                "com/example/OrderId.java",
-                """
+        writeSource("com/example/OrderId.java", """
                 package com.example;
                 public record OrderId(String value) {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     private OrderId id;
@@ -236,9 +225,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateMethodNodes() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     public int getTotal() {
@@ -259,15 +246,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateReturnTypeEdge() throws IOException {
-        writeSource(
-                "com/example/OrderId.java",
-                """
+        writeSource("com/example/OrderId.java", """
                 package com.example;
                 public record OrderId(String value) {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     public OrderId getId() {
@@ -287,15 +270,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateParameterTypeEdge() throws IOException {
-        writeSource(
-                "com/example/OrderId.java",
-                """
+        writeSource("com/example/OrderId.java", """
                 package com.example;
                 public record OrderId(String value) {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     void deleteById(OrderId id);
@@ -315,15 +294,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateTypeArgumentEdge() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 import java.util.List;
                 public interface OrderRepository {
@@ -344,9 +319,7 @@ class GraphBuilderTest {
 
     @Test
     void shouldCreateConstructorNodes() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {
                     public Order() {}
@@ -368,15 +341,11 @@ class GraphBuilderTest {
 
     @Test
     void shouldSupportQueryInterface() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {}
                 """);
@@ -392,21 +361,15 @@ class GraphBuilderTest {
 
     @Test
     void shouldBuildDeterministicGraph() throws IOException {
-        writeSource(
-                "com/example/B.java",
-                """
+        writeSource("com/example/B.java", """
                 package com.example;
                 public class B {}
                 """);
-        writeSource(
-                "com/example/A.java",
-                """
+        writeSource("com/example/A.java", """
                 package com.example;
                 public class A {}
                 """);
-        writeSource(
-                "com/example/C.java",
-                """
+        writeSource("com/example/C.java", """
                 package com.example;
                 public class C {}
                 """);

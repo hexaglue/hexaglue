@@ -1,0 +1,24 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+        "-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+        "https://checkstyle.org/dtds/suppressions_1_2.dtd">
+
+<!--
+    HexaGlue Checkstyle Suppressions
+    Suppress checks for generated code and test files
+-->
+<suppressions>
+    <!-- Suppress all checks for generated sources -->
+    <suppress files="[\\/]generated-sources[\\/]" checks=".*"/>
+    <suppress files="[\\/]generated-test-sources[\\/]" checks=".*"/>
+
+    <!-- Suppress Javadoc checks for test files -->
+    <suppress files=".*Test\.java$" checks="Javadoc.*"/>
+    <suppress files=".*IT\.java$" checks="Javadoc.*"/>
+
+    <!-- Suppress file length for test files -->
+    <suppress files=".*Test\.java$" checks="FileLength"/>
+
+    <!-- Suppress magic number checks for tests -->
+    <suppress files=".*Test\.java$" checks="MagicNumber"/>
+</suppressions>

@@ -745,4 +745,7 @@ public class EntityGeneratorPlugin implements HexaGluePlugin {
 
 **HexaGlue - Focus on business code, not infrastructure glue.**
 
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
 </div>

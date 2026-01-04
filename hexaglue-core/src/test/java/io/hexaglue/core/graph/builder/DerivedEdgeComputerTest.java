@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.graph.builder;
 
 import static org.assertj.core.api.Assertions.*;
@@ -38,15 +51,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesInSignatureForReturnType() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     Order findById(String id);
@@ -68,15 +77,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesInSignatureForParameterType() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     void save(Order order);
@@ -95,15 +100,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesInSignatureForGenericReturnType() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 import java.util.List;
                 public interface OrderRepository {
@@ -120,15 +121,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesInSignatureForOptionalReturnType() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 import java.util.Optional;
                 public interface OrderRepository {
@@ -144,15 +141,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldNotDuplicateUsesInSignatureEdge() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     Order findById(String id);
@@ -174,15 +167,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldNotCreateUsesInSignatureForClasses() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderService.java",
-                """
+        writeSource("com/example/OrderService.java", """
                 package com.example;
                 public class OrderService {
                     public Order process(Order order) { return order; }
@@ -198,15 +187,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldIgnoreVoidReturnType() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     void delete(String id);
@@ -222,9 +207,7 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldIgnoreExternalTypesInSignature() throws IOException {
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     String findNameById(String id);
@@ -242,15 +225,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesAsCollectionElementForListField() throws IOException {
-        writeSource(
-                "com/example/LineItem.java",
-                """
+        writeSource("com/example/LineItem.java", """
                 package com.example;
                 public class LineItem {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.List;
                 public class Order {
@@ -273,15 +252,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesAsCollectionElementForSetField() throws IOException {
-        writeSource(
-                "com/example/Tag.java",
-                """
+        writeSource("com/example/Tag.java", """
                 package com.example;
                 public class Tag {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.Set;
                 public class Order {
@@ -301,15 +276,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldCreateUsesAsCollectionElementForOptionalField() throws IOException {
-        writeSource(
-                "com/example/Discount.java",
-                """
+        writeSource("com/example/Discount.java", """
                 package com.example;
                 public class Discount {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.Optional;
                 public class Order {
@@ -329,9 +300,7 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldIgnoreExternalElementTypes() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.List;
                 public class Order {
@@ -348,15 +317,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldNotDuplicateCollectionElementEdge() throws IOException {
-        writeSource(
-                "com/example/LineItem.java",
-                """
+        writeSource("com/example/LineItem.java", """
                 package com.example;
                 public class LineItem {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.List;
                 import java.util.Set;
@@ -381,15 +346,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldIncludeMethodIdInProof() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     Order findById(String id);
@@ -408,15 +369,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldIncludeFieldIdInProof() throws IOException {
-        writeSource(
-                "com/example/LineItem.java",
-                """
+        writeSource("com/example/LineItem.java", """
                 package com.example;
                 public class LineItem {}
                 """);
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 import java.util.List;
                 public class Order {
@@ -438,15 +395,11 @@ class DerivedEdgeComputerTest {
 
     @Test
     void shouldBeIdempotent() throws IOException {
-        writeSource(
-                "com/example/Order.java",
-                """
+        writeSource("com/example/Order.java", """
                 package com.example;
                 public class Order {}
                 """);
-        writeSource(
-                "com/example/OrderRepository.java",
-                """
+        writeSource("com/example/OrderRepository.java", """
                 package com.example;
                 public interface OrderRepository {
                     Order findById(String id);

@@ -195,3 +195,14 @@ Started EcommerceApplication in X.XXX seconds
 4. **Hexagonal Ports** - Clean separation of driving (use cases) and driven (infrastructure) ports
 5. **External Gateway** - PaymentGateway demonstrates non-repository driven ports
 6. **Aggregate Relationships** - Order references Customer and Product by ID (not direct reference)
+
+---
+
+<div align="center">
+
+**HexaGlue - Focus on business code, not infrastructure glue.**
+
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
+</div>

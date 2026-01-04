@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -41,32 +54,24 @@ class GoldenFileTest {
     @Test
     void coffeeshopDomain_shouldMatchGoldenFile() throws IOException {
         // Given: Coffee shop domain sources
-        writeSource(
-                "com/coffeeshop/domain/order/OrderId.java",
-                """
+        writeSource("com/coffeeshop/domain/order/OrderId.java", """
                 package com.coffeeshop.domain.order;
                 import java.util.UUID;
                 public record OrderId(UUID value) {}
                 """);
 
-        writeSource(
-                "com/coffeeshop/domain/order/Location.java",
-                """
+        writeSource("com/coffeeshop/domain/order/Location.java", """
                 package com.coffeeshop.domain.order;
                 public enum Location { IN_STORE, TAKE_AWAY }
                 """);
 
-        writeSource(
-                "com/coffeeshop/domain/order/LineItem.java",
-                """
+        writeSource("com/coffeeshop/domain/order/LineItem.java", """
                 package com.coffeeshop.domain.order;
                 import java.math.BigDecimal;
                 public record LineItem(String productName, int quantity, BigDecimal unitPrice) {}
                 """);
 
-        writeSource(
-                "com/coffeeshop/domain/order/Order.java",
-                """
+        writeSource("com/coffeeshop/domain/order/Order.java", """
                 package com.coffeeshop.domain.order;
                 import java.util.List;
                 public class Order {
@@ -87,9 +92,7 @@ class GoldenFileTest {
                 }
                 """);
 
-        writeSource(
-                "com/coffeeshop/ports/in/OrderingCoffee.java",
-                """
+        writeSource("com/coffeeshop/ports/in/OrderingCoffee.java", """
                 package com.coffeeshop.ports.in;
                 import com.coffeeshop.domain.order.*;
                 import java.util.Optional;
@@ -99,9 +102,7 @@ class GoldenFileTest {
                 }
                 """);
 
-        writeSource(
-                "com/coffeeshop/ports/out/Orders.java",
-                """
+        writeSource("com/coffeeshop/ports/out/Orders.java", """
                 package com.coffeeshop.ports.out;
                 import com.coffeeshop.domain.order.*;
                 import java.util.Optional;

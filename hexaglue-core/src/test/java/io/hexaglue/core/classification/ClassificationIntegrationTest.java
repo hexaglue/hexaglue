@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.*;
@@ -61,9 +74,7 @@ class ClassificationIntegrationTest {
         @DisplayName("Order with repository should be classified as AGGREGATE_ROOT")
         void orderWithRepositoryShouldBeAggregateRoot() throws IOException {
             // Setup: Order class with id field + OrderRepository interface
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -71,9 +82,7 @@ class ClassificationIntegrationTest {
                         private double total;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -103,17 +112,13 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("OrderRepository should be classified as REPOSITORY port")
         void orderRepositoryShouldBeRepositoryPort() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -139,17 +144,13 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("Order conflicts should include ENTITY from has-identity")
         void orderShouldHaveEntityConflict() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -184,9 +185,7 @@ class ClassificationIntegrationTest {
         @DisplayName("Complete coffee shop domain should be classified correctly")
         void coffeeShopDomainClassification() throws IOException {
             // Order aggregate root
-            writeSource(
-                    "com/coffeeshop/order/Order.java",
-                    """
+            writeSource("com/coffeeshop/order/Order.java", """
                     package com.coffeeshop.order;
                     import java.util.List;
                     public class Order {
@@ -197,17 +196,13 @@ class ClassificationIntegrationTest {
                     """);
 
             // OrderId - should be IDENTIFIER
-            writeSource(
-                    "com/coffeeshop/order/OrderId.java",
-                    """
+            writeSource("com/coffeeshop/order/OrderId.java", """
                     package com.coffeeshop.order;
                     public record OrderId(String value) {}
                     """);
 
             // LineItem - should be ENTITY (has id)
-            writeSource(
-                    "com/coffeeshop/order/LineItem.java",
-                    """
+            writeSource("com/coffeeshop/order/LineItem.java", """
                     package com.coffeeshop.order;
                     public class LineItem {
                         private String id;
@@ -217,17 +212,13 @@ class ClassificationIntegrationTest {
                     """);
 
             // Location - should be VALUE_OBJECT (record without id pattern)
-            writeSource(
-                    "com/coffeeshop/order/Location.java",
-                    """
+            writeSource("com/coffeeshop/order/Location.java", """
                     package com.coffeeshop.order;
                     public record Location(String store, String table) {}
                     """);
 
             // Orders repository
-            writeSource(
-                    "com/coffeeshop/order/Orders.java",
-                    """
+            writeSource("com/coffeeshop/order/Orders.java", """
                     package com.coffeeshop.order;
                     public interface Orders {
                         Order findById(OrderId id);
@@ -282,9 +273,7 @@ class ClassificationIntegrationTest {
         @DisplayName("Ports in and out should be classified with correct direction")
         void portsInOutClassification() throws IOException {
             // Domain
-            writeSource(
-                    "com/example/domain/Order.java",
-                    """
+            writeSource("com/example/domain/Order.java", """
                     package com.example.domain;
                     public class Order {
                         private String id;
@@ -292,9 +281,7 @@ class ClassificationIntegrationTest {
                     """);
 
             // Driving port (in)
-            writeSource(
-                    "com/example/ports/in/PlaceOrderUseCase.java",
-                    """
+            writeSource("com/example/ports/in/PlaceOrderUseCase.java", """
                     package com.example.ports.in;
                     public interface PlaceOrderUseCase {
                         void execute(Object command);
@@ -302,9 +289,7 @@ class ClassificationIntegrationTest {
                     """);
 
             // Driven port (out)
-            writeSource(
-                    "com/example/ports/out/OrderRepository.java",
-                    """
+            writeSource("com/example/ports/out/OrderRepository.java", """
                     package com.example.ports.out;
                     public interface OrderRepository {
                         Object findById(String id);
@@ -313,9 +298,7 @@ class ClassificationIntegrationTest {
                     """);
 
             // Gateway
-            writeSource(
-                    "com/example/ports/out/PaymentGateway.java",
-                    """
+            writeSource("com/example/ports/out/PaymentGateway.java", """
                     package com.example.ports.out;
                     public interface PaymentGateway {
                         void process(Object payment);
@@ -360,9 +343,7 @@ class ClassificationIntegrationTest {
         @DisplayName("Explicit annotations should override heuristics")
         void explicitAnnotationsOverrideHeuristics() throws IOException {
             // Entity with @ValueObject annotation - annotation should win
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.ValueObject;
                     @ValueObject
@@ -392,9 +373,7 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("@Repository annotation should classify as REPOSITORY port")
         void repositoryAnnotationClassification() throws IOException {
-            writeSource(
-                    "com/example/CustomerStore.java",
-                    """
+            writeSource("com/example/CustomerStore.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
                     @Repository
@@ -426,17 +405,13 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("Repository-dominant should provide evidence with repository reference")
         void repositoryDominantEvidence() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(String id);
@@ -464,9 +439,7 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("Naming criteria should provide naming evidence")
         void namingCriteriaEvidence() throws IOException {
-            writeSource(
-                    "com/example/ProductId.java",
-                    """
+            writeSource("com/example/ProductId.java", """
                     package com.example;
                     public record ProductId(String value) {}
                     """);

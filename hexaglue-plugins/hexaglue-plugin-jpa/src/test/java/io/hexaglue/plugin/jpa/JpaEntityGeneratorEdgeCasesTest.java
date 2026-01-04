@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.plugin.jpa;
 
 import static io.hexaglue.plugin.jpa.TestFixtures.*;
@@ -283,9 +296,7 @@ class JpaEntityGeneratorEdgeCasesTest {
 
             String code = generator.generateEntity(order);
 
-            assertThat(code)
-                    .contains("private UUID customerId;")
-                    .contains("private UUID sellerId;");
+            assertThat(code).contains("private UUID customerId;").contains("private UUID sellerId;");
         }
     }
 
@@ -349,7 +360,8 @@ class JpaEntityGeneratorEdgeCasesTest {
 
         List<DomainProperty> props = List.of(
                 identityProperty("id", TypeRef.of(pkg + ".OrderId")),
-                new DomainProperty("tags", setOfTags, Cardinality.COLLECTION, Nullability.NON_NULL, false, false, null));
+                new DomainProperty(
+                        "tags", setOfTags, Cardinality.COLLECTION, Nullability.NON_NULL, false, false, null));
 
         return new DomainType(
                 pkg + ".Order",
@@ -443,8 +455,7 @@ class JpaEntityGeneratorEdgeCasesTest {
 
     private static DomainType orderWithTotal(String pkg) {
         List<DomainProperty> props = List.of(
-                identityProperty("id", TypeRef.of(pkg + ".OrderId")),
-                simpleProperty("total", bigDecimalType()));
+                identityProperty("id", TypeRef.of(pkg + ".OrderId")), simpleProperty("total", bigDecimalType()));
 
         return new DomainType(
                 pkg + ".Order",

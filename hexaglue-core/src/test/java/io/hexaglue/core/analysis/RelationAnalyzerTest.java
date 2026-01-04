@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,18 +64,14 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should detect ONE_TO_MANY relation for collection of entities")
         void shouldDetectOneToManyRelation() throws IOException {
-            writeSource(
-                    "com/example/LineItem.java",
-                    """
+            writeSource("com/example/LineItem.java", """
                     package com.example;
                     public class LineItem {
                         private String id;
                         private String productName;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.List;
                     public class Order {
@@ -91,18 +100,14 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should detect mappedBy for bidirectional relation")
         void shouldDetectMappedByForBidirectionalRelation() throws IOException {
-            writeSource(
-                    "com/example/LineItem.java",
-                    """
+            writeSource("com/example/LineItem.java", """
                     package com.example;
                     public class LineItem {
                         private String id;
                         private Order order;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.List;
                     public class Order {
@@ -135,16 +140,12 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should detect EMBEDDED relation for value object field")
         void shouldDetectEmbeddedRelation() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import java.math.BigDecimal;
                     public record Money(BigDecimal amount, String currency) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -172,15 +173,11 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should detect ELEMENT_COLLECTION for collection of value objects")
         void shouldDetectElementCollectionRelation() throws IOException {
-            writeSource(
-                    "com/example/Tag.java",
-                    """
+            writeSource("com/example/Tag.java", """
                     package com.example;
                     public record Tag(String name) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.Set;
                     public class Order {
@@ -214,18 +211,14 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should detect MANY_TO_ONE relation to another aggregate")
         void shouldDetectManyToOneToAggregate() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -258,9 +251,7 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should skip identity fields")
         void shouldSkipIdentityFields() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -280,9 +271,7 @@ class RelationAnalyzerTest {
         @Test
         @DisplayName("should skip primitive type fields")
         void shouldSkipPrimitiveFields() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;

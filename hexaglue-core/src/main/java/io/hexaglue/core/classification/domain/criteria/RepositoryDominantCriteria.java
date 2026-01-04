@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification.domain.criteria;
 
 import io.hexaglue.core.classification.ClassificationCriteria;
@@ -123,13 +136,15 @@ public final class RepositoryDominantCriteria implements ClassificationCriteria<
         List<FieldNode> fields = query.fieldsOf(node);
 
         // Priority 1: Look for explicit @Identity annotation
-        Optional<FieldNode> annotatedId = fields.stream().filter(this::hasIdentityAnnotation).findFirst();
+        Optional<FieldNode> annotatedId =
+                fields.stream().filter(this::hasIdentityAnnotation).findFirst();
         if (annotatedId.isPresent()) {
             return annotatedId;
         }
 
         // Priority 2: Look for field named exactly "id"
-        Optional<FieldNode> exactIdField = fields.stream().filter(f -> f.simpleName().equals("id")).findFirst();
+        Optional<FieldNode> exactIdField =
+                fields.stream().filter(f -> f.simpleName().equals("id")).findFirst();
         if (exactIdField.isPresent()) {
             return exactIdField;
         }

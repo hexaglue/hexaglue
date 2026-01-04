@@ -99,3 +99,14 @@ The v2 release includes a complete rewrite of the analysis engine. While the SPI
 - [Documentation](docs/)
 - [Contributing](CONTRIBUTING.md)
 - [License](LICENSE)
+
+---
+
+<div align="center">
+
+**HexaGlue - Focus on business code, not infrastructure glue.**
+
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
+</div>

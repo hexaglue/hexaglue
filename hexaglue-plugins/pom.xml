@@ -24,6 +24,7 @@
     </modules>
 
     <properties>
+        <hexaglue.root>${project.basedir}/..</hexaglue.root>
         <!-- HexaGlue core version (explicit, cannot use ${project.version} because plugins have their own version) -->
         <hexaglue.version>2.0.0-SNAPSHOT</hexaglue.version>
         <!-- Plugin-specific dependencies -->

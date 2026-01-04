@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
@@ -71,24 +84,18 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should NOT unwrap composite identifier with 2 properties")
         void shouldNotUnwrapCompositeIdentifierWithTwoProperties() throws IOException {
-            writeSource(
-                    "com/example/CompositeOrderId.java",
-                    """
+            writeSource("com/example/CompositeOrderId.java", """
                     package com.example;
                     public record CompositeOrderId(String region, Long sequence) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private CompositeOrderId id;
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(CompositeOrderId id);
@@ -117,24 +124,18 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should NOT unwrap composite identifier with 3+ properties")
         void shouldNotUnwrapCompositeIdentifierWithThreeProperties() throws IOException {
-            writeSource(
-                    "com/example/TenantScopedId.java",
-                    """
+            writeSource("com/example/TenantScopedId.java", """
                     package com.example;
                     public record TenantScopedId(String tenantId, String region, Long sequence) {}
                     """);
-            writeSource(
-                    "com/example/TenantResource.java",
-                    """
+            writeSource("com/example/TenantResource.java", """
                     package com.example;
                     public class TenantResource {
                         private TenantScopedId id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/TenantResourceRepository.java",
-                    """
+            writeSource("com/example/TenantResourceRepository.java", """
                     package com.example;
                     public interface TenantResourceRepository {
                         TenantResource findById(TenantScopedId id);
@@ -174,21 +175,15 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should NOT mark customerId as identity field")
         void shouldNotMarkCustomerIdAsIdentity() throws IOException {
-            writeSource(
-                    "com/example/CustomerId.java",
-                    """
+            writeSource("com/example/CustomerId.java", """
                     package com.example;
                     public record CustomerId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private OrderId id;
@@ -196,9 +191,7 @@ class IrExporterIdentityEdgeCasesTest {
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(OrderId id);
@@ -231,27 +224,19 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should handle multiple *Id fields correctly")
         void shouldHandleMultipleIdFieldsCorrectly() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/CustomerId.java",
-                    """
+            writeSource("com/example/CustomerId.java", """
                     package com.example;
                     public record CustomerId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/ProductId.java",
-                    """
+            writeSource("com/example/ProductId.java", """
                     package com.example;
                     public record ProductId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/OrderLine.java",
-                    """
+            writeSource("com/example/OrderLine.java", """
                     package com.example;
                     public class OrderLine {
                         private Long id;
@@ -260,9 +245,7 @@ class IrExporterIdentityEdgeCasesTest {
                         private int quantity;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderLineRepository.java",
-                    """
+            writeSource("com/example/OrderLineRepository.java", """
                     package com.example;
                     public interface OrderLineRepository {
                         OrderLine findById(Long id);
@@ -294,9 +277,7 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should prefer 'id' field over other *Id fields")
         void shouldPreferIdFieldOverOtherIdFields() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private java.util.UUID transactionId;
@@ -304,9 +285,7 @@ class IrExporterIdentityEdgeCasesTest {
                         private java.util.UUID correlationId;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -339,29 +318,21 @@ class IrExporterIdentityEdgeCasesTest {
         void shouldNotUnwrapNonPrimitiveWrappedIdentity() throws IOException {
             // Example: record OrderId(Money value) - Money is a value object, not primitive
             // This should NOT be unwrapped because Money can't be directly persisted
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(Money value) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private OrderId id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(OrderId id);
@@ -384,23 +355,17 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should unwrap identity wrapping UUID")
         void shouldUnwrapIdentityWrappingUuid() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(java.util.UUID value) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private OrderId id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(OrderId id);
@@ -423,24 +388,18 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should unwrap identity wrapping Long")
         void shouldUnwrapIdentityWrappingLong() throws IOException {
-            writeSource(
-                    "com/example/ProductId.java",
-                    """
+            writeSource("com/example/ProductId.java", """
                     package com.example;
                     public record ProductId(Long value) {}
                     """);
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private ProductId id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository {
                         Product findById(ProductId id);
@@ -461,24 +420,18 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should unwrap identity wrapping String")
         void shouldUnwrapIdentityWrappingString() throws IOException {
-            writeSource(
-                    "com/example/Sku.java",
-                    """
+            writeSource("com/example/Sku.java", """
                     package com.example;
                     public record Sku(String value) {}
                     """);
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private Sku id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/ProductRepository.java",
-                    """
+            writeSource("com/example/ProductRepository.java", """
                     package com.example;
                     public interface ProductRepository {
                         Product findById(Sku id);
@@ -508,9 +461,7 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should respect @Identity annotation on non-id field")
         void shouldRespectIdentityAnnotationOnNonIdField() throws IOException {
-            writeSource(
-                    "com/example/Transaction.java",
-                    """
+            writeSource("com/example/Transaction.java", """
                     package com.example;
                     public class Transaction {
                         @org.jmolecules.ddd.annotation.Identity
@@ -518,9 +469,7 @@ class IrExporterIdentityEdgeCasesTest {
                         private String description;
                     }
                     """);
-            writeSource(
-                    "com/example/TransactionRepository.java",
-                    """
+            writeSource("com/example/TransactionRepository.java", """
                     package com.example;
                     public interface TransactionRepository {
                         Transaction findById(String transactionRef);
@@ -542,9 +491,7 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("should prefer @Identity annotation over 'id' field")
         void shouldPreferIdentityAnnotationOverIdField() throws IOException {
-            writeSource(
-                    "com/example/Document.java",
-                    """
+            writeSource("com/example/Document.java", """
                     package com.example;
                     public class Document {
                         private Long id;
@@ -552,9 +499,7 @@ class IrExporterIdentityEdgeCasesTest {
                         private String documentNumber;
                     }
                     """);
-            writeSource(
-                    "com/example/DocumentRepository.java",
-                    """
+            writeSource("com/example/DocumentRepository.java", """
                     package com.example;
                     public interface DocumentRepository {
                         Document findById(String documentNumber);
@@ -585,9 +530,7 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("VALUE_OBJECT should have no identity")
         void valueObjectShouldHaveNoIdentity() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
@@ -605,9 +548,7 @@ class IrExporterIdentityEdgeCasesTest {
         @DisplayName("DOMAIN_EVENT should have no identity")
         void domainEventShouldHaveNoIdentity() throws IOException {
             // Domain events typically don't have identity in the DDD sense
-            writeSource(
-                    "com/example/OrderPlacedEvent.java",
-                    """
+            writeSource("com/example/OrderPlacedEvent.java", """
                     package com.example;
                     public record OrderPlacedEvent(
                         java.util.UUID eventId,
@@ -680,9 +621,10 @@ class IrExporterIdentityEdgeCasesTest {
         return snapshot.domain().types().stream()
                 .filter(t -> t.simpleName().equals(simpleName))
                 .findFirst()
-                .orElseThrow(() -> new AssertionError("DomainType '" + simpleName + "' not found. " +
-                        "Available types: " + snapshot.domain().types().stream()
-                                .map(DomainType::simpleName)
-                                .toList()));
+                .orElseThrow(
+                        () -> new AssertionError("DomainType '" + simpleName + "' not found. " + "Available types: "
+                                + snapshot.domain().types().stream()
+                                        .map(DomainType::simpleName)
+                                        .toList()));
     }
 }

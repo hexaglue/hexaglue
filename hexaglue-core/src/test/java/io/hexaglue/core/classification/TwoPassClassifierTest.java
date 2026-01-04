@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -44,18 +57,14 @@ class TwoPassClassifierTest {
         @Test
         @DisplayName("should classify domain types in pass 1 and ports in pass 2")
         void shouldClassifyInTwoPasses() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private String customerName;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -81,32 +90,24 @@ class TwoPassClassifierTest {
         @Test
         @DisplayName("should separate domain and port classifications")
         void shouldSeparateDomainAndPortClassifications() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private Money total;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
                     }
                     """);
-            writeSource(
-                    "com/example/CreateOrderUseCase.java",
-                    """
+            writeSource("com/example/CreateOrderUseCase.java", """
                     package com.example;
                     public interface CreateOrderUseCase {
                         void execute(String customerId);
@@ -136,17 +137,13 @@ class TwoPassClassifierTest {
         @Test
         @DisplayName("context should correctly identify aggregate roots")
         void contextShouldIdentifyAggregateRoots() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -183,17 +180,13 @@ class TwoPassClassifierTest {
         @Test
         @DisplayName("should provide classified results list")
         void shouldProvideClassifiedResults() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -211,9 +204,7 @@ class TwoPassClassifierTest {
         @Test
         @DisplayName("should convert to list")
         void shouldConvertToList() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;

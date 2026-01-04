@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.ir.export;
 
 import io.hexaglue.core.analysis.RelationAnalyzer;
@@ -95,9 +108,7 @@ public final class IrExporter {
 
         // Extract identity first to know the actual identity field name
         // Domain events and value objects do NOT have identity
-        Optional<Identity> identity = shouldHaveIdentity(domainKind)
-                ? extractIdentity(graph, node)
-                : Optional.empty();
+        Optional<Identity> identity = shouldHaveIdentity(domainKind) ? extractIdentity(graph, node) : Optional.empty();
         String identityFieldName = identity.map(Identity::fieldName).orElse(null);
 
         return new DomainType(
@@ -290,8 +301,7 @@ public final class IrExporter {
 
     // === Property extraction ===
 
-    private List<DomainProperty> extractProperties(
-            ApplicationGraph graph, TypeNode node, String identityFieldName) {
+    private List<DomainProperty> extractProperties(ApplicationGraph graph, TypeNode node, String identityFieldName) {
         List<FieldNode> fields = graph.fieldsOf(node);
 
         return fields.stream()
@@ -313,8 +323,7 @@ public final class IrExporter {
 
         // Only mark as identity if this is the actual identity field, not just any field ending with "Id"
         // Fields like "customerId" are inter-aggregate references, not identity fields
-        boolean isIdentity =
-                identityFieldName != null && field.simpleName().equals(identityFieldName);
+        boolean isIdentity = identityFieldName != null && field.simpleName().equals(identityFieldName);
 
         return new DomainProperty(
                 field.simpleName(),

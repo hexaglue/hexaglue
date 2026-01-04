@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification.port;
 
 import static org.assertj.core.api.Assertions.*;
@@ -55,9 +68,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with @Repository as REPOSITORY")
         void shouldClassifyExplicitRepository() throws IOException {
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
                     @Repository
@@ -84,9 +95,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with @PrimaryPort as USE_CASE")
         void shouldClassifyExplicitPrimaryPort() throws IOException {
-            writeSource(
-                    "com/example/PlaceOrderUseCase.java",
-                    """
+            writeSource("com/example/PlaceOrderUseCase.java", """
                     package com.example;
                     import org.jmolecules.architecture.hexagonal.PrimaryPort;
                     @PrimaryPort
@@ -110,9 +119,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with @SecondaryPort as GATEWAY")
         void shouldClassifyExplicitSecondaryPort() throws IOException {
-            writeSource(
-                    "com/example/PaymentGateway.java",
-                    """
+            writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     import org.jmolecules.architecture.hexagonal.SecondaryPort;
                     @SecondaryPort
@@ -137,9 +144,7 @@ class PortClassifierTest {
         @DisplayName("Should return unclassified for plain interface without markers")
         void shouldReturnUnclassifiedForPlainInterface() throws IOException {
             // Use a name that doesn't match any patterns
-            writeSource(
-                    "com/example/SomeApi.java",
-                    """
+            writeSource("com/example/SomeApi.java", """
                     package com.example;
                     public interface SomeApi {
                         void doSomething();
@@ -159,9 +164,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should return unclassified for class (not interface)")
         void shouldReturnUnclassifiedForClass() throws IOException {
-            writeSource(
-                    "com/example/OrderRepositoryImpl.java",
-                    """
+            writeSource("com/example/OrderRepositoryImpl.java", """
                     package com.example;
                     public class OrderRepositoryImpl {
                         public Object findById(String id) { return null; }
@@ -189,9 +192,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with *Repository name as REPOSITORY")
         void shouldClassifyRepositoryByNaming() throws IOException {
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Object findById(String id);
@@ -215,9 +216,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with *UseCase name as USE_CASE")
         void shouldClassifyUseCaseByNaming() throws IOException {
-            writeSource(
-                    "com/example/CreateOrderUseCase.java",
-                    """
+            writeSource("com/example/CreateOrderUseCase.java", """
                     package com.example;
                     public interface CreateOrderUseCase {
                         void execute(Object command);
@@ -240,9 +239,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with *Gateway name as GATEWAY")
         void shouldClassifyGatewayByNaming() throws IOException {
-            writeSource(
-                    "com/example/NotificationGateway.java",
-                    """
+            writeSource("com/example/NotificationGateway.java", """
                     package com.example;
                     public interface NotificationGateway {
                         void send(Object notification);
@@ -266,9 +263,7 @@ class PortClassifierTest {
         @DisplayName("Should classify interface in .in package as USE_CASE")
         void shouldClassifyByPackageIn() throws IOException {
             // Use a name that doesn't match other patterns to test package-in
-            writeSource(
-                    "com/example/ports/in/PlaceOrderCommand.java",
-                    """
+            writeSource("com/example/ports/in/PlaceOrderCommand.java", """
                     package com.example.ports.in;
                     public interface PlaceOrderCommand {
                         void process();
@@ -304,9 +299,7 @@ class PortClassifierTest {
         @DisplayName("Explicit annotation should win over naming heuristic")
         void explicitAnnotationShouldWinOverNaming() throws IOException {
             // Interface has @Repository but also ends with Gateway
-            writeSource(
-                    "com/example/PaymentGateway.java",
-                    """
+            writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
                     @Repository
@@ -335,9 +328,7 @@ class PortClassifierTest {
         @DisplayName("Higher priority naming should win over package")
         void higherPriorityNamingShouldWinOverPackage() throws IOException {
             // Interface in .in package but ends with Repository
-            writeSource(
-                    "com/example/ports/in/OrderRepository.java",
-                    """
+            writeSource("com/example/ports/in/OrderRepository.java", """
                     package com.example.ports.in;
                     public interface OrderRepository {
                         Object findById(String id);
@@ -359,9 +350,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Classification should be deterministic")
         void classificationShouldBeDeterministic() throws IOException {
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Object findById(String id);
@@ -393,9 +382,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Repository should have DRIVEN direction")
         void repositoryShouldBeDriven() throws IOException {
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Object findById(String id);
@@ -415,9 +402,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("UseCase should have DRIVING direction")
         void useCaseShouldBeDriving() throws IOException {
-            writeSource(
-                    "com/example/PlaceOrderUseCase.java",
-                    """
+            writeSource("com/example/PlaceOrderUseCase.java", """
                     package com.example;
                     public interface PlaceOrderUseCase {
                         void execute();
@@ -436,9 +421,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Gateway should have DRIVEN direction")
         void gatewayShouldBeDriven() throws IOException {
-            writeSource(
-                    "com/example/PaymentGateway.java",
-                    """
+            writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     public interface PaymentGateway {
                         void process();
@@ -466,9 +449,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should handle record types (not ports)")
         void shouldHandleRecordTypes() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(String value) {}
                     """);
@@ -485,9 +466,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should handle enum types (not ports)")
         void shouldHandleEnumTypes() throws IOException {
-            writeSource(
-                    "com/example/OrderStatus.java",
-                    """
+            writeSource("com/example/OrderStatus.java", """
                     package com.example;
                     public enum OrderStatus {
                         PENDING, COMPLETED
@@ -506,9 +485,7 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should handle empty interface")
         void shouldHandleEmptyInterface() throws IOException {
-            writeSource(
-                    "com/example/Marker.java",
-                    """
+            writeSource("com/example/Marker.java", """
                     package com.example;
                     public interface Marker {}
                     """);

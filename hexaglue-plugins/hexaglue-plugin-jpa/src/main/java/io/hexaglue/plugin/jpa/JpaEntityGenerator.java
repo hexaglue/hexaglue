@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.plugin.jpa;
 
 import io.hexaglue.spi.ir.Cardinality;
@@ -16,11 +29,10 @@ import java.util.Set;
  */
 final class JpaEntityGenerator {
 
-    private static final Set<String> JDK_PACKAGES = Set.of(
-            "java.", "javax.", "jakarta.", "sun.", "com.sun.", "jdk.");
+    private static final Set<String> JDK_PACKAGES = Set.of("java.", "javax.", "jakarta.", "sun.", "com.sun.", "jdk.");
 
-    private static final Set<String> PRIMITIVE_TYPES = Set.of(
-            "boolean", "byte", "char", "short", "int", "long", "float", "double", "void");
+    private static final Set<String> PRIMITIVE_TYPES =
+            Set.of("boolean", "byte", "char", "short", "int", "long", "float", "double", "void");
 
     private final String infrastructurePackage;
     private final JpaConfig config;
@@ -47,8 +59,7 @@ final class JpaEntityGenerator {
             }
         }
         // If it's a known domain type, it's not an enum
-        return allTypes.stream()
-                .noneMatch(t -> t.qualifiedName().equals(qualifiedName));
+        return allTypes.stream().noneMatch(t -> t.qualifiedName().equals(qualifiedName));
     }
 
     /**
@@ -543,9 +554,7 @@ final class JpaEntityGenerator {
         // Handle @Lob for byte arrays
         if (isByteArray(prop)) {
             sb.append("    @Lob\n");
-            sb.append("    private byte[] ")
-                    .append(prop.name())
-                    .append(";\n\n");
+            sb.append("    private byte[] ").append(prop.name()).append(";\n\n");
             return;
         }
 

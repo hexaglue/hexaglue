@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification.domain.criteria;
 
 import static org.assertj.core.api.Assertions.*;
@@ -48,9 +61,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchTypeWithAggregateRootAnnotation() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     @AggregateRoot
@@ -73,9 +84,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchTypeWithoutAnnotation() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {}
                     """);
@@ -96,9 +105,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchTypeWithEntityAnnotation() throws IOException {
-            writeSource(
-                    "com/example/LineItem.java",
-                    """
+            writeSource("com/example/LineItem.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Entity;
                     @Entity
@@ -123,9 +130,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchTypeWithValueObjectAnnotation() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.ValueObject;
                     @ValueObject
@@ -150,9 +155,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchTypeImplementingIdentifierInterface() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     import org.jmolecules.ddd.types.Identifier;
                     public record OrderId(String value) implements Identifier {}
@@ -181,17 +184,13 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchTypeUsedInRepositoryWithIdField() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -216,17 +215,13 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchTypeWithoutIdField() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findByName(String name);
@@ -245,17 +240,13 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchTypeNotInRepository() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderService.java",
-                    """
+            writeSource("com/example/OrderService.java", """
                     package com.example;
                     public class OrderService {
                         public Order process(Order order) { return order; }
@@ -278,9 +269,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchClassWithIdField() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
@@ -303,9 +292,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchClassWithCustomIdField() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String customerId;
@@ -326,9 +313,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchRecord() throws IOException {
-            writeSource(
-                    "com/example/Address.java",
-                    """
+            writeSource("com/example/Address.java", """
                     package com.example;
                     public record Address(String id, String street) {}
                     """);
@@ -345,9 +330,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchClassWithoutIdField() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String name;
@@ -370,9 +353,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchRecordWithoutIdField() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(int amount, String currency) {}
                     """);
@@ -392,9 +373,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchImmutableClassWithoutIdField() throws IOException {
-            writeSource(
-                    "com/example/Address.java",
-                    """
+            writeSource("com/example/Address.java", """
                     package com.example;
                     public class Address {
                         private final String street;
@@ -419,9 +398,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchTypeWithIdField() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public record Order(String id, String name) {}
                     """);
@@ -438,9 +415,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchMutableClass() throws IOException {
-            writeSource(
-                    "com/example/MutableData.java",
-                    """
+            writeSource("com/example/MutableData.java", """
                     package com.example;
                     public class MutableData {
                         private String value;
@@ -464,9 +439,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchRecordWithSingleComponentAndIdSuffix() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public record OrderId(String value) {}
                     """);
@@ -487,9 +460,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldMatchRecordWrappingUUID() throws IOException {
-            writeSource(
-                    "com/example/CustomerId.java",
-                    """
+            writeSource("com/example/CustomerId.java", """
                     package com.example;
                     import java.util.UUID;
                     public record CustomerId(UUID value) {}
@@ -508,9 +479,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchRecordWithMultipleComponents() throws IOException {
-            writeSource(
-                    "com/example/CompoundId.java",
-                    """
+            writeSource("com/example/CompoundId.java", """
                     package com.example;
                     public record CompoundId(String tenant, String id) {}
                     """);
@@ -527,9 +496,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchRecordWithoutIdSuffix() throws IOException {
-            writeSource(
-                    "com/example/OrderNumber.java",
-                    """
+            writeSource("com/example/OrderNumber.java", """
                     package com.example;
                     public record OrderNumber(String value) {}
                     """);
@@ -546,9 +513,7 @@ class DomainCriteriaTest {
 
         @Test
         void shouldNotMatchClass() throws IOException {
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
                     public class OrderId {
                         private final String value;

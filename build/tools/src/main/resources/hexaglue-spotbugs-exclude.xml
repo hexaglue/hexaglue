@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter
+        xmlns="https://github.com/spotbugs/filter/3.0.0"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="https://github.com/spotbugs/filter/3.0.0
+                            https://raw.githubusercontent.com/spotbugs/spotbugs/3.1.0/spotbugs/etc/findbugsfilter.xsd">
+
+    <!--
+        HexaGlue SpotBugs Exclusion Filter
+        Excludes generated code and acceptable patterns
+    -->
+
+    <!-- Exclude generated sources -->
+    <Match>
+        <Source name="~.*generated-sources.*"/>
+    </Match>
+
+    <!-- Exclude test classes from certain checks -->
+    <Match>
+        <Class name="~.*Test$"/>
+        <Bug pattern="URF_UNREAD_FIELD"/>
+    </Match>
+
+    <!-- Allow returning internal arrays in IR classes (immutable by design) -->
+    <Match>
+        <Package name="~io\.hexaglue\.spi\.ir.*"/>
+        <Bug pattern="EI_EXPOSE_REP,EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!-- Allow System.out in CLI/logging contexts -->
+    <Match>
+        <Package name="~io\.hexaglue\.core\.diagnostics.*"/>
+        <Bug pattern="INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE"/>
+    </Match>
+
+    <!-- Suppress serialization warnings for non-serializable classes -->
+    <Match>
+        <Bug pattern="SE_BAD_FIELD,SE_NO_SERIALVERSIONID"/>
+    </Match>
+
+    <!-- Allow record-style classes without equals/hashCode override warnings -->
+    <Match>
+        <Bug pattern="EQ_DOESNT_OVERRIDE_EQUALS"/>
+        <Class name="~.*Record$"/>
+    </Match>
+
+</FindBugsFilter>

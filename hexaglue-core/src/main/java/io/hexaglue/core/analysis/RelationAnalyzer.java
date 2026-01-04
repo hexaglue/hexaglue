@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.analysis;
 
 import io.hexaglue.core.classification.ClassificationContext;
@@ -233,8 +246,7 @@ public final class RelationAnalyzer {
         // In DDD, a single reference to a child entity is typically a 1:1 relationship
         // (the child is owned exclusively by this aggregate)
         if (targetKind == DomainKind.ENTITY) {
-            CascadeType cascade =
-                    cascadeInference.infer(ownerType, targetType.get(), RelationKind.ONE_TO_ONE, context);
+            CascadeType cascade = cascadeInference.infer(ownerType, targetType.get(), RelationKind.ONE_TO_ONE, context);
 
             // Detect mappedBy for bidirectional relationships
             String mappedBy = mappedByDetector

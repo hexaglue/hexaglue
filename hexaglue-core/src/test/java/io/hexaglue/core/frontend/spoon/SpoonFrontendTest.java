@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.frontend.spoon;
 
 import static org.assertj.core.api.Assertions.*;
@@ -30,9 +43,7 @@ class SpoonFrontendTest {
     @Test
     void shouldParseSimpleClass() throws IOException {
         // Given
-        writeSource(
-                "com/example/domain/Customer.java",
-                """
+        writeSource("com/example/domain/Customer.java", """
                 package com.example.domain;
 
                 public class Customer {
@@ -72,9 +83,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseFields() throws IOException {
-        writeSource(
-                "com/example/domain/Order.java",
-                """
+        writeSource("com/example/domain/Order.java", """
                 package com.example.domain;
 
                 import java.util.UUID;
@@ -117,9 +126,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseMethods() throws IOException {
-        writeSource(
-                "com/example/domain/Calculator.java",
-                """
+        writeSource("com/example/domain/Calculator.java", """
                 package com.example.domain;
 
                 public class Calculator {
@@ -160,9 +167,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseConstructors() throws IOException {
-        writeSource(
-                "com/example/domain/Product.java",
-                """
+        writeSource("com/example/domain/Product.java", """
                 package com.example.domain;
 
                 public class Product {
@@ -198,9 +203,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseInterface() throws IOException {
-        writeSource(
-                "com/example/ports/CustomerRepository.java",
-                """
+        writeSource("com/example/ports/CustomerRepository.java", """
                 package com.example.ports;
 
                 import java.util.Optional;
@@ -224,9 +227,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseRecord() throws IOException {
-        writeSource(
-                "com/example/domain/CustomerId.java",
-                """
+        writeSource("com/example/domain/CustomerId.java", """
                 package com.example.domain;
 
                 import java.util.UUID;
@@ -251,9 +252,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseEnum() throws IOException {
-        writeSource(
-                "com/example/domain/OrderStatus.java",
-                """
+        writeSource("com/example/domain/OrderStatus.java", """
                 package com.example.domain;
 
                 public enum OrderStatus {
@@ -279,9 +278,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseAnnotationType() throws IOException {
-        writeSource(
-                "com/example/domain/Marker.java",
-                """
+        writeSource("com/example/domain/Marker.java", """
                 package com.example.domain;
 
                 import java.lang.annotation.Retention;
@@ -303,9 +300,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseAnnotationsOnType() throws IOException {
-        writeSource(
-                "com/example/domain/Deprecated.java",
-                """
+        writeSource("com/example/domain/Deprecated.java", """
                 package com.example.domain;
 
                 @java.lang.Deprecated
@@ -329,9 +324,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseGenericTypes() throws IOException {
-        writeSource(
-                "com/example/domain/Container.java",
-                """
+        writeSource("com/example/domain/Container.java", """
                 package com.example.domain;
 
                 import java.util.List;
@@ -369,9 +362,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseArrayTypes() throws IOException {
-        writeSource(
-                "com/example/domain/ArrayHolder.java",
-                """
+        writeSource("com/example/domain/ArrayHolder.java", """
                 package com.example.domain;
 
                 public class ArrayHolder {
@@ -404,27 +395,21 @@ class SpoonFrontendTest {
 
     @Test
     void shouldParseSuperclassAndInterfaces() throws IOException {
-        writeSource(
-                "com/example/domain/BaseEntity.java",
-                """
+        writeSource("com/example/domain/BaseEntity.java", """
                 package com.example.domain;
 
                 public abstract class BaseEntity {
                 }
                 """);
 
-        writeSource(
-                "com/example/domain/Identifiable.java",
-                """
+        writeSource("com/example/domain/Identifiable.java", """
                 package com.example.domain;
 
                 public interface Identifiable {
                 }
                 """);
 
-        writeSource(
-                "com/example/domain/User.java",
-                """
+        writeSource("com/example/domain/User.java", """
                 package com.example.domain;
 
                 import java.io.Serializable;
@@ -455,16 +440,12 @@ class SpoonFrontendTest {
 
     @Test
     void shouldFilterByBasePackage() throws IOException {
-        writeSource(
-                "com/example/domain/InPackage.java",
-                """
+        writeSource("com/example/domain/InPackage.java", """
                 package com.example.domain;
                 public class InPackage {}
                 """);
 
-        writeSource(
-                "com/other/OutOfPackage.java",
-                """
+        writeSource("com/other/OutOfPackage.java", """
                 package com.other;
                 public class OutOfPackage {}
                 """);
@@ -480,9 +461,7 @@ class SpoonFrontendTest {
 
     @Test
     void shouldProvideSourceRef() throws IOException {
-        writeSource(
-                "com/example/domain/Located.java",
-                """
+        writeSource("com/example/domain/Located.java", """
                 package com.example.domain;
 
                 public class Located {

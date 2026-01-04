@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.engine;
 
 import static org.assertj.core.api.Assertions.*;
@@ -52,18 +65,14 @@ class HexaGlueEngineTest {
         @Test
         @DisplayName("should analyze simple domain with repository")
         void analyzeSimpleDomain() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private String customerName;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -111,35 +120,27 @@ class HexaGlueEngineTest {
         @DisplayName("should analyze hexagonal architecture")
         void analyzeHexagonalArchitecture() throws IOException {
             // Domain
-            writeSource(
-                    "com/example/domain/Product.java",
-                    """
+            writeSource("com/example/domain/Product.java", """
                     package com.example.domain;
                     public class Product {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/domain/ProductId.java",
-                    """
+            writeSource("com/example/domain/ProductId.java", """
                     package com.example.domain;
                     public record ProductId(java.util.UUID value) {}
                     """);
 
             // Ports
-            writeSource(
-                    "com/example/port/in/CreateProductUseCase.java",
-                    """
+            writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
                     public interface CreateProductUseCase {
                         Product execute(String name);
                     }
                     """);
-            writeSource(
-                    "com/example/port/out/ProductRepository.java",
-                    """
+            writeSource("com/example/port/out/ProductRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Product;
                     public interface ProductRepository {
@@ -179,9 +180,7 @@ class HexaGlueEngineTest {
         @Test
         @DisplayName("should handle jMolecules annotations")
         void handleJMoleculesAnnotations() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     @org.jmolecules.ddd.annotation.AggregateRoot
                     public class Customer {
@@ -212,15 +211,11 @@ class HexaGlueEngineTest {
         @Test
         @DisplayName("should include correct metadata")
         void includeCorrectMetadata() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order { private String id; }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository { Order findById(String id); }
                     """);

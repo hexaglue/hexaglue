@@ -16,6 +16,10 @@
     <name>HexaGlue Testing</name>
     <description>Test harness for HexaGlue - provides fluent API for testing analysis and generation</description>
 
+    <properties>
+        <hexaglue.root>${project.basedir}/..</hexaglue.root>
+    </properties>
+
     <dependencies>
         <!-- Internal -->
         <dependency>

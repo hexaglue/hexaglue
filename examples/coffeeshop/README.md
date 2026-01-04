@@ -165,3 +165,14 @@ coffeeshop/
 - [HexaGlue Documentation](../../docs/)
 - [JPA Plugin Reference](../../hexaglue-plugins/hexaglue-plugin-jpa/)
 - [Living Doc Plugin Reference](../../hexaglue-plugins/hexaglue-plugin-living-doc/)
+
+---
+
+<div align="center">
+
+**HexaGlue - Focus on business code, not infrastructure glue.**
+
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
+</div>

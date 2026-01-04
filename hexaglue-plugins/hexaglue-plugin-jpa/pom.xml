@@ -17,6 +17,10 @@
     <name>HexaGlue JPA Plugin</name>
     <description>Generates JPA entities and embeddables from domain model</description>
 
+    <properties>
+        <hexaglue.root>${project.basedir}/../..</hexaglue.root>
+    </properties>
+
     <dependencies>
         <!-- HexaGlue SPI (compile scope - needed at runtime) -->
         <dependency>

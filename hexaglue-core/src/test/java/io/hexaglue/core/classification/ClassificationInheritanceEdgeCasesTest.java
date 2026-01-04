@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -65,9 +78,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Abstract class with @Entity should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind())
-                    .as("Should be classified as ENTITY")
-                    .isEqualTo(DomainKind.ENTITY.name());
+            assertThat(result.kind()).as("Should be classified as ENTITY").isEqualTo(DomainKind.ENTITY.name());
         }
 
         @Test
@@ -181,8 +192,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Class implementing AggregateRoot interface should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind())
-                    .isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
         }
     }
 
@@ -213,8 +223,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Record with @ValueObject should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind())
-                    .isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
         }
 
         @Test
@@ -239,8 +248,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Record implementing ValueObject interface should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind())
-                    .isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
         }
     }
 
@@ -288,8 +296,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Enum with @ValueObject should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind())
-                    .isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
         }
     }
 

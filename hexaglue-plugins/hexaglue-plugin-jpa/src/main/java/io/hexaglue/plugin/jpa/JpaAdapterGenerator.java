@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.plugin.jpa;
 
 import io.hexaglue.spi.ir.DomainType;
@@ -281,9 +294,7 @@ final class JpaAdapterGenerator {
                         .append(".findAll());\n");
             } else if (hasPageableParameter(params)) {
                 // findAll(Pageable) -> Page<Domain>
-                body.append("        return ")
-                        .append(repoField)
-                        .append(".findAll(param0)\n");
+                body.append("        return ").append(repoField).append(".findAll(param0)\n");
                 body.append("                .map(").append(mapperField).append("::toDomain);\n");
             } else if (hasSortParameter(params)) {
                 // findAll(Sort) -> List<Domain>
@@ -298,11 +309,11 @@ final class JpaAdapterGenerator {
                 body.append("        throw new UnsupportedOperationException(\"Not yet implemented\");\n");
             }
 
-        } else if (methodName.equals("findAllAsStream") || methodName.equals("streamAll") || returnType.startsWith("Stream<")) {
+        } else if (methodName.equals("findAllAsStream")
+                || methodName.equals("streamAll")
+                || returnType.startsWith("Stream<")) {
             // findAllAsStream() -> Stream<Domain>
-            body.append("        return ")
-                    .append(repoField)
-                    .append(".findAll().stream()\n");
+            body.append("        return ").append(repoField).append(".findAll().stream()\n");
             body.append("                .map(").append(mapperField).append("::toDomain);\n");
 
         } else if (methodName.equals("delete") || methodName.equals("remove")) {

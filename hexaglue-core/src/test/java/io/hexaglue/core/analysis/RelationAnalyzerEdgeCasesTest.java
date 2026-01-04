@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -70,9 +83,7 @@ class RelationAnalyzerEdgeCasesTest {
         @DisplayName("should detect ONE_TO_ONE for single entity reference with unique constraint hint")
         void shouldDetectOneToOneForUniqueEntityReference() throws IOException {
             // An Order has exactly one ShippingDetails (1:1 relationship)
-            writeSource(
-                    "com/example/ShippingDetails.java",
-                    """
+            writeSource("com/example/ShippingDetails.java", """
                     package com.example;
                     public class ShippingDetails {
                         private String id;
@@ -80,9 +91,7 @@ class RelationAnalyzerEdgeCasesTest {
                         private String trackingNumber;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -113,9 +122,7 @@ class RelationAnalyzerEdgeCasesTest {
         @DisplayName("should detect bidirectional ONE_TO_ONE with mappedBy")
         void shouldDetectBidirectionalOneToOne() throws IOException {
             // User <-> UserProfile bidirectional 1:1
-            writeSource(
-                    "com/example/UserProfile.java",
-                    """
+            writeSource("com/example/UserProfile.java", """
                     package com.example;
                     public class UserProfile {
                         private String id;
@@ -123,9 +130,7 @@ class RelationAnalyzerEdgeCasesTest {
                         private String bio;
                     }
                     """);
-            writeSource(
-                    "com/example/User.java",
-                    """
+            writeSource("com/example/User.java", """
                     package com.example;
                     public class User {
                         private String id;
@@ -156,18 +161,14 @@ class RelationAnalyzerEdgeCasesTest {
         void shouldUseOneToOneForEntityReference() throws IOException {
             // Single entity reference within aggregate -> ONE_TO_ONE
             // (the child entity is owned exclusively by this aggregate)
-            writeSource(
-                    "com/example/Address.java",
-                    """
+            writeSource("com/example/Address.java", """
                     package com.example;
                     public class Address {
                         private String id;
                         private String street;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -206,18 +207,14 @@ class RelationAnalyzerEdgeCasesTest {
         void shouldDetectManyToManyForAggregateCollection() throws IOException {
             // Student <-> Course is a classic MANY_TO_MANY relationship
             // Both are aggregate roots (each has their own repository)
-            writeSource(
-                    "com/example/Course.java",
-                    """
+            writeSource("com/example/Course.java", """
                     package com.example;
                     public class Course {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/Student.java",
-                    """
+            writeSource("com/example/Student.java", """
                     package com.example;
                     import java.util.List;
                     public class Student {
@@ -252,9 +249,7 @@ class RelationAnalyzerEdgeCasesTest {
         @DisplayName("should detect bidirectional MANY_TO_MANY with mappedBy")
         void shouldDetectBidirectionalManyToMany() throws IOException {
             // Author <-> Book bidirectional MANY_TO_MANY
-            writeSource(
-                    "com/example/Book.java",
-                    """
+            writeSource("com/example/Book.java", """
                     package com.example;
                     import java.util.Set;
                     public class Book {
@@ -263,9 +258,7 @@ class RelationAnalyzerEdgeCasesTest {
                         private Set<Author> authors;
                     }
                     """);
-            writeSource(
-                    "com/example/Author.java",
-                    """
+            writeSource("com/example/Author.java", """
                     package com.example;
                     import java.util.Set;
                     public class Author {
@@ -297,18 +290,14 @@ class RelationAnalyzerEdgeCasesTest {
         void shouldUseManyToManyForAggregateCollection() throws IOException {
             // Collection of AGGREGATE_ROOT -> MANY_TO_MANY (inter-aggregate relationship)
             // Each aggregate root is independently managed
-            writeSource(
-                    "com/example/Product.java",
-                    """
+            writeSource("com/example/Product.java", """
                     package com.example;
                     public class Product {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/Cart.java",
-                    """
+            writeSource("com/example/Cart.java", """
                     package com.example;
                     import java.util.List;
                     public class Cart {
@@ -348,9 +337,7 @@ class RelationAnalyzerEdgeCasesTest {
             // Category with subcategories (tree structure)
             // CategoryNode is an ENTITY (part of a Category aggregate), not an AGGREGATE_ROOT
             // This allows proper tree structure with ONE_TO_MANY for children
-            writeSource(
-                    "com/example/CategoryNode.java",
-                    """
+            writeSource("com/example/CategoryNode.java", """
                     package com.example;
                     import java.util.List;
                     public class CategoryNode {
@@ -363,8 +350,7 @@ class RelationAnalyzerEdgeCasesTest {
 
             ApplicationGraph graph = buildGraph();
             // ENTITY for tree nodes - children are ONE_TO_MANY within the same aggregate
-            ClassificationContext context = buildContext(
-                    graph, Map.of("com.example.CategoryNode", "ENTITY"));
+            ClassificationContext context = buildContext(graph, Map.of("com.example.CategoryNode", "ENTITY"));
 
             TypeNode categoryType = graph.typeNode("com.example.CategoryNode").orElseThrow();
             List<DomainRelation> relations = analyzer.analyzeRelations(categoryType, graph.query(), context);
@@ -372,14 +358,18 @@ class RelationAnalyzerEdgeCasesTest {
             // Should have two relations: parent (ONE_TO_ONE) and children (ONE_TO_MANY)
             assertThat(relations).hasSize(2);
 
-            DomainRelation parentRelation =
-                    relations.stream().filter(r -> r.propertyName().equals("parent")).findFirst().orElseThrow();
+            DomainRelation parentRelation = relations.stream()
+                    .filter(r -> r.propertyName().equals("parent"))
+                    .findFirst()
+                    .orElseThrow();
             // Single entity reference is now ONE_TO_ONE
             assertThat(parentRelation.kind()).isEqualTo(RelationKind.ONE_TO_ONE);
             assertThat(parentRelation.targetTypeFqn()).isEqualTo("com.example.CategoryNode");
 
-            DomainRelation childrenRelation =
-                    relations.stream().filter(r -> r.propertyName().equals("children")).findFirst().orElseThrow();
+            DomainRelation childrenRelation = relations.stream()
+                    .filter(r -> r.propertyName().equals("children"))
+                    .findFirst()
+                    .orElseThrow();
             assertThat(childrenRelation.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
             assertThat(childrenRelation.targetTypeFqn()).isEqualTo("com.example.CategoryNode");
             assertThat(childrenRelation.mappedBy())
@@ -391,9 +381,7 @@ class RelationAnalyzerEdgeCasesTest {
         @DisplayName("should detect self-referencing MANY_TO_ONE (back-pointer)")
         void shouldDetectSelfReferencingManyToOne() throws IOException {
             // Employee with manager reference
-            writeSource(
-                    "com/example/Employee.java",
-                    """
+            writeSource("com/example/Employee.java", """
                     package com.example;
                     public class Employee {
                         private String id;
@@ -403,8 +391,7 @@ class RelationAnalyzerEdgeCasesTest {
                     """);
 
             ApplicationGraph graph = buildGraph();
-            ClassificationContext context = buildContext(
-                    graph, Map.of("com.example.Employee", "AGGREGATE_ROOT"));
+            ClassificationContext context = buildContext(graph, Map.of("com.example.Employee", "AGGREGATE_ROOT"));
 
             TypeNode employeeType = graph.typeNode("com.example.Employee").orElseThrow();
             List<DomainRelation> relations = analyzer.analyzeRelations(employeeType, graph.query(), context);
@@ -420,9 +407,7 @@ class RelationAnalyzerEdgeCasesTest {
         @DisplayName("should detect self-referencing MANY_TO_MANY (graph structure)")
         void shouldDetectSelfReferencingManyToMany() throws IOException {
             // Social network: Person has friends (which are also Persons)
-            writeSource(
-                    "com/example/Person.java",
-                    """
+            writeSource("com/example/Person.java", """
                     package com.example;
                     import java.util.Set;
                     public class Person {
@@ -433,8 +418,7 @@ class RelationAnalyzerEdgeCasesTest {
                     """);
 
             ApplicationGraph graph = buildGraph();
-            ClassificationContext context = buildContext(
-                    graph, Map.of("com.example.Person", "AGGREGATE_ROOT"));
+            ClassificationContext context = buildContext(graph, Map.of("com.example.Person", "AGGREGATE_ROOT"));
 
             TypeNode personType = graph.typeNode("com.example.Person").orElseThrow();
             List<DomainRelation> relations = analyzer.analyzeRelations(personType, graph.query(), context);
@@ -458,18 +442,14 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should handle Optional<Entity> as nullable MANY_TO_ONE")
         void shouldHandleOptionalEntityReference() throws IOException {
-            writeSource(
-                    "com/example/Coupon.java",
-                    """
+            writeSource("com/example/Coupon.java", """
                     package com.example;
                     public class Coupon {
                         private String id;
                         private String code;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.Optional;
                     public class Order {
@@ -499,15 +479,11 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should handle Optional<ValueObject> as nullable EMBEDDED")
         void shouldHandleOptionalValueObject() throws IOException {
-            writeSource(
-                    "com/example/Address.java",
-                    """
+            writeSource("com/example/Address.java", """
                     package com.example;
                     public record Address(String street, String city) {}
                     """);
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     import java.util.Optional;
                     public class Customer {
@@ -545,18 +521,14 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should detect Map<String, Entity> as indexed ONE_TO_MANY")
         void shouldDetectMapOfEntitiesAsOneToMany() throws IOException {
-            writeSource(
-                    "com/example/OrderLine.java",
-                    """
+            writeSource("com/example/OrderLine.java", """
                     package com.example;
                     public class OrderLine {
                         private String id;
                         private int quantity;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.Map;
                     public class Order {
@@ -584,15 +556,11 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should detect Map<String, ValueObject> as indexed ELEMENT_COLLECTION")
         void shouldDetectMapOfValueObjectsAsElementCollection() throws IOException {
-            writeSource(
-                    "com/example/Money.java",
-                    """
+            writeSource("com/example/Money.java", """
                     package com.example;
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
-            writeSource(
-                    "com/example/MultiCurrencyWallet.java",
-                    """
+            writeSource("com/example/MultiCurrencyWallet.java", """
                     package com.example;
                     import java.util.Map;
                     public class MultiCurrencyWallet {
@@ -608,7 +576,8 @@ class RelationAnalyzerEdgeCasesTest {
                             "com.example.MultiCurrencyWallet", "AGGREGATE_ROOT",
                             "com.example.Money", "VALUE_OBJECT"));
 
-            TypeNode walletType = graph.typeNode("com.example.MultiCurrencyWallet").orElseThrow();
+            TypeNode walletType =
+                    graph.typeNode("com.example.MultiCurrencyWallet").orElseThrow();
             List<DomainRelation> relations = analyzer.analyzeRelations(walletType, graph.query(), context);
 
             assertThat(relations).hasSize(1);
@@ -629,18 +598,14 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should NOT cascade for inter-aggregate references")
         void shouldNotCascadeForInterAggregateReferences() throws IOException {
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     public class Customer {
                         private String id;
                         private String name;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
@@ -668,18 +633,14 @@ class RelationAnalyzerEdgeCasesTest {
         @Test
         @DisplayName("should cascade ALL for intra-aggregate entities")
         void shouldCascadeAllForIntraAggregateEntities() throws IOException {
-            writeSource(
-                    "com/example/OrderLine.java",
-                    """
+            writeSource("com/example/OrderLine.java", """
                     package com.example;
                     public class OrderLine {
                         private String id;
                         private int quantity;
                     }
                     """);
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import java.util.List;
                     public class Order {
@@ -722,7 +683,8 @@ class RelationAnalyzerEdgeCasesTest {
     private ApplicationGraph buildGraph() {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
         JavaSemanticModel model = frontend.build(input);
-        GraphMetadata metadata = GraphMetadata.of("com.example", 17, (int) model.types().count());
+        GraphMetadata metadata =
+                GraphMetadata.of("com.example", 17, (int) model.types().count());
         model = frontend.build(input);
         return builder.build(model, metadata);
     }

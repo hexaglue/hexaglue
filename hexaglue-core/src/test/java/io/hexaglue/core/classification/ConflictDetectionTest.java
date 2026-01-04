@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.*;
@@ -68,18 +81,14 @@ class ConflictDetectionTest {
             // Order used in repository -> AGGREGATE_ROOT (priority 80)
             // Order has id field -> ENTITY (priority 70)
             // AGGREGATE_ROOT wins, but ENTITY conflict should be recorded
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                         private String customerName;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -113,9 +122,7 @@ class ConflictDetectionTest {
         @DisplayName("Explicit annotation should win over all heuristics without CONFLICT status")
         void explicitAnnotationShouldWinWithoutConflict() throws IOException {
             // @AggregateRoot (priority 100) vs repository-dominant (80) vs has-identity (70)
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     @AggregateRoot
@@ -123,9 +130,7 @@ class ConflictDetectionTest {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -159,9 +164,7 @@ class ConflictDetectionTest {
             // - record-single-id (priority 80) -> IDENTIFIER
             // - immutable-no-id (priority 60) -> VALUE_OBJECT
             // IDENTIFIER should win
-            writeSource(
-                    "com/example/ProductId.java",
-                    """
+            writeSource("com/example/ProductId.java", """
                     package com.example;
                     public record ProductId(String value) {}
                     """);
@@ -188,9 +191,7 @@ class ConflictDetectionTest {
             // This is a pathological case: @Entity and @ValueObject on same type
             // Both have priority 100 and are incompatible
             // Should result in CONFLICT status
-            writeSource(
-                    "com/example/Ambiguous.java",
-                    """
+            writeSource("com/example/Ambiguous.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Entity;
                     import org.jmolecules.ddd.annotation.ValueObject;
@@ -232,9 +233,7 @@ class ConflictDetectionTest {
         @DisplayName("Explicit annotation should win over naming for ports")
         void explicitAnnotationWinsForPorts() throws IOException {
             // Interface with @Repository but name ends with Gateway
-            writeSource(
-                    "com/example/PaymentGateway.java",
-                    """
+            writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
                     @Repository
@@ -263,9 +262,7 @@ class ConflictDetectionTest {
         @DisplayName("Naming should win over package for ports")
         void namingWinsOverPackageForPorts() throws IOException {
             // Interface in .in package (USE_CASE, priority 60) but name ends with Repository (priority 80)
-            writeSource(
-                    "com/example/ports/in/CustomerRepository.java",
-                    """
+            writeSource("com/example/ports/in/CustomerRepository.java", """
                     package com.example.ports.in;
                     public interface CustomerRepository {
                         Object findById(String id);
@@ -301,9 +298,7 @@ class ConflictDetectionTest {
         @Test
         @DisplayName("Plain utility class should be UNCLASSIFIED")
         void plainUtilityClassShouldBeUnclassified() throws IOException {
-            writeSource(
-                    "com/example/StringUtils.java",
-                    """
+            writeSource("com/example/StringUtils.java", """
                     package com.example;
                     public class StringUtils {
                         public static String capitalize(String s) {
@@ -328,9 +323,7 @@ class ConflictDetectionTest {
         @Test
         @DisplayName("Plain interface without patterns should be UNCLASSIFIED for ports")
         void plainInterfaceShouldBeUnclassifiedForPorts() throws IOException {
-            writeSource(
-                    "com/example/Callback.java",
-                    """
+            writeSource("com/example/Callback.java", """
                     package com.example;
                     public interface Callback {
                         void onComplete();
@@ -350,9 +343,7 @@ class ConflictDetectionTest {
         @Test
         @DisplayName("Class should be UNCLASSIFIED for port classifier (only interfaces)")
         void classShouldBeUnclassifiedForPortClassifier() throws IOException {
-            writeSource(
-                    "com/example/OrderRepositoryImpl.java",
-                    """
+            writeSource("com/example/OrderRepositoryImpl.java", """
                     package com.example;
                     public class OrderRepositoryImpl {
                         public Object findById(String id) { return null; }
@@ -371,9 +362,7 @@ class ConflictDetectionTest {
         @Test
         @DisplayName("Enum should be UNCLASSIFIED for domain classifier")
         void enumShouldBeUnclassifiedForDomainClassifier() throws IOException {
-            writeSource(
-                    "com/example/Color.java",
-                    """
+            writeSource("com/example/Color.java", """
                     package com.example;
                     public enum Color {
                         RED, GREEN, BLUE
@@ -401,17 +390,13 @@ class ConflictDetectionTest {
         @Test
         @DisplayName("Conflict should contain correct competing information")
         void conflictShouldContainCorrectCompetingInfo() throws IOException {
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/OrderRepository.java",
-                    """
+            writeSource("com/example/OrderRepository.java", """
                     package com.example;
                     public interface OrderRepository {
                         Order findById(String id);
@@ -444,9 +429,7 @@ class ConflictDetectionTest {
             // @AggregateRoot triggers: explicit-aggregate-root
             // id field triggers: has-identity (ENTITY)
             // Used in repository also triggers: repository-dominant (AGGREGATE_ROOT - same kind, no conflict)
-            writeSource(
-                    "com/example/Customer.java",
-                    """
+            writeSource("com/example/Customer.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
                     @AggregateRoot
@@ -454,9 +437,7 @@ class ConflictDetectionTest {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/CustomerRepository.java",
-                    """
+            writeSource("com/example/CustomerRepository.java", """
                     package com.example;
                     public interface CustomerRepository {
                         Customer findById(String id);

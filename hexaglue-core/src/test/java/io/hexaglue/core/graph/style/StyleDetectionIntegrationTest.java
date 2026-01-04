@@ -1,3 +1,16 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
 package io.hexaglue.core.graph.style;
 
 import static org.assertj.core.api.Assertions.*;
@@ -60,25 +73,19 @@ class StyleDetectionIntegrationTest {
         @DisplayName("should detect HEXAGONAL style from ports.in/ports.out packages")
         void shouldDetectHexagonalFromPortsPackages() throws IOException {
             // Setup: hexagonal architecture with ports.in and ports.out packages
-            writeSource(
-                    "com/example/order/ports/in/OrderingCoffee.java",
-                    """
+            writeSource("com/example/order/ports/in/OrderingCoffee.java", """
                     package com.example.order.ports.in;
                     public interface OrderingCoffee {
                         void placeOrder(Object order);
                     }
                     """);
-            writeSource(
-                    "com/example/order/ports/out/OrderRepository.java",
-                    """
+            writeSource("com/example/order/ports/out/OrderRepository.java", """
                     package com.example.order.ports.out;
                     public interface OrderRepository {
                         void save(Object order);
                     }
                     """);
-            writeSource(
-                    "com/example/order/domain/Order.java",
-                    """
+            writeSource("com/example/order/domain/Order.java", """
                     package com.example.order.domain;
                     public class Order {
                         private String id;
@@ -101,33 +108,25 @@ class StyleDetectionIntegrationTest {
         @DisplayName("should boost confidence for ports classification in HEXAGONAL style")
         void shouldBoostConfidenceForHexagonalStyle() throws IOException {
             // Setup: hexagonal architecture
-            writeSource(
-                    "com/example/order/ports/in/OrderingCoffee.java",
-                    """
+            writeSource("com/example/order/ports/in/OrderingCoffee.java", """
                     package com.example.order.ports.in;
                     public interface OrderingCoffee {
                         void placeOrder(Object order);
                     }
                     """);
-            writeSource(
-                    "com/example/order/ports/out/OrderRepository.java",
-                    """
+            writeSource("com/example/order/ports/out/OrderRepository.java", """
                     package com.example.order.ports.out;
                     public interface OrderRepository {
                         void save(Object order);
                     }
                     """);
-            writeSource(
-                    "com/example/payment/ports/in/MakingPayment.java",
-                    """
+            writeSource("com/example/payment/ports/in/MakingPayment.java", """
                     package com.example.payment.ports.in;
                     public interface MakingPayment {
                         void processPayment(Object payment);
                     }
                     """);
-            writeSource(
-                    "com/example/payment/ports/out/PaymentGateway.java",
-                    """
+            writeSource("com/example/payment/ports/out/PaymentGateway.java", """
                     package com.example.payment.ports.out;
                     public interface PaymentGateway {
                         void charge(Object payment);
@@ -154,17 +153,13 @@ class StyleDetectionIntegrationTest {
         @Test
         @DisplayName("should classify ports.out interfaces as DRIVEN ports")
         void shouldClassifyPortsOutAsDriven() throws IOException {
-            writeSource(
-                    "com/example/ports/in/UseCase.java",
-                    """
+            writeSource("com/example/ports/in/UseCase.java", """
                     package com.example.ports.in;
                     public interface UseCase {
                         void execute();
                     }
                     """);
-            writeSource(
-                    "com/example/ports/out/Repository.java",
-                    """
+            writeSource("com/example/ports/out/Repository.java", """
                     package com.example.ports.out;
                     public interface Repository {
                         void save(Object entity);
@@ -191,33 +186,25 @@ class StyleDetectionIntegrationTest {
         @Test
         @DisplayName("should detect BY_LAYER style from domain/application/infrastructure packages")
         void shouldDetectByLayerFromLayeredPackages() throws IOException {
-            writeSource(
-                    "com/example/domain/Order.java",
-                    """
+            writeSource("com/example/domain/Order.java", """
                     package com.example.domain;
                     public class Order {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/domain/Customer.java",
-                    """
+            writeSource("com/example/domain/Customer.java", """
                     package com.example.domain;
                     public class Customer {
                         private String id;
                     }
                     """);
-            writeSource(
-                    "com/example/application/OrderService.java",
-                    """
+            writeSource("com/example/application/OrderService.java", """
                     package com.example.application;
                     public interface OrderService {
                         void processOrder(Object order);
                     }
                     """);
-            writeSource(
-                    "com/example/infrastructure/JpaOrderRepository.java",
-                    """
+            writeSource("com/example/infrastructure/JpaOrderRepository.java", """
                     package com.example.infrastructure;
                     public class JpaOrderRepository {
                     }
@@ -238,15 +225,11 @@ class StyleDetectionIntegrationTest {
         @Test
         @DisplayName("should return UNKNOWN for non-standard package structure")
         void shouldReturnUnknownForNonStandardPackages() throws IOException {
-            writeSource(
-                    "com/example/foo/Bar.java",
-                    """
+            writeSource("com/example/foo/Bar.java", """
                     package com.example.foo;
                     public class Bar {}
                     """);
-            writeSource(
-                    "com/example/baz/Qux.java",
-                    """
+            writeSource("com/example/baz/Qux.java", """
                     package com.example.baz;
                     public class Qux {}
                     """);
@@ -263,17 +246,13 @@ class StyleDetectionIntegrationTest {
         void shouldNotBoostConfidenceWithUnknownStyle() throws IOException {
             // Only .in package without full hexagonal structure
             // Style should not be HEXAGONAL since we don't have ports.in/ports.out patterns
-            writeSource(
-                    "com/example/in/DoSomething.java",
-                    """
+            writeSource("com/example/in/DoSomething.java", """
                     package com.example.in;
                     public interface DoSomething {
                         void execute();
                     }
                     """);
-            writeSource(
-                    "com/example/model/Something.java",
-                    """
+            writeSource("com/example/model/Something.java", """
                     package com.example.model;
                     public class Something {
                         private String id;
@@ -304,21 +283,15 @@ class StyleDetectionIntegrationTest {
         void shouldIncludeDetectedPatternsInMetadata() throws IOException {
             // Create types in different packages to get multiple pattern matches
             // StyleDetector counts unique packages matching each pattern
-            writeSource(
-                    "com/example/order/ports/in/A.java",
-                    """
+            writeSource("com/example/order/ports/in/A.java", """
                     package com.example.order.ports.in;
                     public interface A {}
                     """);
-            writeSource(
-                    "com/example/payment/ports/in/B.java",
-                    """
+            writeSource("com/example/payment/ports/in/B.java", """
                     package com.example.payment.ports.in;
                     public interface B {}
                     """);
-            writeSource(
-                    "com/example/order/ports/out/C.java",
-                    """
+            writeSource("com/example/order/ports/out/C.java", """
                     package com.example.order.ports.out;
                     public interface C {}
                     """);
@@ -337,9 +310,7 @@ class StyleDetectionIntegrationTest {
         @Test
         @DisplayName("should preserve base metadata during enrichment")
         void shouldPreserveBaseMetadataDuringEnrichment() throws IOException {
-            writeSource(
-                    "com/example/ports/in/A.java",
-                    """
+            writeSource("com/example/ports/in/A.java", """
                     package com.example.ports.in;
                     public interface A {}
                     """);
