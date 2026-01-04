@@ -72,7 +72,7 @@
                             <goal>report-aggregate</goal>
                         </goals>
                         <configuration>
-                            <outputDirectory>${project.basedir}/../target/jacoco-aggregate</outputDirectory>
+                            <outputDirectory>${project.basedir}/../../target/coverage</outputDirectory>
                         </configuration>
                     </execution>
                 </executions>

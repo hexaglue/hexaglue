@@ -80,6 +80,7 @@
         <checkstyle.version>12.3.1</checkstyle.version>
         <spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
         <maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
+        <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
 
         <!-- Build tools version (fixed, not ${project.version} to work with child modules) -->
         <hexaglue-build-tools.version>2.0.0-SNAPSHOT</hexaglue-build-tools.version>
@@ -320,6 +321,7 @@
                             <id>checkstyle</id>
                             <phase>verify</phase>
                             <goals>
+                                <goal>checkstyle</goal>
                                 <goal>check</goal>
                             </goals>
                         </execution>
@@ -348,6 +350,7 @@
                             <id>spotbugs</id>
                             <phase>verify</phase>
                             <goals>
+                                <goal>spotbugs</goal>
                                 <goal>check</goal>
                             </goals>
                         </execution>
@@ -378,7 +381,24 @@
                             <id>pmd</id>
                             <phase>verify</phase>
                             <goals>
+                                <goal>pmd</goal>
                                 <goal>check</goal>
+                            </goals>
+                        </execution>
+                    </executions>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jxr-plugin</artifactId>
+                    <version>${maven-jxr-plugin.version}</version>
+                    <executions>
+                        <execution>
+                            <id>jxr</id>
+                            <phase>verify</phase>
+                            <goals>
+                                <goal>jxr</goal>
+                                <goal>test-jxr</goal>
                             </goals>
                         </execution>
                     </executions>
@@ -435,6 +455,7 @@
 
         <!-- Quality profile for code analysis -->
         <!-- Usage: mvn clean verify -Pquality -->
+        <!-- Aggregated reports are generated via 'make quality' -->
         <profile>
             <id>quality</id>
             <build>
@@ -446,6 +467,10 @@
                     <plugin>
                         <groupId>com.github.spotbugs</groupId>
                         <artifactId>spotbugs-maven-plugin</artifactId>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-jxr-plugin</artifactId>
                     </plugin>
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>

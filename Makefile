@@ -58,11 +58,18 @@ format-check:
 	@echo "$(CYAN)Checking code formatting...$(RESET)"
 	mvn com.diffplug.spotless:spotless-maven-plugin:check
 
-## quality: Run all quality checks (Checkstyle, SpotBugs, PMD)
+## quality: Run all quality checks (Checkstyle, SpotBugs, PMD) with aggregated reports
 quality: install
 	@echo "$(CYAN)Running quality checks...$(RESET)"
 	mvn verify -Pquality -DskipTests 2>&1 | tee build/build.log
-	@echo "$(GREEN)Quality report saved to build/build.log$(RESET)"
+	@echo "$(CYAN)Generating aggregated reports...$(RESET)"
+	mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q
+	@mv target/reports target/quality
+	@echo "$(GREEN)Quality reports:$(RESET)"
+	@echo "  - Checkstyle: target/quality/checkstyle-aggregate.html"
+	@echo "  - PMD:        target/quality/pmd.html"
+	@echo "  - Source XRef:target/quality/xref/"
+	@echo "  - Build log:  build/build.log"
 
 ## checkstyle: Run Checkstyle only
 checkstyle: install
@@ -85,9 +92,9 @@ pmd: install
 
 ## coverage: Generate aggregated coverage report
 coverage:
-	@echo "$(CYAN)Generating coverage report...$(RESET)"
-	mvn verify -pl build/coverage
-	@echo "$(GREEN)Coverage report: build/target/jacoco-aggregate/index.html$(RESET)"
+	@echo "$(CYAN)Running tests and generating coverage report...$(RESET)"
+	mvn verify
+	@echo "$(GREEN)Coverage report: target/coverage/index.html$(RESET)"
 
 ## integration: Run integration tests on examples
 integration:
