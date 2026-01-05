@@ -30,17 +30,31 @@ import java.util.Map;
  * of domain classifications:
  * <ol>
  *   <li><b>Pass 1 - Domain Classification:</b> Classify all non-interface types
- *       as domain types (entities, value objects, aggregates, etc.)</li>
+ *       as domain types (entities, value objects, aggregates, services, etc.)</li>
  *   <li><b>Pass 2 - Port Classification:</b> Classify interfaces as ports,
  *       with access to domain classification context</li>
  * </ol>
  *
- * <p>This enables more accurate port classification because:
+ * <p>This enables more accurate classification because:
  * <ul>
- *   <li>A port that manipulates aggregate roots is likely a repository</li>
+ *   <li>A port that manipulates aggregate roots is likely a repository (DRIVEN)</li>
  *   <li>A port that uses only value objects might be a query service</li>
- *   <li>The classification can reason about the domain model structure</li>
+ *   <li>Classes with port dependencies are APPLICATION_SERVICE</li>
+ *   <li>Classes without port dependencies but with domain logic are DOMAIN_SERVICE</li>
  * </ul>
+ *
+ * <p><b>Relationship-based criteria:</b>
+ * <ul>
+ *   <li>{@code InjectedAsDependencyCriteria}: Interface injected as field → DRIVEN port</li>
+ *   <li>{@code HasPortDependenciesCriteria}: Class with interface fields → APPLICATION_SERVICE</li>
+ *   <li>{@code StatelessNoDependenciesCriteria}: Class without port deps → DOMAIN_SERVICE</li>
+ *   <li>{@code RepositoryDominantCriteria}: Type dominant in persistence port → AGGREGATE_ROOT</li>
+ * </ul>
+ *
+ * <p><b>Note on pass order:</b> The current implementation works because criteria
+ * use graph structure (edges, naming) rather than classification results. Future
+ * enhancements may introduce a three-pass approach where port direction is determined
+ * first, then used in domain classification.
  *
  * <p>Example:
  * <pre>{@code

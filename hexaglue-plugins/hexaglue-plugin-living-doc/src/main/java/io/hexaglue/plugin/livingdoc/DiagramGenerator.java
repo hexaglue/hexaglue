@@ -291,7 +291,8 @@ final class DiagramGenerator {
             case VALUE_OBJECT -> "Value Object";
             case IDENTIFIER -> "Identifier";
             case DOMAIN_EVENT -> "Event";
-            case DOMAIN_SERVICE -> "Service";
+            case DOMAIN_SERVICE -> "Domain Service";
+            case APPLICATION_SERVICE -> "Application Service";
         };
     }
 

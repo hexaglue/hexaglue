@@ -172,6 +172,44 @@ final class PortDocGenerator {
             sb.append("</details>\n\n");
         }
 
+        // Debug information
+        sb.append("<details>\n");
+        sb.append("<summary>Debug Information</summary>\n\n");
+        sb.append("| Property | Value |\n");
+        sb.append("|----------|-------|\n");
+        sb.append("| **Qualified Name** | `").append(port.qualifiedName()).append("` |\n");
+
+        // Annotations
+        List<String> annotations = port.annotations();
+        if (!annotations.isEmpty()) {
+            sb.append("| **Annotations** | ");
+            for (int i = 0; i < annotations.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append("`@").append(simplifyType(annotations.get(i))).append("`");
+            }
+            sb.append(" |\n");
+        } else {
+            sb.append("| **Annotations** | *none* |\n");
+        }
+
+        // Source reference
+        if (port.sourceRef() != null && port.sourceRef().isReal()) {
+            sb.append("| **Source File** | `").append(port.sourceRef().filePath()).append("` |\n");
+            sb.append("| **Line** | ").append(port.sourceRef().lineStart()).append(" |\n");
+        }
+
+        // Managed types (full qualified names)
+        if (!managedTypes.isEmpty()) {
+            sb.append("| **Managed Types (FQN)** | ");
+            for (int i = 0; i < managedTypes.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append("`").append(managedTypes.get(i)).append("`");
+            }
+            sb.append(" |\n");
+        }
+
+        sb.append("\n</details>\n\n");
+
         sb.append("---\n\n");
     }
 

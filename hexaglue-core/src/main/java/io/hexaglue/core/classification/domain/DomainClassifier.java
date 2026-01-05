@@ -26,12 +26,14 @@ import io.hexaglue.core.classification.domain.criteria.ExplicitEntityCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitIdentifierCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.HasIdentityCriteria;
+import io.hexaglue.core.classification.domain.criteria.HasPortDependenciesCriteria;
 import io.hexaglue.core.classification.domain.criteria.ImmutableNoIdCriteria;
 import io.hexaglue.core.classification.domain.criteria.ImplementsJMoleculesInterfaceCriteria;
 import io.hexaglue.core.classification.domain.criteria.InheritedClassificationCriteria;
 import io.hexaglue.core.classification.domain.criteria.NamingDomainEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.RecordSingleIdCriteria;
 import io.hexaglue.core.classification.domain.criteria.RepositoryDominantCriteria;
+import io.hexaglue.core.classification.domain.criteria.StatelessNoDependenciesCriteria;
 import io.hexaglue.core.classification.domain.criteria.UnreferencedInPortsCriteria;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -100,12 +102,15 @@ public final class DomainClassifier {
                 new InheritedClassificationCriteria(),
                 // Medium heuristics (priority 70)
                 new EmbeddedValueObjectCriteria(),
+                // Relationship-based heuristics (priority 65)
+                new HasPortDependenciesCriteria(),
                 // Medium heuristics (priority 60)
                 new HasIdentityCriteria(),
                 new CollectionElementEntityCriteria(),
                 new ImmutableNoIdCriteria(),
                 // Naming heuristics (priority 55)
                 new NamingDomainEventCriteria(),
+                new StatelessNoDependenciesCriteria(),
                 // Lower heuristics (priority 50)
                 new UnreferencedInPortsCriteria());
     }

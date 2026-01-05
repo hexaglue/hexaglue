@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.port.criteria.CommandPatternCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitPrimaryPortCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitRepositoryCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitSecondaryPortCriteria;
+import io.hexaglue.core.classification.port.criteria.InjectedAsDependencyCriteria;
 import io.hexaglue.core.classification.port.criteria.NamingGatewayCriteria;
 import io.hexaglue.core.classification.port.criteria.NamingRepositoryCriteria;
 import io.hexaglue.core.classification.port.criteria.NamingUseCaseCriteria;
@@ -92,6 +93,8 @@ public final class PortClassifier {
                 // CQRS pattern heuristics (priority 75)
                 new CommandPatternCriteria(),
                 new QueryPatternCriteria(),
+                // Relationship-based heuristics (priority 75)
+                new InjectedAsDependencyCriteria(),
                 // Graph-based heuristics (priority 70)
                 new SignatureBasedDrivenPortCriteria(),
                 // Medium heuristics (priority 60)

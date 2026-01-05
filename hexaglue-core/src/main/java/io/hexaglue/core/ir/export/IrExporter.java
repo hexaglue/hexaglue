@@ -151,10 +151,10 @@ public final class IrExporter {
 
     private boolean shouldHaveIdentity(DomainKind kind) {
         // Only aggregate roots and entities have identity
-        // Value objects, domain events, identifiers, and domain services do NOT
+        // Value objects, domain events, identifiers, and services do NOT
         return switch (kind) {
             case AGGREGATE_ROOT, ENTITY -> true;
-            case VALUE_OBJECT, DOMAIN_EVENT, IDENTIFIER, DOMAIN_SERVICE -> false;
+            case VALUE_OBJECT, DOMAIN_EVENT, IDENTIFIER, DOMAIN_SERVICE, APPLICATION_SERVICE -> false;
         };
     }
 

@@ -63,7 +63,20 @@ public enum DomainKind {
      * Domain service - stateless operations that don't belong to entities.
      *
      * <p>Domain services contain domain logic that doesn't naturally
-     * fit within an entity or value object.
+     * fit within an entity or value object. They have NO dependencies
+     * on ports (infrastructure interfaces).
      */
-    DOMAIN_SERVICE
+    DOMAIN_SERVICE,
+
+    /**
+     * Application service - orchestrates use cases by coordinating
+     * domain logic and infrastructure through ports.
+     *
+     * <p>Application services have dependencies on DRIVEN ports (infrastructure
+     * interfaces) and expose operations that can be called by DRIVING ports.
+     * They orchestrate but contain no domain logic themselves.
+     *
+     * <p>Key distinction from DOMAIN_SERVICE: has port dependencies.
+     */
+    APPLICATION_SERVICE
 }

@@ -126,7 +126,12 @@ public final class QueryPatternCriteria implements PortClassificationCriteria {
         return name.endsWith("Repository")
                 || name.endsWith("Gateway")
                 || name.endsWith("Client")
-                || name.endsWith("Adapter");
+                || name.endsWith("Adapter")
+                || name.endsWith("Fetcher")
+                || name.endsWith("Loader")
+                || name.endsWith("Saver")
+                || name.endsWith("Persister")
+                || name.endsWith("Store");
     }
 
     private boolean hasQueryParameter(MethodNode method) {

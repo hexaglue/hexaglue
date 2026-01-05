@@ -27,13 +27,22 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Matches types that are used as the dominant type in Repository signatures
+ * Matches types that are used as the dominant type in persistence port signatures
  * and have an identity field.
  *
  * <p>This is a strong heuristic for AGGREGATE_ROOT:
  * <ul>
- *   <li>Type is used in a *Repository interface signature (return or parameter)</li>
+ *   <li>Type is used in a persistence port interface signature (return or parameter)</li>
  *   <li>Type has a field named "id" or ending with "Id"</li>
+ * </ul>
+ *
+ * <p>Persistence ports include:
+ * <ul>
+ *   <li>*Repository, *Repositories - standard DDD naming</li>
+ *   <li>*Fetcher, *Loader - read operations</li>
+ *   <li>*Saver, *Persister, *Writer - write operations</li>
+ *   <li>*Store, *Storage - storage operations</li>
+ *   <li>*Gateway - data gateway pattern</li>
  * </ul>
  *
  * <p>Priority: 80 (strong heuristic)
@@ -101,8 +110,8 @@ public final class RepositoryDominantCriteria implements ClassificationCriteria<
 
     private boolean isRepository(TypeNode type, TypeNode dominantType) {
         String name = type.simpleName();
-        // Match *Repository, *Repositories, or types with @Repository annotation
-        if (name.endsWith("Repository") || name.endsWith("Repositories")) {
+        // Match persistence port patterns
+        if (isPersistencePort(name)) {
             return true;
         }
         if (hasRepositoryAnnotation(type)) {
@@ -110,6 +119,34 @@ public final class RepositoryDominantCriteria implements ClassificationCriteria<
         }
         // Check if interface is the plural of the dominant type (e.g., Orders for Order)
         return isPluralOf(name, dominantType.simpleName());
+    }
+
+    private boolean isPersistencePort(String name) {
+        // Standard DDD naming
+        if (name.endsWith("Repository") || name.endsWith("Repositories")) {
+            return true;
+        }
+        // Read operations
+        if (name.endsWith("Fetcher") || name.endsWith("Loader") || name.endsWith("Reader")) {
+            return true;
+        }
+        // Write operations
+        if (name.endsWith("Saver") || name.endsWith("Persister") || name.endsWith("Writer")) {
+            return true;
+        }
+        // Storage patterns
+        if (name.endsWith("Store") || name.endsWith("Storage")) {
+            return true;
+        }
+        // Gateway pattern
+        if (name.endsWith("Gateway")) {
+            return true;
+        }
+        // DAO pattern (legacy but still used)
+        if (name.endsWith("Dao") || name.endsWith("DAO")) {
+            return true;
+        }
+        return false;
     }
 
     private boolean isPluralOf(String potentialPlural, String singular) {

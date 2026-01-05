@@ -97,11 +97,23 @@ final class DomainDocGenerator {
         }
 
         // Domain Services
-        List<DomainType> services = ir.domain().typesOfKind(DomainKind.DOMAIN_SERVICE);
-        if (!services.isEmpty()) {
+        List<DomainType> domainServices = ir.domain().typesOfKind(DomainKind.DOMAIN_SERVICE);
+        if (!domainServices.isEmpty()) {
             sb.append("## Domain Services\n\n");
-            sb.append("Domain services contain domain logic that doesn't belong to entities.\n\n");
-            for (DomainType service : services) {
+            sb.append("Domain services contain domain logic that doesn't belong to entities. ");
+            sb.append("They have NO dependencies on infrastructure ports.\n\n");
+            for (DomainType service : domainServices) {
+                generateTypeDocumentation(sb, service);
+            }
+        }
+
+        // Application Services
+        List<DomainType> appServices = ir.domain().typesOfKind(DomainKind.APPLICATION_SERVICE);
+        if (!appServices.isEmpty()) {
+            sb.append("## Application Services\n\n");
+            sb.append("Application services orchestrate use cases by coordinating domain logic ");
+            sb.append("and infrastructure through ports. They have dependencies on DRIVEN ports.\n\n");
+            for (DomainType service : appServices) {
                 generateTypeDocumentation(sb, service);
             }
         }
@@ -146,6 +158,58 @@ final class DomainDocGenerator {
                         .append(vo.simpleName())
                         .append("](#")
                         .append(toAnchor(vo.simpleName()))
+                        .append(")\n");
+            }
+            sb.append("\n");
+        }
+
+        List<DomainType> identifiers = ir.domain().typesOfKind(DomainKind.IDENTIFIER);
+        if (!identifiers.isEmpty()) {
+            sb.append("### Identifiers\n");
+            for (DomainType id : identifiers) {
+                sb.append("- [")
+                        .append(id.simpleName())
+                        .append("](#")
+                        .append(toAnchor(id.simpleName()))
+                        .append(")\n");
+            }
+            sb.append("\n");
+        }
+
+        List<DomainType> events = ir.domain().typesOfKind(DomainKind.DOMAIN_EVENT);
+        if (!events.isEmpty()) {
+            sb.append("### Domain Events\n");
+            for (DomainType event : events) {
+                sb.append("- [")
+                        .append(event.simpleName())
+                        .append("](#")
+                        .append(toAnchor(event.simpleName()))
+                        .append(")\n");
+            }
+            sb.append("\n");
+        }
+
+        List<DomainType> domainServices = ir.domain().typesOfKind(DomainKind.DOMAIN_SERVICE);
+        if (!domainServices.isEmpty()) {
+            sb.append("### Domain Services\n");
+            for (DomainType service : domainServices) {
+                sb.append("- [")
+                        .append(service.simpleName())
+                        .append("](#")
+                        .append(toAnchor(service.simpleName()))
+                        .append(")\n");
+            }
+            sb.append("\n");
+        }
+
+        List<DomainType> appServices = ir.domain().typesOfKind(DomainKind.APPLICATION_SERVICE);
+        if (!appServices.isEmpty()) {
+            sb.append("### Application Services\n");
+            for (DomainType service : appServices) {
+                sb.append("- [")
+                        .append(service.simpleName())
+                        .append("](#")
+                        .append(toAnchor(service.simpleName()))
                         .append(")\n");
             }
             sb.append("\n");
@@ -222,7 +286,43 @@ final class DomainDocGenerator {
             sb.append("\n");
         }
 
+        // Debug information
+        sb.append("<details>\n");
+        sb.append("<summary>Debug Information</summary>\n\n");
+        sb.append("| Property | Value |\n");
+        sb.append("|----------|-------|\n");
+        sb.append("| **Qualified Name** | `").append(type.qualifiedName()).append("` |\n");
+
+        // Annotations
+        List<String> annotations = type.annotations();
+        if (!annotations.isEmpty()) {
+            sb.append("| **Annotations** | ");
+            for (int i = 0; i < annotations.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append("`@").append(simplifyType(annotations.get(i))).append("`");
+            }
+            sb.append(" |\n");
+        } else {
+            sb.append("| **Annotations** | *none* |\n");
+        }
+
+        // Source reference
+        if (type.sourceRef() != null && type.sourceRef().isReal()) {
+            sb.append("| **Source File** | `").append(type.sourceRef().filePath()).append("` |\n");
+            sb.append("| **Line** | ").append(type.sourceRef().lineStart()).append(" |\n");
+        }
+
+        sb.append("\n</details>\n\n");
+
         sb.append("---\n\n");
+    }
+
+    private String simplifyType(String qualifiedType) {
+        if (qualifiedType == null || qualifiedType.isEmpty()) {
+            return "?";
+        }
+        int lastDot = qualifiedType.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedType.substring(lastDot + 1) : qualifiedType;
     }
 
     private String formatKind(DomainKind kind) {
@@ -233,6 +333,7 @@ final class DomainDocGenerator {
             case IDENTIFIER -> "Identifier";
             case DOMAIN_EVENT -> "Domain Event";
             case DOMAIN_SERVICE -> "Domain Service";
+            case APPLICATION_SERVICE -> "Application Service";
         };
     }
 
