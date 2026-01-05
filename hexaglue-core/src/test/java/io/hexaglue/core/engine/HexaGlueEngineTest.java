@@ -132,12 +132,12 @@ class HexaGlueEngineTest {
                     public record ProductId(java.util.UUID value) {}
                     """);
 
-            // Ports
+            // Ports - Use method name that doesn't match COMMAND pattern
             writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
                     public interface CreateProductUseCase {
-                        Product execute(String name);
+                        Product newProduct(String name);
                     }
                     """);
             writeSource("com/example/port/out/ProductRepository.java", """

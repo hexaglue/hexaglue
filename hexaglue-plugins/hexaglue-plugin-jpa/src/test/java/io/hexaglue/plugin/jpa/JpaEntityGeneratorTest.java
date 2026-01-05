@@ -179,13 +179,13 @@ class JpaEntityGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate protected default constructor")
-        void shouldGenerateProtectedDefaultConstructor() {
+        @DisplayName("should generate public default constructor")
+        void shouldGeneratePublicDefaultConstructor() {
             DomainType type = simpleAggregateRoot("Order", DOMAIN_PKG);
 
             String code = generator.generateEntity(type);
 
-            assertThat(code).contains("protected OrderEntity() {");
+            assertThat(code).contains("public OrderEntity() {");
         }
 
         @Test
@@ -392,13 +392,13 @@ class JpaEntityGeneratorTest {
         }
 
         @Test
-        @DisplayName("should generate protected default constructor")
-        void shouldGenerateProtectedDefaultConstructorForEmbeddable() {
+        @DisplayName("should generate public default constructor")
+        void shouldGeneratePublicDefaultConstructorForEmbeddable() {
             DomainType vo = simpleValueObject("Address", DOMAIN_PKG);
 
             String code = generator.generateEmbeddable(vo);
 
-            assertThat(code).contains("protected AddressEmbeddable() {");
+            assertThat(code).contains("public AddressEmbeddable() {");
         }
 
         @Test

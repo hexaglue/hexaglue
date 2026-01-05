@@ -78,6 +78,11 @@ public final class SignatureBasedDrivenPortCriteria implements PortClassificatio
             return MatchResult.noMatch();
         }
 
+        // Skip interfaces that look like non-repository driven ports (gateways, clients, etc.)
+        if (looksLikeNonRepositoryDrivenPort(node)) {
+            return MatchResult.noMatch();
+        }
+
         // Find types used in this interface's signatures via USES_IN_SIGNATURE edges
         Set<TypeNode> usedTypes = query.graph().edgesFrom(node.id()).stream()
                 .filter(e -> e.kind() == EdgeKind.USES_IN_SIGNATURE)
@@ -115,6 +120,17 @@ public final class SignatureBasedDrivenPortCriteria implements PortClassificatio
                 || name.endsWith("Query")
                 || name.endsWith("Handler")
                 || name.endsWith("Service");
+    }
+
+    private boolean looksLikeNonRepositoryDrivenPort(TypeNode node) {
+        String name = node.simpleName();
+        // Skip driven ports that are not repositories (gateway, client, publisher, etc.)
+        return name.endsWith("Gateway")
+                || name.endsWith("Client")
+                || name.endsWith("Publisher")
+                || name.endsWith("Sender")
+                || name.endsWith("Notifier")
+                || name.endsWith("Adapter");
     }
 
     private boolean hasIdentityField(TypeNode type, GraphQuery query) {

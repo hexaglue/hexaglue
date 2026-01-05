@@ -334,6 +334,9 @@ final class DomainDocGenerator {
             case DOMAIN_EVENT -> "Domain Event";
             case DOMAIN_SERVICE -> "Domain Service";
             case APPLICATION_SERVICE -> "Application Service";
+            case INBOUND_ONLY -> "Inbound Only";
+            case OUTBOUND_ONLY -> "Outbound Only";
+            case SAGA -> "Saga";
         };
     }
 

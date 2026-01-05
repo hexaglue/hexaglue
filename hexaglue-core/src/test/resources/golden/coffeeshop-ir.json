@@ -39,8 +39,8 @@
         "methods": ["createOrder", "findOrder"]
       },
       {
-        "qualifiedName": "com.coffeeshop.ports.out.Orders",
-        "simpleName": "Orders",
+        "qualifiedName": "com.coffeeshop.ports.out.OrderRepository",
+        "simpleName": "OrderRepository",
         "kind": "REPOSITORY",
         "direction": "DRIVEN",
         "confidence": "HIGH",

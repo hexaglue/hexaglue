@@ -102,11 +102,12 @@ class GoldenFileTest {
                 }
                 """);
 
-        writeSource("com/coffeeshop/ports/out/Orders.java", """
+        // Use "Repository" suffix so looksLikeDrivenPort() excludes from COMMAND pattern
+        writeSource("com/coffeeshop/ports/out/OrderRepository.java", """
                 package com.coffeeshop.ports.out;
                 import com.coffeeshop.domain.order.*;
                 import java.util.Optional;
-                public interface Orders {
+                public interface OrderRepository {
                     Order save(Order order);
                     Optional<Order> findById(OrderId id);
                 }

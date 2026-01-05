@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 /**
  * Holds all classification results from a classification run.
  *
- * <p>This is the output of {@link TwoPassClassifier} and contains
+ * <p>This is the output of {@link SinglePassClassifier} and contains
  * both domain type and port classifications.
  *
  * @param allClassifications all classification results by node ID

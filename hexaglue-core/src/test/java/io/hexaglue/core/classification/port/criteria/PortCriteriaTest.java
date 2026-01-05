@@ -193,7 +193,8 @@ class PortCriteriaTest {
             assertThat(result.justification()).contains("CRUD");
             assertThat(criteria.targetKind()).isEqualTo(PortKind.REPOSITORY);
             assertThat(criteria.targetDirection()).isEqualTo(PortDirection.DRIVEN);
-            assertThat(criteria.priority()).isEqualTo(80);
+            // Priority demoted from 80 to 50 to give precedence to semantic criteria
+            assertThat(criteria.priority()).isEqualTo(50);
         }
 
         @Test
@@ -499,7 +500,8 @@ class PortCriteriaTest {
             assertThat(result.justification()).contains("*Gateway");
             assertThat(criteria.targetKind()).isEqualTo(PortKind.GATEWAY);
             assertThat(criteria.targetDirection()).isEqualTo(PortDirection.DRIVEN);
-            assertThat(criteria.priority()).isEqualTo(80);
+            // Priority demoted from 80 to 50 to give precedence to semantic criteria
+            assertThat(criteria.priority()).isEqualTo(50);
         }
 
         @Test

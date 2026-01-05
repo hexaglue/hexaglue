@@ -293,6 +293,9 @@ final class DiagramGenerator {
             case DOMAIN_EVENT -> "Event";
             case DOMAIN_SERVICE -> "Domain Service";
             case APPLICATION_SERVICE -> "Application Service";
+            case INBOUND_ONLY -> "Inbound Only";
+            case OUTBOUND_ONLY -> "Outbound Only";
+            case SAGA -> "Saga";
         };
     }
 

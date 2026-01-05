@@ -46,5 +46,16 @@ public enum PortKind {
      * Command port - write operations / state changes.
      * Direction: DRIVING (inbound/primary).
      */
-    COMMAND
+    COMMAND,
+
+    /**
+     * Event publisher port - publishes domain events.
+     * Direction: DRIVEN (outbound/secondary).
+     */
+    EVENT_PUBLISHER,
+
+    /**
+     * Generic port - could not be classified more specifically.
+     */
+    GENERIC
 }

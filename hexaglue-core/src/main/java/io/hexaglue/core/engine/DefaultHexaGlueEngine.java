@@ -14,10 +14,10 @@
 package io.hexaglue.core.engine;
 
 import io.hexaglue.core.classification.ClassificationResult;
+import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
-import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.port.PortClassifier;
+import io.hexaglue.core.classification.SinglePassClassifier;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -25,7 +25,6 @@ import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.builder.GraphBuilder;
 import io.hexaglue.core.graph.model.GraphMetadata;
 import io.hexaglue.core.graph.model.TypeNode;
-import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.ir.export.IrExporter;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
@@ -46,7 +45,7 @@ import org.slf4j.LoggerFactory;
  *   <li>Convert to JavaSemanticModel</li>
  *   <li>Build ApplicationGraph (GraphBuilder)</li>
  *   <li>Derive edges (DerivedEdgeComputer)</li>
- *   <li>Classify types (DomainClassifier, PortClassifier)</li>
+ *   <li>Classify types (SinglePassClassifier - ports first, then domain)</li>
  *   <li>Export to IR (IrExporter)</li>
  * </ol>
  */
@@ -56,15 +55,13 @@ final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
     private final SpoonFrontend frontend;
     private final GraphBuilder graphBuilder;
-    private final DomainClassifier domainClassifier;
-    private final PortClassifier portClassifier;
+    private final SinglePassClassifier classifier;
     private final IrExporter irExporter;
 
     DefaultHexaGlueEngine() {
         this.frontend = new SpoonFrontend();
         this.graphBuilder = new GraphBuilder(true); // compute derived edges
-        this.domainClassifier = new DomainClassifier();
-        this.portClassifier = new PortClassifier();
+        this.classifier = new SinglePassClassifier();
         this.irExporter = new IrExporter();
     }
 
@@ -168,25 +165,13 @@ final class DefaultHexaGlueEngine implements HexaGlueEngine {
     }
 
     private List<ClassificationResult> classifyAll(ApplicationGraph graph) {
-        GraphQuery query = graph.query();
-        List<ClassificationResult> results = new ArrayList<>();
+        // Use SinglePassClassifier for unified classification
+        // This ensures ports are classified FIRST, then domain types with port context
+        ClassificationResults results = classifier.classify(graph);
 
-        for (TypeNode type : graph.typeNodes()) {
-            // Try domain classification first
-            ClassificationResult domainResult = domainClassifier.classify(type, query);
-            if (domainResult.isClassified() || domainResult.status() == ClassificationStatus.CONFLICT) {
-                results.add(domainResult);
-                continue;
-            }
-
-            // Then try port classification
-            ClassificationResult portResult = portClassifier.classify(type, query);
-            if (portResult.isClassified() || portResult.status() == ClassificationStatus.CONFLICT) {
-                results.add(portResult);
-            }
-            // Unclassified types are not added to results
-        }
-
-        return results;
+        // Filter to only return classified or conflicting types
+        return results.stream()
+                .filter(c -> c.isClassified() || c.status() == ClassificationStatus.CONFLICT)
+                .toList();
     }
 }

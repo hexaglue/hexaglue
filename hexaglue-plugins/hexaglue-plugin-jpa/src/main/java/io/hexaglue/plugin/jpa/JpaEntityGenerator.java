@@ -200,7 +200,7 @@ final class JpaEntityGenerator {
         sb.append("    /**\n");
         sb.append("     * Default constructor for JPA.\n");
         sb.append("     */\n");
-        sb.append("    protected ").append(entityName).append("() {\n");
+        sb.append("    public ").append(entityName).append("() {\n");
         sb.append("    }\n\n");
 
         // Getters and setters
@@ -268,7 +268,7 @@ final class JpaEntityGenerator {
         sb.append("    /**\n");
         sb.append("     * Default constructor for JPA.\n");
         sb.append("     */\n");
-        sb.append("    protected ").append(embeddableName).append("() {\n");
+        sb.append("    public ").append(embeddableName).append("() {\n");
         sb.append("    }\n\n");
 
         // All-args constructor

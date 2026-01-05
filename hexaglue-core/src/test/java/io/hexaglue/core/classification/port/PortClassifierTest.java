@@ -216,10 +216,12 @@ class PortClassifierTest {
         @Test
         @DisplayName("Should classify interface with *UseCase name as USE_CASE")
         void shouldClassifyUseCaseByNaming() throws IOException {
+            // Use method name that doesn't match COMMAND pattern (create*, process*, execute*, etc.)
+            // to test naming specifically
             writeSource("com/example/CreateOrderUseCase.java", """
                     package com.example;
                     public interface CreateOrderUseCase {
-                        void execute(Object command);
+                        void newOrder(Object order);
                     }
                     """);
 
@@ -325,9 +327,10 @@ class PortClassifierTest {
         }
 
         @Test
-        @DisplayName("Higher priority naming should win over package")
-        void higherPriorityNamingShouldWinOverPackage() throws IOException {
+        @DisplayName("Package should win over naming after priority demotion")
+        void packageShouldWinOverNamingAfterPriorityDemotion() throws IOException {
             // Interface in .in package but ends with Repository
+            // After priority demotion: package-in (60) > naming-repository (50)
             writeSource("com/example/ports/in/OrderRepository.java", """
                     package com.example.ports.in;
                     public interface OrderRepository {
@@ -342,9 +345,9 @@ class PortClassifierTest {
 
             ClassificationResult result = classifier.classify(repo, query);
 
-            // naming-repository (priority 80) should win over package-in (priority 60)
-            assertThat(result.kind()).isEqualTo("REPOSITORY");
-            assertThat(result.matchedPriority()).isEqualTo(80);
+            // package-in (priority 60) should now win over naming-repository (priority 50)
+            assertThat(result.kind()).isEqualTo("USE_CASE");
+            assertThat(result.matchedPriority()).isEqualTo(60);
         }
 
         @Test

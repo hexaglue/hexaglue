@@ -34,9 +34,12 @@ import java.util.List;
  *   <li>Name ends with "Handler" (command/query handler)</li>
  * </ul>
  *
- * <p>Priority: 80 (strong heuristic)
+ * <p>Priority: 50 (naming heuristic fallback - demoted from 80)
  * <p>Confidence: HIGH
  * <p>Direction: DRIVING
+ *
+ * <p><b>Note:</b> This criteria was demoted from priority 80 to 50 to give precedence
+ * to semantic criteria ({@link SemanticDrivingPortCriteria}) which use structural analysis.
  */
 public final class NamingUseCaseCriteria implements PortClassificationCriteria {
 
@@ -47,7 +50,7 @@ public final class NamingUseCaseCriteria implements PortClassificationCriteria {
 
     @Override
     public int priority() {
-        return 80;
+        return 50;
     }
 
     @Override

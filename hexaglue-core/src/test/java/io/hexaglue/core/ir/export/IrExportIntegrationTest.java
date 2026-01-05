@@ -104,11 +104,12 @@ class IrExportIntegrationTest {
                     package com.example.domain;
                     public record Location(String city, String street, String zipCode) {}
                     """);
-            writeSource("com/example/domain/Orders.java", """
+            // Use "Repository" suffix so naming criteria matches before command pattern
+            writeSource("com/example/domain/OrderRepository.java", """
                     package com.example.domain;
                     import java.util.List;
                     import java.util.Optional;
-                    public interface Orders {
+                    public interface OrderRepository {
                         Optional<Order> findById(OrderId id);
                         void save(Order order);
                         List<Order> findByCustomer(String customerName);
@@ -149,12 +150,12 @@ class IrExportIntegrationTest {
 
             // Verify port
             assertThat(snapshot.ports().ports()).hasSize(1);
-            Port orders = snapshot.ports().ports().get(0);
-            assertThat(orders.simpleName()).isEqualTo("Orders");
-            assertThat(orders.kind()).isEqualTo(PortKind.REPOSITORY);
-            assertThat(orders.direction()).isEqualTo(PortDirection.DRIVEN);
-            assertThat(orders.methods()).hasSize(4);
-            assertThat(orders.managedTypes()).contains("com.example.domain.Order");
+            Port orderRepo = snapshot.ports().ports().get(0);
+            assertThat(orderRepo.simpleName()).isEqualTo("OrderRepository");
+            assertThat(orderRepo.kind()).isEqualTo(PortKind.REPOSITORY);
+            assertThat(orderRepo.direction()).isEqualTo(PortDirection.DRIVEN);
+            assertThat(orderRepo.methods()).hasSize(4);
+            assertThat(orderRepo.managedTypes()).contains("com.example.domain.Order");
         }
 
         @Test
@@ -205,11 +206,12 @@ class IrExportIntegrationTest {
                     """);
 
             // Driving port (in) - use naming pattern for reliable classification
+            // Use method name that doesn't match COMMAND pattern to test USE_CASE naming
             writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
                     public interface CreateProductUseCase {
-                        Product execute(String name, java.math.BigDecimal price);
+                        Product newProduct(String name, java.math.BigDecimal price);
                     }
                     """);
 
@@ -224,9 +226,9 @@ class IrExportIntegrationTest {
                     }
                     """);
 
-            // Driven port (out) - gateway with naming pattern
-            writeSource("com/example/port/out/NotificationGateway.java", """
-                    package com.example.port.out;
+            // Driven port - gateway with naming pattern (in infrastructure package to test naming)
+            writeSource("com/example/infrastructure/NotificationGateway.java", """
+                    package com.example.infrastructure;
                     import com.example.domain.Product;
                     public interface NotificationGateway {
                         void notifyProductCreated(Product product);
@@ -267,11 +269,12 @@ class IrExportIntegrationTest {
                     public class Entity { private String id; }
                     """);
 
-            // Package .port.in with naming pattern = DRIVING
-            writeSource("com/example/port/in/SomeHandler.java", """
+            // Package .port.in with UseCase naming = DRIVING
+            // Use method name that doesn't match COMMAND pattern
+            writeSource("com/example/port/in/SomeUseCase.java", """
                     package com.example.port.in;
-                    public interface SomeHandler {
-                        void handle(String command);
+                    public interface SomeUseCase {
+                        void forEntity(String entityId);
                     }
                     """);
 
@@ -286,10 +289,10 @@ class IrExportIntegrationTest {
 
             IrSnapshot snapshot = analyzeAndExport("com.example");
 
-            // Handler in .port.in should be DRIVING
-            Port handler = findPort(snapshot, "SomeHandler");
-            assertThat(handler.kind()).isEqualTo(PortKind.USE_CASE);
-            assertThat(handler.direction()).isEqualTo(PortDirection.DRIVING);
+            // UseCase in .port.in should be DRIVING
+            Port useCase = findPort(snapshot, "SomeUseCase");
+            assertThat(useCase.kind()).isEqualTo(PortKind.USE_CASE);
+            assertThat(useCase.direction()).isEqualTo(PortDirection.DRIVING);
 
             // Repository should be DRIVEN
             Port repository = findPort(snapshot, "EntityRepository");

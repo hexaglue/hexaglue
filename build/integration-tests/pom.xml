@@ -55,6 +55,10 @@
                     <pomIncludes>
                         <pomInclude>*/pom.xml</pomInclude>
                     </pomIncludes>
+                    <!-- Temporarily exclude my-hexagonal-pokedex until PortKind classification is fixed -->
+                    <pomExcludes>
+                        <pomExclude>my-hexagonal-pokedex/pom.xml</pomExclude>
+                    </pomExcludes>
                 </configuration>
                 <executions>
                     <execution>

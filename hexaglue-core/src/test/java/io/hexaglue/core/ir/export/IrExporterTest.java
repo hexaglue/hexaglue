@@ -833,10 +833,11 @@ class IrExporterTest {
         @Test
         @DisplayName("should export use case port as DRIVING")
         void exportUseCaseAsDriving() throws IOException {
+            // Use method name that doesn't match COMMAND pattern to test USE_CASE naming
             writeSource("com/example/port/in/CreateOrderUseCase.java", """
                     package com.example.port.in;
                     public interface CreateOrderUseCase {
-                        void execute(String customerId);
+                        void newOrder(String customerId);
                     }
                     """);
 

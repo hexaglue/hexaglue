@@ -259,9 +259,9 @@ class ConflictDetectionTest {
         }
 
         @Test
-        @DisplayName("Naming should win over package for ports")
-        void namingWinsOverPackageForPorts() throws IOException {
-            // Interface in .in package (USE_CASE, priority 60) but name ends with Repository (priority 80)
+        @DisplayName("Package should win over naming for ports after priority demotion")
+        void packageWinsOverNamingForPortsAfterDemotion() throws IOException {
+            // After priority demotion: package-in (60) > naming-repository (50)
             writeSource("com/example/ports/in/CustomerRepository.java", """
                     package com.example.ports.in;
                     public interface CustomerRepository {
@@ -278,12 +278,13 @@ class ConflictDetectionTest {
             ClassificationResult result = portClassifier.classify(repo, query);
 
             assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo(PortKind.REPOSITORY.name());
-            assertThat(result.matchedPriority()).isEqualTo(80);
+            // package-in (priority 60) now wins over naming-repository (priority 50)
+            assertThat(result.kind()).isEqualTo(PortKind.USE_CASE.name());
+            assertThat(result.matchedPriority()).isEqualTo(60);
 
-            // Should have USE_CASE conflict from package
+            // Should have REPOSITORY conflict from naming
             assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(PortKind.USE_CASE.name());
+            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(PortKind.REPOSITORY.name());
         }
     }
 

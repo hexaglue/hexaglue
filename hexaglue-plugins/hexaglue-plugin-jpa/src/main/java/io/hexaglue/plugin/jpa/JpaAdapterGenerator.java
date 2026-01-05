@@ -37,13 +37,16 @@ final class JpaAdapterGenerator {
     }
 
     /**
-     * Generates an adapter class that implements a repository port.
+     * Generates an adapter class that implements multiple repository ports for the same managed type.
      *
-     * @param port the port interface to implement
-     * @param managedType the domain type managed by this port
+     * <p>When multiple ports manage the same domain type (e.g., OrderSaver and OrderFetcher both
+     * manage Order), this method generates a single adapter that implements all of them.
+     *
+     * @param ports the port interfaces to implement
+     * @param managedType the domain type managed by these ports
      * @return the generated adapter source code
      */
-    String generateAdapter(Port port, DomainType managedType) {
+    String generateMergedAdapter(List<Port> ports, DomainType managedType) {
         String domainName = managedType.simpleName();
         String repositoryName = domainName + config.repositorySuffix();
         String mapperName = domainName + config.mapperSuffix();
@@ -52,58 +55,24 @@ final class JpaAdapterGenerator {
         StringBuilder sb = new StringBuilder();
         Set<String> imports = new HashSet<>();
 
-        // Collect imports
+        // Collect imports from all ports
         imports.add("org.springframework.stereotype.Component");
         imports.add("org.springframework.transaction.annotation.Transactional");
-        imports.add(port.qualifiedName());
         imports.add(managedType.qualifiedName());
+
+        for (Port port : ports) {
+            imports.add(port.qualifiedName());
+
+            // Add imports for common return types and parameter types based on method signatures
+            for (PortMethod method : port.methods()) {
+                collectMethodImports(method, imports);
+            }
+        }
 
         if (managedType.hasIdentity()) {
             String idTypeName = managedType.identity().get().type().qualifiedName();
             if (idTypeName.contains(".")) {
                 imports.add(idTypeName);
-            }
-        }
-
-        // Add imports for common return types and parameter types based on method signatures
-        for (PortMethod method : port.methods()) {
-            String returnType = method.returnType();
-            if (returnType != null) {
-                if (returnType.contains("Optional") || returnType.equals("Optional")) {
-                    imports.add("java.util.Optional");
-                }
-                if (returnType.contains("List") || returnType.equals("List")) {
-                    imports.add("java.util.List");
-                }
-                if (returnType.contains("Set") || returnType.equals("Set")) {
-                    imports.add("java.util.Set");
-                }
-                if (returnType.contains("Collection") || returnType.equals("Collection")) {
-                    imports.add("java.util.Collection");
-                }
-                if (returnType.contains("Iterable") || returnType.equals("Iterable")) {
-                    // Iterable is in java.lang, no explicit import needed
-                }
-                if (returnType.contains("Stream") || returnType.contains("stream.Stream")) {
-                    imports.add("java.util.stream.Stream");
-                }
-                if (returnType.contains("Page<") || returnType.contains("data.domain.Page")) {
-                    imports.add("org.springframework.data.domain.Page");
-                }
-            }
-
-            // Add imports for parameter types
-            for (String paramType : method.parameters()) {
-                if (paramType != null && paramType.contains(".")) {
-                    if (paramType.contains("Pageable")) {
-                        imports.add("org.springframework.data.domain.Pageable");
-                    } else if (paramType.contains("data.domain.Sort")) {
-                        imports.add("org.springframework.data.domain.Sort");
-                    } else if (!paramType.startsWith("java.")) {
-                        // Domain value objects like Email, CustomerId, etc.
-                        imports.add(paramType);
-                    }
-                }
             }
         }
 
@@ -118,11 +87,14 @@ final class JpaAdapterGenerator {
 
         // Class javadoc
         sb.append("/**\n");
-        sb.append(" * JPA adapter implementing {@link ")
-                .append(port.simpleName())
-                .append("}.\n");
+        sb.append(" * JPA adapter implementing");
+        for (int i = 0; i < ports.size(); i++) {
+            if (i > 0) sb.append(",");
+            sb.append(" {@link ").append(ports.get(i).simpleName()).append("}");
+        }
+        sb.append(".\n");
         sb.append(" *\n");
-        sb.append(" * <p>Bridges the domain port with JPA infrastructure using\n");
+        sb.append(" * <p>Bridges the domain ports with JPA infrastructure using\n");
         sb.append(" * {@link ")
                 .append(repositoryName)
                 .append("} and {@link ")
@@ -136,12 +108,13 @@ final class JpaAdapterGenerator {
         sb.append("@Component\n");
         sb.append("@Transactional\n");
 
-        // Class declaration
-        sb.append("public class ")
-                .append(adapterName)
-                .append(" implements ")
-                .append(port.simpleName())
-                .append(" {\n\n");
+        // Class declaration - implement all ports
+        sb.append("public class ").append(adapterName).append(" implements ");
+        for (int i = 0; i < ports.size(); i++) {
+            if (i > 0) sb.append(", ");
+            sb.append(ports.get(i).simpleName());
+        }
+        sb.append(" {\n\n");
 
         // Fields
         String repoField = decapitalize(repositoryName);
@@ -188,14 +161,69 @@ final class JpaAdapterGenerator {
                 .append(";\n");
         sb.append("    }\n\n");
 
-        // Implement port methods
-        for (PortMethod method : port.methods()) {
-            generatePortMethodImpl(sb, method, managedType, repoField, mapperField);
+        // Implement methods from all ports
+        for (Port port : ports) {
+            for (PortMethod method : port.methods()) {
+                generatePortMethodImpl(sb, method, managedType, repoField, mapperField);
+            }
         }
 
         sb.append("}\n");
 
         return sb.toString();
+    }
+
+    /**
+     * Collects imports needed for a method's types.
+     */
+    private void collectMethodImports(PortMethod method, Set<String> imports) {
+        String returnType = method.returnType();
+        if (returnType != null) {
+            if (returnType.contains("Optional") || returnType.equals("Optional")) {
+                imports.add("java.util.Optional");
+            }
+            if (returnType.contains("List") || returnType.equals("List")) {
+                imports.add("java.util.List");
+            }
+            if (returnType.contains("Set") || returnType.equals("Set")) {
+                imports.add("java.util.Set");
+            }
+            if (returnType.contains("Collection") || returnType.equals("Collection")) {
+                imports.add("java.util.Collection");
+            }
+            if (returnType.contains("Stream") || returnType.contains("stream.Stream")) {
+                imports.add("java.util.stream.Stream");
+            }
+            if (returnType.contains("Page<") || returnType.contains("data.domain.Page")) {
+                imports.add("org.springframework.data.domain.Page");
+            }
+        }
+
+        // Add imports for parameter types
+        for (String paramType : method.parameters()) {
+            if (paramType != null && paramType.contains(".")) {
+                if (paramType.contains("Pageable")) {
+                    imports.add("org.springframework.data.domain.Pageable");
+                } else if (paramType.contains("data.domain.Sort")) {
+                    imports.add("org.springframework.data.domain.Sort");
+                } else if (!paramType.startsWith("java.")) {
+                    imports.add(paramType);
+                }
+            }
+        }
+    }
+
+    /**
+     * Generates an adapter class that implements a repository port.
+     *
+     * @param port the port interface to implement
+     * @param managedType the domain type managed by this port
+     * @return the generated adapter source code
+     * @deprecated Use {@link #generateMergedAdapter(List, DomainType)} instead
+     */
+    @Deprecated
+    String generateAdapter(Port port, DomainType managedType) {
+        return generateMergedAdapter(List.of(port), managedType);
     }
 
     private void generatePortMethodImpl(

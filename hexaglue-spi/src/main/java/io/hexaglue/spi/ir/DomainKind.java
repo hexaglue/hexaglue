@@ -60,5 +60,29 @@ public enum DomainKind {
      *
      * <p>Key distinction from DOMAIN_SERVICE: has port dependencies.
      */
-    APPLICATION_SERVICE
+    APPLICATION_SERVICE,
+
+    /**
+     * Inbound-only actor - implements driving port(s) but has no driven port dependencies.
+     *
+     * <p>Typically a query handler or simple command handler that only exposes
+     * operations without requiring infrastructure calls.
+     */
+    INBOUND_ONLY,
+
+    /**
+     * Outbound-only actor - depends on driven port(s) but implements no driving port.
+     *
+     * <p>Typically a background processor, event handler, or scheduled task
+     * that calls infrastructure but is not directly exposed as a use case.
+     */
+    OUTBOUND_ONLY,
+
+    /**
+     * Saga - a long-running process that coordinates multiple driven ports.
+     *
+     * <p>A saga is an outbound-only actor that depends on 2+ driven ports
+     * and maintains state fields for tracking progress.
+     */
+    SAGA
 }

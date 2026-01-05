@@ -36,6 +36,7 @@ import java.util.Optional;
  * @param conflicts any conflicting criteria that also matched
  * @param portDirection the port direction (null if target != PORT)
  * @param status the classification status
+ * @param reasonTrace detailed trace of the classification decision (for debugging)
  */
 public record ClassificationResult(
         NodeId subjectId,
@@ -48,7 +49,8 @@ public record ClassificationResult(
         List<Evidence> evidence,
         List<Conflict> conflicts,
         PortDirection portDirection,
-        ClassificationStatus status) {
+        ClassificationStatus status,
+        ReasonTrace reasonTrace) {
 
     public ClassificationResult {
         Objects.requireNonNull(subjectId, "subjectId cannot be null");
@@ -70,6 +72,24 @@ public record ClassificationResult(
             String justification,
             List<Evidence> evidence,
             List<Conflict> conflicts) {
+        return classified(
+                subjectId, target, kind, confidence, matchedCriteria, matchedPriority, justification, evidence, conflicts, null);
+    }
+
+    /**
+     * Creates a successful domain classification result with reason trace.
+     */
+    public static ClassificationResult classified(
+            NodeId subjectId,
+            ClassificationTarget target,
+            String kind,
+            ConfidenceLevel confidence,
+            String matchedCriteria,
+            int matchedPriority,
+            String justification,
+            List<Evidence> evidence,
+            List<Conflict> conflicts,
+            ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
                 target,
@@ -81,7 +101,8 @@ public record ClassificationResult(
                 evidence,
                 conflicts,
                 null,
-                ClassificationStatus.CLASSIFIED);
+                ClassificationStatus.CLASSIFIED,
+                reasonTrace);
     }
 
     /**
@@ -97,6 +118,24 @@ public record ClassificationResult(
             List<Evidence> evidence,
             List<Conflict> conflicts,
             PortDirection direction) {
+        return classifiedPort(
+                subjectId, kind, confidence, matchedCriteria, matchedPriority, justification, evidence, conflicts, direction, null);
+    }
+
+    /**
+     * Creates a successful port classification result with direction and reason trace.
+     */
+    public static ClassificationResult classifiedPort(
+            NodeId subjectId,
+            String kind,
+            ConfidenceLevel confidence,
+            String matchedCriteria,
+            int matchedPriority,
+            String justification,
+            List<Evidence> evidence,
+            List<Conflict> conflicts,
+            PortDirection direction,
+            ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
                 ClassificationTarget.PORT,
@@ -108,13 +147,21 @@ public record ClassificationResult(
                 evidence,
                 conflicts,
                 direction,
-                ClassificationStatus.CLASSIFIED);
+                ClassificationStatus.CLASSIFIED,
+                reasonTrace);
     }
 
     /**
      * Creates an unclassified result (no criteria matched).
      */
     public static ClassificationResult unclassified(NodeId subjectId) {
+        return unclassified(subjectId, null);
+    }
+
+    /**
+     * Creates an unclassified result with reason trace.
+     */
+    public static ClassificationResult unclassified(NodeId subjectId, ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
                 null,
@@ -126,13 +173,21 @@ public record ClassificationResult(
                 List.of(),
                 List.of(),
                 null,
-                ClassificationStatus.UNCLASSIFIED);
+                ClassificationStatus.UNCLASSIFIED,
+                reasonTrace);
     }
 
     /**
      * Creates a conflict result (multiple incompatible criteria matched).
      */
     public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts) {
+        return conflict(subjectId, conflicts, null);
+    }
+
+    /**
+     * Creates a conflict result with reason trace.
+     */
+    public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts, ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
                 null,
@@ -144,7 +199,8 @@ public record ClassificationResult(
                 List.of(),
                 conflicts,
                 null,
-                ClassificationStatus.CONFLICT);
+                ClassificationStatus.CONFLICT,
+                reasonTrace);
     }
 
     /**
@@ -187,5 +243,12 @@ public record ClassificationResult(
      */
     public Optional<PortDirection> portDirectionOpt() {
         return Optional.ofNullable(portDirection);
+    }
+
+    /**
+     * Returns the reason trace as an Optional.
+     */
+    public Optional<ReasonTrace> reasonTraceOpt() {
+        return Optional.ofNullable(reasonTrace);
     }
 }
