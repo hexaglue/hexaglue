@@ -56,6 +56,7 @@ final class JpaAdapterGenerator {
         Set<String> imports = new HashSet<>();
 
         // Collect imports from all ports
+        imports.add("javax.annotation.processing.Generated");
         imports.add("org.springframework.stereotype.Component");
         imports.add("org.springframework.transaction.annotation.Transactional");
         imports.add(managedType.qualifiedName());
@@ -105,6 +106,7 @@ final class JpaAdapterGenerator {
         sb.append(" */\n");
 
         // Annotations
+        sb.append("@Generated(value = \"io.hexaglue.plugin.jpa\")\n");
         sb.append("@Component\n");
         sb.append("@Transactional\n");
 
@@ -301,7 +303,7 @@ final class JpaAdapterGenerator {
             }
 
         } else if (methodName.equals("findById") || methodName.equals("getById") || methodName.equals("get")) {
-            // findById(Id) -> Optional<Domain>
+            // findById(Id) -> Domain or Optional<Domain>
             // Check if param is a wrapper type (e.g., OrderId) or a primitive type (e.g., UUID)
             String paramExpr = getIdParameterExpression("param0", params);
             body.append("        return ")
@@ -309,7 +311,12 @@ final class JpaAdapterGenerator {
                     .append(".findById(")
                     .append(paramExpr)
                     .append(")\n");
-            body.append("                .map(").append(mapperField).append("::toDomain);\n");
+            body.append("                .map(").append(mapperField).append("::toDomain)");
+            // If return type is not Optional, extract the value
+            if (!returnType.startsWith("Optional")) {
+                body.append("\n                .orElse(null)");
+            }
+            body.append(";\n");
 
         } else if (methodName.equals("findAll") || methodName.equals("getAll") || methodName.equals("all")) {
             // Handle different parameter types for findAll

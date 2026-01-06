@@ -96,10 +96,16 @@ public record InterfaceFacts(
     /**
      * Returns true if this interface qualifies as a DRIVING port.
      *
-     * <p>A DRIVING port is an interface implemented by a CoreAppClass.
+     * <p>A DRIVING port is an interface implemented by a CoreAppClass
+     * but NOT used as a dependency by any CoreAppClass.
+     *
+     * <p>If an interface is both implemented AND used as a dependency,
+     * it is a DRIVEN port (SPI), not a DRIVING port (API). The structural
+     * relationship "usedByCore" indicates that application code depends
+     * on this interface, making it an outbound dependency.
      */
     public boolean isDrivingPortCandidate() {
-        return implementedByCore;
+        return implementedByCore && !usedByCore;
     }
 
     /**

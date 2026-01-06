@@ -17,8 +17,10 @@ import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.JavaType;
 import io.hexaglue.core.frontend.spoon.adapters.SpoonTypeAdapter;
 import java.util.Comparator;
+import java.util.Set;
 import java.util.stream.Stream;
 import spoon.reflect.CtModel;
+import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtType;
 
 /**
@@ -28,6 +30,16 @@ import spoon.reflect.declaration.CtType;
  * filtered by the configured base package.
  */
 final class SpoonSemanticModel implements JavaSemanticModel {
+
+    /**
+     * Known @Generated annotation qualified names.
+     * Types annotated with any of these are excluded from analysis
+     * to prevent HexaGlue from re-processing its own generated code.
+     */
+    private static final Set<String> GENERATED_ANNOTATIONS = Set.of(
+            "javax.annotation.Generated",
+            "javax.annotation.processing.Generated", // Java 9+
+            "jakarta.annotation.Generated");
 
     private final CtModel model;
     private final String basePackage;
@@ -41,6 +53,7 @@ final class SpoonSemanticModel implements JavaSemanticModel {
     public Stream<JavaType> types() {
         return model.getAllTypes().stream()
                 .filter(this::isInScope)
+                .filter(this::isNotGenerated)
                 .sorted(Comparator.comparing(CtType::getQualifiedName))
                 .map(SpoonTypeAdapter::adapt);
     }
@@ -51,5 +64,20 @@ final class SpoonSemanticModel implements JavaSemanticModel {
         }
         String pkg = type.getPackage() == null ? "" : type.getPackage().getQualifiedName();
         return pkg.equals(basePackage) || pkg.startsWith(basePackage + ".");
+    }
+
+    /**
+     * Returns true if the type is NOT annotated with @Generated.
+     * This prevents HexaGlue from analyzing code it previously generated,
+     * avoiding infinite loops and duplicate generation.
+     */
+    private boolean isNotGenerated(CtType<?> type) {
+        for (CtAnnotation<?> annotation : type.getAnnotations()) {
+            String annotationName = annotation.getAnnotationType().getQualifiedName();
+            if (GENERATED_ANNOTATIONS.contains(annotationName)) {
+                return false;
+            }
+        }
+        return true;
     }
 }

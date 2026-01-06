@@ -41,6 +41,7 @@ final class JpaRepositoryGenerator {
         Set<String> imports = new HashSet<>();
 
         // Collect imports
+        imports.add("javax.annotation.processing.Generated");
         imports.add("org.springframework.data.jpa.repository.JpaRepository");
         imports.add("org.springframework.stereotype.Repository");
 
@@ -72,6 +73,7 @@ final class JpaRepositoryGenerator {
         sb.append(" */\n");
 
         // Annotations
+        sb.append("@Generated(value = \"io.hexaglue.plugin.jpa\")\n");
         sb.append("@Repository\n");
 
         // Interface declaration

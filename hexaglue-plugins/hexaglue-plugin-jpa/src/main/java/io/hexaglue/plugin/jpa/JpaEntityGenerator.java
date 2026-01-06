@@ -120,6 +120,7 @@ final class JpaEntityGenerator {
         Set<String> imports = new HashSet<>();
 
         // Collect imports
+        imports.add("javax.annotation.processing.Generated");
         imports.add("jakarta.persistence.Entity");
         imports.add("jakarta.persistence.Id");
         imports.add("jakarta.persistence.Table");
@@ -163,6 +164,7 @@ final class JpaEntityGenerator {
         sb.append(" */\n");
 
         // Annotations
+        sb.append("@Generated(value = \"io.hexaglue.plugin.jpa\")\n");
         sb.append("@Entity\n");
         sb.append("@Table(name = \"")
                 .append(config.tablePrefix())
@@ -232,6 +234,7 @@ final class JpaEntityGenerator {
         StringBuilder sb = new StringBuilder();
         Set<String> imports = new HashSet<>();
 
+        imports.add("javax.annotation.processing.Generated");
         imports.add("jakarta.persistence.Embeddable");
         collectPropertyImports(imports, valueObject);
 
@@ -254,6 +257,7 @@ final class JpaEntityGenerator {
         sb.append(" */\n");
 
         // Annotations
+        sb.append("@Generated(value = \"io.hexaglue.plugin.jpa\")\n");
         sb.append("@Embeddable\n");
 
         // Class declaration
