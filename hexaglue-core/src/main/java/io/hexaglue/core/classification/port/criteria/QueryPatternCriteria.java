@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.joining;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -41,7 +42,12 @@ import java.util.List;
  * <p>Confidence: HIGH
  * <p>Direction: DRIVING
  */
-public final class QueryPatternCriteria implements PortClassificationCriteria {
+public final class QueryPatternCriteria implements PortClassificationCriteria, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "port.pattern.query";
+    }
 
     @Override
     public String name() {

@@ -154,8 +154,14 @@ public final class IrExporter {
         // Value objects, domain events, identifiers, services, and actors do NOT
         return switch (kind) {
             case AGGREGATE_ROOT, ENTITY -> true;
-            case VALUE_OBJECT, DOMAIN_EVENT, IDENTIFIER, DOMAIN_SERVICE, APPLICATION_SERVICE,
-                    INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> false;
+            case VALUE_OBJECT,
+                    DOMAIN_EVENT,
+                    IDENTIFIER,
+                    DOMAIN_SERVICE,
+                    APPLICATION_SERVICE,
+                    INBOUND_ONLY,
+                    OUTBOUND_ONLY,
+                    SAGA -> false;
         };
     }
 

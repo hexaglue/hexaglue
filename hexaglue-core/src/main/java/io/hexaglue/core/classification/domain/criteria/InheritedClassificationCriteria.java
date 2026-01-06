@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.TypeNode;
@@ -39,7 +40,12 @@ import java.util.Optional;
  * <p>Priority: 75 (between strong heuristics 80 and medium heuristics 70)
  * <p>Confidence: HIGH (inherited from explicit parent classification)
  */
-public final class InheritedClassificationCriteria implements ClassificationCriteria<DomainKind> {
+public final class InheritedClassificationCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.inheritedClassification";
+    }
 
     private static final Map<String, DomainKind> ANNOTATION_TO_KIND = Map.of(
             "org.jmolecules.ddd.annotation.AggregateRoot", DomainKind.AGGREGATE_ROOT,

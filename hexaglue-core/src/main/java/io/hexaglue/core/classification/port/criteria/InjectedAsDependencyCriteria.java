@@ -18,6 +18,7 @@ import static java.util.stream.Collectors.joining;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -45,7 +46,12 @@ import java.util.Set;
  * <p>Confidence: HIGH
  * <p>Direction: DRIVEN
  */
-public final class InjectedAsDependencyCriteria implements PortClassificationCriteria {
+public final class InjectedAsDependencyCriteria implements PortClassificationCriteria, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "port.relationship.injectedAsDependency";
+    }
 
     @Override
     public String name() {
@@ -100,10 +106,8 @@ public final class InjectedAsDependencyCriteria implements PortClassificationCri
             return MatchResult.noMatch();
         }
 
-        String classNames = dependentClasses.stream()
-                .map(TypeNode::simpleName)
-                .distinct()
-                .collect(joining(", "));
+        String classNames =
+                dependentClasses.stream().map(TypeNode::simpleName).distinct().collect(joining(", "));
 
         return MatchResult.match(
                 ConfidenceLevel.HIGH,

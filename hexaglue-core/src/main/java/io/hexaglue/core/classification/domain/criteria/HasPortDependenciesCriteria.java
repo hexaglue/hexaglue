@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -42,7 +43,12 @@ import java.util.Optional;
  * <p>Priority: 65 (relationship-based heuristic)
  * <p>Confidence: HIGH
  */
-public final class HasPortDependenciesCriteria implements ClassificationCriteria<DomainKind> {
+public final class HasPortDependenciesCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.hasPortDependencies";
+    }
 
     @Override
     public String name() {
@@ -88,18 +94,15 @@ public final class HasPortDependenciesCriteria implements ClassificationCriteria
         }
 
         // Check if any of the interface fields are likely ports
-        List<InterfaceField> portFields = interfaceFields.stream()
-                .filter(this::looksLikePort)
-                .toList();
+        List<InterfaceField> portFields =
+                interfaceFields.stream().filter(this::looksLikePort).toList();
 
         if (portFields.isEmpty()) {
             return MatchResult.noMatch();
         }
 
-        String portNames = portFields.stream()
-                .map(f -> f.type.simpleName())
-                .distinct()
-                .collect(joining(", "));
+        String portNames =
+                portFields.stream().map(f -> f.type.simpleName()).distinct().collect(joining(", "));
 
         return MatchResult.match(
                 ConfidenceLevel.HIGH,

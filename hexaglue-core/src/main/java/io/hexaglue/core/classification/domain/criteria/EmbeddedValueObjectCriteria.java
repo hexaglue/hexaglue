@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.EdgeKind;
@@ -45,7 +46,12 @@ import java.util.Optional;
  * <p>Priority: 70 (strong heuristic, below explicit annotations)
  * <p>Confidence: HIGH
  */
-public final class EmbeddedValueObjectCriteria implements ClassificationCriteria<DomainKind> {
+public final class EmbeddedValueObjectCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.embeddedValueObject";
+    }
 
     @Override
     public String name() {

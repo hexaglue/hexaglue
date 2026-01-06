@@ -15,7 +15,14 @@ package io.hexaglue.core.classification.port;
 
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.Conflict;
+import io.hexaglue.core.classification.ConflictSeverity;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.CompatibilityPolicy;
+import io.hexaglue.core.classification.engine.Contribution;
+import io.hexaglue.core.classification.engine.CriteriaEngine;
+import io.hexaglue.core.classification.engine.CriteriaProfile;
+import io.hexaglue.core.classification.engine.DecisionPolicy;
+import io.hexaglue.core.classification.engine.DefaultDecisionPolicy;
 import io.hexaglue.core.classification.port.criteria.CommandPatternCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitPrimaryPortCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitRepositoryCriteria;
@@ -28,12 +35,10 @@ import io.hexaglue.core.classification.port.criteria.PackageInCriteria;
 import io.hexaglue.core.classification.port.criteria.PackageOutCriteria;
 import io.hexaglue.core.classification.port.criteria.QueryPatternCriteria;
 import io.hexaglue.core.classification.port.criteria.SignatureBasedDrivenPortCriteria;
+import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
-import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Classifies types as port interfaces (REPOSITORY, USE_CASE, GATEWAY, etc.).
@@ -52,29 +57,44 @@ import java.util.Set;
  * <p>Conflicts are detected when multiple criteria match with different target kinds.
  * If the conflicts are incompatible (e.g., USE_CASE vs REPOSITORY), the result
  * is marked as CONFLICT.
+ *
+ * <p>This classifier uses the {@link CriteriaEngine} for evaluation and decision-making,
+ * providing a consistent and extensible classification mechanism.
  */
 public final class PortClassifier {
 
-    /**
-     * Kinds that are considered compatible (can coexist without conflict).
-     * Currently no port kinds are compatible - each interface is exactly one kind.
-     */
-    private static final Set<Set<PortKind>> COMPATIBLE_KINDS = Set.of();
+    /** Metadata key for storing port direction in contributions. */
+    private static final String DIRECTION_KEY = "direction";
 
-    private final List<PortClassificationCriteria> criteria;
+    private final CriteriaEngine<PortKind, PortClassificationCriteria> engine;
+    private final DecisionPolicy<PortKind> decisionPolicy;
+    private final CompatibilityPolicy<PortKind> compatibilityPolicy;
 
     /**
      * Creates a classifier with the default set of criteria.
      */
     public PortClassifier() {
-        this(defaultCriteria());
+        this(defaultCriteria(), CriteriaProfile.legacy());
     }
 
     /**
      * Creates a classifier with custom criteria (for testing).
      */
     public PortClassifier(List<PortClassificationCriteria> criteria) {
-        this.criteria = List.copyOf(criteria);
+        this(criteria, CriteriaProfile.legacy());
+    }
+
+    /**
+     * Creates a classifier with custom criteria and profile.
+     *
+     * @param criteria the classification criteria to use
+     * @param profile the profile for priority overrides
+     */
+    public PortClassifier(List<PortClassificationCriteria> criteria, CriteriaProfile profile) {
+        this.decisionPolicy = new DefaultDecisionPolicy<>();
+        this.compatibilityPolicy = CompatibilityPolicy.portDefault();
+        this.engine = new CriteriaEngine<>(
+                criteria, profile, decisionPolicy, compatibilityPolicy, PortClassifier::buildContribution);
     }
 
     /**
@@ -118,126 +138,81 @@ public final class PortClassifier {
             return ClassificationResult.unclassified(node.id());
         }
 
-        // Collect all matching criteria
-        List<CriteriaMatch> matches = criteria.stream()
-                .map(c -> new CriteriaMatch(c, c.evaluate(node, query)))
-                .filter(m -> m.result().matched())
-                .sorted(matchComparator())
-                .toList();
+        // Evaluate criteria and collect contributions
+        List<Contribution<PortKind>> contributions = engine.evaluate(node, query);
 
-        if (matches.isEmpty()) {
+        if (contributions.isEmpty()) {
             return ClassificationResult.unclassified(node.id());
         }
 
-        // Winner is the first after sorting
-        CriteriaMatch winner = matches.get(0);
+        // Delegate to decision policy
+        DecisionPolicy.Decision<PortKind> decision = decisionPolicy.decide(contributions, compatibilityPolicy);
 
-        // Detect conflicts with other matches
-        List<Conflict> conflicts = detectConflicts(winner, matches);
+        return toClassificationResult(node.id(), decision, contributions);
+    }
 
-        // Check for incompatible conflicts
-        if (hasIncompatibleConflicts(winner, conflicts)) {
-            return ClassificationResult.conflict(node.id(), conflicts);
+    /**
+     * Converts a Decision to a ClassificationResult.
+     */
+    private ClassificationResult toClassificationResult(
+            NodeId nodeId, DecisionPolicy.Decision<PortKind> decision, List<Contribution<PortKind>> contributions) {
+
+        if (decision.isEmpty()) {
+            return ClassificationResult.unclassified(nodeId);
         }
+
+        if (decision.hasIncompatibleConflict()) {
+            return ClassificationResult.conflict(nodeId, decision.conflicts());
+        }
+
+        Contribution<PortKind> winner = decision.winner().orElseThrow();
+
+        // Extract direction from metadata
+        PortDirection direction = winner.metadata(DIRECTION_KEY, PortDirection.class)
+                .orElseThrow(() -> new IllegalStateException("Port direction not found in contribution metadata"));
+
+        // Detect conflicts: other contributions with different kinds
+        List<Conflict> conflicts = contributions.stream()
+                .filter(c -> c != winner && c.kind() != winner.kind())
+                .map(c -> {
+                    boolean compatible = compatibilityPolicy.areCompatible(winner.kind(), c.kind());
+                    ConflictSeverity severity = compatible ? ConflictSeverity.WARNING : ConflictSeverity.ERROR;
+                    return new Conflict(
+                            c.kind().name(),
+                            c.criteriaName(),
+                            c.confidence(),
+                            c.priority(),
+                            "Also matched with " + c.justification(),
+                            severity);
+                })
+                .toList();
 
         return ClassificationResult.classifiedPort(
-                node.id(),
-                winner.criteria().targetKind().name(),
-                winner.result().confidence(),
-                winner.criteria().name(),
-                winner.criteria().priority(),
-                winner.result().justification(),
-                winner.result().evidence(),
+                nodeId,
+                winner.kind().name(),
+                winner.confidence(),
+                winner.criteriaName(),
+                winner.priority(),
+                winner.justification(),
+                winner.evidence(),
                 conflicts,
-                winner.criteria().targetDirection());
+                direction);
     }
 
     /**
-     * Deterministic comparator for tie-breaking.
-     * Order: priority DESC → confidence DESC → name ASC
-     */
-    private Comparator<CriteriaMatch> matchComparator() {
-        return Comparator
-                // Priority descending (higher wins)
-                .comparingInt((CriteriaMatch m) -> m.criteria().priority())
-                .reversed()
-                // Confidence descending (higher wins)
-                .thenComparing((CriteriaMatch m) -> m.result().confidence(), Comparator.reverseOrder())
-                // Name ascending (for determinism)
-                .thenComparing(m -> m.criteria().name());
-    }
-
-    /**
-     * Detects conflicts between the winner and other matching criteria.
-     */
-    private List<Conflict> detectConflicts(CriteriaMatch winner, List<CriteriaMatch> allMatches) {
-        List<Conflict> conflicts = new ArrayList<>();
-        PortKind winnerKind = winner.criteria().targetKind();
-
-        for (CriteriaMatch match : allMatches) {
-            if (match == winner) {
-                continue;
-            }
-
-            PortKind matchKind = match.criteria().targetKind();
-            if (matchKind != winnerKind) {
-                conflicts.add(new Conflict(
-                        matchKind.name(),
-                        match.criteria().name(),
-                        match.result().confidence(),
-                        match.criteria().priority(),
-                        "Also matched with " + match.result().justification()));
-            }
-        }
-
-        return conflicts;
-    }
-
-    /**
-     * Checks if any conflicts are incompatible with the winner AND have the same priority.
+     * Builds a contribution from a criteria match result.
      *
-     * <p>We only return CONFLICT if there's a real ambiguity - i.e., multiple criteria
-     * with the same priority targeting incompatible kinds. If the winner has higher
-     * priority, it wins even if there are incompatible lower-priority matches.
+     * <p>The port direction is stored in the contribution's metadata.
      */
-    private boolean hasIncompatibleConflicts(CriteriaMatch winner, List<Conflict> conflicts) {
-        if (conflicts.isEmpty()) {
-            return false;
-        }
-
-        PortKind winnerKind = winner.criteria().targetKind();
-        int winnerPriority = winner.criteria().priority();
-
-        for (Conflict conflict : conflicts) {
-            // Only consider as true conflict if same priority
-            if (conflict.competingPriority() == winnerPriority) {
-                PortKind conflictKind = PortKind.valueOf(conflict.competingKind());
-                if (!areCompatible(winnerKind, conflictKind)) {
-                    return true;
-                }
-            }
-        }
-
-        return false;
+    private static Contribution<PortKind> buildContribution(
+            PortClassificationCriteria criteria, MatchResult result, int priority) {
+        return Contribution.of(
+                        criteria.targetKind(),
+                        criteria.name(),
+                        priority,
+                        result.confidence(),
+                        result.justification(),
+                        result.evidence())
+                .withMetadata(DIRECTION_KEY, criteria.targetDirection());
     }
-
-    /**
-     * Checks if two port kinds are compatible (can coexist).
-     */
-    private boolean areCompatible(PortKind a, PortKind b) {
-        if (a == b) {
-            return true;
-        }
-        for (Set<PortKind> compatible : COMPATIBLE_KINDS) {
-            if (compatible.contains(a) && compatible.contains(b)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Internal record to pair a criteria with its match result.
-     */
-    private record CriteriaMatch(PortClassificationCriteria criteria, MatchResult result) {}
 }

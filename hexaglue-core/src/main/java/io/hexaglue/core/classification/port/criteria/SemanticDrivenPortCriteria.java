@@ -17,6 +17,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -45,7 +46,7 @@ import java.util.Objects;
  * <p>Confidence: HIGH
  * <p>Direction: DRIVEN
  */
-public final class SemanticDrivenPortCriteria implements PortClassificationCriteria {
+public final class SemanticDrivenPortCriteria implements PortClassificationCriteria, IdentifiedCriteria {
 
     private final InterfaceFactsIndex factsIndex;
 
@@ -56,6 +57,11 @@ public final class SemanticDrivenPortCriteria implements PortClassificationCrite
      */
     public SemanticDrivenPortCriteria(InterfaceFactsIndex factsIndex) {
         this.factsIndex = Objects.requireNonNull(factsIndex, "factsIndex cannot be null");
+    }
+
+    @Override
+    public String id() {
+        return "port.semantic.driven";
     }
 
     @Override
@@ -98,7 +104,9 @@ public final class SemanticDrivenPortCriteria implements PortClassificationCrite
                     ConfidenceLevel.HIGH,
                     reason,
                     List.of(new Evidence(
-                            EvidenceType.RELATIONSHIP, "Used by application core - consumes this contract", List.of(node.id()))));
+                            EvidenceType.RELATIONSHIP,
+                            "Used by application core - consumes this contract",
+                            List.of(node.id()))));
         }
 
         return MatchResult.noMatch();

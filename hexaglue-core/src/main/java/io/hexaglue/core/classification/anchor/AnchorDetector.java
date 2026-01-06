@@ -145,17 +145,14 @@ public final class AnchorDetector {
         for (AnnotationRef annotation : type.annotations()) {
             if (isDrivingAnnotation(annotation.qualifiedName())) {
                 return AnchorResult.drivingAnchor(
-                        type.id(),
-                        Evidence.fromAnnotation(annotation.simpleName(), type.id()));
+                        type.id(), Evidence.fromAnnotation(annotation.simpleName(), type.id()));
             }
         }
 
         // Priority 2: Check for infrastructure annotations
         for (AnnotationRef annotation : type.annotations()) {
             if (isInfraAnnotation(annotation.qualifiedName())) {
-                return AnchorResult.infraAnchor(
-                        type.id(),
-                        Evidence.fromAnnotation(annotation.simpleName(), type.id()));
+                return AnchorResult.infraAnchor(type.id(), Evidence.fromAnnotation(annotation.simpleName(), type.id()));
             }
         }
 
@@ -168,8 +165,7 @@ public final class AnchorDetector {
                         type.id(),
                         new Evidence(
                                 EvidenceType.RELATIONSHIP,
-                                "Field '%s' has infrastructure type '%s'"
-                                        .formatted(field.simpleName(), fieldTypeName),
+                                "Field '%s' has infrastructure type '%s'".formatted(field.simpleName(), fieldTypeName),
                                 List.of(field.id())));
             }
         }

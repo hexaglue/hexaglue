@@ -1,0 +1,71 @@
+# HexaGlue Classification Profile - Annotation Only
+#
+# This profile ONLY trusts explicit annotations and JMolecules interfaces.
+# All heuristics are disabled (priority -1 means they won't match anything
+# above the threshold, effectively disabling them).
+#
+# Use this profile when:
+# - You want complete control - only annotated types are classified
+# - Your codebase has inconsistent naming conventions
+# - You're doing a gradual migration and want to annotate types one by one
+#
+# Warning: Types without explicit annotations will remain unclassified.
+#
+# Criteria keys use the stable ID format: {target}.{category}.{name}
+#
+# Usage:
+#   CriteriaProfile profile = YamlCriteriaProfile.fromResource("profiles/annotation-only.yaml");
+#   DomainClassifier classifier = new DomainClassifier(DomainClassifier.defaultCriteria(), profile);
+
+priorities:
+  # =====================================================================
+  # DOMAIN CLASSIFICATION CRITERIA
+  # =====================================================================
+
+  # Explicit annotations - enabled (priority 100)
+  domain.explicit.aggregateRoot: 100
+  domain.explicit.entity: 100
+  domain.explicit.valueObject: 100
+  domain.explicit.identifier: 100
+  domain.explicit.domainEvent: 100
+  domain.explicit.jmoleculesInterface: 100
+
+  # All heuristics disabled (priority -1)
+  domain.structural.repositoryDominant: -1
+  domain.structural.recordSingleId: -1
+  domain.structural.inheritedClassification: -1
+  domain.structural.embeddedValueObject: -1
+  domain.structural.hasPortDependencies: -1
+  domain.structural.hasIdentity: -1
+  domain.structural.collectionElementEntity: -1
+  domain.structural.immutableNoId: -1
+  domain.naming.domainEvent: -1
+  domain.structural.statelessNoDependencies: -1
+  domain.structural.unreferencedInPorts: -1
+  domain.semantic.saga: -1
+  domain.semantic.outboundOnly: -1
+  domain.semantic.inboundOnly: -1
+
+  # =====================================================================
+  # PORT CLASSIFICATION CRITERIA
+  # =====================================================================
+
+  # Explicit annotations - enabled (priority 100)
+  port.explicit.repository: 100
+  port.explicit.primaryPort: 100
+  port.explicit.secondaryPort: 100
+  port.explicit.useCase: 100
+  port.explicit.gateway: 100
+
+  # All heuristics disabled (priority -1)
+  port.semantic.driving: -1
+  port.semantic.driven: -1
+  port.naming.repository: -1
+  port.naming.useCase: -1
+  port.naming.gateway: -1
+  port.pattern.command: -1
+  port.pattern.query: -1
+  port.relationship.injectedAsDependency: -1
+  port.signature.drivenPort: -1
+  port.package.in: -1
+  port.package.out: -1

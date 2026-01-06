@@ -48,16 +48,14 @@ public final class CoreAppClassIndex {
 
     private static Map<NodeId, Set<NodeId>> buildImplementorsIndex(Map<NodeId, CoreAppClass> coreAppClasses) {
         return coreAppClasses.values().stream()
-                .flatMap(core -> core.implementedInterfaces().stream()
-                        .map(iface -> Map.entry(iface, core.classId())))
+                .flatMap(core -> core.implementedInterfaces().stream().map(iface -> Map.entry(iface, core.classId())))
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toUnmodifiableSet())));
     }
 
     private static Map<NodeId, Set<NodeId>> buildUsersIndex(Map<NodeId, CoreAppClass> coreAppClasses) {
         return coreAppClasses.values().stream()
-                .flatMap(core -> core.dependedInterfaces().stream()
-                        .map(iface -> Map.entry(iface, core.classId())))
+                .flatMap(core -> core.dependedInterfaces().stream().map(iface -> Map.entry(iface, core.classId())))
                 .collect(Collectors.groupingBy(
                         Map.Entry::getKey, Collectors.mapping(Map.Entry::getValue, Collectors.toUnmodifiableSet())));
     }

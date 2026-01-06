@@ -104,7 +104,12 @@ public record ReasonTrace(
      * @param reason the reason for match/no-match
      */
     public record EvaluatedCriteria(
-            String criteriaName, boolean matched, int priority, String targetKind, ConfidenceLevel confidence, String reason) {
+            String criteriaName,
+            boolean matched,
+            int priority,
+            String targetKind,
+            ConfidenceLevel confidence,
+            String reason) {
 
         public EvaluatedCriteria {
             Objects.requireNonNull(criteriaName, "criteriaName cannot be null");

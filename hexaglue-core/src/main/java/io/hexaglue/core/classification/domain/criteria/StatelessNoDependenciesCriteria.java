@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -44,7 +45,12 @@ import java.util.List;
  * <p>Priority: 55 (heuristic, lower than HasPortDependenciesCriteria)
  * <p>Confidence: MEDIUM
  */
-public final class StatelessNoDependenciesCriteria implements ClassificationCriteria<DomainKind> {
+public final class StatelessNoDependenciesCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.statelessNoDependencies";
+    }
 
     @Override
     public String name() {
@@ -109,8 +115,7 @@ public final class StatelessNoDependenciesCriteria implements ClassificationCrit
                 ConfidenceLevel.MEDIUM,
                 "Stateless class with domain logic and no port dependencies",
                 List.of(Evidence.fromStructure(
-                        "No port dependencies, has " + logicMethods + " domain methods",
-                        List.of(node.id()))));
+                        "No port dependencies, has " + logicMethods + " domain methods", List.of(node.id()))));
     }
 
     private boolean hasIdentityField(TypeNode node, GraphQuery query) {

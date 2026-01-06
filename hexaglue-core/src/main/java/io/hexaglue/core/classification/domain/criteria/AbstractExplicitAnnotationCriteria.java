@@ -16,6 +16,7 @@ package io.hexaglue.core.classification.domain.criteria;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -26,7 +27,8 @@ import io.hexaglue.core.graph.query.GraphQuery;
  * <p>All explicit annotation criteria have priority 100 (highest)
  * and confidence EXPLICIT.
  */
-public abstract class AbstractExplicitAnnotationCriteria implements ClassificationCriteria<DomainKind> {
+public abstract class AbstractExplicitAnnotationCriteria
+        implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
 
     private final String annotationSimpleName;
     private final String annotationQualifiedName;
@@ -40,8 +42,23 @@ public abstract class AbstractExplicitAnnotationCriteria implements Classificati
     }
 
     @Override
+    public String id() {
+        return "domain.explicit." + toCamelCase(targetKind.name());
+    }
+
+    @Override
     public String name() {
         return "explicit-" + targetKind.name().toLowerCase().replace('_', '-');
+    }
+
+    private static String toCamelCase(String enumName) {
+        String[] parts = enumName.toLowerCase().split("_");
+        StringBuilder result = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            result.append(Character.toUpperCase(parts[i].charAt(0)));
+            result.append(parts[i].substring(1));
+        }
+        return result.toString();
     }
 
     @Override

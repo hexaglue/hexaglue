@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.semantic.CoreAppClass;
 import io.hexaglue.core.classification.semantic.CoreAppClassIndex;
 import io.hexaglue.core.frontend.JavaForm;
@@ -46,7 +47,7 @@ import java.util.Objects;
  * <p>Priority: 72 (higher than OUTBOUND_ONLY to take precedence)
  * <p>Confidence: HIGH
  */
-public final class FlexibleSagaCriteria implements ClassificationCriteria<DomainKind> {
+public final class FlexibleSagaCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
 
     private static final int MIN_DRIVEN_DEPENDENCIES = 2;
 
@@ -59,6 +60,11 @@ public final class FlexibleSagaCriteria implements ClassificationCriteria<Domain
      */
     public FlexibleSagaCriteria(CoreAppClassIndex coreAppClassIndex) {
         this.coreAppClassIndex = Objects.requireNonNull(coreAppClassIndex, "coreAppClassIndex cannot be null");
+    }
+
+    @Override
+    public String id() {
+        return "domain.semantic.saga";
     }
 
     @Override
@@ -113,16 +119,15 @@ public final class FlexibleSagaCriteria implements ClassificationCriteria<Domain
         List<Evidence> evidences = new ArrayList<>();
         evidences.add(new Evidence(
                 EvidenceType.RELATIONSHIP,
-                "Depends on %d driven ports".formatted(coreApp.dependedInterfaces().size()),
+                "Depends on %d driven ports"
+                        .formatted(coreApp.dependedInterfaces().size()),
                 List.copyOf(coreApp.dependedInterfaces())));
         evidences.add(new Evidence(
                 EvidenceType.STRUCTURE,
                 "Has %d state field(s): %s"
                         .formatted(
                                 stateFields.size(),
-                                stateFields.stream()
-                                        .map(FieldNode::simpleName)
-                                        .toList()),
+                                stateFields.stream().map(FieldNode::simpleName).toList()),
                 List.of(node.id())));
 
         return MatchResult.match(

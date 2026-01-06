@@ -73,7 +73,16 @@ public record ClassificationResult(
             List<Evidence> evidence,
             List<Conflict> conflicts) {
         return classified(
-                subjectId, target, kind, confidence, matchedCriteria, matchedPriority, justification, evidence, conflicts, null);
+                subjectId,
+                target,
+                kind,
+                confidence,
+                matchedCriteria,
+                matchedPriority,
+                justification,
+                evidence,
+                conflicts,
+                null);
     }
 
     /**
@@ -119,7 +128,16 @@ public record ClassificationResult(
             List<Conflict> conflicts,
             PortDirection direction) {
         return classifiedPort(
-                subjectId, kind, confidence, matchedCriteria, matchedPriority, justification, evidence, conflicts, direction, null);
+                subjectId,
+                kind,
+                confidence,
+                matchedCriteria,
+                matchedPriority,
+                justification,
+                evidence,
+                conflicts,
+                direction,
+                null);
     }
 
     /**
@@ -179,14 +197,20 @@ public record ClassificationResult(
 
     /**
      * Creates a conflict result (multiple incompatible criteria matched).
+     *
+     * @deprecated Use {@link #conflictDomain} or {@link #conflictPort} instead for explicit target.
      */
+    @Deprecated(since = "0.5.0")
     public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts) {
         return conflict(subjectId, conflicts, null);
     }
 
     /**
      * Creates a conflict result with reason trace.
+     *
+     * @deprecated Use {@link #conflictDomain} or {@link #conflictPort} instead for explicit target.
      */
+    @Deprecated(since = "0.5.0")
     public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts, ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
@@ -196,6 +220,60 @@ public record ClassificationResult(
                 null,
                 0,
                 "Multiple conflicting criteria matched",
+                List.of(),
+                conflicts,
+                null,
+                ClassificationStatus.CONFLICT,
+                reasonTrace);
+    }
+
+    /**
+     * Creates a domain conflict result (multiple incompatible domain criteria matched).
+     */
+    public static ClassificationResult conflictDomain(NodeId subjectId, List<Conflict> conflicts) {
+        return conflictDomain(subjectId, conflicts, null);
+    }
+
+    /**
+     * Creates a domain conflict result with reason trace.
+     */
+    public static ClassificationResult conflictDomain(
+            NodeId subjectId, List<Conflict> conflicts, ReasonTrace reasonTrace) {
+        return new ClassificationResult(
+                subjectId,
+                ClassificationTarget.DOMAIN,
+                null,
+                null,
+                null,
+                0,
+                "Multiple conflicting domain criteria matched",
+                List.of(),
+                conflicts,
+                null,
+                ClassificationStatus.CONFLICT,
+                reasonTrace);
+    }
+
+    /**
+     * Creates a port conflict result (multiple incompatible port criteria matched).
+     */
+    public static ClassificationResult conflictPort(NodeId subjectId, List<Conflict> conflicts) {
+        return conflictPort(subjectId, conflicts, null);
+    }
+
+    /**
+     * Creates a port conflict result with reason trace.
+     */
+    public static ClassificationResult conflictPort(
+            NodeId subjectId, List<Conflict> conflicts, ReasonTrace reasonTrace) {
+        return new ClassificationResult(
+                subjectId,
+                ClassificationTarget.PORT,
+                null,
+                null,
+                null,
+                0,
+                "Multiple conflicting port criteria matched",
                 List.of(),
                 conflicts,
                 null,

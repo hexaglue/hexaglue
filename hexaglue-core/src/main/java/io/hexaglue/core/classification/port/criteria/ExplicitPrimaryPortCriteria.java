@@ -16,6 +16,7 @@ package io.hexaglue.core.classification.port.criteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -31,10 +32,15 @@ import java.util.List;
  * <p>Confidence: EXPLICIT
  * <p>Direction: DRIVING
  */
-public final class ExplicitPrimaryPortCriteria implements PortClassificationCriteria {
+public final class ExplicitPrimaryPortCriteria implements PortClassificationCriteria, IdentifiedCriteria {
 
     public static final String INTERFACE_QUALIFIED_NAME = "org.jmolecules.architecture.hexagonal.PrimaryPort";
     public static final String ANNOTATION_SIMPLE_NAME = "PrimaryPort";
+
+    @Override
+    public String id() {
+        return "port.explicit.primaryPort";
+    }
 
     @Override
     public String name() {

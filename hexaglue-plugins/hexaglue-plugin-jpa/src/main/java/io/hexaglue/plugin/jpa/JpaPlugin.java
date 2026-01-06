@@ -176,7 +176,8 @@ public final class JpaPlugin implements HexaGluePlugin {
                         continue;
                     }
 
-                    Optional<DomainType> managedType = findManagedType(port, ir.domain().types());
+                    Optional<DomainType> managedType =
+                            findManagedType(port, ir.domain().types());
                     if (managedType.isPresent() && managedType.get().isEntity()) {
                         // Only include ports with compatible method signatures
                         // This filters out GATEWAY ports that return different types
@@ -185,8 +186,9 @@ public final class JpaPlugin implements HexaGluePlugin {
                                     .computeIfAbsent(managedType.get(), k -> new ArrayList<>())
                                     .add(port);
                         } else {
-                            diagnostics.info("Skipping port " + port.simpleName()
-                                    + ": methods not compatible with managed type " + managedType.get().simpleName());
+                            diagnostics.info(
+                                    "Skipping port " + port.simpleName() + ": methods not compatible with managed type "
+                                            + managedType.get().simpleName());
                         }
                     } else if (managedType.isEmpty()) {
                         diagnostics.warn("Could not determine managed type for port: " + port.simpleName());
@@ -296,13 +298,14 @@ public final class JpaPlugin implements HexaGluePlugin {
                     String typeParam = returnType.substring(start + 1, end);
                     // If the type parameter is a different domain type, not compatible
                     // Use exact match (simple name) or full qualified name match
-                    String simpleTypeParam = typeParam.contains(".")
-                            ? typeParam.substring(typeParam.lastIndexOf('.') + 1)
-                            : typeParam;
+                    String simpleTypeParam =
+                            typeParam.contains(".") ? typeParam.substring(typeParam.lastIndexOf('.') + 1) : typeParam;
                     if (!simpleTypeParam.equals(typeName) && !typeParam.equals(typeQualified)) {
                         // Check if it's a common wrapper like Optional<String>
-                        if (typeParam.startsWith("java.") || simpleTypeParam.equals("String")
-                                || simpleTypeParam.equals("Integer") || simpleTypeParam.equals("Long")) {
+                        if (typeParam.startsWith("java.")
+                                || simpleTypeParam.equals("String")
+                                || simpleTypeParam.equals("Integer")
+                                || simpleTypeParam.equals("Long")) {
                             continue;
                         }
                         // It's a different domain type - not compatible
@@ -312,9 +315,8 @@ public final class JpaPlugin implements HexaGluePlugin {
             } else if (!returnType.equals(typeName) && !returnType.equals(typeQualified)) {
                 // Simple return type that's not the managed type
                 // Allow primitives and common types
-                String simpleReturnType = returnType.contains(".")
-                        ? returnType.substring(returnType.lastIndexOf('.') + 1)
-                        : returnType;
+                String simpleReturnType =
+                        returnType.contains(".") ? returnType.substring(returnType.lastIndexOf('.') + 1) : returnType;
                 if (!simpleReturnType.equals(typeName) && !isPrimitiveOrCommon(returnType)) {
                     return false;
                 }
@@ -326,8 +328,18 @@ public final class JpaPlugin implements HexaGluePlugin {
 
     private boolean isPrimitiveOrCommon(String typeName) {
         return switch (typeName) {
-            case "void", "boolean", "int", "long", "double", "float", "Boolean",
-                 "Integer", "Long", "Double", "Float", "String" -> true;
+            case "void",
+                    "boolean",
+                    "int",
+                    "long",
+                    "double",
+                    "float",
+                    "Boolean",
+                    "Integer",
+                    "Long",
+                    "Double",
+                    "Float",
+                    "String" -> true;
             default -> typeName.startsWith("java.");
         };
     }

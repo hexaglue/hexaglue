@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.FieldNode;
 import io.hexaglue.core.graph.model.TypeNode;
@@ -37,7 +38,12 @@ import java.util.Optional;
  * <p>Priority: 60 (medium heuristic - needs more context for higher confidence)
  * <p>Confidence: MEDIUM
  */
-public final class HasIdentityCriteria implements ClassificationCriteria<DomainKind> {
+public final class HasIdentityCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.hasIdentity";
+    }
 
     @Override
     public String name() {

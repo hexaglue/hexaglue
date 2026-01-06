@@ -255,7 +255,8 @@ class ClassificationIntegrationTest {
             assertThat(locationResult.matchedCriteria()).isEqualTo("embedded-value-object");
 
             // Classify OrderRepository - should be REPOSITORY port
-            TypeNode orderRepo = graph.typeNode("com.coffeeshop.order.OrderRepository").orElseThrow();
+            TypeNode orderRepo =
+                    graph.typeNode("com.coffeeshop.order.OrderRepository").orElseThrow();
             ClassificationResult orderRepoResult = portClassifier.classify(orderRepo, query);
             assertThat(orderRepoResult.kind()).isEqualTo(PortKind.REPOSITORY.name());
             assertThat(orderRepoResult.portDirection()).isEqualTo(PortDirection.DRIVEN);

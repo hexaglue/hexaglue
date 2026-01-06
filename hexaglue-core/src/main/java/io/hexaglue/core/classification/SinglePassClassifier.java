@@ -121,17 +121,14 @@ public final class SinglePassClassifier {
         SemanticIndexes indexes = buildSemanticIndexes(graph, query);
 
         // Create classifiers with semantic criteria if not provided
-        DomainClassifier effectiveDomainClassifier = domainClassifier != null
-                ? domainClassifier
-                : createDomainClassifierWithSemanticCriteria(indexes);
+        DomainClassifier effectiveDomainClassifier =
+                domainClassifier != null ? domainClassifier : createDomainClassifierWithSemanticCriteria(indexes);
 
-        PortClassifier effectivePortClassifier = portClassifier != null
-                ? portClassifier
-                : createPortClassifierWithSemanticCriteria(indexes);
+        PortClassifier effectivePortClassifier =
+                portClassifier != null ? portClassifier : createPortClassifierWithSemanticCriteria(indexes);
 
         // Phase 4a: Classify PORTS FIRST
-        Map<NodeId, ClassificationResult> portResults =
-                classifyPorts(graph, query, indexes, effectivePortClassifier);
+        Map<NodeId, ClassificationResult> portResults = classifyPorts(graph, query, indexes, effectivePortClassifier);
 
         // Extract classified port sets for domain classification context
         Set<NodeId> drivingPorts = extractPortsByDirection(portResults, PortDirection.DRIVING);
@@ -231,38 +228,45 @@ public final class SinglePassClassifier {
                             .coreAppClassRole("implementedByCore")
                             .build();
 
-                    results.put(type.id(), ClassificationResult.classifiedPort(
+                    results.put(
                             type.id(),
-                            "DRIVING_PORT",
-                            ConfidenceLevel.HIGH,
-                            "SemanticDrivingPortCriteria",
-                            85,
-                            "Interface is implemented by a CoreAppClass",
-                            List.of(Evidence.fromRelationship("implementedByCore=true", List.of())),
-                            List.of(),
-                            PortDirection.DRIVING,
-                            trace));
+                            ClassificationResult.classifiedPort(
+                                    type.id(),
+                                    "DRIVING_PORT",
+                                    ConfidenceLevel.HIGH,
+                                    "SemanticDrivingPortCriteria",
+                                    85,
+                                    "Interface is implemented by a CoreAppClass",
+                                    List.of(Evidence.fromRelationship("implementedByCore=true", List.of())),
+                                    List.of(),
+                                    PortDirection.DRIVING,
+                                    trace));
                     continue;
                 }
 
                 if (f.isDrivenPortCandidate()) {
                     // Use PortKindClassifier to determine specific kind (REPOSITORY, GATEWAY, EVENT_PUBLISHER)
                     PortKind portKind = PortKindClassifier.classify(type, query);
-                    ReasonTrace trace = ReasonTrace.builder()
-                            .coreAppClassRole("usedByCore")
-                            .build();
+                    ReasonTrace trace =
+                            ReasonTrace.builder().coreAppClassRole("usedByCore").build();
 
-                    results.put(type.id(), ClassificationResult.classifiedPort(
+                    results.put(
                             type.id(),
-                            portKind.name(),
-                            ConfidenceLevel.HIGH,
-                            "SemanticDrivenPortCriteria",
-                            85,
-                            "Interface is used by CoreAppClass with missing/internal implementation (kind=" + portKind + ")",
-                            List.of(Evidence.fromRelationship("usedByCore=true, missingImpl=" + f.missingImpl() + ", portKind=" + portKind, List.of())),
-                            List.of(),
-                            PortDirection.DRIVEN,
-                            trace));
+                            ClassificationResult.classifiedPort(
+                                    type.id(),
+                                    portKind.name(),
+                                    ConfidenceLevel.HIGH,
+                                    "SemanticDrivenPortCriteria",
+                                    85,
+                                    "Interface is used by CoreAppClass with missing/internal implementation (kind="
+                                            + portKind + ")",
+                                    List.of(Evidence.fromRelationship(
+                                            "usedByCore=true, missingImpl=" + f.missingImpl() + ", portKind="
+                                                    + portKind,
+                                            List.of())),
+                                    List.of(),
+                                    PortDirection.DRIVEN,
+                                    trace));
                     continue;
                 }
 
@@ -274,17 +278,23 @@ public final class SinglePassClassifier {
                             .coreAppClassRole("usedByCore (relaxed)")
                             .build();
 
-                    results.put(type.id(), ClassificationResult.classifiedPort(
+                    results.put(
                             type.id(),
-                            portKind.name(),
-                            ConfidenceLevel.MEDIUM,
-                            "SemanticDrivenPortCriteria (relaxed)",
-                            80,
-                            "Interface is used by CoreAppClass with missing/internal implementation (no annotation, kind=" + portKind + ")",
-                            List.of(Evidence.fromRelationship("usedByCore=true, missingImpl=" + f.missingImpl() + ", hasPortAnnotation=false, portKind=" + portKind, List.of())),
-                            List.of(),
-                            PortDirection.DRIVEN,
-                            trace));
+                            ClassificationResult.classifiedPort(
+                                    type.id(),
+                                    portKind.name(),
+                                    ConfidenceLevel.MEDIUM,
+                                    "SemanticDrivenPortCriteria (relaxed)",
+                                    80,
+                                    "Interface is used by CoreAppClass with missing/internal implementation (no annotation, kind="
+                                            + portKind + ")",
+                                    List.of(Evidence.fromRelationship(
+                                            "usedByCore=true, missingImpl=" + f.missingImpl()
+                                                    + ", hasPortAnnotation=false, portKind=" + portKind,
+                                            List.of())),
+                                    List.of(),
+                                    PortDirection.DRIVEN,
+                                    trace));
                     continue;
                 }
             }
@@ -315,9 +325,7 @@ public final class SinglePassClassifier {
      * Creates a classification context with port information.
      */
     private ClassificationContext createPortAwareContext(
-            Map<NodeId, ClassificationResult> portResults,
-            Set<NodeId> drivingPorts,
-            Set<NodeId> drivenPorts) {
+            Map<NodeId, ClassificationResult> portResults, Set<NodeId> drivingPorts, Set<NodeId> drivenPorts) {
         // The context will have port classifications available
         return new ClassificationContext(portResults);
     }

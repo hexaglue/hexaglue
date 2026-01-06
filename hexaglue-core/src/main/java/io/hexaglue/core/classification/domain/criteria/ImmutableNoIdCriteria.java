@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.JavaModifier;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -38,7 +39,12 @@ import java.util.List;
  * <p>Priority: 60 (medium heuristic)
  * <p>Confidence: MEDIUM
  */
-public final class ImmutableNoIdCriteria implements ClassificationCriteria<DomainKind> {
+public final class ImmutableNoIdCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.immutableNoId";
+    }
 
     @Override
     public String name() {
