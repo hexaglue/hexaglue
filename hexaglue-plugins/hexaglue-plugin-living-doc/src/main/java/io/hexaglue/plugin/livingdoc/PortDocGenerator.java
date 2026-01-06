@@ -194,7 +194,9 @@ final class PortDocGenerator {
 
         // Source reference
         if (port.sourceRef() != null && port.sourceRef().isReal()) {
-            sb.append("| **Source File** | `").append(port.sourceRef().filePath()).append("` |\n");
+            sb.append("| **Source File** | `")
+                    .append(port.sourceRef().filePath())
+                    .append("` |\n");
             sb.append("| **Line** | ").append(port.sourceRef().lineStart()).append(" |\n");
         }
 

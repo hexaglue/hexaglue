@@ -16,6 +16,7 @@ package io.hexaglue.core.classification.port.criteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -42,10 +43,15 @@ import java.util.Set;
  * <p><b>Note:</b> This criteria was demoted from priority 80 to 50 to give precedence
  * to semantic criteria ({@link SemanticDrivenPortCriteria}) which use structural analysis.
  */
-public final class NamingRepositoryCriteria implements PortClassificationCriteria {
+public final class NamingRepositoryCriteria implements PortClassificationCriteria, IdentifiedCriteria {
 
     private static final Set<String> CRUD_METHOD_PREFIXES =
             Set.of("save", "find", "delete", "remove", "get", "exists", "count", "update");
+
+    @Override
+    public String id() {
+        return "port.naming.repository";
+    }
 
     @Override
     public String name() {

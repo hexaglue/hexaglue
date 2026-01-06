@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Classification engine refactoring** - Unified and extensible classification system
+  - `CriteriaEngine<K>` - Generic evaluation engine shared by domain and port classifiers
+  - `CriteriaProfile` - Configurable criteria priorities via YAML profiles (`default.yaml`, `strict.yaml`, `annotation-only.yaml`)
+  - `IdentifiedCriteria` - Stable criteria identifiers for configuration (e.g., `domain.explicit.aggregateRoot`)
+  - `ConflictSeverity` - Distinguish ERROR (incompatible) from WARNING (compatible) conflicts
+  - `CompatibilityPolicy` - Define which classification kinds can coexist
+  - `Contribution<K>` - Unified contribution model with metadata support
+
 - **Graph-based analysis engine** - Complete rewrite of the classification system
   - Single-pass graph construction for better context awareness
   - Declarative classification criteria with priority and confidence levels
@@ -61,6 +69,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Unified monorepo structure (previously split into engine/plugins/examples)
 - jMolecules annotations are now the primary classification signal
 - Port direction detection improved with package-based signals
+- `DomainClassifier` and `PortClassifier` now use shared `CriteriaEngine` for consistent evaluation
+- `Conflict` record now includes `severity` field (ERROR/WARNING) for better diagnostics
+- Classification criteria priorities can be overridden via YAML profiles without code changes
 
 ### Fixed
 

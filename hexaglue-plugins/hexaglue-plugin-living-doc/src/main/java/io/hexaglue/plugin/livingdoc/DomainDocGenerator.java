@@ -308,7 +308,9 @@ final class DomainDocGenerator {
 
         // Source reference
         if (type.sourceRef() != null && type.sourceRef().isReal()) {
-            sb.append("| **Source File** | `").append(type.sourceRef().filePath()).append("` |\n");
+            sb.append("| **Source File** | `")
+                    .append(type.sourceRef().filePath())
+                    .append("` |\n");
             sb.append("| **Line** | ").append(type.sourceRef().lineStart()).append(" |\n");
         }
 

@@ -16,6 +16,7 @@ package io.hexaglue.core.classification.port.criteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -45,7 +46,12 @@ import java.util.List;
  *
  * <p>Direction: DRIVING
  */
-public final class PackageInCriteria implements PortClassificationCriteria {
+public final class PackageInCriteria implements PortClassificationCriteria, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "port.package.in";
+    }
 
     @Override
     public String name() {

@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -38,7 +39,12 @@ import java.util.List;
  * <p>Priority: 55 (between medium and lower heuristics)
  * <p>Confidence: MEDIUM
  */
-public final class NamingDomainEventCriteria implements ClassificationCriteria<DomainKind> {
+public final class NamingDomainEventCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.naming.domainEvent";
+    }
 
     @Override
     public String name() {

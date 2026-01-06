@@ -350,15 +350,22 @@ class ClassificationFrameworkTest {
         @Test
         void shouldCreateConflict() {
             Conflict conflict = new Conflict(
-                    "ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "Matched as ENTITY but winner is VALUE_OBJECT");
+                    "ENTITY",
+                    "has-identity",
+                    ConfidenceLevel.HIGH,
+                    70,
+                    "Matched as ENTITY but winner is VALUE_OBJECT",
+                    ConflictSeverity.ERROR);
 
             assertThat(conflict.competingKind()).isEqualTo("ENTITY");
             assertThat(conflict.competingCriteria()).isEqualTo("has-identity");
             assertThat(conflict.competingConfidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(conflict.competingPriority()).isEqualTo(70);
+            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.ERROR);
         }
 
         @Test
+        @SuppressWarnings("deprecation")
         void shouldCreateConflictBetween() {
             Conflict conflict = Conflict.between("ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "VALUE_OBJECT");
 
@@ -366,20 +373,45 @@ class ClassificationFrameworkTest {
             assertThat(conflict.competingPriority()).isEqualTo(70);
             assertThat(conflict.rationale()).contains("ENTITY");
             assertThat(conflict.rationale()).contains("VALUE_OBJECT");
+            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.ERROR); // Default for deprecated method
+        }
+
+        @Test
+        void shouldCreateErrorConflict() {
+            Conflict conflict = Conflict.error("ENTITY", "criteria", ConfidenceLevel.HIGH, 80, "Reason");
+
+            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.ERROR);
+            assertThat(conflict.isError()).isTrue();
+            assertThat(conflict.isWarning()).isFalse();
+        }
+
+        @Test
+        void shouldCreateWarningConflict() {
+            Conflict conflict = Conflict.warning("ENTITY", "criteria", ConfidenceLevel.HIGH, 80, "Reason");
+
+            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.WARNING);
+            assertThat(conflict.isWarning()).isTrue();
+            assertThat(conflict.isError()).isFalse();
         }
 
         @Test
         void shouldRejectNullFields() {
-            assertThatThrownBy(() -> new Conflict(null, "test", ConfidenceLevel.HIGH, 80, "reason"))
+            assertThatThrownBy(
+                            () -> new Conflict(null, "test", ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
                     .isInstanceOf(NullPointerException.class);
 
-            assertThatThrownBy(() -> new Conflict("kind", null, ConfidenceLevel.HIGH, 80, "reason"))
+            assertThatThrownBy(
+                            () -> new Conflict("kind", null, ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
                     .isInstanceOf(NullPointerException.class);
 
-            assertThatThrownBy(() -> new Conflict("kind", "test", null, 80, "reason"))
+            assertThatThrownBy(() -> new Conflict("kind", "test", null, 80, "reason", ConflictSeverity.ERROR))
                     .isInstanceOf(NullPointerException.class);
 
-            assertThatThrownBy(() -> new Conflict("kind", "test", ConfidenceLevel.HIGH, 80, null))
+            assertThatThrownBy(
+                            () -> new Conflict("kind", "test", ConfidenceLevel.HIGH, 80, null, ConflictSeverity.ERROR))
+                    .isInstanceOf(NullPointerException.class);
+
+            assertThatThrownBy(() -> new Conflict("kind", "test", ConfidenceLevel.HIGH, 80, "reason", null))
                     .isInstanceOf(NullPointerException.class);
         }
     }

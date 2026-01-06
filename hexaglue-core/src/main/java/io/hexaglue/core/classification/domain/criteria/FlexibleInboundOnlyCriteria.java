@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.semantic.CoreAppClass;
 import io.hexaglue.core.classification.semantic.CoreAppClassIndex;
 import io.hexaglue.core.frontend.JavaForm;
@@ -42,7 +43,7 @@ import java.util.Objects;
  * <p>Priority: 70 (semantic heuristic, below APPLICATION_SERVICE priority)
  * <p>Confidence: HIGH
  */
-public final class FlexibleInboundOnlyCriteria implements ClassificationCriteria<DomainKind> {
+public final class FlexibleInboundOnlyCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
 
     private final CoreAppClassIndex coreAppClassIndex;
 
@@ -53,6 +54,11 @@ public final class FlexibleInboundOnlyCriteria implements ClassificationCriteria
      */
     public FlexibleInboundOnlyCriteria(CoreAppClassIndex coreAppClassIndex) {
         this.coreAppClassIndex = Objects.requireNonNull(coreAppClassIndex, "coreAppClassIndex cannot be null");
+    }
+
+    @Override
+    public String id() {
+        return "domain.semantic.inboundOnly";
     }
 
     @Override

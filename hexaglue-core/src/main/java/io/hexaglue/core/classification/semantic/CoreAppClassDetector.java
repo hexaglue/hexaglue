@@ -67,8 +67,7 @@ public final class CoreAppClassDetector {
         CoreAppClassIndex.Builder builder = CoreAppClassIndex.builder();
 
         // Only consider classes and records that are DomainAnchors
-        query.types(t -> (t.form() == JavaForm.CLASS || t.form() == JavaForm.RECORD)
-                        && anchors.isDomainAnchor(t.id()))
+        query.types(t -> (t.form() == JavaForm.CLASS || t.form() == JavaForm.RECORD) && anchors.isDomainAnchor(t.id()))
                 .forEach(type -> {
                     Optional<CoreAppClass> coreApp = detect(type, query, anchors);
                     coreApp.ifPresent(builder::put);

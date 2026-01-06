@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.graph.model.*;
 import io.hexaglue.core.graph.query.GraphQuery;
 import java.util.ArrayList;
@@ -48,7 +49,12 @@ import java.util.stream.Collectors;
  * <p>Priority: 80 (strong heuristic)
  * <p>Confidence: HIGH
  */
-public final class RepositoryDominantCriteria implements ClassificationCriteria<DomainKind> {
+public final class RepositoryDominantCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.repositoryDominant";
+    }
 
     @Override
     public String name() {

@@ -14,6 +14,7 @@
 package io.hexaglue.core.classification.port.criteria;
 
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -27,7 +28,8 @@ import io.hexaglue.core.graph.query.GraphQuery;
  * <p>All explicit annotation criteria have priority 100 (highest)
  * and confidence EXPLICIT.
  */
-public abstract class AbstractExplicitPortAnnotationCriteria implements PortClassificationCriteria {
+public abstract class AbstractExplicitPortAnnotationCriteria
+        implements PortClassificationCriteria, IdentifiedCriteria {
 
     private final String annotationSimpleName;
     private final String annotationQualifiedName;
@@ -46,8 +48,23 @@ public abstract class AbstractExplicitPortAnnotationCriteria implements PortClas
     }
 
     @Override
+    public String id() {
+        return "port.explicit." + toCamelCase(targetKind.name());
+    }
+
+    @Override
     public String name() {
         return "explicit-" + targetKind.name().toLowerCase().replace('_', '-');
+    }
+
+    private static String toCamelCase(String enumName) {
+        String[] parts = enumName.toLowerCase().split("_");
+        StringBuilder result = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            result.append(Character.toUpperCase(parts[i].charAt(0)));
+            result.append(parts[i].substring(1));
+        }
+        return result.toString();
     }
 
     @Override

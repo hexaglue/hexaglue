@@ -41,16 +41,29 @@ public final class PortKindClassifier {
 
     // CRUD method prefixes for REPOSITORY detection
     private static final Set<String> REPOSITORY_METHOD_PREFIXES = Set.of(
-            "save", "find", "delete", "remove", "get", "exists", "count", "update",
-            "persist", "store", "load", "fetch", "retrieve", "add", "insert");
+            "save",
+            "find",
+            "delete",
+            "remove",
+            "get",
+            "exists",
+            "count",
+            "update",
+            "persist",
+            "store",
+            "load",
+            "fetch",
+            "retrieve",
+            "add",
+            "insert");
 
     // Event publisher method prefixes
-    private static final Set<String> EVENT_PUBLISHER_METHOD_PREFIXES = Set.of(
-            "publish", "emit", "send", "dispatch", "fire", "broadcast", "notify");
+    private static final Set<String> EVENT_PUBLISHER_METHOD_PREFIXES =
+            Set.of("publish", "emit", "send", "dispatch", "fire", "broadcast", "notify");
 
     // Event type name patterns
-    private static final Set<String> EVENT_TYPE_PATTERNS = Set.of(
-            "Event", "DomainEvent", "IntegrationEvent", "Message");
+    private static final Set<String> EVENT_TYPE_PATTERNS =
+            Set.of("Event", "DomainEvent", "IntegrationEvent", "Message");
 
     private PortKindClassifier() {
         // Utility class
@@ -98,8 +111,7 @@ public final class PortKindClassifier {
             String methodName = method.simpleName().toLowerCase();
 
             // Check for event publisher method prefixes
-            boolean hasPublishPrefix = EVENT_PUBLISHER_METHOD_PREFIXES.stream()
-                    .anyMatch(methodName::startsWith);
+            boolean hasPublishPrefix = EVENT_PUBLISHER_METHOD_PREFIXES.stream().anyMatch(methodName::startsWith);
 
             if (hasPublishPrefix) {
                 // Check if any parameter is an Event type
@@ -127,8 +139,7 @@ public final class PortKindClassifier {
         for (MethodNode method : methods) {
             String methodName = method.simpleName().toLowerCase();
 
-            boolean hasCrudPrefix = REPOSITORY_METHOD_PREFIXES.stream()
-                    .anyMatch(methodName::startsWith);
+            boolean hasCrudPrefix = REPOSITORY_METHOD_PREFIXES.stream().anyMatch(methodName::startsWith);
 
             if (hasCrudPrefix) {
                 crudMethodCount++;
@@ -146,12 +157,9 @@ public final class PortKindClassifier {
         if (typeName == null) {
             return false;
         }
-        String simpleName = typeName.contains(".")
-                ? typeName.substring(typeName.lastIndexOf('.') + 1)
-                : typeName;
+        String simpleName = typeName.contains(".") ? typeName.substring(typeName.lastIndexOf('.') + 1) : typeName;
 
-        return EVENT_TYPE_PATTERNS.stream()
-                .anyMatch(simpleName::contains);
+        return EVENT_TYPE_PATTERNS.stream().anyMatch(simpleName::contains);
     }
 
     /**

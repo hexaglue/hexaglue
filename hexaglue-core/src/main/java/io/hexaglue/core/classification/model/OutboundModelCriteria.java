@@ -98,9 +98,7 @@ public final class OutboundModelCriteria implements ClassificationCriteria<Model
                 ConfidenceLevel.MEDIUM,
                 "Type appears in %d DRIVEN port signature(s)".formatted(drivenPortsUsingThisType.size()),
                 List.of(new Evidence(
-                        EvidenceType.RELATIONSHIP,
-                        "Used in DRIVEN port method signatures",
-                        drivenPortsUsingThisType)));
+                        EvidenceType.RELATIONSHIP, "Used in DRIVEN port method signatures", drivenPortsUsingThisType)));
     }
 
     private boolean isExcludedPackage(String qualifiedName) {

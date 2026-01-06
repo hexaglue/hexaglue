@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.EdgeKind;
@@ -44,7 +45,12 @@ import java.util.Optional;
  * <p>Priority: 60 (medium heuristic)
  * <p>Confidence: MEDIUM
  */
-public final class CollectionElementEntityCriteria implements ClassificationCriteria<DomainKind> {
+public final class CollectionElementEntityCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "domain.structural.collectionElementEntity";
+    }
 
     @Override
     public String name() {

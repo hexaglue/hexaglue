@@ -145,9 +145,20 @@ public final class InterfaceFactsIndex {
      *   <li>Publisher, Sender, Emitter - event patterns</li>
      * </ul>
      */
-    private static final Set<String> PORT_NAME_PATTERNS =
-            Set.of("Repository", "Saver", "Fetcher", "Finder", "Loader", "Store", "Gateway", "Client", "Adapter",
-                    "Publisher", "Sender", "Emitter", "Port");
+    private static final Set<String> PORT_NAME_PATTERNS = Set.of(
+            "Repository",
+            "Saver",
+            "Fetcher",
+            "Finder",
+            "Loader",
+            "Store",
+            "Gateway",
+            "Client",
+            "Adapter",
+            "Publisher",
+            "Sender",
+            "Emitter",
+            "Port");
 
     /**
      * Returns true if the interface has port indicators for the safety check.

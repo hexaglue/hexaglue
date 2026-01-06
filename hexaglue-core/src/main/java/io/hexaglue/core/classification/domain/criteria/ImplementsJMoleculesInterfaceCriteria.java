@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -40,7 +41,8 @@ import java.util.Map;
  * <p>Priority: 100 (same as explicit annotations - implementing an interface is equally explicit)
  * <p>Confidence: EXPLICIT
  */
-public final class ImplementsJMoleculesInterfaceCriteria implements ClassificationCriteria<DomainKind> {
+public final class ImplementsJMoleculesInterfaceCriteria
+        implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
 
     private static final String JMOLECULES_TYPES_PACKAGE = "org.jmolecules.ddd.types.";
 
@@ -65,6 +67,11 @@ public final class ImplementsJMoleculesInterfaceCriteria implements Classificati
      */
     private ImplementsJMoleculesInterfaceCriteria(DomainKind fixedKind) {
         this.fixedKind = fixedKind;
+    }
+
+    @Override
+    public String id() {
+        return "domain.explicit.jmoleculesInterface";
     }
 
     @Override

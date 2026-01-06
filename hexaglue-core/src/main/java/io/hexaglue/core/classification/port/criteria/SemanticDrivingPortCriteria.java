@@ -17,6 +17,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -41,7 +42,7 @@ import java.util.Objects;
  * <p>Confidence: HIGH
  * <p>Direction: DRIVING
  */
-public final class SemanticDrivingPortCriteria implements PortClassificationCriteria {
+public final class SemanticDrivingPortCriteria implements PortClassificationCriteria, IdentifiedCriteria {
 
     private final InterfaceFactsIndex factsIndex;
 
@@ -52,6 +53,11 @@ public final class SemanticDrivingPortCriteria implements PortClassificationCrit
      */
     public SemanticDrivingPortCriteria(InterfaceFactsIndex factsIndex) {
         this.factsIndex = Objects.requireNonNull(factsIndex, "factsIndex cannot be null");
+    }
+
+    @Override
+    public String id() {
+        return "port.semantic.driving";
     }
 
     @Override

@@ -39,13 +39,11 @@ import java.util.Set;
  * @param implementedInterfaces interfaces this class implements (potential DRIVING ports)
  * @param dependedInterfaces interfaces this class depends on via fields (potential DRIVEN ports)
  */
-public record CoreAppClass(
-        NodeId classId, Set<NodeId> implementedInterfaces, Set<NodeId> dependedInterfaces) {
+public record CoreAppClass(NodeId classId, Set<NodeId> implementedInterfaces, Set<NodeId> dependedInterfaces) {
 
     public CoreAppClass {
         Objects.requireNonNull(classId, "classId cannot be null");
-        implementedInterfaces =
-                implementedInterfaces == null ? Set.of() : Set.copyOf(implementedInterfaces);
+        implementedInterfaces = implementedInterfaces == null ? Set.of() : Set.copyOf(implementedInterfaces);
         dependedInterfaces = dependedInterfaces == null ? Set.of() : Set.copyOf(dependedInterfaces);
     }
 
