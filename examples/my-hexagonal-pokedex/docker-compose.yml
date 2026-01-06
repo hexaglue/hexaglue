@@ -1,0 +1,11 @@
+version: '3'
+
+services:
+  local-pokedex-db:
+    image: postgres:16.1-alpine
+    container_name: local-pokedex-db-container
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: P@ssw0rd

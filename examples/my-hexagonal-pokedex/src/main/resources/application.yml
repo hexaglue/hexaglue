@@ -1,0 +1,4 @@
+infrastructure:
+  pokeapi:
+    app:
+      api: "https://pokeapi.co/api/v2"

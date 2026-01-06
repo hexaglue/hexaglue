@@ -1,0 +1,10 @@
+# StarWars Rescue Fleet
+
+###
+# @name Assemble a Fleet
+POST localhost:1977/rescueFleets
+Content-Type: application/json
+
+{
+  "numberOfPassengers": 800
+}

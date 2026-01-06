@@ -1,0 +1,24 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1
+      author: Dorian Frances
+      changes:
+        - createTable:
+            tableName: pokemons
+            columns:
+              - column:
+                  name: id
+                  type: int
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+              - column:
+                  name: name
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: ability
+                  type: varchar(50)
+                  constraints:
+                    nullable: false
