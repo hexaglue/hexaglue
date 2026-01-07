@@ -567,7 +567,7 @@ class ClassificationContractTest {
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =
-                GraphMetadata.of("com.example", 17, (int) model.types().count());
+                GraphMetadata.of("com.example", 17, (int) model.types().size());
 
         model = frontend.build(input);
         return builder.build(model, metadata);

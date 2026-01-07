@@ -16,6 +16,7 @@ package io.hexaglue.core.graph.index;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.*;
 import java.util.*;
+import java.util.List;
 
 /**
  * Indexes for fast queries on the application graph.
@@ -74,6 +75,14 @@ public final class GraphIndexes {
     /** Parameter type → methods having that parameter type (PARAMETER_TYPE) */
     private final Map<NodeId, Set<NodeId>> methodsByParameterType = new HashMap<>();
 
+    // === Edge indexes for fast lookup ===
+
+    /** Node → all edges originating from that node (O(1) lookup) */
+    private final Map<NodeId, List<Edge>> edgesBySource = new HashMap<>();
+
+    /** Node → all edges targeting that node (O(1) lookup) */
+    private final Map<NodeId, List<Edge>> edgesByTarget = new HashMap<>();
+
     // === Indexing methods ===
 
     /**
@@ -123,6 +132,11 @@ public final class GraphIndexes {
      * Indexes an edge.
      */
     public void indexEdge(Edge edge) {
+        // Index by source and target for O(1) lookup
+        edgesBySource.computeIfAbsent(edge.from(), k -> new ArrayList<>()).add(edge);
+        edgesByTarget.computeIfAbsent(edge.to(), k -> new ArrayList<>()).add(edge);
+
+        // Index by edge kind for specific queries
         switch (edge.kind()) {
             case DECLARES -> indexDeclares(edge);
             case EXTENDS -> indexExtends(edge);
@@ -312,6 +326,36 @@ public final class GraphIndexes {
      */
     public Set<NodeId> methodsWithParameter(NodeId typeId) {
         return unmodifiable(methodsByParameterType.get(typeId));
+    }
+
+    // === Edge query methods (O(1) lookup) ===
+
+    /**
+     * Returns all edges originating from the given node.
+     *
+     * <p>This method has O(1) complexity using pre-built indexes,
+     * compared to O(n) for filtering all edges.
+     *
+     * @param nodeId the source node id
+     * @return unmodifiable list of edges from the node, empty list if none
+     */
+    public List<Edge> edgesFrom(NodeId nodeId) {
+        List<Edge> edges = edgesBySource.get(nodeId);
+        return edges != null ? Collections.unmodifiableList(edges) : List.of();
+    }
+
+    /**
+     * Returns all edges targeting the given node.
+     *
+     * <p>This method has O(1) complexity using pre-built indexes,
+     * compared to O(n) for filtering all edges.
+     *
+     * @param nodeId the target node id
+     * @return unmodifiable list of edges to the node, empty list if none
+     */
+    public List<Edge> edgesTo(NodeId nodeId) {
+        List<Edge> edges = edgesByTarget.get(nodeId);
+        return edges != null ? Collections.unmodifiableList(edges) : List.of();
     }
 
     // === Convenience query methods ===

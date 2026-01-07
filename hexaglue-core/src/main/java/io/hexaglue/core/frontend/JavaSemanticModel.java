@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.frontend;
 
-import java.util.stream.Stream;
+import java.util.List;
 
 /**
  * Abstraction over the Java source code being analyzed.
@@ -36,7 +36,10 @@ public interface JavaSemanticModel {
      * <p>This includes classes, records, interfaces, enums, and annotation types.
      * Types are filtered by the configured base package.
      *
-     * @return stream of all types, ordered by qualified name
+     * <p>The returned list is immutable and can be iterated multiple times
+     * without rebuilding the underlying model.
+     *
+     * @return list of all types, ordered by qualified name
      */
-    Stream<JavaType> types();
+    List<JavaType> types();
 }

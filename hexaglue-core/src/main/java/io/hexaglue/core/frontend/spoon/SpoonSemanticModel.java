@@ -17,8 +17,8 @@ import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.JavaType;
 import io.hexaglue.core.frontend.spoon.adapters.SpoonTypeAdapter;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Set;
-import java.util.stream.Stream;
 import spoon.reflect.CtModel;
 import spoon.reflect.declaration.CtAnnotation;
 import spoon.reflect.declaration.CtType;
@@ -50,12 +50,13 @@ final class SpoonSemanticModel implements JavaSemanticModel {
     }
 
     @Override
-    public Stream<JavaType> types() {
+    public List<JavaType> types() {
         return model.getAllTypes().stream()
                 .filter(this::isInScope)
                 .filter(this::isNotGenerated)
                 .sorted(Comparator.comparing(CtType::getQualifiedName))
-                .map(SpoonTypeAdapter::adapt);
+                .map(SpoonTypeAdapter::adapt)
+                .toList();
     }
 
     private boolean isInScope(CtType<?> type) {

@@ -71,7 +71,7 @@ class SpoonFrontendTest {
         JavaSemanticModel model = frontend.build(input);
 
         // Then
-        List<JavaType> types = model.types().toList();
+        List<JavaType> types = model.types();
         assertThat(types).hasSize(1);
 
         JavaType customer = types.get(0);
@@ -103,7 +103,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType order = model.types().findFirst().orElseThrow();
+        JavaType order = model.types().stream().findFirst().orElseThrow();
 
         List<JavaField> fields = order.fields();
         assertThat(fields).hasSize(4);
@@ -145,7 +145,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType calculator = model.types().findFirst().orElseThrow();
+        JavaType calculator = model.types().stream().findFirst().orElseThrow();
 
         List<JavaMethod> methods = calculator.methods();
         assertThat(methods).hasSize(3);
@@ -190,7 +190,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType product = model.types().findFirst().orElseThrow();
+        JavaType product = model.types().stream().findFirst().orElseThrow();
 
         List<JavaConstructor> constructors = product.constructors();
         assertThat(constructors).hasSize(3);
@@ -218,7 +218,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType repo = model.types().findFirst().orElseThrow();
+        JavaType repo = model.types().stream().findFirst().orElseThrow();
 
         assertThat(repo.form()).isEqualTo(JavaForm.INTERFACE);
         assertThat(repo.isInterface()).isTrue();
@@ -242,7 +242,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType customerId = model.types().findFirst().orElseThrow();
+        JavaType customerId = model.types().stream().findFirst().orElseThrow();
 
         assertThat(customerId.form()).isEqualTo(JavaForm.RECORD);
         assertThat(customerId.isRecord()).isTrue();
@@ -270,7 +270,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType status = model.types().findFirst().orElseThrow();
+        JavaType status = model.types().stream().findFirst().orElseThrow();
 
         assertThat(status.form()).isEqualTo(JavaForm.ENUM);
         assertThat(status.isEnum()).isTrue();
@@ -293,7 +293,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType marker = model.types().findFirst().orElseThrow();
+        JavaType marker = model.types().stream().findFirst().orElseThrow();
 
         assertThat(marker.form()).isEqualTo(JavaForm.ANNOTATION);
     }
@@ -312,7 +312,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType type = model.types().findFirst().orElseThrow();
+        JavaType type = model.types().stream().findFirst().orElseThrow();
 
         List<JavaAnnotation> annotations = type.annotations();
         assertThat(annotations).hasSizeGreaterThanOrEqualTo(2);
@@ -341,7 +341,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType container = model.types().findFirst().orElseThrow();
+        JavaType container = model.types().stream().findFirst().orElseThrow();
 
         List<JavaField> fields = container.fields();
 
@@ -374,7 +374,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType holder = model.types().findFirst().orElseThrow();
+        JavaType holder = model.types().stream().findFirst().orElseThrow();
 
         List<JavaField> fields = holder.fields();
 
@@ -421,7 +421,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType user = model.types()
+        JavaType user = model.types().stream()
                 .filter(t -> t.simpleName().equals("User"))
                 .findFirst()
                 .orElseThrow();
@@ -453,7 +453,8 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        List<String> typeNames = model.types().map(JavaType::qualifiedName).toList();
+        List<String> typeNames =
+                model.types().stream().map(JavaType::qualifiedName).toList();
 
         assertThat(typeNames).containsExactly("com.example.domain.InPackage");
         assertThat(typeNames).doesNotContain("com.other.OutOfPackage");
@@ -472,7 +473,7 @@ class SpoonFrontendTest {
         JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
         JavaSemanticModel model = frontend.build(input);
-        JavaType located = model.types().findFirst().orElseThrow();
+        JavaType located = model.types().stream().findFirst().orElseThrow();
 
         Optional<SourceRef> sourceRef = located.sourceRef();
         assertThat(sourceRef).isPresent();
