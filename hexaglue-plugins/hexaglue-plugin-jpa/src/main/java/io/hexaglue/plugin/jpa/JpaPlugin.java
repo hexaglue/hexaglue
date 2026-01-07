@@ -164,32 +164,17 @@ public final class JpaPlugin implements HexaGluePlugin {
         // Group ports by managed type to merge multiple ports for the same type into one adapter
         if (config.generateAdapters()) {
             // Group ports by managed domain type
+            // Trust the IR classification: if kind == REPOSITORY, it's a repository
             Map<DomainType, List<Port>> portsByManagedType = new HashMap<>();
 
             for (Port port : ir.ports().ports()) {
                 if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
-                    // Skip ports with multiple distinct domain types - likely GATEWAY ports
-                    // (e.g., PokemonApiFetcher manages both Pokemon and CapturablePokemon)
-                    if (hasMultipleDomainTypes(port, ir.domain().types())) {
-                        diagnostics.info("Skipping port " + port.simpleName()
-                                + ": manages multiple domain types (likely a GATEWAY)");
-                        continue;
-                    }
-
                     Optional<DomainType> managedType =
                             findManagedType(port, ir.domain().types());
                     if (managedType.isPresent() && managedType.get().isEntity()) {
-                        // Only include ports with compatible method signatures
-                        // This filters out GATEWAY ports that return different types
-                        if (isCompatibleWithManagedType(port, managedType.get())) {
-                            portsByManagedType
-                                    .computeIfAbsent(managedType.get(), k -> new ArrayList<>())
-                                    .add(port);
-                        } else {
-                            diagnostics.info(
-                                    "Skipping port " + port.simpleName() + ": methods not compatible with managed type "
-                                            + managedType.get().simpleName());
-                        }
+                        portsByManagedType
+                                .computeIfAbsent(managedType.get(), k -> new ArrayList<>())
+                                .add(port);
                     } else if (managedType.isEmpty()) {
                         diagnostics.warn("Could not determine managed type for port: " + port.simpleName());
                     }
@@ -263,112 +248,5 @@ public final class JpaPlugin implements HexaGluePlugin {
                 .filter(t -> t.simpleName().equals(searchName))
                 .filter(DomainType::isEntity)
                 .findFirst();
-    }
-
-    /**
-     * Checks if a port's method signatures are compatible with the managed type.
-     *
-     * <p>A port is compatible if all its methods work with the managed type:
-     * - Parameters should include the managed type or its identity
-     * - Return types should be the managed type or collections/optionals of it
-     *
-     * <p>This filters out GATEWAY ports that may share a managed type but have
-     * methods returning different types (e.g., findTopTwenty() -> List<CapturablePokemon>).
-     */
-    private boolean isCompatibleWithManagedType(Port port, DomainType managedType) {
-        String typeName = managedType.simpleName();
-        String typeQualified = managedType.qualifiedName();
-
-        // Check all methods have compatible signatures
-        for (var method : port.methods()) {
-            String returnType = method.returnType();
-
-            // Skip void methods (like save())
-            if (returnType == null || returnType.equals("void")) {
-                continue;
-            }
-
-            // If return type mentions a different domain type, it's not compatible
-            // E.g., List<CapturablePokemon> is not compatible with Pokemon
-            if (returnType.contains("<")) {
-                // Extract the type parameter
-                int start = returnType.indexOf('<');
-                int end = returnType.lastIndexOf('>');
-                if (start > 0 && end > start) {
-                    String typeParam = returnType.substring(start + 1, end);
-                    // If the type parameter is a different domain type, not compatible
-                    // Use exact match (simple name) or full qualified name match
-                    String simpleTypeParam =
-                            typeParam.contains(".") ? typeParam.substring(typeParam.lastIndexOf('.') + 1) : typeParam;
-                    if (!simpleTypeParam.equals(typeName) && !typeParam.equals(typeQualified)) {
-                        // Check if it's a common wrapper like Optional<String>
-                        if (typeParam.startsWith("java.")
-                                || simpleTypeParam.equals("String")
-                                || simpleTypeParam.equals("Integer")
-                                || simpleTypeParam.equals("Long")) {
-                            continue;
-                        }
-                        // It's a different domain type - not compatible
-                        return false;
-                    }
-                }
-            } else if (!returnType.equals(typeName) && !returnType.equals(typeQualified)) {
-                // Simple return type that's not the managed type
-                // Allow primitives and common types
-                String simpleReturnType =
-                        returnType.contains(".") ? returnType.substring(returnType.lastIndexOf('.') + 1) : returnType;
-                if (!simpleReturnType.equals(typeName) && !isPrimitiveOrCommon(returnType)) {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    private boolean isPrimitiveOrCommon(String typeName) {
-        return switch (typeName) {
-            case "void",
-                    "boolean",
-                    "int",
-                    "long",
-                    "double",
-                    "float",
-                    "Boolean",
-                    "Integer",
-                    "Long",
-                    "Double",
-                    "Float",
-                    "String" -> true;
-            default -> typeName.startsWith("java.");
-        };
-    }
-
-    /**
-     * Checks if a port manages multiple distinct domain types.
-     *
-     * <p>Ports that manage multiple domain types (e.g., Pokemon and CapturablePokemon)
-     * are likely GATEWAY ports that fetch from external systems, not REPOSITORY ports.
-     * Repository ports typically only manage one aggregate type.
-     */
-    private boolean hasMultipleDomainTypes(Port port, List<DomainType> allTypes) {
-        List<String> managedTypes = port.managedTypes();
-        if (managedTypes.size() <= 1) {
-            return false;
-        }
-
-        // Count how many are actual domain entities (not identifiers or value objects)
-        int entityCount = 0;
-        for (String fqn : managedTypes) {
-            for (DomainType type : allTypes) {
-                if (type.qualifiedName().equals(fqn) && type.isEntity()) {
-                    entityCount++;
-                    break;
-                }
-            }
-        }
-
-        // If there are multiple entity types, it's likely a GATEWAY
-        return entityCount > 1 || managedTypes.size() > 1;
     }
 }
