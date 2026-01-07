@@ -35,6 +35,7 @@ import io.hexaglue.core.classification.port.criteria.PackageInCriteria;
 import io.hexaglue.core.classification.port.criteria.PackageOutCriteria;
 import io.hexaglue.core.classification.port.criteria.QueryPatternCriteria;
 import io.hexaglue.core.classification.port.criteria.SignatureBasedDrivenPortCriteria;
+import io.hexaglue.core.classification.port.criteria.SignatureBasedGatewayCriteria;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -115,6 +116,8 @@ public final class PortClassifier {
                 new QueryPatternCriteria(),
                 // Relationship-based heuristics (priority 75)
                 new InjectedAsDependencyCriteria(),
+                // Multi-aggregate gateway detection (priority 72)
+                new SignatureBasedGatewayCriteria(),
                 // Graph-based heuristics (priority 70)
                 new SignatureBasedDrivenPortCriteria(),
                 // Medium heuristics (priority 60)

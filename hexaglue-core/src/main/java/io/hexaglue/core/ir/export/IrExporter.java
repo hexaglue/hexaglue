@@ -106,10 +106,16 @@ public final class IrExporter {
     }
 
     private List<Port> exportPorts(ApplicationGraph graph, List<ClassificationResult> classifications) {
+        // Build classification context from domain classifications for primary type detection
+        Map<NodeId, ClassificationResult> domainClassificationsMap = classifications.stream()
+                .filter(c -> c.target() == ClassificationTarget.DOMAIN)
+                .filter(c -> c.status() == ClassificationStatus.CLASSIFIED)
+                .collect(Collectors.toMap(ClassificationResult::subjectId, c -> c));
+
         return classifications.stream()
                 .filter(c -> c.target() == ClassificationTarget.PORT)
                 .filter(c -> c.status() == ClassificationStatus.CLASSIFIED)
-                .map(c -> toPort(graph, c))
+                .map(c -> toPort(graph, c, domainClassificationsMap))
                 .sorted(Comparator.comparing(Port::qualifiedName))
                 .toList();
     }
@@ -149,10 +155,16 @@ public final class IrExporter {
                 SourceRef.toSpi(node.sourceRef()));
     }
 
-    private Port toPort(ApplicationGraph graph, ClassificationResult classification) {
+    private Port toPort(
+            ApplicationGraph graph,
+            ClassificationResult classification,
+            Map<NodeId, ClassificationResult> domainClassifications) {
         TypeNode node = graph.typeNode(classification.subjectId())
                 .orElseThrow(() -> new IllegalStateException(
                         "Classification refers to unknown node: " + classification.subjectId()));
+
+        List<String> managedTypes = portExtractor.extractManagedTypes(graph, node);
+        String primaryManagedType = portExtractor.extractPrimaryManagedType(managedTypes, domainClassifications);
 
         return new Port(
                 node.qualifiedName(),
@@ -161,7 +173,8 @@ public final class IrExporter {
                 typeConverter.toPortKind(classification.kind()),
                 typeConverter.toSpiPortDirection(classification.portDirection()),
                 typeConverter.toSpiConfidence(classification.confidence()),
-                portExtractor.extractManagedTypes(graph, node),
+                managedTypes,
+                primaryManagedType,
                 portExtractor.extractPortMethods(graph, node),
                 extractAnnotationNames(node),
                 SourceRef.toSpi(node.sourceRef()));

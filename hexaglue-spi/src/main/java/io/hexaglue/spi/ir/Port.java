@@ -25,9 +25,11 @@ import java.util.List;
  * @param direction driving (inbound) or driven (outbound)
  * @param confidence how confident the classification is
  * @param managedTypes the domain types used in this port's signatures
+ * @param primaryManagedType the main aggregate managed by this port (may be null if none or generic port)
  * @param methods the port methods
  * @param annotations the annotation qualified names present on this interface
  * @param sourceRef source location for diagnostics
+ * @since 2.0.0
  */
 public record Port(
         String qualifiedName,
@@ -37,9 +39,42 @@ public record Port(
         PortDirection direction,
         ConfidenceLevel confidence,
         List<String> managedTypes,
+        String primaryManagedType,
         List<PortMethod> methods,
         List<String> annotations,
         SourceRef sourceRef) {
+
+    /**
+     * Backward-compatible constructor without primaryManagedType.
+     *
+     * @deprecated Use the full constructor with primaryManagedType
+     * @since 2.0.0
+     */
+    @Deprecated(since = "2.0.0", forRemoval = false)
+    public Port(
+            String qualifiedName,
+            String simpleName,
+            String packageName,
+            PortKind kind,
+            PortDirection direction,
+            ConfidenceLevel confidence,
+            List<String> managedTypes,
+            List<PortMethod> methods,
+            List<String> annotations,
+            SourceRef sourceRef) {
+        this(
+                qualifiedName,
+                simpleName,
+                packageName,
+                kind,
+                direction,
+                confidence,
+                managedTypes,
+                null,
+                methods,
+                annotations,
+                sourceRef);
+    }
 
     /**
      * Returns true if this is a repository port.

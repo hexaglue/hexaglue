@@ -13,15 +13,19 @@
 
 package io.hexaglue.core.ir.export;
 
+import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.MethodNode;
+import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.ParameterInfo;
 import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.PortMethod;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -30,10 +34,17 @@ import java.util.Set;
  * <p>This class handles extraction of:
  * <ul>
  *   <li>Managed types (domain types used in port signatures)</li>
+ *   <li>Primary managed type (first aggregate/entity type)</li>
  *   <li>Port methods with their signatures</li>
  * </ul>
  */
 final class PortExtractor {
+
+    private final TypeConverter typeConverter;
+
+    PortExtractor() {
+        this.typeConverter = new TypeConverter();
+    }
 
     /**
      * Extracts the types managed by a port interface.
@@ -90,5 +101,36 @@ final class PortExtractor {
                 .toList();
 
         return new PortMethod(method.simpleName(), method.returnType().rawQualifiedName(), paramTypes);
+    }
+
+    /**
+     * Extracts the primary managed type for a port.
+     *
+     * <p>The primary managed type is the first AGGREGATE_ROOT or ENTITY type
+     * found in the managed types list. Value objects and identifiers are skipped.
+     *
+     * @param managedTypes the list of all managed type qualified names
+     * @param domainClassifications map of domain type classifications by node ID
+     * @return the qualified name of the primary managed type, or null if none
+     */
+    String extractPrimaryManagedType(
+            List<String> managedTypes, Map<NodeId, ClassificationResult> domainClassifications) {
+        for (String typeName : managedTypes) {
+            NodeId nodeId = NodeId.type(typeName);
+            ClassificationResult classification = domainClassifications.get(nodeId);
+
+            if (classification == null) {
+                continue;
+            }
+
+            DomainKind kind = typeConverter.toDomainKind(classification.kind());
+
+            // Skip value objects and identifiers - only consider aggregates and entities
+            if (kind == DomainKind.AGGREGATE_ROOT || kind == DomainKind.ENTITY) {
+                return typeName;
+            }
+        }
+
+        return null;
     }
 }

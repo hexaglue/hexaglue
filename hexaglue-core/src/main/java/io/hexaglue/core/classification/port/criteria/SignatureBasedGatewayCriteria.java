@@ -1,0 +1,147 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
+package io.hexaglue.core.classification.port.criteria;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toSet;
+
+import io.hexaglue.core.classification.ConfidenceLevel;
+import io.hexaglue.core.classification.Evidence;
+import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.engine.IdentifiedCriteria;
+import io.hexaglue.core.classification.port.PortClassificationCriteria;
+import io.hexaglue.core.classification.port.PortDirection;
+import io.hexaglue.core.classification.port.PortKind;
+import io.hexaglue.core.frontend.JavaForm;
+import io.hexaglue.core.graph.model.EdgeKind;
+import io.hexaglue.core.graph.model.FieldNode;
+import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.core.graph.query.GraphQuery;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+
+/**
+ * Matches interfaces that manipulate multiple aggregate-like types in their signatures.
+ *
+ * <p>This criteria detects driven (outbound) GATEWAY ports by analyzing the types used
+ * in method signatures. If an interface uses multiple types that look like aggregates
+ * (have identity fields), it's likely a gateway port that bridges multiple aggregates
+ * or external systems.
+ *
+ * <p>A REPOSITORY typically manages a single aggregate type, while a GATEWAY may
+ * bridge multiple types. This criteria specifically detects the multi-aggregate pattern.
+ *
+ * <p>This is a graph-based heuristic that exploits the USES_IN_SIGNATURE edges.
+ *
+ * <p>Priority: 72 (between signature-based repository at 70 and command/query at 75)
+ * <p>Confidence: HIGH
+ * <p>Direction: DRIVEN
+ */
+public final class SignatureBasedGatewayCriteria implements PortClassificationCriteria, IdentifiedCriteria {
+
+    @Override
+    public String id() {
+        return "port.signature.gateway";
+    }
+
+    @Override
+    public String name() {
+        return "signature-based-gateway";
+    }
+
+    @Override
+    public int priority() {
+        return 72;
+    }
+
+    @Override
+    public PortKind targetKind() {
+        return PortKind.GATEWAY;
+    }
+
+    @Override
+    public PortDirection targetDirection() {
+        return PortDirection.DRIVEN;
+    }
+
+    @Override
+    public MatchResult evaluate(TypeNode node, GraphQuery query) {
+        // Must be an interface
+        if (node.form() != JavaForm.INTERFACE) {
+            return MatchResult.noMatch();
+        }
+
+        // Skip interfaces that look like use cases (driving ports)
+        if (looksLikeDrivingPort(node)) {
+            return MatchResult.noMatch();
+        }
+
+        // Find types used in this interface's signatures via USES_IN_SIGNATURE edges
+        Set<TypeNode> usedTypes = query.graph().edgesFrom(node.id()).stream()
+                .filter(e -> e.kind() == EdgeKind.USES_IN_SIGNATURE)
+                .map(e -> query.type(e.to()))
+                .flatMap(Optional::stream)
+                .collect(toSet());
+
+        if (usedTypes.isEmpty()) {
+            return MatchResult.noMatch();
+        }
+
+        // Find aggregate-like types (types with identity fields)
+        // Exclude identifier types (types ending with "Id")
+        List<TypeNode> aggregateLikeTypes = usedTypes.stream()
+                .filter(t -> !t.simpleName().endsWith("Id"))
+                .filter(t -> hasIdentityField(t, query))
+                .toList();
+
+        // Only match if there are MULTIPLE aggregate-like types
+        if (aggregateLikeTypes.size() <= 1) {
+            return MatchResult.noMatch();
+        }
+
+        String typeNames = aggregateLikeTypes.stream().map(TypeNode::simpleName).collect(joining(", "));
+
+        return MatchResult.match(
+                ConfidenceLevel.HIGH,
+                "Interface manipulates multiple aggregate-like types: " + typeNames,
+                List.of(Evidence.fromRelationship(
+                        "Uses " + aggregateLikeTypes.size() + " aggregate types in signature: " + typeNames,
+                        aggregateLikeTypes.stream().map(TypeNode::id).toList())));
+    }
+
+    private boolean looksLikeDrivingPort(TypeNode node) {
+        String name = node.simpleName();
+        // Skip use case / command / query patterns
+        return name.endsWith("UseCase")
+                || name.endsWith("Command")
+                || name.endsWith("Query")
+                || name.endsWith("Handler")
+                || name.endsWith("Service");
+    }
+
+    private boolean hasIdentityField(TypeNode type, GraphQuery query) {
+        return query.fieldsOf(type).stream().anyMatch(this::isIdentityField);
+    }
+
+    private boolean isIdentityField(FieldNode field) {
+        String name = field.simpleName();
+        return name.equals("id") || name.endsWith("Id");
+    }
+
+    @Override
+    public String description() {
+        return "Matches driven ports that manipulate multiple aggregate-like types (GATEWAY pattern)";
+    }
+}
