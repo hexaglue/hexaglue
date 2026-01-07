@@ -313,6 +313,7 @@ final class TestFixtures {
     // ===== Port Fixtures =====
 
     static Port simpleRepository(String entityName, String pkg, String idType) {
+        String managedType = pkg + "." + entityName;
         return new Port(
                 pkg + ".ports.out." + entityName + "Repository",
                 entityName + "Repository",
@@ -320,18 +321,19 @@ final class TestFixtures {
                 PortKind.REPOSITORY,
                 PortDirection.DRIVEN,
                 ConfidenceLevel.HIGH,
-                List.of(pkg + "." + entityName),
+                List.of(managedType),
+                managedType,
                 List.of(
-                        new PortMethod("save", pkg + "." + entityName, List.of(pkg + "." + entityName)),
-                        new PortMethod(
-                                "findById", "java.util.Optional<" + pkg + "." + entityName + ">", List.of(idType)),
-                        new PortMethod("findAll", "java.util.List<" + pkg + "." + entityName + ">", List.of()),
-                        new PortMethod("delete", "void", List.of(pkg + "." + entityName))),
+                        new PortMethod("save", managedType, List.of(managedType)),
+                        new PortMethod("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
+                        new PortMethod("findAll", "java.util.List<" + managedType + ">", List.of()),
+                        new PortMethod("delete", "void", List.of(managedType))),
                 List.of(),
                 SourceRef.unknown());
     }
 
     static Port repositoryWithCustomMethods(String entityName, String pkg, String idType) {
+        String managedType = pkg + "." + entityName;
         return new Port(
                 pkg + ".ports.out." + entityName + "Repository",
                 entityName + "Repository",
@@ -339,22 +341,17 @@ final class TestFixtures {
                 PortKind.REPOSITORY,
                 PortDirection.DRIVEN,
                 ConfidenceLevel.HIGH,
-                List.of(pkg + "." + entityName),
+                List.of(managedType),
+                managedType,
                 List.of(
-                        new PortMethod("save", pkg + "." + entityName, List.of(pkg + "." + entityName)),
-                        new PortMethod(
-                                "findById", "java.util.Optional<" + pkg + "." + entityName + ">", List.of(idType)),
-                        new PortMethod("findAll", "java.util.List<" + pkg + "." + entityName + ">", List.of()),
-                        new PortMethod("delete", "void", List.of(pkg + "." + entityName)),
-                        new PortMethod(
-                                "findByEmail",
-                                "java.util.Optional<" + pkg + "." + entityName + ">",
-                                List.of(pkg + ".Email")),
+                        new PortMethod("save", managedType, List.of(managedType)),
+                        new PortMethod("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
+                        new PortMethod("findAll", "java.util.List<" + managedType + ">", List.of()),
+                        new PortMethod("delete", "void", List.of(managedType)),
+                        new PortMethod("findByEmail", "java.util.Optional<" + managedType + ">", List.of(pkg + ".Email")),
                         new PortMethod("existsByEmail", "boolean", List.of(pkg + ".Email")),
                         new PortMethod(
-                                "findByCustomerId",
-                                "java.util.List<" + pkg + "." + entityName + ">",
-                                List.of(pkg + ".CustomerId"))),
+                                "findByCustomerId", "java.util.List<" + managedType + ">", List.of(pkg + ".CustomerId"))),
                 List.of(),
                 SourceRef.unknown());
     }
@@ -368,6 +365,7 @@ final class TestFixtures {
                 PortDirection.DRIVING,
                 ConfidenceLevel.HIGH,
                 List.of(),
+                null,
                 methods,
                 List.of(),
                 SourceRef.unknown());

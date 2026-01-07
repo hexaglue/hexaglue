@@ -1,0 +1,604 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
+package io.hexaglue.plugin.jpa.util;
+
+import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ClassName;
+import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
+import io.hexaglue.spi.ir.FetchType;
+import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.spi.ir.Nullability;
+import io.hexaglue.spi.ir.RelationKind;
+import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
+import jakarta.persistence.Embeddable;
+import jakarta.persistence.Embedded;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
+import jakarta.persistence.Table;
+import javax.annotation.processing.Generated;
+
+/**
+ * Builder utilities for JPA and MapStruct annotations using JavaPoet.
+ *
+ * <p>This utility class provides pre-configured annotation builders for all common
+ * JPA and MapStruct annotations. It uses the SPI enums (CascadeType, FetchType,
+ * IdentityStrategy) to ensure type-safe annotation generation.
+ *
+ * <h3>Key Capabilities:</h3>
+ * <ul>
+ *   <li>JPA class annotations: {@code @Entity}, {@code @Table}, {@code @Embeddable}</li>
+ *   <li>JPA field annotations: {@code @Id}, {@code @Column}, {@code @GeneratedValue}</li>
+ *   <li>JPA relationship annotations: {@code @OneToMany}, {@code @ManyToOne}, etc.</li>
+ *   <li>MapStruct annotations: {@code @Mapper}, {@code @Mapping}</li>
+ *   <li>Spring annotations: {@code @Repository}, {@code @Component}</li>
+ *   <li>Java annotations: {@code @Generated}</li>
+ * </ul>
+ *
+ * <h3>Design Decisions:</h3>
+ * <ul>
+ *   <li>Uses SPI enums directly instead of string literals for type safety</li>
+ *   <li>Leverages {@link Identity#requiresGeneratedValue()} for smart {@code @GeneratedValue} generation</li>
+ *   <li>Converts SPI enums to Jakarta enums at generation time</li>
+ *   <li>Returns null for optional annotations (caller can skip if null)</li>
+ * </ul>
+ *
+ * @since 2.0.0
+ */
+public final class JpaAnnotations {
+
+    private JpaAnnotations() {
+        // Utility class - prevent instantiation
+    }
+
+    // =====================================================================
+    // Class-level annotations
+    // =====================================================================
+
+    /**
+     * Builds a {@code @Generated} annotation.
+     *
+     * <p>Used to mark generated classes for documentation and tooling purposes.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Generated(value = "io.hexaglue.plugin.jpa.JpaPlugin")
+     * public class OrderEntity { ... }
+     * }</pre>
+     *
+     * @param generator the generator name (typically the plugin class name)
+     * @return the {@code @Generated} annotation spec
+     * @throws IllegalArgumentException if generator is null or empty
+     */
+    public static AnnotationSpec generated(String generator) {
+        if (generator == null || generator.isEmpty()) {
+            throw new IllegalArgumentException("Generator name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(Generated.class)
+                .addMember("value", "$S", generator)
+                .build();
+    }
+
+    /**
+     * Builds an {@code @Entity} annotation.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Entity
+     * public class OrderEntity { ... }
+     * }</pre>
+     *
+     * @return the {@code @Entity} annotation spec
+     */
+    public static AnnotationSpec entity() {
+        return AnnotationSpec.builder(Entity.class).build();
+    }
+
+    /**
+     * Builds a {@code @Table} annotation with the specified table name.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Table(name = "orders")
+     * public class OrderEntity { ... }
+     * }</pre>
+     *
+     * @param name the database table name
+     * @return the {@code @Table} annotation spec
+     * @throws IllegalArgumentException if name is null or empty
+     */
+    public static AnnotationSpec table(String name) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Table name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(Table.class).addMember("name", "$S", name).build();
+    }
+
+    /**
+     * Builds an {@code @Embeddable} annotation.
+     *
+     * <p>Used for value objects that are embedded in entities.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Embeddable
+     * public class Address { ... }
+     * }</pre>
+     *
+     * @return the {@code @Embeddable} annotation spec
+     */
+    public static AnnotationSpec embeddable() {
+        return AnnotationSpec.builder(Embeddable.class).build();
+    }
+
+    // =====================================================================
+    // Identity field annotations
+    // =====================================================================
+
+    /**
+     * Builds an {@code @Id} annotation.
+     *
+     * <p>Marks a field as the primary key.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Id
+     * private UUID id;
+     * }</pre>
+     *
+     * @return the {@code @Id} annotation spec
+     */
+    public static AnnotationSpec id() {
+        return AnnotationSpec.builder(Id.class).build();
+    }
+
+    /**
+     * Builds a {@code @GeneratedValue} annotation based on the identity strategy.
+     *
+     * <p>Uses the SPI's {@link Identity#requiresGeneratedValue()} helper to determine
+     * if the annotation is needed. Returns null if no generation is required (e.g., ASSIGNED strategy).
+     *
+     * <p>Leverages {@link io.hexaglue.spi.ir.IdentityStrategy#toJpaGenerationType()} to map
+     * SPI strategies to JPA GenerationType values.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>AUTO strategy → {@code @GeneratedValue(strategy = GenerationType.AUTO)}</li>
+     *   <li>IDENTITY strategy → {@code @GeneratedValue(strategy = GenerationType.IDENTITY)}</li>
+     *   <li>UUID strategy → {@code @GeneratedValue(strategy = GenerationType.UUID)}</li>
+     *   <li>ASSIGNED strategy → {@code null} (no annotation)</li>
+     * </ul>
+     *
+     * @param identity the identity metadata from the SPI
+     * @return the {@code @GeneratedValue} annotation spec, or null if not needed
+     * @throws IllegalArgumentException if identity is null
+     */
+    public static AnnotationSpec generatedValue(Identity identity) {
+        if (identity == null) {
+            throw new IllegalArgumentException("Identity cannot be null");
+        }
+
+        // Use SPI helper to determine if @GeneratedValue is needed
+        if (!identity.strategy().requiresGeneratedValue()) {
+            return null; // No annotation needed
+        }
+
+        String jpaStrategy = identity.strategy().toJpaGenerationType();
+        if (jpaStrategy == null) {
+            return null; // Fallback: no annotation
+        }
+
+        return AnnotationSpec.builder(GeneratedValue.class)
+                .addMember("strategy", "$T.$L", jakarta.persistence.GenerationType.class, jpaStrategy)
+                .build();
+    }
+
+    // =====================================================================
+    // Property field annotations
+    // =====================================================================
+
+    /**
+     * Builds a {@code @Column} annotation with name and nullability.
+     *
+     * <p>Uses the SPI {@link Nullability} enum to determine the {@code nullable} attribute.
+     * Only sets {@code nullable = false} if the nullability is explicitly NON_NULL.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>NON_NULL → {@code @Column(name = "first_name", nullable = false)}</li>
+     *   <li>NULLABLE → {@code @Column(name = "middle_name")}</li>
+     *   <li>UNKNOWN → {@code @Column(name = "suffix")}</li>
+     * </ul>
+     *
+     * @param name the database column name
+     * @param nullability the nullability from the SPI
+     * @return the {@code @Column} annotation spec
+     * @throws IllegalArgumentException if name is null or empty, or if nullability is null
+     */
+    public static AnnotationSpec column(String name, Nullability nullability) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Column name cannot be null or empty");
+        }
+        if (nullability == null) {
+            throw new IllegalArgumentException("Nullability cannot be null");
+        }
+
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(Column.class).addMember("name", "$S", name);
+
+        if (nullability == Nullability.NON_NULL) {
+            builder.addMember("nullable", "false");
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Builds an {@code @Embedded} annotation.
+     *
+     * <p>Used for embedded value objects within entities.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Embedded
+     * private Address address;
+     * }</pre>
+     *
+     * @return the {@code @Embedded} annotation spec
+     */
+    public static AnnotationSpec embedded() {
+        return AnnotationSpec.builder(Embedded.class).build();
+    }
+
+    // =====================================================================
+    // Relationship annotations
+    // =====================================================================
+
+    /**
+     * Builds the appropriate JPA relationship annotation based on {@link RelationKind}.
+     *
+     * <p>This is the main entry point for generating relationship annotations.
+     * It delegates to specialized methods based on the relationship kind.
+     *
+     * <p>Supported relationship kinds:
+     * <ul>
+     *   <li>{@link RelationKind#ONE_TO_ONE} → {@code @OneToOne}</li>
+     *   <li>{@link RelationKind#ONE_TO_MANY} → {@code @OneToMany}</li>
+     *   <li>{@link RelationKind#MANY_TO_ONE} → {@code @ManyToOne}</li>
+     *   <li>{@link RelationKind#MANY_TO_MANY} → {@code @ManyToMany}</li>
+     *   <li>{@link RelationKind#EMBEDDED} → {@code @Embedded}</li>
+     *   <li>{@link RelationKind#ELEMENT_COLLECTION} → {@code @ElementCollection}</li>
+     * </ul>
+     *
+     * @param relation the relation field spec containing all metadata
+     * @return the appropriate JPA relationship annotation spec
+     * @throws IllegalArgumentException if relation is null
+     */
+    public static AnnotationSpec relationAnnotation(RelationFieldSpec relation) {
+        if (relation == null) {
+            throw new IllegalArgumentException("Relation cannot be null");
+        }
+
+        return switch (relation.kind()) {
+            case ONE_TO_ONE -> oneToOne(relation);
+            case ONE_TO_MANY -> oneToMany(relation);
+            case MANY_TO_ONE -> manyToOne(relation);
+            case MANY_TO_MANY -> manyToMany(relation);
+            case EMBEDDED -> embedded();
+            case ELEMENT_COLLECTION -> elementCollection(relation);
+        };
+    }
+
+    /**
+     * Builds a {@code @OneToOne} annotation with cascade, fetch, and orphanRemoval.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+     * private ShippingAddress shippingAddress;
+     * }</pre>
+     *
+     * @param relation the relation field spec
+     * @return the {@code @OneToOne} annotation spec
+     */
+    private static AnnotationSpec oneToOne(RelationFieldSpec relation) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(OneToOne.class);
+
+        if (relation.mappedBy() != null) {
+            builder.addMember("mappedBy", "$S", relation.mappedBy());
+        }
+
+        addRelationAttributes(builder, relation);
+        return builder.build();
+    }
+
+    /**
+     * Builds a {@code @OneToMany} annotation with mappedBy, cascade, fetch, and orphanRemoval.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+     * private List<LineItem> lineItems;
+     * }</pre>
+     *
+     * @param relation the relation field spec
+     * @return the {@code @OneToMany} annotation spec
+     */
+    private static AnnotationSpec oneToMany(RelationFieldSpec relation) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(OneToMany.class);
+
+        if (relation.mappedBy() != null) {
+            builder.addMember("mappedBy", "$S", relation.mappedBy());
+        }
+
+        addRelationAttributes(builder, relation);
+        return builder.build();
+    }
+
+    /**
+     * Builds a {@code @ManyToOne} annotation with cascade and fetch.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @ManyToOne(fetch = FetchType.LAZY)
+     * private Order order;
+     * }</pre>
+     *
+     * @param relation the relation field spec
+     * @return the {@code @ManyToOne} annotation spec
+     */
+    private static AnnotationSpec manyToOne(RelationFieldSpec relation) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(ManyToOne.class);
+        addFetchType(builder, relation.fetch());
+        addCascadeType(builder, relation.cascade());
+        return builder.build();
+    }
+
+    /**
+     * Builds a {@code @ManyToMany} annotation with mappedBy, cascade, and fetch.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @ManyToMany(mappedBy = "products", cascade = CascadeType.PERSIST)
+     * private Set<Category> categories;
+     * }</pre>
+     *
+     * @param relation the relation field spec
+     * @return the {@code @ManyToMany} annotation spec
+     */
+    private static AnnotationSpec manyToMany(RelationFieldSpec relation) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(ManyToMany.class);
+
+        if (relation.mappedBy() != null) {
+            builder.addMember("mappedBy", "$S", relation.mappedBy());
+        }
+
+        addRelationAttributes(builder, relation);
+        return builder.build();
+    }
+
+    /**
+     * Builds an {@code @ElementCollection} annotation with fetch strategy.
+     *
+     * <p>Used for collections of embeddable value objects.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @ElementCollection(fetch = FetchType.LAZY)
+     * private List<Tag> tags;
+     * }</pre>
+     *
+     * @param relation the relation field spec
+     * @return the {@code @ElementCollection} annotation spec
+     */
+    private static AnnotationSpec elementCollection(RelationFieldSpec relation) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(ElementCollection.class);
+        addFetchType(builder, relation.fetch());
+        return builder.build();
+    }
+
+    /**
+     * Builds a {@code @JoinColumn} annotation with the specified column name.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @JoinColumn(name = "order_id")
+     * private Order order;
+     * }</pre>
+     *
+     * @param name the foreign key column name
+     * @return the {@code @JoinColumn} annotation spec
+     * @throws IllegalArgumentException if name is null or empty
+     */
+    public static AnnotationSpec joinColumn(String name) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Join column name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(JoinColumn.class)
+                .addMember("name", "$S", name)
+                .build();
+    }
+
+    // =====================================================================
+    // MapStruct annotations
+    // =====================================================================
+
+    /**
+     * Builds a {@code @Mapper} annotation for MapStruct with Spring component model.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Mapper(componentModel = "spring")
+     * public interface OrderMapper { ... }
+     * }</pre>
+     *
+     * @return the {@code @Mapper} annotation spec
+     */
+    public static AnnotationSpec mapper() {
+        return AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
+                .addMember("componentModel", "$S", "spring")
+                .build();
+    }
+
+    /**
+     * Builds a {@code @Mapping} annotation with target and source.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Mapping(target = "id", source = "orderId.value")
+     * OrderEntity toEntity(Order order);
+     * }</pre>
+     *
+     * @param target the target field name
+     * @param source the source field expression
+     * @return the {@code @Mapping} annotation spec
+     * @throws IllegalArgumentException if target or source is null or empty
+     */
+    public static AnnotationSpec mapping(String target, String source) {
+        if (target == null || target.isEmpty()) {
+            throw new IllegalArgumentException("Target cannot be null or empty");
+        }
+        if (source == null || source.isEmpty()) {
+            throw new IllegalArgumentException("Source cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapping"))
+                .addMember("target", "$S", target)
+                .addMember("source", "$S", source)
+                .build();
+    }
+
+    /**
+     * Builds a {@code @Mapping} annotation with target and Java expression.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
+     * OrderEntity toEntity(Order order);
+     * }</pre>
+     *
+     * @param target the target field name
+     * @param expression the Java expression (without "java(...)" wrapper)
+     * @return the {@code @Mapping} annotation spec
+     * @throws IllegalArgumentException if target or expression is null or empty
+     */
+    public static AnnotationSpec mappingExpression(String target, String expression) {
+        if (target == null || target.isEmpty()) {
+            throw new IllegalArgumentException("Target cannot be null or empty");
+        }
+        if (expression == null || expression.isEmpty()) {
+            throw new IllegalArgumentException("Expression cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapping"))
+                .addMember("target", "$S", target)
+                .addMember("expression", "$S", "java(" + expression + ")")
+                .build();
+    }
+
+    // =====================================================================
+    // Spring annotations
+    // =====================================================================
+
+    /**
+     * Builds a {@code @Repository} annotation for Spring Data repositories.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Repository
+     * public interface OrderRepository extends JpaRepository<OrderEntity, UUID> { ... }
+     * }</pre>
+     *
+     * @return the {@code @Repository} annotation spec
+     */
+    public static AnnotationSpec repository() {
+        return AnnotationSpec.builder(ClassName.get("org.springframework.stereotype", "Repository"))
+                .build();
+    }
+
+    /**
+     * Builds a {@code @Component} annotation for Spring components.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Component
+     * public class OrderJpaAdapter implements OrderRepository { ... }
+     * }</pre>
+     *
+     * @return the {@code @Component} annotation spec
+     */
+    public static AnnotationSpec component() {
+        return AnnotationSpec.builder(ClassName.get("org.springframework.stereotype", "Component"))
+                .build();
+    }
+
+    // =====================================================================
+    // Helper methods for relationship attributes
+    // =====================================================================
+
+    /**
+     * Adds common relationship attributes: cascade, fetch, orphanRemoval.
+     *
+     * @param builder the annotation builder
+     * @param relation the relation field spec
+     */
+    private static void addRelationAttributes(AnnotationSpec.Builder builder, RelationFieldSpec relation) {
+        addCascadeType(builder, relation.cascade());
+        addFetchType(builder, relation.fetch());
+        if (relation.orphanRemoval()) {
+            builder.addMember("orphanRemoval", "true");
+        }
+    }
+
+    /**
+     * Adds the {@code cascade} attribute if not NONE.
+     *
+     * <p>Converts the SPI {@link io.hexaglue.spi.ir.CascadeType} to
+     * Jakarta {@link jakarta.persistence.CascadeType}.
+     *
+     * @param builder the annotation builder
+     * @param cascadeType the cascade type from the SPI
+     */
+    private static void addCascadeType(AnnotationSpec.Builder builder, io.hexaglue.spi.ir.CascadeType cascadeType) {
+        if (cascadeType == null || cascadeType == io.hexaglue.spi.ir.CascadeType.NONE) {
+            return; // No cascade
+        }
+
+        builder.addMember("cascade", "$T.$L", jakarta.persistence.CascadeType.class, cascadeType.name());
+    }
+
+    /**
+     * Adds the {@code fetch} attribute if specified.
+     *
+     * <p>Converts the SPI {@link FetchType} to Jakarta {@link jakarta.persistence.FetchType}.
+     *
+     * @param builder the annotation builder
+     * @param fetchType the fetch type from the SPI
+     */
+    private static void addFetchType(AnnotationSpec.Builder builder, FetchType fetchType) {
+        if (fetchType == null) {
+            return; // Use JPA default
+        }
+
+        builder.addMember("fetch", "$T.$L", jakarta.persistence.FetchType.class, fetchType.name());
+    }
+}

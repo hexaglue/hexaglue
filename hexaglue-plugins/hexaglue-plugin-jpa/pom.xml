@@ -35,6 +35,13 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- JavaPoet for code generation -->
+        <dependency>
+            <groupId>com.palantir.javapoet</groupId>
+            <artifactId>javapoet</artifactId>
+            <version>0.7.0</version>
+        </dependency>
+
         <!-- Testing -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

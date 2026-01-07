@@ -16,9 +16,42 @@ package io.hexaglue.plugin.jpa;
 import io.hexaglue.spi.plugin.PluginConfig;
 
 /**
- * Configuration for the JPA plugin.
+ * Configuration record for the JPA plugin.
+ *
+ * <p>This record holds all configurable options for JPA code generation.
+ * Configuration values are loaded from the hexaglue.yaml plugin configuration
+ * section via {@link #from(PluginConfig)}.
+ *
+ * <h3>Configuration Example:</h3>
+ * <pre>
+ * hexaglue:
+ *   plugins:
+ *     io.hexaglue.plugin.jpa:
+ *       entitySuffix: Entity
+ *       repositorySuffix: JpaRepository
+ *       adapterSuffix: Adapter
+ *       mapperSuffix: Mapper
+ *       tablePrefix: app_
+ *       enableAuditing: true
+ *       enableOptimisticLocking: true
+ *       generateRepositories: true
+ *       generateMappers: true
+ *       generateAdapters: true
+ * </pre>
+ *
+ * @param entitySuffix suffix for generated JPA entity classes (default: "Entity")
+ * @param repositorySuffix suffix for Spring Data repository interfaces (default: "JpaRepository")
+ * @param adapterSuffix suffix for port adapter classes (default: "Adapter")
+ * @param mapperSuffix suffix for MapStruct mapper interfaces (default: "Mapper")
+ * @param tablePrefix prefix for database table names (default: "")
+ * @param enableAuditing true to add JPA auditing annotations (createdDate, lastModifiedDate)
+ * @param enableOptimisticLocking true to add @Version field for optimistic locking
+ * @param generateRepositories true to generate Spring Data JPA repository interfaces
+ * @param generateMappers true to generate MapStruct mapper interfaces
+ * @param generateAdapters true to generate port adapter implementations
+ * @since 2.0.0
  */
-record JpaConfig(
+public record JpaConfig(
         String entitySuffix,
         String repositorySuffix,
         String adapterSuffix,
