@@ -12,7 +12,54 @@ HexaGlue uses a **single-pass classification algorithm** that classifies domain 
 
 ---
 
-## Algorithm Flow
+## Engine Pipeline Context
+
+The SinglePassClassifier is **Phase 3** of the complete HexaGlue engine pipeline:
+
+```
+Source Code
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 1: Parsing                                             │
+│   SpoonFrontend → JavaSemanticModel                         │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 2: Graph Construction                                  │
+│   GraphBuilder → ApplicationGraph (with indexes)            │
+│   Pass 1: Create TypeNodes                                   │
+│   Pass 1.5: StyleDetector (detect package organization)      │
+│   Pass 2: Create members + RAW edges                         │
+│   Pass 3: DerivedEdgeComputer (compute DERIVED edges)        │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 3: Classification (this document)                      │
+│   SinglePassClassifier → ClassificationResults               │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 4: IR Export                                           │
+│   IrExporter → IrSnapshot                                    │
+│   - RelationAnalyzer (ONE_TO_MANY, MANY_TO_MANY, etc.)       │
+│   - CascadeInference (infer cascade types)                   │
+│   - MappedByDetector (detect owning side)                    │
+└─────────────────────────────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────────────────────────────┐
+│ PHASE 5: Plugin Execution                                    │
+│   PluginExecutor → Generated Code                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Classification Algorithm Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -184,28 +231,43 @@ if (facts.isDrivenPortCandidateWithoutAnnotationCheck()) {
 }
 ```
 
+### PortKind Determination
+
+After classifying the port **direction** (DRIVING vs DRIVEN), `PortKindClassifier` determines the specific **port kind**:
+
+| PortKind | Direction | Detection |
+|----------|-----------|-----------|
+| `USE_CASE` | DRIVING | General use case interface |
+| `COMMAND` | DRIVING | Command-style methods (create*, update*, delete*) |
+| `QUERY` | DRIVING | Query-style methods (get*, find*, list*) |
+| `REPOSITORY` | DRIVEN | CRUD methods (save, find, delete) on aggregate types |
+| `GATEWAY` | DRIVEN | External integration interface |
+| `EVENT_PUBLISHER` | DRIVEN | Event publication interface |
+
 ### Criteria-Based Fallback
 
 If semantic classification doesn't apply, use `PortClassifier` with criteria:
 
 **Port criteria by priority**:
 
-| Priority | Criteria | Target | Direction |
-|----------|----------|--------|-----------|
+| Priority | Criteria | PortKind | Direction |
+|----------|----------|----------|-----------|
 | 100 | `ExplicitRepositoryCriteria` | REPOSITORY | DRIVEN |
 | 100 | `ExplicitPrimaryPortCriteria` | USE_CASE | DRIVING |
-| 100 | `ExplicitSecondaryPortCriteria` | GENERIC | DRIVEN |
+| 100 | `ExplicitSecondaryPortCriteria` | GATEWAY | DRIVEN |
 | 85 | `SemanticDrivingPortCriteria` | USE_CASE | DRIVING |
-| 85 | `SemanticDrivenPortCriteria` | (varies) | DRIVEN |
+| 85 | `SemanticDrivenPortCriteria` | (via PortKindClassifier) | DRIVEN |
 | 75 | `CommandPatternCriteria` | COMMAND | DRIVING |
 | 75 | `QueryPatternCriteria` | QUERY | DRIVING |
-| 75 | `InjectedAsDependencyCriteria` | GENERIC | DRIVEN |
+| 75 | `InjectedAsDependencyCriteria` | (via PortKindClassifier) | DRIVEN |
 | 70 | `SignatureBasedDrivenPortCriteria` | REPOSITORY | DRIVEN |
-| 60 | `PackageInCriteria` | GENERIC | DRIVING |
-| 60 | `PackageOutCriteria` | GENERIC | DRIVEN |
+| 60 | `PackageInCriteria` | USE_CASE | DRIVING |
+| 60 | `PackageOutCriteria` | (via PortKindClassifier) | DRIVEN |
 | 50 | `NamingRepositoryCriteria` | REPOSITORY | DRIVEN |
 | 50 | `NamingUseCaseCriteria` | USE_CASE | DRIVING |
 | 50 | `NamingGatewayCriteria` | GATEWAY | DRIVEN |
+
+> **Note**: Criteria marked "(via PortKindClassifier)" determine direction only; the specific PortKind is resolved by analyzing method signatures.
 
 ---
 

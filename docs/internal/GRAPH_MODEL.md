@@ -314,6 +314,8 @@ Stream<Edge> incoming = query.edgesTo(nodeId);
 Stream<Edge> derived = query.derivedEdges();
 ```
 
+> **Performance note**: `ApplicationGraph.edgesFrom()` and `edgesTo()` use indexed lookups via `GraphIndexes` for O(1) complexity. Combined with node indexes, this ensures efficient queries even for large graphs (>10,000 types).
+
 ---
 
 ## Files Reference

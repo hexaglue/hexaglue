@@ -237,6 +237,24 @@ Example:
 
 ## Port Criteria
 
+Port classification determines two things:
+
+1. **Direction**: DRIVING (primary/inbound) vs DRIVEN (secondary/outbound)
+2. **PortKind**: The specific type of port
+
+### Available PortKind Values
+
+| PortKind | Direction | Description |
+|----------|-----------|-------------|
+| `USE_CASE` | DRIVING | General use case interface |
+| `COMMAND` | DRIVING | Command-style interface (mutations) |
+| `QUERY` | DRIVING | Query-style interface (reads) |
+| `REPOSITORY` | DRIVEN | Aggregate persistence interface |
+| `GATEWAY` | DRIVEN | External system integration |
+| `EVENT_PUBLISHER` | DRIVEN | Event publication interface |
+
+> **Note**: For DRIVEN ports, when a criteria doesn't specify PortKind directly, `PortKindClassifier` analyzes method signatures to determine the specific kind.
+
 ### Explicit Annotations (Priority 100)
 
 | Criteria | name() | Target Kind | Direction | Condition |
