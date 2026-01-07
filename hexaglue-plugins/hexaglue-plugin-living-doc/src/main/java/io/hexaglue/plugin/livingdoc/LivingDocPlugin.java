@@ -13,6 +13,10 @@
 
 package io.hexaglue.plugin.livingdoc;
 
+import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
+import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
+import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
+import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;

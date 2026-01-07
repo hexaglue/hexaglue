@@ -1,0 +1,220 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
+package io.hexaglue.plugin.livingdoc.markdown;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.junit.jupiter.api.Test;
+
+class MarkdownBuilderTest {
+
+    @Test
+    void shouldGenerateH1Header() {
+        String result = new MarkdownBuilder().h1("Title").build();
+
+        assertThat(result).isEqualTo("# Title\n\n");
+    }
+
+    @Test
+    void shouldGenerateH2Header() {
+        String result = new MarkdownBuilder().h2("Subtitle").build();
+
+        assertThat(result).isEqualTo("## Subtitle\n\n");
+    }
+
+    @Test
+    void shouldGenerateH3Header() {
+        String result = new MarkdownBuilder().h3("Section").build();
+
+        assertThat(result).isEqualTo("### Section\n\n");
+    }
+
+    @Test
+    void shouldGenerateH4Header() {
+        String result = new MarkdownBuilder().h4("Subsection").build();
+
+        assertThat(result).isEqualTo("#### Subsection\n\n");
+    }
+
+    @Test
+    void shouldGenerateParagraph() {
+        String result = new MarkdownBuilder().paragraph("This is a paragraph.").build();
+
+        assertThat(result).isEqualTo("This is a paragraph.\n\n");
+    }
+
+    @Test
+    void shouldGenerateText() {
+        String result = new MarkdownBuilder().text("Some text").build();
+
+        assertThat(result).isEqualTo("Some text");
+    }
+
+    @Test
+    void shouldGenerateNewline() {
+        String result =
+                new MarkdownBuilder().text("Line 1").newline().text("Line 2").build();
+
+        assertThat(result).isEqualTo("Line 1\nLine 2");
+    }
+
+    @Test
+    void shouldGenerateBoldText() {
+        String result = new MarkdownBuilder().bold("Important").build();
+
+        assertThat(result).isEqualTo("**Important**");
+    }
+
+    @Test
+    void shouldGenerateItalicText() {
+        String result = new MarkdownBuilder().italic("Emphasis").build();
+
+        assertThat(result).isEqualTo("*Emphasis*");
+    }
+
+    @Test
+    void shouldGenerateInlineCode() {
+        String result = new MarkdownBuilder().code("variable").build();
+
+        assertThat(result).isEqualTo("`variable`");
+    }
+
+    @Test
+    void shouldGenerateLink() {
+        String result =
+                new MarkdownBuilder().link("Click here", "https://example.com").build();
+
+        assertThat(result).isEqualTo("[Click here](https://example.com)");
+    }
+
+    @Test
+    void shouldGenerateBulletList() {
+        String result = new MarkdownBuilder()
+                .bulletItem("First item")
+                .bulletItem("Second item")
+                .bulletItem("Third item")
+                .build();
+
+        assertThat(result).isEqualTo("- First item\n" + "- Second item\n" + "- Third item\n");
+    }
+
+    @Test
+    void shouldGenerateNumberedList() {
+        String result = new MarkdownBuilder()
+                .numberedItem(1, "First")
+                .numberedItem(2, "Second")
+                .numberedItem(3, "Third")
+                .build();
+
+        assertThat(result).isEqualTo("1. First\n" + "2. Second\n" + "3. Third\n");
+    }
+
+    @Test
+    void shouldGenerateHorizontalRule() {
+        String result = new MarkdownBuilder().horizontalRule().build();
+
+        assertThat(result).isEqualTo("---\n\n");
+    }
+
+    @Test
+    void shouldGenerateBlockquote() {
+        String result = new MarkdownBuilder().blockquote("This is a quote.").build();
+
+        assertThat(result).isEqualTo("> This is a quote.\n\n");
+    }
+
+    @Test
+    void shouldGenerateTable() {
+        String result = new MarkdownBuilder()
+                .table("Name", "Age", "City")
+                .row("Alice", "30", "Paris")
+                .row("Bob", "25", "London")
+                .end()
+                .build();
+
+        assertThat(result)
+                .isEqualTo("| Name | Age | City |\n"
+                        + "|--------|--------|--------|\n"
+                        + "| Alice | 30 | Paris |\n"
+                        + "| Bob | 25 | London |\n\n");
+    }
+
+    @Test
+    void shouldGenerateCollapsibleSection() {
+        String result = new MarkdownBuilder()
+                .collapsible("Details")
+                .content(builder -> builder.paragraph("Hidden content"))
+                .end()
+                .build();
+
+        assertThat(result)
+                .isEqualTo(
+                        "<details>\n" + "<summary>Details</summary>\n\n" + "Hidden content\n\n" + "\n</details>\n\n");
+    }
+
+    @Test
+    void shouldGenerateComplexDocument() {
+        String result = new MarkdownBuilder()
+                .h1("Architecture Overview")
+                .paragraph("*Generated by HexaGlue*")
+                .horizontalRule()
+                .h2("Summary")
+                .table("Metric", "Count")
+                .row("Aggregates", "3")
+                .row("Entities", "5")
+                .end()
+                .h2("Links")
+                .bulletItem(new MarkdownBuilder()
+                        .link("Domain Model", "domain.md")
+                        .text(" - Details")
+                        .build())
+                .bulletItem(new MarkdownBuilder()
+                        .link("Ports", "ports.md")
+                        .text(" - Interfaces")
+                        .build())
+                .build();
+
+        assertThat(result)
+                .contains("# Architecture Overview\n\n")
+                .contains("*Generated by HexaGlue*\n\n")
+                .contains("---\n\n")
+                .contains("## Summary\n\n")
+                .contains("| Metric | Count |\n")
+                .contains("| Aggregates | 3 |\n")
+                .contains("## Links\n\n")
+                .contains("- [Domain Model](domain.md) - Details\n");
+    }
+
+    @Test
+    void shouldAllowRawContent() {
+        String result = new MarkdownBuilder()
+                .h1("Title")
+                .raw("Custom raw content\n")
+                .paragraph("Normal content")
+                .build();
+
+        assertThat(result).isEqualTo("# Title\n\n" + "Custom raw content\n" + "Normal content\n\n");
+    }
+
+    @Test
+    void shouldChainMethodCalls() {
+        String result = new MarkdownBuilder()
+                .h1("Title")
+                .paragraph("First paragraph")
+                .paragraph("Second paragraph")
+                .build();
+
+        assertThat(result).isEqualTo("# Title\n\n" + "First paragraph\n\n" + "Second paragraph\n\n");
+    }
+}
