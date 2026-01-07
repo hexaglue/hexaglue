@@ -46,6 +46,8 @@ public record DomainType(
 
     /**
      * Backward-compatible constructor without relations.
+     *
+     * @since 2.0.0
      */
     public DomainType(
             String qualifiedName,
@@ -109,6 +111,8 @@ public record DomainType(
 
     /**
      * Returns true if this type has any relationships.
+     *
+     * @since 2.0.0
      */
     public boolean hasRelations() {
         return !relations.isEmpty();
@@ -116,6 +120,10 @@ public record DomainType(
 
     /**
      * Returns relations of a specific kind.
+     *
+     * @param kind the relation kind to filter by
+     * @return list of relations matching the specified kind
+     * @since 2.0.0
      */
     public List<DomainRelation> relationsOfKind(RelationKind kind) {
         return relations.stream().filter(r -> r.kind() == kind).toList();
@@ -123,6 +131,9 @@ public record DomainType(
 
     /**
      * Returns the embedded relations (value objects).
+     *
+     * @return list of embedded and element collection relations
+     * @since 2.0.0
      */
     public List<DomainRelation> embeddedRelations() {
         return relations.stream()
@@ -132,6 +143,9 @@ public record DomainType(
 
     /**
      * Returns the entity relations (one-to-many, many-to-one, etc.).
+     *
+     * @return list of relations targeting entities
+     * @since 2.0.0
      */
     public List<DomainRelation> entityRelations() {
         return relations.stream().filter(DomainRelation::targetsEntity).toList();
