@@ -37,6 +37,8 @@ public record DomainProperty(
 
     /**
      * Backward-compatible constructor without isEmbedded and relationInfo.
+     *
+     * @since 2.0.0
      */
     public DomainProperty(
             String name, TypeRef type, Cardinality cardinality, Nullability nullability, boolean isIdentity) {
@@ -59,7 +61,14 @@ public record DomainProperty(
     }
 
     /**
-     * Returns the relation info as an Optional.
+     * Returns the relation info wrapped in an Optional.
+     *
+     * <p>Note: The 'Opt' suffix is used because Java records auto-generate an accessor
+     * method {@code relationInfo()} returning the raw {@link RelationInfo} (nullable).
+     * This method provides a null-safe alternative.
+     *
+     * @return the relation info wrapped in Optional, or empty if no relation
+     * @since 2.0.0
      */
     public Optional<RelationInfo> relationInfoOpt() {
         return Optional.ofNullable(relationInfo);

@@ -18,8 +18,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -44,6 +44,9 @@ import java.util.stream.Collectors;
  * String result = engine.render("Hello ${helper:upper:name}!", Map.of("name", "world"));
  * // Result: "Hello WORLD!"
  * }</pre>
+ *
+ * <p><strong>Thread Safety:</strong> This class is thread-safe. Helper registration
+ * and template rendering can be performed concurrently from multiple threads.
  */
 public final class SimpleTemplateEngine implements TemplateEngine {
 
@@ -51,7 +54,7 @@ public final class SimpleTemplateEngine implements TemplateEngine {
     private static final Pattern HELPER_PATTERN = Pattern.compile("helper:([^:]+):(.+)");
     private static final Pattern DEFAULT_PATTERN = Pattern.compile("(.+):-(.*)");
 
-    private final Map<String, Function<String, String>> helpers = new HashMap<>();
+    private final Map<String, Function<String, String>> helpers = new ConcurrentHashMap<>();
 
     public SimpleTemplateEngine() {
         // Register built-in helpers

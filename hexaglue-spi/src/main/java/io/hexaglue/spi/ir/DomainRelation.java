@@ -85,7 +85,14 @@ public record DomainRelation(
     }
 
     /**
-     * Returns the mappedBy field name as an Optional.
+     * Returns the mappedBy field name wrapped in an Optional.
+     *
+     * <p>Note: The 'Opt' suffix is used because Java records auto-generate an accessor
+     * method {@code mappedBy()} returning the raw {@link String} (nullable).
+     * This method provides a null-safe alternative.
+     *
+     * @return the mappedBy field wrapped in Optional, or empty if owning side
+     * @since 2.0.0
      */
     public Optional<String> mappedByOpt() {
         return Optional.ofNullable(mappedBy);
