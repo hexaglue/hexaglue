@@ -51,8 +51,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should parse valid YAML with priorities")
         void shouldParseValidYaml() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       explicit-entity: 100
                       repository-dominant: 85
@@ -69,8 +68,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should return empty for non-configured criteria")
         void shouldReturnEmptyForNonConfigured() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       explicit-entity: 100
                     """;
@@ -101,8 +99,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should handle YAML without priorities key")
         void shouldHandleYamlWithoutPrioritiesKey() {
-            String yaml =
-                    """
+            String yaml = """
                     other-key:
                       some-value: 100
                     """;
@@ -115,8 +112,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should support negative priorities")
         void shouldSupportNegativePriorities() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       disabled-criteria: -1
                     """;
@@ -129,8 +125,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should support zero priority")
         void shouldSupportZeroPriority() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       zero-priority: 0
                     """;
@@ -143,8 +138,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should convert floating point numbers to integers")
         void shouldConvertFloatToInt() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       float-priority: 75.9
                     """;
@@ -157,8 +151,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should throw on invalid priority value")
         void shouldThrowOnInvalidValue() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       invalid: "not a number"
                     """;
@@ -172,8 +165,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should throw on invalid priorities structure")
         void shouldThrowOnInvalidStructure() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities: "not a map"
                     """;
 
@@ -198,7 +190,8 @@ class YamlCriteriaProfileTest {
 
             // Verify some default priorities using stable IDs
             assertThat(profile.priorityFor("domain.explicit.aggregateRoot")).hasValue(100);
-            assertThat(profile.priorityFor("domain.structural.repositoryDominant")).hasValue(80);
+            assertThat(profile.priorityFor("domain.structural.repositoryDominant"))
+                    .hasValue(80);
             assertThat(profile.source()).isEqualTo("resource:profiles/default.yaml");
         }
 
@@ -209,7 +202,8 @@ class YamlCriteriaProfileTest {
 
             // Verify strict priorities - heuristics are lowered (using stable IDs)
             assertThat(profile.priorityFor("domain.explicit.aggregateRoot")).hasValue(100);
-            assertThat(profile.priorityFor("domain.structural.repositoryDominant")).hasValue(60);
+            assertThat(profile.priorityFor("domain.structural.repositoryDominant"))
+                    .hasValue(60);
             assertThat(profile.priorityFor("domain.naming.domainEvent")).hasValue(40);
         }
 
@@ -220,7 +214,8 @@ class YamlCriteriaProfileTest {
 
             // Verify annotation-only priorities - heuristics are disabled (using stable IDs)
             assertThat(profile.priorityFor("domain.explicit.aggregateRoot")).hasValue(100);
-            assertThat(profile.priorityFor("domain.structural.repositoryDominant")).hasValue(-1);
+            assertThat(profile.priorityFor("domain.structural.repositoryDominant"))
+                    .hasValue(-1);
             assertThat(profile.priorityFor("domain.naming.domainEvent")).hasValue(-1);
         }
 
@@ -247,8 +242,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should load profile from file path")
         void shouldLoadFromPath() throws IOException {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       custom-criteria: 150
                     """;
@@ -283,8 +277,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should load from InputStream")
         void shouldLoadFromInputStream() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       stream-criteria: 88
                     """;
@@ -299,8 +292,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should load from Reader")
         void shouldLoadFromReader() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       reader-criteria: 77
                     """;
@@ -324,8 +316,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should work with resolvePriority()")
         void shouldWorkWithResolvePriority() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       test-criteria: 120
                     """;
@@ -339,8 +330,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should fallback to criteria default when not overridden")
         void shouldFallbackToDefault() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       other-criteria: 120
                     """;
@@ -363,8 +353,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("priorities() should return unmodifiable map")
         void prioritiesShouldReturnUnmodifiableMap() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       a: 100
                       b: 90
@@ -381,8 +370,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("toString() should include source and override count")
         void toStringShouldIncludeInfo() {
-            String yaml =
-                    """
+            String yaml = """
                     priorities:
                       a: 100
                       b: 90
@@ -404,8 +392,7 @@ class YamlCriteriaProfileTest {
         @Test
         @DisplayName("should ignore comments in YAML")
         void shouldIgnoreComments() {
-            String yaml =
-                    """
+            String yaml = """
                     # This is a comment
                     priorities:
                       # Another comment

@@ -34,8 +34,8 @@ import org.junit.jupiter.api.Test;
 class CriteriaKeyTest {
 
     // ID convention: {target}.{category}.{name}
-    private static final Pattern STABLE_ID_PATTERN =
-            Pattern.compile("^(domain|port)\\.(explicit|semantic|structural|naming|pattern|relationship|package|signature)\\.[a-zA-Z]+$");
+    private static final Pattern STABLE_ID_PATTERN = Pattern.compile(
+            "^(domain|port)\\.(explicit|semantic|structural|naming|pattern|relationship|package|signature)\\.[a-zA-Z]+$");
 
     @Nested
     @DisplayName("of()")
@@ -169,9 +169,7 @@ class CriteriaKeyTest {
             for (var c : criteria) {
                 if (c instanceof ClassificationCriteria<?> cc) {
                     String id = CriteriaKey.of(cc);
-                    assertThat(ids.add(id))
-                            .as("Duplicate ID found: %s", id)
-                            .isTrue();
+                    assertThat(ids.add(id)).as("Duplicate ID found: %s", id).isTrue();
                 }
             }
         }
@@ -184,9 +182,7 @@ class CriteriaKeyTest {
             for (var c : criteria) {
                 if (c instanceof ClassificationCriteria<?> cc) {
                     String id = CriteriaKey.of(cc);
-                    assertThat(id)
-                            .as("ID '%s' should start with 'port.'", id)
-                            .startsWith("port.");
+                    assertThat(id).as("ID '%s' should start with 'port.'", id).startsWith("port.");
                     assertThat(STABLE_ID_PATTERN.matcher(id).matches())
                             .as("ID '%s' should match pattern {target}.{category}.{name}", id)
                             .isTrue();

@@ -396,12 +396,12 @@ class ClassificationFrameworkTest {
 
         @Test
         void shouldRejectNullFields() {
-            assertThatThrownBy(
-                            () -> new Conflict(null, "test", ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
+            assertThatThrownBy(() ->
+                            new Conflict(null, "test", ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
                     .isInstanceOf(NullPointerException.class);
 
-            assertThatThrownBy(
-                            () -> new Conflict("kind", null, ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
+            assertThatThrownBy(() ->
+                            new Conflict("kind", null, ConfidenceLevel.HIGH, 80, "reason", ConflictSeverity.ERROR))
                     .isInstanceOf(NullPointerException.class);
 
             assertThatThrownBy(() -> new Conflict("kind", "test", null, 80, "reason", ConflictSeverity.ERROR))

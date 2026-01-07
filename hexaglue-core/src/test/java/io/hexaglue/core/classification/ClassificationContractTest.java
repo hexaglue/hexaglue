@@ -307,13 +307,9 @@ class ClassificationContractTest {
         /**
          * Contract: With equal priorities, results should be deterministic.
          *
-         * <p>NOTE: Current implementation has a known issue where confidence
-         * ordering uses enum ordinals instead of weights. This test captures
-         * the ACTUAL behavior for regression detection. The documented
-         * "higher confidence wins" rule is not currently enforced.
-         *
-         * <p>TODO: Fix DomainClassifier.matchComparator() to use confidence.weight()
-         * instead of relying on enum natural ordering.
+         * <p>The tie-breaking algorithm uses confidence.weight() (not enum ordinals)
+         * to ensure higher confidence wins. This was fixed in the CriteriaEngine
+         * refactoring where DefaultDecisionPolicy now properly uses confidence weights.
          */
         @Test
         @DisplayName("samePriorityDeterministic: Equal priority -> deterministic result (same both runs)")

@@ -161,8 +161,7 @@ public final class YamlCriteriaProfile implements CriteriaProfile {
         }
 
         if (!(prioritiesObj instanceof Map)) {
-            throw new IllegalArgumentException(
-                    "Invalid YAML format in " + source + ": 'priorities' must be a map");
+            throw new IllegalArgumentException("Invalid YAML format in " + source + ": 'priorities' must be a map");
         }
 
         @SuppressWarnings("unchecked")

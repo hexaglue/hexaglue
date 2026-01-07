@@ -475,8 +475,8 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("Decision.conflict() should create correct decision")
         void conflictShouldCreateCorrectDecision() {
-            DecisionPolicy.Decision<DomainKind> decision = DecisionPolicy.Decision.conflict(
-                    List.of(io.hexaglue.core.classification.Conflict.error(
+            DecisionPolicy.Decision<DomainKind> decision =
+                    DecisionPolicy.Decision.conflict(List.of(io.hexaglue.core.classification.Conflict.error(
                             "VALUE_OBJECT", "test", ConfidenceLevel.HIGH, 80, "Conflict")));
 
             assertThat(decision.hasWinner()).isFalse();

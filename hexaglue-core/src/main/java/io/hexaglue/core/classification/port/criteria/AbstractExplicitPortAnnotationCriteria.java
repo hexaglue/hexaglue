@@ -28,8 +28,7 @@ import io.hexaglue.core.graph.query.GraphQuery;
  * <p>All explicit annotation criteria have priority 100 (highest)
  * and confidence EXPLICIT.
  */
-public abstract class AbstractExplicitPortAnnotationCriteria
-        implements PortClassificationCriteria, IdentifiedCriteria {
+public abstract class AbstractExplicitPortAnnotationCriteria implements PortClassificationCriteria, IdentifiedCriteria {
 
     private final String annotationSimpleName;
     private final String annotationQualifiedName;

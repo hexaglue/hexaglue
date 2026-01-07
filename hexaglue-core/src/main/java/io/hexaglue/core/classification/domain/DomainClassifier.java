@@ -163,7 +163,7 @@ public final class DomainClassifier {
         }
 
         if (decision.hasIncompatibleConflict()) {
-            return ClassificationResult.conflict(nodeId, decision.conflicts());
+            return ClassificationResult.conflictDomain(nodeId, decision.conflicts());
         }
 
         Contribution<DomainKind> winner = decision.winner().orElseThrow();

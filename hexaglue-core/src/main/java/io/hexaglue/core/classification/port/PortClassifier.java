@@ -162,7 +162,7 @@ public final class PortClassifier {
         }
 
         if (decision.hasIncompatibleConflict()) {
-            return ClassificationResult.conflict(nodeId, decision.conflicts());
+            return ClassificationResult.conflictPort(nodeId, decision.conflicts());
         }
 
         Contribution<PortKind> winner = decision.winner().orElseThrow();
