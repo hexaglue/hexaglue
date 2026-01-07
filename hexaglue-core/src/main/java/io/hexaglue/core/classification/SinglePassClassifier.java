@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.domain.criteria.FlexibleInboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleOutboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleSagaCriteria;
+import io.hexaglue.core.classification.engine.CriteriaProfile;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.classification.port.PortDirection;
@@ -84,13 +85,26 @@ public final class SinglePassClassifier {
 
     private DomainClassifier domainClassifier;
     private PortClassifier portClassifier;
+    private CriteriaProfile portProfile;
 
     /**
-     * Creates a classifier with default domain and port classifiers.
+     * Creates a classifier with default domain and port classifiers (legacy behavior).
      */
     public SinglePassClassifier() {
         this.domainClassifier = null;
         this.portClassifier = null;
+        this.portProfile = CriteriaProfile.legacy();
+    }
+
+    /**
+     * Creates a classifier with a specific criteria profile for port classification.
+     *
+     * @param portProfile the profile to use for port classification priorities
+     */
+    public SinglePassClassifier(CriteriaProfile portProfile) {
+        this.domainClassifier = null;
+        this.portClassifier = null;
+        this.portProfile = portProfile != null ? portProfile : CriteriaProfile.legacy();
     }
 
     /**
@@ -99,6 +113,7 @@ public final class SinglePassClassifier {
     public SinglePassClassifier(DomainClassifier domainClassifier, PortClassifier portClassifier) {
         this.domainClassifier = domainClassifier;
         this.portClassifier = portClassifier;
+        this.portProfile = CriteriaProfile.legacy();
     }
 
     /**
@@ -180,7 +195,7 @@ public final class SinglePassClassifier {
     }
 
     /**
-     * Creates a PortClassifier with semantic criteria added.
+     * Creates a PortClassifier with semantic criteria added and the configured profile.
      */
     private PortClassifier createPortClassifierWithSemanticCriteria(SemanticIndexes indexes) {
         List<PortClassificationCriteria> criteria = new ArrayList<>(PortClassifier.defaultCriteria());
@@ -189,7 +204,7 @@ public final class SinglePassClassifier {
         criteria.add(new SemanticDrivingPortCriteria(indexes.interfaceFactsIndex()));
         criteria.add(new SemanticDrivenPortCriteria(indexes.interfaceFactsIndex()));
 
-        return new PortClassifier(criteria);
+        return new PortClassifier(criteria, portProfile);
     }
 
     /**

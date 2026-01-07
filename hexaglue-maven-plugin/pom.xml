@@ -34,6 +34,12 @@
             <artifactId>hexaglue-spi</artifactId>
         </dependency>
 
+        <!-- YAML support for classification profiles (optional in core, required here) -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
+
         <!-- Maven Plugin API -->
         <dependency>
             <groupId>org.apache.maven</groupId>

@@ -1,0 +1,49 @@
+# HexaGlue Classification Profile - Repository-Aware
+#
+# Ce profil corrige la classification des ports de type repository qui ont
+# des noms "pluriel" (Orders, Customers, Products) au lieu du suffixe Repository.
+#
+# Problème résolu:
+#   - Les ports comme "Orders" avec des méthodes CRUD (save, findById, delete)
+#     étaient classifiés DRIVING/COMMAND à cause des patterns de commande
+#   - Ces ports devraient être classifiés DRIVEN/REPOSITORY
+#
+# Solution:
+#   - Augmenter la priorité des critères qui détectent les repositories
+#   - Baisser légèrement la priorité des patterns CQRS
+#
+# Usage:
+#   CriteriaProfile profile = YamlCriteriaProfile.fromResource("profiles/repository-aware.yaml");
+
+priorities:
+  # =====================================================================
+  # PORT CLASSIFICATION CRITERIA - OVERRIDES
+  # =====================================================================
+
+  # Critères sémantiques (inchangés, priorité maximale après annotations)
+  port.semantic.driving: 85
+  port.semantic.driven: 85
+
+  # Critères de nommage (inchangés)
+  port.naming.repository: 80
+  port.naming.useCase: 80
+  port.naming.gateway: 80
+
+  # CORRECTION: Augmenter signature-based pour détecter les repositories
+  # par leurs signatures (méthodes save/find avec des types ayant une identité)
+  # Priorité augmentée de 70 → 78 pour gagner sur les patterns CQRS
+  port.signature.drivenPort: 78
+
+  # CORRECTION: Baisser les patterns CQRS pour qu'ils ne dominent pas
+  # les critères de détection des driven ports
+  # Priorité baissée de 75 → 72
+  port.pattern.command: 72
+  port.pattern.query: 72
+
+  # Relation d'injection (inchangé)
+  port.relationship.injectedAsDependency: 75
+
+  # CORRECTION: Augmenter package-based pour les ports dans .out
+  # Priorité augmentée de 60 → 74 pour gagner sur les patterns CQRS
+  port.package.out: 74
+  port.package.in: 60

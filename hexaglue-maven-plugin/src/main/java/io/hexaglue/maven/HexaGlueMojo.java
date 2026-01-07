@@ -82,6 +82,27 @@ public class HexaGlueMojo extends AbstractMojo {
             defaultValue = "${project.build.directory}/generated-sources/hexaglue")
     private File outputDirectory;
 
+    /**
+     * Classification profile to use.
+     *
+     * <p>Available profiles:
+     * <ul>
+     *   <li>{@code default} - Standard priorities for all criteria</li>
+     *   <li>{@code strict} - Favors explicit annotations over heuristics</li>
+     *   <li>{@code annotation-only} - Only trusts explicit annotations</li>
+     *   <li>{@code repository-aware} - Better detection of repository ports with plural names</li>
+     * </ul>
+     *
+     * <p>Example:
+     * <pre>{@code
+     * <configuration>
+     *     <classificationProfile>repository-aware</classificationProfile>
+     * </configuration>
+     * }</pre>
+     */
+    @Parameter(property = "hexaglue.classificationProfile")
+    private String classificationProfile;
+
     @Override
     public void execute() throws MojoExecutionException {
         if (skip) {
@@ -152,8 +173,8 @@ public class HexaGlueMojo extends AbstractMojo {
                 basePackage,
                 outputDirectory.toPath(),
                 Map.of(), // pluginConfigs - TODO: load from hexaglue.yaml
-                Map.of() // options
-                );
+                Map.of(), // options
+                classificationProfile);
     }
 
     private String formatDiagnostic(Diagnostic diag) {

@@ -29,6 +29,8 @@ import java.util.Objects;
  * @param outputDirectory directory for generated sources (null to skip plugin execution)
  * @param pluginConfigs plugin configurations keyed by plugin ID
  * @param options additional options (key-value pairs)
+ * @param classificationProfile the classification profile name (e.g., "default", "strict",
+ *     "repository-aware") or null for legacy behavior
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -37,7 +39,8 @@ public record EngineConfig(
         String basePackage,
         Path outputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
-        Map<String, Object> options) {
+        Map<String, Object> options,
+        String classificationProfile) {
 
     /**
      * Compact constructor with validation.
@@ -83,7 +86,7 @@ public record EngineConfig(
      * Creates a minimal configuration for testing (no plugin execution).
      */
     public static EngineConfig minimal(Path sourceRoot, String basePackage) {
-        return new EngineConfig(List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of());
+        return new EngineConfig(List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), null);
     }
 
     /**
@@ -92,7 +95,20 @@ public record EngineConfig(
     public static EngineConfig withPlugins(
             Path sourceRoot, String basePackage, Path outputDirectory, Map<String, Map<String, Object>> pluginConfigs) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, outputDirectory, pluginConfigs, Map.of());
+                List.of(sourceRoot), List.of(), 21, basePackage, outputDirectory, pluginConfigs, Map.of(), null);
+    }
+
+    /**
+     * Creates a configuration with a specific classification profile.
+     *
+     * @param sourceRoot the source root directory
+     * @param basePackage the base package to analyze
+     * @param classificationProfile the profile name (e.g., "repository-aware", "strict")
+     * @return the configuration
+     */
+    public static EngineConfig withProfile(Path sourceRoot, String basePackage, String classificationProfile) {
+        return new EngineConfig(
+                List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), classificationProfile);
     }
 
     /**

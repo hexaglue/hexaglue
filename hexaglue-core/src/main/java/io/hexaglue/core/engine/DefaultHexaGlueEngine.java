@@ -18,6 +18,8 @@ import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.SinglePassClassifier;
+import io.hexaglue.core.classification.engine.CriteriaProfile;
+import io.hexaglue.core.classification.engine.YamlCriteriaProfile;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -67,14 +69,14 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      *
      * @param frontend the Java frontend implementation
      * @param graphBuilder the graph builder
-     * @param classifier the type classifier
+     * @param classifier the type classifier (can be null to use config-based profile)
      * @param irExporter the IR exporter
      */
     public DefaultHexaGlueEngine(
             JavaFrontend frontend, GraphBuilder graphBuilder, SinglePassClassifier classifier, IrExporter irExporter) {
         this.frontend = Objects.requireNonNull(frontend, "frontend cannot be null");
         this.graphBuilder = Objects.requireNonNull(graphBuilder, "graphBuilder cannot be null");
-        this.classifier = Objects.requireNonNull(classifier, "classifier cannot be null");
+        this.classifier = classifier; // Can be null - will be created in analyze() with config profile
         this.irExporter = Objects.requireNonNull(irExporter, "irExporter cannot be null");
     }
 
@@ -82,6 +84,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      * Creates an engine with default components.
      *
      * <p>This is the standard configuration for production use.
+     * The classifier will be created dynamically based on the config's classification profile.
      *
      * @return a new engine with default settings
      */
@@ -89,8 +92,31 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         return new DefaultHexaGlueEngine(
                 new SpoonFrontend(),
                 new GraphBuilder(true), // compute derived edges
-                new SinglePassClassifier(),
+                null, // classifier created dynamically based on config profile
                 new IrExporter());
+    }
+
+    /**
+     * Loads a CriteriaProfile from the given profile name.
+     *
+     * @param profileName the profile name (e.g., "default", "strict", "repository-aware")
+     * @return the loaded profile, or legacy profile if name is null
+     */
+    private static CriteriaProfile loadProfile(String profileName) {
+        if (profileName == null || profileName.isBlank()) {
+            log.debug("No classification profile specified, using legacy behavior");
+            return CriteriaProfile.legacy();
+        }
+
+        String resourcePath = "profiles/" + profileName + ".yaml";
+        try {
+            CriteriaProfile profile = YamlCriteriaProfile.fromResource(resourcePath);
+            log.info("Loaded classification profile: {}", profileName);
+            return profile;
+        } catch (IllegalArgumentException e) {
+            log.warn("Classification profile '{}' not found, falling back to legacy behavior", profileName);
+            return CriteriaProfile.legacy();
+        }
     }
 
     @Override
@@ -121,7 +147,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 3: Classify all types
             log.info("Classifying types");
-            List<ClassificationResult> classifications = classifyAll(graph);
+            List<ClassificationResult> classifications = classifyAll(graph, config.classificationProfile());
 
             int classifiedDomain = (int) classifications.stream()
                     .filter(c -> c.target() == ClassificationTarget.DOMAIN)
@@ -189,10 +215,21 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         }
     }
 
-    private List<ClassificationResult> classifyAll(ApplicationGraph graph) {
+    private List<ClassificationResult> classifyAll(ApplicationGraph graph, String profileName) {
+        // Determine which classifier to use
+        SinglePassClassifier effectiveClassifier;
+        if (classifier != null) {
+            // Use the injected classifier (for testing)
+            effectiveClassifier = classifier;
+        } else {
+            // Create classifier with the specified profile
+            CriteriaProfile profile = loadProfile(profileName);
+            effectiveClassifier = new SinglePassClassifier(profile);
+        }
+
         // Use SinglePassClassifier for unified classification
         // This ensures ports are classified FIRST, then domain types with port context
-        ClassificationResults results = classifier.classify(graph);
+        ClassificationResults results = effectiveClassifier.classify(graph);
 
         // Filter to only return classified or conflicting types
         return results.stream()

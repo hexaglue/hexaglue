@@ -21,7 +21,8 @@ This guide explains the core concepts and how HexaGlue makes its classification 
 5. [Package Organization Styles](#package-organization-styles)
 6. [Confidence Levels](#confidence-levels)
 7. [jMolecules Integration](#jmolecules-integration)
-8. [Troubleshooting Classification](#troubleshooting-classification)
+8. [Classification Profiles](#classification-profiles)
+9. [Troubleshooting Classification](#troubleshooting-classification)
 
 ---
 
@@ -349,6 +350,92 @@ public class Order {
 
 ---
 
+## Classification Profiles
+
+Classification profiles allow you to adjust how HexaGlue prioritizes different detection criteria. This is useful when your codebase follows conventions that differ from HexaGlue's defaults.
+
+### Available Profiles
+
+| Profile | Description |
+|---------|-------------|
+| *(default)* | Legacy behavior with standard priorities |
+| `default` | Documented reference configuration |
+| `strict` | Explicit annotations win over heuristics |
+| `annotation-only` | Only explicit annotations are trusted |
+| `repository-aware` | Better detection for plural-named repositories |
+
+### When to Use Profiles
+
+**`repository-aware`** - Use when your driven ports use plural names:
+
+```java
+// This interface might be misclassified as DRIVING/COMMAND
+// because save() and delete() match command patterns
+public interface Orders {
+    Order save(Order order);      // Looks like command
+    Optional<Order> findById(OrderId id);
+    void delete(Order order);     // Looks like command
+}
+```
+
+With `repository-aware`, signature-based detection (types with identity) and package-based detection (`ports.out`) take precedence over command pattern detection.
+
+**`strict`** - Use when you have consistent jMolecules annotations:
+
+```java
+@SecondaryPort
+@Repository
+public interface OrderRepository {
+    // Annotations are trusted over naming patterns
+}
+```
+
+**`annotation-only`** - Use for maximum control:
+
+```java
+// Only types with explicit annotations will be classified
+@AggregateRoot
+public class Order { ... }
+
+// This will NOT be classified (no annotation)
+public class Product { ... }
+```
+
+### Configuring a Profile
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <configuration>
+        <basePackage>com.example</basePackage>
+        <classificationProfile>repository-aware</classificationProfile>
+    </configuration>
+</plugin>
+```
+
+Or via command line:
+
+```bash
+mvn compile -Dhexaglue.classificationProfile=strict
+```
+
+### How Profiles Work
+
+Profiles adjust the **priority** of classification criteria. Higher priority criteria win when multiple criteria match.
+
+**Example: Default vs Repository-Aware**
+
+| Criteria | Default Priority | Repository-Aware |
+|----------|-----------------|------------------|
+| `port.pattern.command` | 75 | **72** |
+| `port.signature.drivenPort` | 70 | **78** |
+| `port.package.out` | 60 | **74** |
+
+In `repository-aware`, signature-based detection (78) beats command pattern (72), so `Orders` with CRUD methods in `ports.out` is correctly classified as DRIVEN/REPOSITORY.
+
+---
+
 ## Troubleshooting Classification
 
 ### Type Not Detected as Expected
@@ -380,12 +467,19 @@ public class Order {
 
 **Solutions**:
 
-1. **Use standard package**:
+1. **Use a classification profile** (recommended for plural-named ports):
+   ```xml
+   <configuration>
+       <classificationProfile>repository-aware</classificationProfile>
+   </configuration>
+   ```
+
+2. **Use standard package**:
    ```
    ports.out.OrderRepository  // Clear DRIVEN signal
    ```
 
-2. **Add annotation**:
+3. **Add annotation**:
    ```java
    @SecondaryPort
    public interface OrderRepository { ... }

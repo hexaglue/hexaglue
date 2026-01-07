@@ -82,6 +82,49 @@ mvn compile -Dhexaglue.skip=true
 
 **Default**: `false`
 
+### `classificationProfile`
+
+The classification profile controls how HexaGlue classifies ports and domain types. Profiles adjust the priority of different classification criteria.
+
+```xml
+<configuration>
+    <classificationProfile>repository-aware</classificationProfile>
+</configuration>
+```
+
+Or via command line:
+```bash
+mvn compile -Dhexaglue.classificationProfile=repository-aware
+```
+
+**Available Profiles**:
+
+| Profile | Description | Use Case |
+|---------|-------------|----------|
+| *(none)* | Legacy behavior, default priorities | Standard projects |
+| `default` | Documented default priorities | Reference configuration |
+| `strict` | Favors explicit annotations over heuristics | Projects with consistent DDD annotations |
+| `annotation-only` | Only trusts explicit annotations | Gradual migration, maximum control |
+| `repository-aware` | Better detection of repository ports with plural names | Projects using `Orders`, `Customers` instead of `OrderRepository` |
+
+**Default**: *(none)* - uses legacy behavior
+
+**Example - Repository-Aware Profile**:
+
+If your driven ports use plural naming (e.g., `Orders`, `Products`) instead of the `Repository` suffix, the default classification may incorrectly identify them as driving/command ports. Use the `repository-aware` profile:
+
+```xml
+<configuration>
+    <basePackage>com.example</basePackage>
+    <classificationProfile>repository-aware</classificationProfile>
+</configuration>
+```
+
+This profile:
+- Increases priority of signature-based driven port detection (70 → 78)
+- Increases priority of `ports.out` package detection (60 → 74)
+- Decreases priority of command/query pattern detection (75 → 72)
+
 ---
 
 ## Java Version
@@ -175,6 +218,8 @@ File locations (when implemented):
                 </executions>
                 <configuration>
                     <basePackage>com.example.myapp</basePackage>
+                    <!-- Optional: use a classification profile -->
+                    <classificationProfile>repository-aware</classificationProfile>
                 </configuration>
                 <dependencies>
                     <dependency>
