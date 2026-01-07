@@ -15,6 +15,10 @@ package io.hexaglue.plugin.livingdoc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
+import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
+import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
+import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.spi.ir.ConfidenceLevel;
 import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainModel;
