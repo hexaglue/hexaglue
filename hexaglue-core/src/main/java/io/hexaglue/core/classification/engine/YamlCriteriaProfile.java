@@ -52,8 +52,23 @@ import org.yaml.snakeyaml.Yaml;
  * // Use with classifier
  * DomainClassifier classifier = new DomainClassifier(DomainClassifier.defaultCriteria(), profile);
  * }</pre>
+ *
+ * <p><b>Note:</b> This class requires the optional {@code snakeyaml} dependency.
+ * If SnakeYAML is not on the classpath, using this class will throw an
+ * {@link IllegalStateException}.
  */
 public final class YamlCriteriaProfile implements CriteriaProfile {
+
+    static {
+        // Verify SnakeYAML is available at class load time
+        try {
+            Class.forName("org.yaml.snakeyaml.Yaml");
+        } catch (ClassNotFoundException e) {
+            throw new IllegalStateException("YAML support requires the snakeyaml dependency. "
+                    + "Add to your pom.xml: <dependency><groupId>org.yaml</groupId>"
+                    + "<artifactId>snakeyaml</artifactId></dependency>");
+        }
+    }
 
     private static final String PRIORITIES_KEY = "priorities";
 

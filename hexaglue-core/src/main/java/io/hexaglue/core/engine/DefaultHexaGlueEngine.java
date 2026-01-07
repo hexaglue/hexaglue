@@ -18,6 +18,7 @@ import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.SinglePassClassifier;
+import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -33,6 +34,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,20 +51,46 @@ import org.slf4j.LoggerFactory;
  *   <li>Export to IR (IrExporter)</li>
  * </ol>
  */
-final class DefaultHexaGlueEngine implements HexaGlueEngine {
+public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
     private static final Logger log = LoggerFactory.getLogger(DefaultHexaGlueEngine.class);
 
-    private final SpoonFrontend frontend;
+    private final JavaFrontend frontend;
     private final GraphBuilder graphBuilder;
     private final SinglePassClassifier classifier;
     private final IrExporter irExporter;
 
-    DefaultHexaGlueEngine() {
-        this.frontend = new SpoonFrontend();
-        this.graphBuilder = new GraphBuilder(true); // compute derived edges
-        this.classifier = new SinglePassClassifier();
-        this.irExporter = new IrExporter();
+    /**
+     * Creates an engine with custom components (for testing or customization).
+     *
+     * <p>Use {@link #withDefaults()} for standard production configuration.
+     *
+     * @param frontend the Java frontend implementation
+     * @param graphBuilder the graph builder
+     * @param classifier the type classifier
+     * @param irExporter the IR exporter
+     */
+    public DefaultHexaGlueEngine(
+            JavaFrontend frontend, GraphBuilder graphBuilder, SinglePassClassifier classifier, IrExporter irExporter) {
+        this.frontend = Objects.requireNonNull(frontend, "frontend cannot be null");
+        this.graphBuilder = Objects.requireNonNull(graphBuilder, "graphBuilder cannot be null");
+        this.classifier = Objects.requireNonNull(classifier, "classifier cannot be null");
+        this.irExporter = Objects.requireNonNull(irExporter, "irExporter cannot be null");
+    }
+
+    /**
+     * Creates an engine with default components.
+     *
+     * <p>This is the standard configuration for production use.
+     *
+     * @return a new engine with default settings
+     */
+    public static DefaultHexaGlueEngine withDefaults() {
+        return new DefaultHexaGlueEngine(
+                new SpoonFrontend(),
+                new GraphBuilder(true), // compute derived edges
+                new SinglePassClassifier(),
+                new IrExporter());
     }
 
     @Override
@@ -77,7 +105,7 @@ final class DefaultHexaGlueEngine implements HexaGlueEngine {
                     config.sourceRoots(), config.classpathEntries(), config.javaVersion(), config.basePackage());
 
             JavaSemanticModel model = frontend.build(input);
-            int typeCount = (int) model.types().count();
+            int typeCount = model.types().size();
             log.info("Semantic model built: {} types", typeCount);
 
             if (typeCount == 0) {
@@ -87,10 +115,7 @@ final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 2: Build application graph (including derived edges)
             log.info("Building application graph");
-            model = frontend.build(input); // re-build as types() consumes the stream
-            GraphMetadata metadata = GraphMetadata.of(config.basePackage(), config.javaVersion(), (int)
-                    model.types().count());
-            model = frontend.build(input); // re-build again
+            GraphMetadata metadata = GraphMetadata.of(config.basePackage(), config.javaVersion(), typeCount);
             ApplicationGraph graph = graphBuilder.build(model, metadata);
             log.info("Application graph built: {} nodes, {} edges", graph.nodeCount(), graph.edgeCount());
 

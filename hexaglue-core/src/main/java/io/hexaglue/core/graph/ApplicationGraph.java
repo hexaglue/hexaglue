@@ -176,16 +176,20 @@ public final class ApplicationGraph {
 
     /**
      * Returns all edges from the given node.
+     *
+     * <p>This method uses pre-built indexes for O(1) complexity.
      */
     public List<Edge> edgesFrom(NodeId nodeId) {
-        return edges.stream().filter(e -> e.from().equals(nodeId)).toList();
+        return indexes.edgesFrom(nodeId);
     }
 
     /**
      * Returns all edges to the given node.
+     *
+     * <p>This method uses pre-built indexes for O(1) complexity.
      */
     public List<Edge> edgesTo(NodeId nodeId) {
-        return edges.stream().filter(e -> e.to().equals(nodeId)).toList();
+        return indexes.edgesTo(nodeId);
     }
 
     /**

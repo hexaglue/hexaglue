@@ -222,79 +222,20 @@ public final class SinglePassClassifier {
             if (facts.isPresent()) {
                 InterfaceFacts f = facts.get();
 
-                // Use semantic facts for classification with ReasonTrace
+                // Use semantic facts for classification
                 if (f.isDrivingPortCandidate()) {
-                    ReasonTrace trace = ReasonTrace.builder()
-                            .coreAppClassRole("implementedByCore")
-                            .build();
-
-                    results.put(
-                            type.id(),
-                            ClassificationResult.classifiedPort(
-                                    type.id(),
-                                    "DRIVING_PORT",
-                                    ConfidenceLevel.HIGH,
-                                    "SemanticDrivingPortCriteria",
-                                    85,
-                                    "Interface is implemented by a CoreAppClass",
-                                    List.of(Evidence.fromRelationship("implementedByCore=true", List.of())),
-                                    List.of(),
-                                    PortDirection.DRIVING,
-                                    trace));
+                    results.put(type.id(), classifyDrivingPort(type));
                     continue;
                 }
 
                 if (f.isDrivenPortCandidate()) {
-                    // Use PortKindClassifier to determine specific kind (REPOSITORY, GATEWAY, EVENT_PUBLISHER)
-                    PortKind portKind = PortKindClassifier.classify(type, query);
-                    ReasonTrace trace =
-                            ReasonTrace.builder().coreAppClassRole("usedByCore").build();
-
-                    results.put(
-                            type.id(),
-                            ClassificationResult.classifiedPort(
-                                    type.id(),
-                                    portKind.name(),
-                                    ConfidenceLevel.HIGH,
-                                    "SemanticDrivenPortCriteria",
-                                    85,
-                                    "Interface is used by CoreAppClass with missing/internal implementation (kind="
-                                            + portKind + ")",
-                                    List.of(Evidence.fromRelationship(
-                                            "usedByCore=true, missingImpl=" + f.missingImpl() + ", portKind="
-                                                    + portKind,
-                                            List.of())),
-                                    List.of(),
-                                    PortDirection.DRIVEN,
-                                    trace));
+                    results.put(type.id(), classifyDrivenPort(type, query, f, true));
                     continue;
                 }
 
                 // Fallback: Use without annotation check for broader detection
                 if (f.isDrivenPortCandidateWithoutAnnotationCheck()) {
-                    // Use PortKindClassifier to determine specific kind
-                    PortKind portKind = PortKindClassifier.classify(type, query);
-                    ReasonTrace trace = ReasonTrace.builder()
-                            .coreAppClassRole("usedByCore (relaxed)")
-                            .build();
-
-                    results.put(
-                            type.id(),
-                            ClassificationResult.classifiedPort(
-                                    type.id(),
-                                    portKind.name(),
-                                    ConfidenceLevel.MEDIUM,
-                                    "SemanticDrivenPortCriteria (relaxed)",
-                                    80,
-                                    "Interface is used by CoreAppClass with missing/internal implementation (no annotation, kind="
-                                            + portKind + ")",
-                                    List.of(Evidence.fromRelationship(
-                                            "usedByCore=true, missingImpl=" + f.missingImpl()
-                                                    + ", hasPortAnnotation=false, portKind=" + portKind,
-                                            List.of())),
-                                    List.of(),
-                                    PortDirection.DRIVEN,
-                                    trace));
+                    results.put(type.id(), classifyDrivenPort(type, query, f, false));
                     continue;
                 }
             }
@@ -305,6 +246,72 @@ public final class SinglePassClassifier {
         }
 
         return results;
+    }
+
+    /**
+     * Creates a classification result for a driving port.
+     *
+     * @param type the interface type node
+     * @return the classification result
+     */
+    private ClassificationResult classifyDrivingPort(TypeNode type) {
+        ReasonTrace trace =
+                ReasonTrace.builder().coreAppClassRole("implementedByCore").build();
+
+        return ClassificationResult.classifiedPort(
+                type.id(),
+                "DRIVING_PORT",
+                ConfidenceLevel.HIGH,
+                "SemanticDrivingPortCriteria",
+                85,
+                "Interface is implemented by a CoreAppClass",
+                List.of(Evidence.fromRelationship("implementedByCore=true", List.of())),
+                List.of(),
+                PortDirection.DRIVING,
+                trace);
+    }
+
+    /**
+     * Creates a classification result for a driven port.
+     *
+     * @param type the interface type node
+     * @param query the graph query
+     * @param facts the interface facts
+     * @param hasAnnotation whether port annotation was detected
+     * @return the classification result
+     */
+    private ClassificationResult classifyDrivenPort(
+            TypeNode type, GraphQuery query, InterfaceFacts facts, boolean hasAnnotation) {
+        PortKind portKind = PortKindClassifier.classify(type, query);
+
+        String role = hasAnnotation ? "usedByCore" : "usedByCore (relaxed)";
+        ReasonTrace trace = ReasonTrace.builder().coreAppClassRole(role).build();
+
+        ConfidenceLevel confidence = hasAnnotation ? ConfidenceLevel.HIGH : ConfidenceLevel.MEDIUM;
+        String criteriaName = hasAnnotation ? "SemanticDrivenPortCriteria" : "SemanticDrivenPortCriteria (relaxed)";
+        int priority = hasAnnotation ? 85 : 80;
+
+        String justification = hasAnnotation
+                ? "Interface is used by CoreAppClass with missing/internal implementation (kind=" + portKind + ")"
+                : "Interface is used by CoreAppClass with missing/internal implementation (no annotation, kind="
+                        + portKind + ")";
+
+        String evidenceDetail = hasAnnotation
+                ? "usedByCore=true, missingImpl=" + facts.missingImpl() + ", portKind=" + portKind
+                : "usedByCore=true, missingImpl=" + facts.missingImpl() + ", hasPortAnnotation=false, portKind="
+                        + portKind;
+
+        return ClassificationResult.classifiedPort(
+                type.id(),
+                portKind.name(),
+                confidence,
+                criteriaName,
+                priority,
+                justification,
+                List.of(Evidence.fromRelationship(evidenceDetail, List.of())),
+                List.of(),
+                PortDirection.DRIVEN,
+                trace);
     }
 
     /**

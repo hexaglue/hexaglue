@@ -263,7 +263,7 @@ class ApplicationGraphTest {
 
         var query = graph.query();
 
-        assertThat(query.types().toList()).containsExactlyInAnyOrder(order, repo);
+        assertThat(query.types()).containsExactlyInAnyOrder(order, repo);
         assertThat(query.interfaces().toList()).containsExactly(repo);
         assertThat(query.classes().toList()).containsExactly(order);
         assertThat(query.type("com.example.domain.Order")).contains(order);

@@ -66,10 +66,8 @@ public final class GraphBuilder {
     public ApplicationGraph build(JavaSemanticModel model, GraphMetadata metadata) {
         ApplicationGraph graph = new ApplicationGraph(metadata);
 
-        // Collect types sorted for deterministic order
-        List<JavaType> types = model.types()
-                .sorted(Comparator.comparing(JavaType::qualifiedName))
-                .toList();
+        // Get types (already sorted by JavaSemanticModel implementation)
+        List<JavaType> types = model.types();
 
         log.info("Building graph from {} types", types.size());
 
@@ -209,10 +207,7 @@ public final class GraphBuilder {
                 .sourceRef(field.sourceRef().orElse(null))
                 .build();
 
-        graph.addNode(fieldNode);
-
-        // DECLARES edge
-        graph.addEdge(Edge.declares(typeId, fieldNode.id()));
+        addMemberNode(graph, fieldNode, typeId, knownTypes);
 
         // FIELD_TYPE edge
         String fieldTypeName = field.type().rawQualifiedName();
@@ -222,9 +217,6 @@ public final class GraphBuilder {
 
         // TYPE_ARGUMENT edges for generic types
         addTypeArgumentEdges(graph, fieldNode.id(), field.type(), knownTypes);
-
-        // Annotation edges on field
-        addAnnotationEdges(graph, fieldNode, fieldNode.id(), knownTypes);
     }
 
     private void addMethod(ApplicationGraph graph, JavaMethod method, NodeId typeId, Set<String> knownTypes) {
@@ -238,10 +230,7 @@ public final class GraphBuilder {
                 .sourceRef(method.sourceRef().orElse(null))
                 .build();
 
-        graph.addNode(methodNode);
-
-        // DECLARES edge
-        graph.addEdge(Edge.declares(typeId, methodNode.id()));
+        addMemberNode(graph, methodNode, typeId, knownTypes);
 
         // RETURN_TYPE edge
         String returnTypeName = method.returnType().rawQualifiedName();
@@ -253,17 +242,7 @@ public final class GraphBuilder {
         addTypeArgumentEdges(graph, methodNode.id(), method.returnType(), knownTypes);
 
         // PARAMETER_TYPE edges
-        for (JavaParameter param : method.parameters()) {
-            String paramTypeName = param.type().rawQualifiedName();
-            if (knownTypes.contains(paramTypeName)) {
-                graph.addEdge(Edge.parameterType(methodNode.id(), NodeId.type(paramTypeName)));
-            }
-            // TYPE_ARGUMENT edges for parameter types
-            addTypeArgumentEdges(graph, methodNode.id(), param.type(), knownTypes);
-        }
-
-        // Annotation edges on method
-        addAnnotationEdges(graph, methodNode, methodNode.id(), knownTypes);
+        addParameterTypeEdges(graph, methodNode.id(), method.parameters(), knownTypes);
     }
 
     private void addConstructor(ApplicationGraph graph, JavaConstructor ctor, NodeId typeId, Set<String> knownTypes) {
@@ -275,25 +254,70 @@ public final class GraphBuilder {
                 .sourceRef(ctor.sourceRef().orElse(null))
                 .build();
 
-        graph.addNode(ctorNode);
-
-        // DECLARES edge
-        graph.addEdge(Edge.declares(typeId, ctorNode.id()));
+        addMemberNode(graph, ctorNode, typeId, knownTypes);
 
         // PARAMETER_TYPE edges
-        for (JavaParameter param : ctor.parameters()) {
-            String paramTypeName = param.type().rawQualifiedName();
-            if (knownTypes.contains(paramTypeName)) {
-                graph.addEdge(Edge.parameterType(ctorNode.id(), NodeId.type(paramTypeName)));
-            }
-            // TYPE_ARGUMENT edges for parameter types
-            addTypeArgumentEdges(graph, ctorNode.id(), param.type(), knownTypes);
-        }
-
-        // Annotation edges on constructor
-        addAnnotationEdges(graph, ctorNode, ctorNode.id(), knownTypes);
+        addParameterTypeEdges(graph, ctorNode.id(), ctor.parameters(), knownTypes);
     }
 
+    /**
+     * Adds a member node to the graph with common setup.
+     *
+     * <p>This method handles the common pattern for all member types:
+     * <ol>
+     *   <li>Add the node to the graph</li>
+     *   <li>Add DECLARES edge from declaring type to member</li>
+     *   <li>Add ANNOTATED_BY edges for annotations</li>
+     * </ol>
+     *
+     * @param graph the application graph
+     * @param memberNode the member node to add
+     * @param typeId the declaring type's node id
+     * @param knownTypes set of known type names for edge creation
+     */
+    private void addMemberNode(ApplicationGraph graph, MemberNode memberNode, NodeId typeId, Set<String> knownTypes) {
+        graph.addNode(memberNode);
+        graph.addEdge(Edge.declares(typeId, memberNode.id()));
+        addAnnotationEdges(graph, memberNode, memberNode.id(), knownTypes);
+    }
+
+    /**
+     * Adds PARAMETER_TYPE and TYPE_ARGUMENT edges for method/constructor parameters.
+     *
+     * @param graph the application graph
+     * @param memberId the member node id (method or constructor)
+     * @param parameters the list of parameters
+     * @param knownTypes set of known type names for edge creation
+     */
+    private void addParameterTypeEdges(
+            ApplicationGraph graph, NodeId memberId, List<? extends JavaParameter> parameters, Set<String> knownTypes) {
+        for (JavaParameter param : parameters) {
+            String paramTypeName = param.type().rawQualifiedName();
+            if (knownTypes.contains(paramTypeName)) {
+                graph.addEdge(Edge.parameterType(memberId, NodeId.type(paramTypeName)));
+            }
+            addTypeArgumentEdges(graph, memberId, param.type(), knownTypes);
+        }
+    }
+
+    /**
+     * Recursively adds TYPE_ARGUMENT edges for generic type parameters.
+     *
+     * <p>This method handles nested generic types like {@code Map<String, List<Order>>}
+     * by recursively traversing the type argument tree.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>{@code List<Order>} → creates edge to Order</li>
+     *   <li>{@code Map<String, Order>} → creates edge to Order (String is not in knownTypes)</li>
+     *   <li>{@code Optional<List<Order>>} → creates edge to Order (nested)</li>
+     * </ul>
+     *
+     * @param graph the application graph
+     * @param sourceId the source node id (field, method, or constructor)
+     * @param typeRef the type reference to process
+     * @param knownTypes set of known type names for edge creation
+     */
     private void addTypeArgumentEdges(
             ApplicationGraph graph, NodeId sourceId, TypeRef typeRef, Set<String> knownTypes) {
         for (TypeRef arg : typeRef.arguments()) {

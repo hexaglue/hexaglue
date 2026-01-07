@@ -13,9 +13,11 @@
 
 package io.hexaglue.core.engine;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Configuration for the HexaGlue engine.
@@ -36,6 +38,46 @@ public record EngineConfig(
         Path outputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options) {
+
+    /**
+     * Compact constructor with validation.
+     *
+     * <p>Validates all required fields and makes defensive copies of mutable collections.
+     */
+    public EngineConfig {
+        // Null checks
+        Objects.requireNonNull(sourceRoots, "sourceRoots cannot be null");
+        Objects.requireNonNull(classpathEntries, "classpathEntries cannot be null");
+        Objects.requireNonNull(basePackage, "basePackage cannot be null");
+        Objects.requireNonNull(pluginConfigs, "pluginConfigs cannot be null");
+        Objects.requireNonNull(options, "options cannot be null");
+
+        // Validate basePackage
+        if (basePackage.isBlank()) {
+            throw new IllegalArgumentException("basePackage cannot be blank");
+        }
+
+        // Validate javaVersion
+        if (javaVersion < 8 || javaVersion > 24) {
+            throw new IllegalArgumentException("javaVersion must be between 8 and 24, got: " + javaVersion);
+        }
+
+        // Validate sourceRoots exist and are directories
+        for (Path root : sourceRoots) {
+            if (!Files.exists(root)) {
+                throw new IllegalArgumentException("Source root does not exist: " + root);
+            }
+            if (!Files.isDirectory(root)) {
+                throw new IllegalArgumentException("Source root is not a directory: " + root);
+            }
+        }
+
+        // Defensive copies
+        sourceRoots = List.copyOf(sourceRoots);
+        classpathEntries = List.copyOf(classpathEntries);
+        pluginConfigs = Map.copyOf(pluginConfigs);
+        options = Map.copyOf(options);
+    }
 
     /**
      * Creates a minimal configuration for testing (no plugin execution).

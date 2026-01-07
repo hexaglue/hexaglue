@@ -48,6 +48,6 @@ public interface HexaGlueEngine {
      * @return a new engine instance
      */
     static HexaGlueEngine create() {
-        return new DefaultHexaGlueEngine();
+        return DefaultHexaGlueEngine.withDefaults();
     }
 }

@@ -400,7 +400,7 @@ class GraphBuilderTest {
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =
-                GraphMetadata.of("com.example", 17, (int) model.types().count());
+                GraphMetadata.of("com.example", 17, (int) model.types().size());
 
         // Rebuild model since stream was consumed
         model = frontend.build(input);

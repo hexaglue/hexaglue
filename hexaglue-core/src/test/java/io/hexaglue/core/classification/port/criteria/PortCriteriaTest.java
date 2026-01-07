@@ -583,7 +583,7 @@ class PortCriteriaTest {
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =
-                GraphMetadata.of(basePackage, 17, (int) model.types().count());
+                GraphMetadata.of(basePackage, 17, (int) model.types().size());
 
         model = frontend.build(input);
         return builder.build(model, metadata);

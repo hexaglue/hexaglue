@@ -305,12 +305,14 @@ class ClassificationFrameworkTest {
         @Test
         void shouldCreateConflictResult() {
             NodeId nodeId = NodeId.type("com.example.Ambiguous");
-            Conflict conflict = Conflict.between("ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "VALUE_OBJECT");
+            Conflict conflict = Conflict.error(
+                    "ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "Matched as ENTITY but winner is VALUE_OBJECT");
 
-            ClassificationResult result = ClassificationResult.conflict(nodeId, List.of(conflict));
+            ClassificationResult result = ClassificationResult.conflictDomain(nodeId, List.of(conflict));
 
             assertThat(result.isClassified()).isFalse();
             assertThat(result.status()).isEqualTo(ClassificationStatus.CONFLICT);
+            assertThat(result.target()).isEqualTo(ClassificationTarget.DOMAIN);
             assertThat(result.hasConflicts()).isTrue();
             assertThat(result.conflicts()).hasSize(1);
         }
@@ -365,15 +367,15 @@ class ClassificationFrameworkTest {
         }
 
         @Test
-        @SuppressWarnings("deprecation")
-        void shouldCreateConflictBetween() {
-            Conflict conflict = Conflict.between("ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "VALUE_OBJECT");
+        void shouldCreateConflictWithErrorFactory() {
+            Conflict conflict = Conflict.error(
+                    "ENTITY", "has-identity", ConfidenceLevel.HIGH, 70, "Matched as ENTITY but winner is VALUE_OBJECT");
 
             assertThat(conflict.competingKind()).isEqualTo("ENTITY");
             assertThat(conflict.competingPriority()).isEqualTo(70);
             assertThat(conflict.rationale()).contains("ENTITY");
             assertThat(conflict.rationale()).contains("VALUE_OBJECT");
-            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.ERROR); // Default for deprecated method
+            assertThat(conflict.severity()).isEqualTo(ConflictSeverity.ERROR);
         }
 
         @Test

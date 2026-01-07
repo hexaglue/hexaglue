@@ -33,10 +33,11 @@
             <artifactId>spoon-core</artifactId>
         </dependency>
 
-        <!-- YAML configuration -->
+        <!-- YAML configuration (optional - only needed for YamlCriteriaProfile) -->
         <dependency>
             <groupId>org.yaml</groupId>
             <artifactId>snakeyaml</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <!-- Logging -->

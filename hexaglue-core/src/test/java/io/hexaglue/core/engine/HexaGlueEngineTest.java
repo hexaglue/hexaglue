@@ -241,16 +241,14 @@ class HexaGlueEngineTest {
     class ErrorHandlingTest {
 
         @Test
-        @DisplayName("should handle non-existent source root gracefully")
+        @DisplayName("should reject non-existent source root at config creation")
         void handleNonExistentSourceRoot() {
             Path nonExistent = tempDir.resolve("non-existent");
-            EngineConfig config = EngineConfig.minimal(nonExistent, "com.example");
 
-            EngineResult result = engine.analyze(config);
-
-            // Should not throw, but may have warnings
-            assertThat(result).isNotNull();
-            assertThat(result.ir()).isNotNull();
+            // Validation happens at EngineConfig construction time
+            assertThatThrownBy(() -> EngineConfig.minimal(nonExistent, "com.example"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("Source root does not exist");
         }
     }
 
