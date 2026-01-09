@@ -13,6 +13,9 @@
 
 package io.hexaglue.core.plugin;
 
+import io.hexaglue.core.audit.DefaultArchitectureQuery;
+import io.hexaglue.core.graph.ApplicationGraph;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginContext;
@@ -37,16 +40,20 @@ public final class PluginExecutor {
 
     private final Path outputDirectory;
     private final Map<String, Map<String, Object>> pluginConfigs;
+    private final ApplicationGraph graph;
 
     /**
      * Creates a plugin executor.
      *
      * @param outputDirectory the directory for generated sources
      * @param pluginConfigs plugin configurations keyed by plugin ID
+     * @param graph the application graph for architecture analysis (may be null)
      */
-    public PluginExecutor(Path outputDirectory, Map<String, Map<String, Object>> pluginConfigs) {
+    public PluginExecutor(
+            Path outputDirectory, Map<String, Map<String, Object>> pluginConfigs, ApplicationGraph graph) {
         this.outputDirectory = outputDirectory;
         this.pluginConfigs = pluginConfigs;
+        this.graph = graph;
     }
 
     /**
@@ -69,7 +76,7 @@ public final class PluginExecutor {
         List<PluginResult> results = new ArrayList<>();
 
         for (HexaGluePlugin plugin : plugins) {
-            PluginResult result = executePlugin(plugin, ir, outputStore);
+            PluginResult result = executePlugin(plugin, ir, outputStore, graph);
             results.add(result);
         }
 
@@ -88,7 +95,8 @@ public final class PluginExecutor {
         return plugins;
     }
 
-    private PluginResult executePlugin(HexaGluePlugin plugin, IrSnapshot ir, PluginOutputStore outputStore) {
+    private PluginResult executePlugin(
+            HexaGluePlugin plugin, IrSnapshot ir, PluginOutputStore outputStore, ApplicationGraph graph) {
         String pluginId = plugin.id();
         log.info("Executing plugin: {}", pluginId);
 
@@ -96,7 +104,11 @@ public final class PluginExecutor {
         FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDirectory);
         MapPluginConfig config = new MapPluginConfig(pluginConfigs.getOrDefault(pluginId, Map.of()));
 
-        PluginContext context = new DefaultPluginContext(pluginId, ir, config, writer, diagnostics, outputStore);
+        // Create ArchitectureQuery from graph if available
+        ArchitectureQuery architectureQuery = graph != null ? new DefaultArchitectureQuery(graph) : null;
+
+        PluginContext context =
+                new DefaultPluginContext(pluginId, ir, config, writer, diagnostics, outputStore, architectureQuery);
 
         try {
             long start = System.currentTimeMillis();

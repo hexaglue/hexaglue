@@ -35,6 +35,7 @@ priorities:
   domain.explicit.valueObject: 100
   domain.explicit.identifier: 100
   domain.explicit.domainEvent: 100
+  domain.explicit.externalizedEvent: 100
   domain.explicit.jmoleculesInterface: 100
 
   # Strong heuristics (priority 80)

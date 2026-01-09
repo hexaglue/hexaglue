@@ -1,0 +1,302 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ */
+
+package io.hexaglue.plugin.audit;
+
+import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.aggregate;
+import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.domainClass;
+import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.entity;
+import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.infraClass;
+import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.valueObject;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.spi.audit.AuditContext;
+import io.hexaglue.spi.audit.AuditSnapshot;
+import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.spi.core.Diagnostic;
+import io.hexaglue.spi.plugin.PluginConfig;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Integration test for {@link DddAuditPlugin}.
+ *
+ * <p>Validates that the plugin correctly orchestrates validators and produces audit snapshots.
+ */
+class DddAuditPluginIntegrationTest {
+
+    private DddAuditPlugin plugin;
+
+    @BeforeEach
+    void setUp() {
+        plugin = new DddAuditPlugin();
+    }
+
+    @Test
+    @DisplayName("Should execute audit successfully")
+    void shouldExecuteAuditSuccessfully() throws Exception {
+        // Given: A simple valid codebase
+        Codebase codebase = new TestCodebaseBuilder()
+                .name("test-project")
+                .basePackage("com.example.domain")
+                .addUnit(entity("Order", true))
+                .addUnit(valueObject("Money", false))
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot).isNotNull();
+        assertThat(snapshot.metadata()).isNotNull();
+        assertThat(snapshot.metadata().pluginId()).isEqualTo(DddAuditPlugin.PLUGIN_ID);
+        assertThat(snapshot.violations()).isNotNull();
+        assertThat(snapshot.metrics()).isNotNull();
+    }
+
+    @Test
+    @DisplayName("Should detect entity without identity")
+    void shouldDetectEntityWithoutIdentity() throws Exception {
+        // Given: Entity missing identity field
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(entity("Order", false)) // No ID
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.violations()).isNotEmpty();
+        assertThat(snapshot.violations())
+                .anyMatch(v -> v.ruleId().equals("ddd:entity-identity") && v.message().contains("Order"));
+    }
+
+    @Test
+    @DisplayName("Should detect aggregate cycle")
+    void shouldDetectAggregateCycle() throws Exception {
+        // Given: Circular dependency between aggregates
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(aggregate("Order"))
+                .addUnit(aggregate("Customer"))
+                .addDependency("com.example.domain.Order", "com.example.domain.Customer")
+                .addDependency("com.example.domain.Customer", "com.example.domain.Order")
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.violations()).isNotEmpty();
+        assertThat(snapshot.violations())
+                .anyMatch(v -> v.ruleId().equals("ddd:aggregate-cycle") && v.message().contains("Circular"));
+    }
+
+    @Test
+    @DisplayName("Should detect value object mutability violation")
+    void shouldDetectValueObjectMutability() throws Exception {
+        // Given: Value object with setter
+        Codebase codebase = new TestCodebaseBuilder().addUnit(valueObject("Money", true)) // Has setter
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.violations()).isNotEmpty();
+        assertThat(snapshot.violations())
+                .anyMatch(v -> v.ruleId().equals("ddd:value-object-immutable") && v.message().contains("Money"));
+    }
+
+    @Test
+    @DisplayName("Should detect dependency direction violation")
+    void shouldDetectDependencyDirectionViolation() throws Exception {
+        // Given: Domain depending on infrastructure
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(domainClass("Order"))
+                .addUnit(infraClass("JpaOrderRepository"))
+                .addDependency("com.example.domain.Order", "com.example.infrastructure.JpaOrderRepository")
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.violations()).isNotEmpty();
+        assertThat(snapshot.violations())
+                .anyMatch(v -> v.ruleId().equals("hexagonal:dependency-direction"));
+    }
+
+    @Test
+    @DisplayName("Should build dependency graph")
+    void shouldBuildDependencyGraph() throws Exception {
+        // Given: Codebase with dependencies
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(aggregate("Order"))
+                .addUnit(aggregate("Customer"))
+                .addDependency("com.example.domain.Order", "com.example.domain.Customer")
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot).isNotNull();
+        // The snapshot should contain the codebase with dependencies
+        assertThat(codebase.dependencies()).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("Should calculate quality metrics")
+    void shouldCalculateQualityMetrics() throws Exception {
+        // Given
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(entity("Order", true))
+                .addUnit(valueObject("Money", false))
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.metrics()).isNotNull();
+        assertThat(snapshot.metrics().totalTypes()).isGreaterThan(0);
+    }
+
+    @Test
+    @DisplayName("Should handle empty codebase")
+    void shouldHandleEmptyCodebase() throws Exception {
+        // Given: Empty codebase
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot).isNotNull();
+        assertThat(snapshot.violations()).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should detect multiple violations")
+    void shouldDetectMultipleViolations() throws Exception {
+        // Given: Codebase with multiple issues
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(entity("Order", false)) // No ID
+                .addUnit(valueObject("Money", true)) // Has setter
+                .addUnit(domainClass("DomainService"))
+                .addUnit(infraClass("InfraService"))
+                .addDependency("com.example.domain.DomainService", "com.example.infrastructure.InfraService")
+                .build();
+
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.violations()).hasSizeGreaterThanOrEqualTo(3);
+        assertThat(snapshot.violations()).extracting(v -> v.ruleId())
+                .contains("ddd:entity-identity", "ddd:value-object-immutable", "hexagonal:dependency-direction");
+    }
+
+    @Test
+    @DisplayName("Should return correct plugin ID")
+    void shouldReturnCorrectPluginId() {
+        // When/Then
+        assertThat(plugin.id()).isEqualTo(DddAuditPlugin.PLUGIN_ID);
+        assertThat(plugin.id()).isEqualTo("io.hexaglue.plugin.audit.ddd");
+    }
+
+    @Test
+    @DisplayName("Should produce valid metadata")
+    void shouldProduceValidMetadata() throws Exception {
+        // Given
+        Codebase codebase = new TestCodebaseBuilder().build();
+        AuditContext context = createAuditContext(codebase);
+
+        // When
+        AuditSnapshot snapshot = plugin.audit(context);
+
+        // Then
+        assertThat(snapshot.metadata()).isNotNull();
+        assertThat(snapshot.metadata().pluginId()).isEqualTo(DddAuditPlugin.PLUGIN_ID);
+        assertThat(snapshot.metadata().timestamp()).isNotNull();
+        assertThat(snapshot.metadata().executionTimeMs()).isGreaterThanOrEqualTo(0);
+    }
+
+    // === Helper Methods ===
+
+    /**
+     * Creates a minimal AuditContext for testing.
+     */
+    private AuditContext createAuditContext(Codebase codebase) {
+        return new AuditContext() {
+            @Override
+            public Codebase codebase() {
+                return codebase;
+            }
+
+            @Override
+            public List<Diagnostic> diagnostics() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public PluginConfig config() {
+                return new PluginConfig() {
+                    @Override
+                    public Map<String, String> properties() {
+                        return Map.of();
+                    }
+
+                    @Override
+                    public String get(String key) {
+                        return null;
+                    }
+
+                    @Override
+                    public String get(String key, String defaultValue) {
+                        return defaultValue;
+                    }
+
+                    @Override
+                    public boolean getBoolean(String key, boolean defaultValue) {
+                        return defaultValue;
+                    }
+
+                    @Override
+                    public int getInt(String key, int defaultValue) {
+                        return defaultValue;
+                    }
+                };
+            }
+        };
+    }
+}

@@ -474,6 +474,106 @@ class DomainClassifierTest {
     }
 
     // =========================================================================
+    // Inheritance Classification
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Inheritance Classification")
+    class InheritanceClassificationTest {
+
+        @Test
+        @DisplayName("Should classify subclass when parent is repository-managed")
+        void shouldClassifySubclassWhenParentIsRepositoryManaged() throws IOException {
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    public class Order {
+                        private java.util.UUID id;
+                        private String description;
+                    }
+                    """);
+            writeSource("com/example/SpecialOrder.java", """
+                    package com.example;
+                    public class SpecialOrder extends Order {
+                        private String specialField;
+                    }
+                    """);
+            writeSource("com/example/OrderRepository.java", """
+                    package com.example;
+                    public interface OrderRepository {
+                        Order findById(java.util.UUID id);
+                        void save(Order order);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            GraphQuery query = graph.query();
+
+            // First verify parent is classified as AGGREGATE_ROOT via repository
+            TypeNode order = graph.typeNode("com.example.Order").orElseThrow();
+            ClassificationResult parentResult = classifier.classify(order, query);
+
+            assertThat(parentResult.isClassified())
+                    .as("Parent should be classified as AGGREGATE_ROOT via repository")
+                    .isTrue();
+            assertThat(parentResult.kind()).isEqualTo("AGGREGATE_ROOT");
+            assertThat(parentResult.matchedCriteria()).isEqualTo("repository-dominant");
+
+            // Then verify subclass inherits the classification
+            TypeNode specialOrder = graph.typeNode("com.example.SpecialOrder").orElseThrow();
+            ClassificationResult childResult = classifier.classify(specialOrder, query);
+
+            assertThat(childResult.isClassified())
+                    .as("Subclass should inherit AGGREGATE_ROOT classification from repository-managed parent")
+                    .isTrue();
+            assertThat(childResult.kind()).isEqualTo("AGGREGATE_ROOT");
+            assertThat(childResult.matchedCriteria())
+                    .as("Should use inherited-classification criteria")
+                    .isEqualTo("inherited-classification");
+            assertThat(childResult.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+        }
+
+        @Test
+        @DisplayName("Should classify subclass when parent has @AggregateRoot annotation")
+        void shouldClassifySubclassWhenParentHasAnnotation() throws IOException {
+            writeSource("com/example/BaseOrder.java", """
+                    package com.example;
+                    import org.jmolecules.ddd.annotation.AggregateRoot;
+                    @AggregateRoot
+                    public class BaseOrder {
+                        private String id;
+                    }
+                    """);
+            writeSource("com/example/PremiumOrder.java", """
+                    package com.example;
+                    public class PremiumOrder extends BaseOrder {
+                        private double discount;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            GraphQuery query = graph.query();
+
+            // Verify parent is classified via explicit annotation
+            TypeNode baseOrder = graph.typeNode("com.example.BaseOrder").orElseThrow();
+            ClassificationResult parentResult = classifier.classify(baseOrder, query);
+
+            assertThat(parentResult.isClassified()).isTrue();
+            assertThat(parentResult.kind()).isEqualTo("AGGREGATE_ROOT");
+            assertThat(parentResult.matchedCriteria()).isEqualTo("explicit-aggregate-root");
+
+            // Verify subclass inherits the classification
+            TypeNode premiumOrder = graph.typeNode("com.example.PremiumOrder").orElseThrow();
+            ClassificationResult childResult = classifier.classify(premiumOrder, query);
+
+            assertThat(childResult.isClassified())
+                    .as("Subclass should inherit AGGREGATE_ROOT classification from annotated parent")
+                    .isTrue();
+            assertThat(childResult.kind()).isEqualTo("AGGREGATE_ROOT");
+            assertThat(childResult.matchedCriteria()).isEqualTo("inherited-classification");
+        }
+    }
+
+    // =========================================================================
     // Helper methods
     // =========================================================================
 

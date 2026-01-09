@@ -108,4 +108,16 @@ public final class SpoonMethodAdapter implements JavaMethod {
     public Optional<SourceRef> sourceRef() {
         return SpoonSourceRefAdapter.adapt(ctMethod.getPosition());
     }
+
+    /**
+     * Returns the underlying Spoon CtMethod for advanced analysis.
+     *
+     * <p>This method is intended for internal use by analysis components that need
+     * direct access to the Spoon AST for operations like method body analysis.
+     *
+     * @return the underlying CtMethod
+     */
+    public CtMethod<?> getCtMethod() {
+        return ctMethod;
+    }
 }

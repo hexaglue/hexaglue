@@ -200,7 +200,8 @@ public final class JpaPlugin implements HexaGluePlugin {
 
             for (Port port : ir.ports().ports()) {
                 if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
-                    Optional<DomainType> managedType = findManagedType(port, ir.domain().types());
+                    Optional<DomainType> managedType =
+                            findManagedType(port, ir.domain().types());
                     if (managedType.isPresent() && managedType.get().isEntity()) {
                         portsByManagedType
                                 .computeIfAbsent(managedType.get(), k -> new ArrayList<>())
@@ -256,9 +257,8 @@ public final class JpaPlugin implements HexaGluePlugin {
      * @return the complete Java source code as a string
      */
     private String toJavaSource(String packageName, TypeSpec typeSpec) {
-        JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
-                .indent(INDENT)
-                .build();
+        JavaFile javaFile =
+                JavaFile.builder(packageName, typeSpec).indent(INDENT).build();
         return javaFile.toString();
     }
 

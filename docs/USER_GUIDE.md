@@ -6,47 +6,130 @@
 
 ## Overview
 
-HexaGlue analyzes your Java source code at compile time, classifies domain types and ports according to DDD and hexagonal architecture patterns, and generates infrastructure code through plugins.
+HexaGlue is an architectural design tool that analyzes your Java source code at compile time. It provides two main capabilities:
 
-This guide explains the core concepts and how HexaGlue makes its classification decisions.
+1. **Architecture Audit** - Validates your code against clean architecture principles and reports violations
+2. **Code Generation** - Classifies domain types and ports, then generates infrastructure code through plugins
+
+This guide explains the core concepts, classification system, and how HexaGlue makes its decisions.
 
 ---
 
 ## Table of Contents
 
 1. [Architecture](#architecture)
-2. [Intermediate Representation (IR)](#intermediate-representation-ir)
-3. [Domain Classification](#domain-classification)
-4. [Port Detection](#port-detection)
-5. [Package Organization Styles](#package-organization-styles)
-6. [Confidence Levels](#confidence-levels)
-7. [jMolecules Integration](#jmolecules-integration)
-8. [Classification Profiles](#classification-profiles)
-9. [Troubleshooting Classification](#troubleshooting-classification)
+2. [Architecture Audit](#architecture-audit)
+3. [Intermediate Representation (IR)](#intermediate-representation-ir)
+4. [Domain Classification](#domain-classification)
+5. [Port Detection](#port-detection)
+6. [Package Organization Styles](#package-organization-styles)
+7. [Confidence Levels](#confidence-levels)
+8. [jMolecules Integration](#jmolecules-integration)
+9. [Classification Profiles](#classification-profiles)
+10. [Troubleshooting Classification](#troubleshooting-classification)
 
 ---
 
 ## Architecture
 
-HexaGlue follows a three-phase architecture:
+HexaGlue follows a multi-phase architecture with two output paths:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Analysis     │────▶│       IR        │────▶│   Generation    │
-│  (hexaglue-core)│     │  (hexaglue-spi) │     │    (plugins)    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
+│    Analysis     │────▶│  Classification │────▶│      Audit      │
+│  (hexaglue-core)│     │   & Validation  │     │    (rules)      │
+└─────────────────┘     └─────────────────┘     └────────┬────────┘
+                                │                        │
+                                │                        ▼
+                                │               ┌─────────────────┐
+                                │               │  Audit Reports  │
+                                │               │ (HTML/JSON/MD)  │
+                                │               └─────────────────┘
+                                ▼
+                        ┌─────────────────┐     ┌─────────────────┐
+                        │       IR        │────▶│   Generation    │
+                        │  (hexaglue-spi) │     │    (plugins)    │
+                        └─────────────────┘     └─────────────────┘
 ```
 
-1. **Analysis Phase** - Parses Java source files and classifies types
-2. **IR Phase** - Builds an immutable Intermediate Representation
-3. **Generation Phase** - Plugins receive the IR and generate code
+1. **Analysis Phase** - Parses Java source files and builds a semantic model
+2. **Classification Phase** - Classifies domain types and ports with confidence levels
+3. **Audit Phase** (optional) - Validates architecture against rules and generates reports
+4. **IR Phase** - Builds an immutable Intermediate Representation
+5. **Generation Phase** - Plugins receive the IR and generate code
+
+### Maven Goals
+
+| Goal | Phase | Description |
+|------|-------|-------------|
+| `hexaglue:audit` | `verify` | Architecture audit only |
+| `hexaglue:generate` | `generate-sources` | Code generation only |
+| `hexaglue:generate-and-audit` | `generate-sources` | Both combined |
 
 ### Key Design Principles
 
 - **Non-invasive**: HexaGlue never modifies your source code
-- **Compile-time**: All analysis happens during `mvn compile`
+- **Compile-time**: All analysis happens during Maven build
 - **Plugin-based**: Generation logic is in plugins, not the core
 - **Framework-agnostic**: Core has no framework dependencies
+
+---
+
+## Architecture Audit
+
+HexaGlue's audit capability validates your codebase against clean architecture principles. It supports multiple architectural styles: **Hexagonal**, **Clean**, **Onion**, and **Layered**.
+
+### What the Audit Validates
+
+**Layering Rules** (Dependency Inversion Principle):
+- Domain layer must not depend on infrastructure
+- Presentation must not bypass application services
+- Application must not depend on presentation
+
+**Dependency Rules**:
+- Dependencies should flow toward stable components
+- No circular dependencies between packages
+
+**Quality Rules**:
+- Naming conventions (Repository, DTO, Controller suffixes)
+- Documentation coverage for public APIs
+- Complexity limits (cyclomatic complexity, method length)
+
+### Audit Output
+
+The audit produces:
+
+| Format | File | Usage |
+|--------|------|-------|
+| Console | (logs) | Quick viewing in CI/CD |
+| HTML | `hexaglue-audit.html` | Rich interactive report |
+| JSON | `hexaglue-audit.json` | Machine-readable for tooling |
+| Markdown | `hexaglue-audit.md` | Documentation in repositories |
+
+**Output location**: `target/hexaglue-reports/`
+
+### Violation Severities
+
+| Severity | Build Impact | Description |
+|----------|--------------|-------------|
+| **ERROR** | Fails build (if `failOnError=true`) | Critical architectural violations |
+| **WARNING** | Fails build (if `failOnWarning=true`) | Potential issues to address |
+| **INFO** | Never fails build | Suggestions for improvement |
+
+### Quality Metrics
+
+The audit computes these quality metrics:
+
+| Metric | Range | Good Value |
+|--------|-------|------------|
+| Test Coverage | 0-100% | > 80% |
+| Documentation Coverage | 0-100% | > 70% |
+| Technical Debt | minutes | < 480 (8h) |
+| Maintainability Rating | 0-5 | > 4.0 |
+
+### Learn More
+
+For complete audit configuration, rules reference, and CI/CD integration, see the [Architecture Audit Guide](ARCHITECTURE_AUDIT.md).
 
 ---
 
@@ -543,7 +626,7 @@ Or use the Living Documentation plugin to generate a report of all detected type
 
 <div align="center">
 
-**HexaGlue - Focus on business code, not infrastructure glue.**
+**HexaGlue - Design, Audit, and Generate Hexagonal Architecture**
 
 Made with ❤️ by Scalastic<br>
 Copyright 2026 Scalastic - Released under MPL-2.0

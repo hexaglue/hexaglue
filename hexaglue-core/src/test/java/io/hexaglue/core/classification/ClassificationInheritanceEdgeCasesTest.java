@@ -384,9 +384,17 @@ class ClassificationInheritanceEdgeCasesTest {
         }
 
         @Test
-        @Disabled("TODO: Implement subclass detection when parent is aggregate root via repository")
+        @Disabled("TestGraphBuilder does not create USES_IN_SIGNATURE edges needed by RepositoryDominantCriteria. "
+                + "InheritedClassificationCriteria now supports this via checkParentViaRepository(). "
+                + "See DomainClassifierTest for tests using real source compilation that create proper edges.")
         @DisplayName("should classify subclass when parent is detected via repository")
         void shouldClassifySubclassWhenParentIsDetectedViaRepository() {
+            // NOTE: This test documents the desired behavior but cannot be implemented with TestGraphBuilder
+            // because TestGraphBuilder.withMethod() doesn't create USES_IN_SIGNATURE edges.
+            //
+            // The functionality IS implemented in InheritedClassificationCriteria.checkParentViaRepository()
+            // and can be tested using real source compilation (see DomainClassifierTest).
+            //
             // interface OrderRepository { Order save(Order order); }
             // class Order { UUID id; }
             // class SpecialOrder extends Order { }

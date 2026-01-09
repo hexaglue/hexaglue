@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns="http://hexaglue.io/audit/config/1.0"
+           targetNamespace="http://hexaglue.io/audit/config/1.0"
+           elementFormDefault="qualified"
+           version="1.0">
+
+    <xs:annotation>
+        <xs:documentation>
+            Schema for HexaGlue Audit Configuration.
+
+            This schema defines the structure for configuring HexaGlue audit
+            rules, thresholds, and quality metrics in Maven pom.xml files.
+        </xs:documentation>
+    </xs:annotation>
+
+    <!-- Root element -->
+    <xs:element name="auditConfig" type="AuditConfigType">
+        <xs:annotation>
+            <xs:documentation>
+                Root configuration element for HexaGlue audit.
+            </xs:documentation>
+        </xs:annotation>
+    </xs:element>
+
+    <!-- Main configuration type -->
+    <xs:complexType name="AuditConfigType">
+        <xs:sequence>
+            <xs:element name="enabledRules" type="RuleListType" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        List of audit rules to enable. If empty, all rules are enabled by default.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="disabledRules" type="RuleListType" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        List of audit rules to disable. These override enabled rules.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="thresholds" type="ThresholdsType" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Quality and complexity thresholds for audit rules.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="ruleConfigs" type="RuleConfigsType" minOccurs="0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Specific configurations for individual rules.
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Rule list type -->
+    <xs:complexType name="RuleListType">
+        <xs:sequence>
+            <xs:element name="rule" type="xs:string" maxOccurs="unbounded">
+                <xs:annotation>
+                    <xs:documentation>
+                        Rule identifier (e.g., "hexagonal.port-segregation", "complexity.cyclomatic").
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:sequence>
+    </xs:complexType>
+
+    <!-- Thresholds type -->
+    <xs:complexType name="ThresholdsType">
+        <xs:all>
+            <xs:element name="maxCyclomaticComplexity" type="xs:positiveInteger" minOccurs="0" default="10">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum cyclomatic complexity allowed per method. Default: 10
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxMethodLength" type="xs:positiveInteger" minOccurs="0" default="50">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum lines of code allowed per method. Default: 50
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxClassLength" type="xs:positiveInteger" minOccurs="0" default="500">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum lines of code allowed per class. Default: 500
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxMethodParameters" type="xs:positiveInteger" minOccurs="0" default="7">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum number of parameters allowed per method. Default: 7
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxNestingDepth" type="xs:positiveInteger" minOccurs="0" default="4">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum nesting depth allowed in methods. Default: 4
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="minTestCoverage" type="PercentageType" minOccurs="0" default="80.0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Minimum test coverage percentage required. Default: 80.0
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="minDocumentationCoverage" type="PercentageType" minOccurs="0" default="70.0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Minimum documentation coverage percentage required. Default: 70.0
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="maxTechnicalDebtMinutes" type="xs:nonNegativeInteger" minOccurs="0" default="480">
+                <xs:annotation>
+                    <xs:documentation>
+                        Maximum technical debt allowed in minutes. Default: 480 (8 hours)
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+            <xs:element name="minMaintainabilityRating" type="RatingType" minOccurs="0" default="3.0">
+                <xs:annotation>
+                    <xs:documentation>
+                        Minimum maintainability rating required (0.0-5.0). Default: 3.0
+                    </xs:documentation>
+                </xs:annotation>
+            </xs:element>
+        </xs:all>
+    </xs:complexType>
+
+    <!-- Rule-specific configurations -->
+    <xs:complexType name="RuleConfigsType">
+        <xs:sequence>
+            <xs:element name="ruleConfig" type="RuleConfigType" maxOccurs="unbounded"/>
+        </xs:sequence>
+    </xs:complexType>
+
+    <xs:complexType name="RuleConfigType">
+        <xs:sequence>
+            <xs:any processContents="skip" minOccurs="0" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="id" type="xs:string" use="required">
+            <xs:annotation>
+                <xs:documentation>
+                    The rule identifier this configuration applies to.
+                </xs:documentation>
+            </xs:annotation>
+        </xs:attribute>
+    </xs:complexType>
+
+    <!-- Percentage type (0.0 to 100.0) -->
+    <xs:simpleType name="PercentageType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.0"/>
+            <xs:maxInclusive value="100.0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+    <!-- Rating type (0.0 to 5.0) -->
+    <xs:simpleType name="RatingType">
+        <xs:restriction base="xs:decimal">
+            <xs:minInclusive value="0.0"/>
+            <xs:maxInclusive value="5.0"/>
+        </xs:restriction>
+    </xs:simpleType>
+
+</xs:schema>

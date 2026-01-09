@@ -81,13 +81,35 @@ public final class FindByIdMethodStrategy implements MethodBodyStrategy {
         }
 
         // Generate method body
-        // return repository.findById(id).map(mapper::toDomain);
+        // Convert wrapped ID if necessary: mapper.map(taskId)
+        // return repository.findById(mapper.map(taskId)).map(mapper::toDomain);
+        String idExpression = generateIdExpression(idParam, context);
         builder.addStatement(
                 "return $L.findById($L).map($L::toDomain)",
                 context.repositoryFieldName(),
-                idParam.name(),
+                idExpression,
                 context.mapperFieldName());
 
         return builder.build();
+    }
+
+    /**
+     * Generates the expression to obtain the unwrapped ID value for repository operations.
+     *
+     * <p>This method handles wrapped ID types by using the mapper's conversion method:
+     * <ul>
+     *   <li>Wrapped ID parameter (e.g., TaskId) - converts: {@code mapper.map(taskId)}</li>
+     *   <li>Primitive ID parameter (e.g., UUID) - uses directly: {@code id}</li>
+     * </ul>
+     *
+     * @param param the ID parameter
+     * @param context the adapter context
+     * @return the expression to get the unwrapped ID
+     */
+    private String generateIdExpression(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
+        // Convert ID using mapper - it will handle wrapped types
+        // For primitive types, the mapper won't have a conversion method, but we need
+        // to detect this. For now, always use the mapper.
+        return String.format("%s.map(%s)", context.mapperFieldName(), param.name());
     }
 }

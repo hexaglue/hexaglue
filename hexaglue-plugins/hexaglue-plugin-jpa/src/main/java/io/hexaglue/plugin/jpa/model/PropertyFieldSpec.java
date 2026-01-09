@@ -13,8 +13,8 @@
 
 package io.hexaglue.plugin.jpa.model;
 
-import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.plugin.jpa.util.TypeMappings;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.Nullability;
 
@@ -60,7 +60,7 @@ public record PropertyFieldSpec(
                     "Property " + property.name() + " is an identity. Use IdFieldSpec.from() instead.");
         }
 
-        TypeName javaType = ClassName.bestGuess(property.type().qualifiedName());
+        TypeName javaType = TypeMappings.toJpaType(property.type());
         String columnName = JpaModelUtils.toSnakeCase(property.name());
 
         return new PropertyFieldSpec(

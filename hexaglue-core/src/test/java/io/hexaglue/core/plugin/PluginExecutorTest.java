@@ -47,7 +47,7 @@ class PluginExecutorTest {
     @Test
     void executeWithEmptyIr_noFilesGenerated() {
         // Given: No plugins registered (JPA plugin is external)
-        PluginExecutor executor = new PluginExecutor(outputDir, Map.of());
+        PluginExecutor executor = new PluginExecutor(outputDir, Map.of(), null);
         IrSnapshot ir = IrSnapshot.empty("com.example");
 
         // When
@@ -298,7 +298,8 @@ class PluginExecutorTest {
         PluginOutputStore outputStore = new PluginOutputStore();
 
         // When
-        PluginContext context = new DefaultPluginContext("test-plugin", ir, config, writer, diagnostics, outputStore);
+        PluginContext context =
+                new DefaultPluginContext("test-plugin", ir, config, writer, diagnostics, outputStore, null);
 
         // Then
         assertThat(context.ir()).isSameAs(ir);
@@ -307,6 +308,7 @@ class PluginExecutorTest {
         assertThat(context.diagnostics()).isSameAs(diagnostics);
         assertThat(context.currentPluginId()).isEqualTo("test-plugin");
         assertThat(context.templates()).isNotNull();
+        assertThat(context.architectureQuery()).isEmpty();
     }
 
     @Test
@@ -319,9 +321,9 @@ class PluginExecutorTest {
         PluginOutputStore outputStore = new PluginOutputStore();
 
         PluginContext plugin1Context =
-                new DefaultPluginContext("plugin-1", ir, config, writer, diagnostics, outputStore);
+                new DefaultPluginContext("plugin-1", ir, config, writer, diagnostics, outputStore, null);
         PluginContext plugin2Context =
-                new DefaultPluginContext("plugin-2", ir, config, writer, diagnostics, outputStore);
+                new DefaultPluginContext("plugin-2", ir, config, writer, diagnostics, outputStore, null);
 
         // When - plugin 1 stores output
         plugin1Context.setOutput("my-data", "hello world");

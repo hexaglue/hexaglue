@@ -53,6 +53,7 @@ import java.util.List;
  * @param entityType the JavaPoet type of the JPA entity
  * @param toEntityMappings the mappings for domain → entity conversion
  * @param toDomainMappings the mappings for entity → domain conversion
+ * @param wrappedIdentity information about wrapped identity type, if present
  * @since 2.0.0
  */
 public record MapperSpec(
@@ -61,7 +62,17 @@ public record MapperSpec(
         TypeName domainType,
         TypeName entityType,
         List<MappingSpec> toEntityMappings,
-        List<MappingSpec> toDomainMappings) {
+        List<MappingSpec> toDomainMappings,
+        WrappedIdentitySpec wrappedIdentity) {
+
+    /**
+     * Specification for a wrapped identity type that needs conversion methods.
+     *
+     * @param wrapperType the fully qualified name of the wrapper type (e.g., "TaskId")
+     * @param unwrappedType the fully qualified name of the unwrapped type (e.g., "UUID")
+     * @param accessorMethod the method to access the unwrapped value (e.g., "value")
+     */
+    public record WrappedIdentitySpec(String wrapperType, String unwrappedType, String accessorMethod) {}
 
     /**
      * A single field mapping specification for MapStruct.
@@ -157,7 +168,7 @@ public record MapperSpec(
         List<MappingSpec> toDomainMappings = inferToDomainMappings(domainType);
 
         return new MapperSpec(
-                entityPackage, interfaceName, domainTypeName, entityType, toEntityMappings, toDomainMappings);
+                entityPackage, interfaceName, domainTypeName, entityType, toEntityMappings, toDomainMappings, null);
     }
 
     /**

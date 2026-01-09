@@ -1,0 +1,80 @@
+{
+  "description": "Small E-Commerce test corpus (~50 types) - DDD Hexagonal Architecture",
+  "totalTypes": 50,
+  "aggregateRoots": [
+    "com.example.ecommerce.domain.model.Order",
+    "com.example.ecommerce.domain.model.Customer"
+  ],
+  "entities": [
+    "com.example.ecommerce.domain.model.OrderLine"
+  ],
+  "valueObjects": [
+    "com.example.ecommerce.domain.model.OrderId",
+    "com.example.ecommerce.domain.model.CustomerId",
+    "com.example.ecommerce.domain.model.ProductId",
+    "com.example.ecommerce.domain.model.Money",
+    "com.example.ecommerce.domain.model.Address",
+    "com.example.ecommerce.domain.model.Email",
+    "com.example.ecommerce.domain.model.PhoneNumber",
+    "com.example.ecommerce.domain.model.OrderStatus",
+    "com.example.ecommerce.domain.model.Quantity",
+    "com.example.ecommerce.domain.model.Weight",
+    "com.example.ecommerce.domain.model.Dimensions",
+    "com.example.ecommerce.domain.model.SKU",
+    "com.example.ecommerce.domain.model.Category",
+    "com.example.ecommerce.domain.model.TrackingNumber",
+    "com.example.ecommerce.domain.model.Discount",
+    "com.example.ecommerce.domain.model.PaymentMethod",
+    "com.example.ecommerce.domain.model.Country"
+  ],
+  "drivingPorts": [
+    "com.example.ecommerce.port.driving.OrderService",
+    "com.example.ecommerce.port.driving.CustomerService"
+  ],
+  "drivenPorts": [
+    "com.example.ecommerce.port.driven.OrderRepository",
+    "com.example.ecommerce.port.driven.CustomerRepository",
+    "com.example.ecommerce.port.driven.ProductCatalog",
+    "com.example.ecommerce.port.driven.EventPublisher",
+    "com.example.ecommerce.port.driven.NotificationService"
+  ],
+  "useCases": [
+    "com.example.ecommerce.application.PlaceOrderUseCase",
+    "com.example.ecommerce.application.ManageCustomerUseCase"
+  ],
+  "domainServices": [
+    "com.example.ecommerce.domain.service.OrderPricingService",
+    "com.example.ecommerce.domain.service.CustomerLoyaltyService"
+  ],
+  "domainExceptions": [
+    "com.example.ecommerce.domain.exception.DomainException",
+    "com.example.ecommerce.domain.exception.OrderNotFoundException",
+    "com.example.ecommerce.domain.exception.CustomerNotFoundException",
+    "com.example.ecommerce.domain.exception.ProductNotFoundException",
+    "com.example.ecommerce.domain.exception.InvalidOrderStateException",
+    "com.example.ecommerce.domain.exception.ProductNotAvailableException",
+    "com.example.ecommerce.domain.exception.DuplicateCustomerException"
+  ],
+  "commands": [
+    "com.example.ecommerce.port.driving.PlaceOrderCommand",
+    "com.example.ecommerce.port.driving.RegisterCustomerCommand",
+    "com.example.ecommerce.port.driving.UpdateContactInfoCommand",
+    "com.example.ecommerce.port.driving.UpdateShippingAddressCommand"
+  ],
+  "validators": [
+    "com.example.ecommerce.domain.validation.OrderValidator",
+    "com.example.ecommerce.domain.validation.CustomerValidator",
+    "com.example.ecommerce.domain.validation.ValidationResult"
+  ],
+  "specifications": [
+    "com.example.ecommerce.domain.specification.Specification",
+    "com.example.ecommerce.domain.specification.OrderSpecifications",
+    "com.example.ecommerce.domain.specification.CustomerSpecifications"
+  ],
+  "events": [
+    "com.example.ecommerce.domain.event.DomainEventPublisher"
+  ],
+  "queries": [
+    "com.example.ecommerce.application.OrderQueryService"
+  ]
+}

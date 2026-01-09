@@ -4,6 +4,18 @@
 
 ---
 
+## Maven Plugin Goals
+
+HexaGlue provides three Maven goals:
+
+| Goal | Phase | Description |
+|------|-------|-------------|
+| `hexaglue:generate` | `generate-sources` | Code generation via plugins |
+| `hexaglue:audit` | `verify` | Architecture audit only |
+| `hexaglue:generate-and-audit` | `generate-sources` | Both combined |
+
+---
+
 ## Maven Plugin Configuration
 
 HexaGlue is primarily configured through the Maven plugin in your `pom.xml`:
@@ -16,7 +28,7 @@ HexaGlue is primarily configured through the Maven plugin in your `pom.xml`:
     <executions>
         <execution>
             <goals>
-                <goal>generate</goal>
+                <goal>generate</goal>  <!-- or audit, or generate-and-audit -->
             </goals>
         </execution>
     </executions>
@@ -24,7 +36,7 @@ HexaGlue is primarily configured through the Maven plugin in your `pom.xml`:
         ...
     </configuration>
     <dependencies>
-        <!-- Add plugins here -->
+        <!-- Add plugins here (for generate goal) -->
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
@@ -109,6 +121,115 @@ mvn compile -Dhexaglue.classificationProfile=repository-aware
 
 **Default**: *(none)* - uses legacy behavior
 
+---
+
+## Audit Configuration Parameters
+
+These parameters apply to the `audit` and `generate-and-audit` goals.
+
+### `failOnError`
+
+Fail the build if ERROR-level violations are found.
+
+```xml
+<configuration>
+    <failOnError>true</failOnError>
+</configuration>
+```
+
+**Default**: `true`
+
+### `failOnWarning`
+
+Fail the build if WARNING-level violations are found.
+
+```xml
+<configuration>
+    <failOnWarning>false</failOnWarning>
+</configuration>
+```
+
+**Default**: `false`
+
+### Report Format Parameters
+
+Enable or disable specific report formats:
+
+```xml
+<configuration>
+    <consoleReport>true</consoleReport>   <!-- Output to logs -->
+    <htmlReport>true</htmlReport>          <!-- Rich HTML report -->
+    <jsonReport>false</jsonReport>         <!-- Machine-readable -->
+    <markdownReport>false</markdownReport> <!-- Documentation -->
+</configuration>
+```
+
+### `reportDirectory`
+
+Output directory for audit reports.
+
+```xml
+<configuration>
+    <reportDirectory>${project.build.directory}/hexaglue-reports</reportDirectory>
+</configuration>
+```
+
+**Default**: `target/hexaglue-reports`
+
+### `auditConfig`
+
+Configure audit rules and quality thresholds:
+
+```xml
+<configuration>
+    <auditConfig>
+        <!-- Enable specific rules -->
+        <enabledRules>
+            <rule>hexaglue.layer.domain-purity</rule>
+            <rule>hexaglue.dependency.no-cycles</rule>
+        </enabledRules>
+
+        <!-- Disable specific rules -->
+        <disabledRules>
+            <rule>hexaglue.complexity.cyclomatic</rule>
+        </disabledRules>
+
+        <!-- Quality thresholds -->
+        <thresholds>
+            <maxCyclomaticComplexity>10</maxCyclomaticComplexity>
+            <maxMethodLength>50</maxMethodLength>
+            <maxClassLength>500</maxClassLength>
+            <maxMethodParameters>7</maxMethodParameters>
+            <maxNestingDepth>4</maxNestingDepth>
+            <minTestCoverage>80.0</minTestCoverage>
+            <minDocumentationCoverage>70.0</minDocumentationCoverage>
+            <maxTechnicalDebtMinutes>480</maxTechnicalDebtMinutes>
+            <minMaintainabilityRating>3.0</minMaintainabilityRating>
+        </thresholds>
+    </auditConfig>
+</configuration>
+```
+
+### Threshold Reference
+
+| Threshold | Default | Description |
+|-----------|---------|-------------|
+| `maxCyclomaticComplexity` | 10 | Max cyclomatic complexity per method |
+| `maxMethodLength` | 50 | Max lines per method |
+| `maxClassLength` | 500 | Max lines per class |
+| `maxMethodParameters` | 7 | Max parameters per method |
+| `maxNestingDepth` | 4 | Max nesting depth |
+| `minTestCoverage` | 80.0 | Min test coverage (%) |
+| `minDocumentationCoverage` | 70.0 | Min documentation coverage (%) |
+| `maxTechnicalDebtMinutes` | 480 | Max technical debt (8 hours) |
+| `minMaintainabilityRating` | 3.0 | Min maintainability (0-5 scale) |
+
+For complete audit rules reference, see the [Architecture Audit Guide](ARCHITECTURE_AUDIT.md).
+
+---
+
+## Classification Profile
+
 **Example - Repository-Aware Profile**:
 
 If your driven ports use plural naming (e.g., `Orders`, `Products`) instead of the `Repository` suffix, the default classification may incorrectly identify them as driving/command ports. Use the `repository-aware` profile:
@@ -170,78 +291,163 @@ Plugins are added as dependencies to the Maven plugin:
 
 ---
 
-## Plugin Configuration (hexaglue.yaml) (📅 Planned )
+## Plugin Configuration (hexaglue.yaml)
 
-> **Note**: Plugin-specific configuration via `hexaglue.yaml` is planned but not yet implemented. See each plugin's documentation for available configuration options and current configuration methods.
+Plugin-specific configuration can be provided via a YAML file in your project root.
 
-Planned structure:
+### File Locations
+
+HexaGlue looks for configuration in this order:
+1. `./hexaglue.yaml` (preferred)
+2. `./hexaglue.yml`
+
+If no file is found, an empty configuration is used (plugins use their defaults).
+
+### Configuration Structure
 
 ```yaml
-hexaglue:
-  plugins:
-    io.hexaglue.plugin.livingdoc:
-      # Plugin-specific options (see plugin README)
+plugins:
+  jpa:
+    enabled: true
+    entitySuffix: "Entity"
+    repositoryPackage: "infrastructure.persistence"
+    auditing: true
+    optimisticLocking: true
 
-    io.hexaglue.plugin.jpa:
-      # Plugin-specific options (see plugin README)
+  living-doc:
+    enabled: true
+    outputFormat: "html"
+    includePrivateMethods: false
 ```
 
-File locations (when implemented):
-- Project root: `./hexaglue.yaml`
-- Resources: `src/main/resources/hexaglue.yaml`
+### Plugin Configuration Keys
+
+Each plugin defines its own configuration keys. See the plugin's README for details:
+
+- **JPA Plugin** (`jpa`): Entity generation, auditing, locking
+- **Living Doc Plugin** (`living-doc`): Documentation format, output options
+
+### Example
+
+Create `hexaglue.yaml` in your project root:
+
+```yaml
+plugins:
+  jpa:
+    entitySuffix: "Entity"
+    auditing: true
+  living-doc:
+    outputFormat: "markdown"
+```
+
+The Maven plugin automatically loads this configuration during the `generate` goal.
 
 ---
 
-## Complete Example
+## Complete Examples
+
+### Generation Only
 
 ```xml
-<project>
-    <properties>
-        <java.version>21</java.version>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-        <hexaglue.version>2.0.0-SNAPSHOT</hexaglue.version>
-        <hexaglue.plugin.version>1.0.0-SNAPSHOT</hexaglue.plugin.version>
-    </properties>
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue.version}</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>generate</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+        <classificationProfile>repository-aware</classificationProfile>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-living-doc</artifactId>
+            <version>${hexaglue.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-jpa</artifactId>
+            <version>${hexaglue.version}</version>
+        </dependency>
+    </dependencies>
+</plugin>
+```
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>io.hexaglue</groupId>
-                <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>${hexaglue.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <basePackage>com.example.myapp</basePackage>
-                    <!-- Optional: use a classification profile -->
-                    <classificationProfile>repository-aware</classificationProfile>
-                </configuration>
-                <dependencies>
-                    <dependency>
-                        <groupId>io.hexaglue.plugins</groupId>
-                        <artifactId>hexaglue-plugin-living-doc</artifactId>
-                        <version>${hexaglue.plugin.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>io.hexaglue.plugins</groupId>
-                        <artifactId>hexaglue-plugin-jpa</artifactId>
-                        <version>${hexaglue.plugin.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-        </plugins>
-    </build>
-</project>
+### Audit Only
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue.version}</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>audit</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+        <failOnError>true</failOnError>
+        <htmlReport>true</htmlReport>
+        <auditConfig>
+            <thresholds>
+                <minTestCoverage>80.0</minTestCoverage>
+                <maxTechnicalDebtMinutes>240</maxTechnicalDebtMinutes>
+            </thresholds>
+        </auditConfig>
+    </configuration>
+</plugin>
+```
+
+### Generation + Audit (CI/CD)
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue.version}</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>generate-and-audit</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+        <classificationProfile>repository-aware</classificationProfile>
+        <!-- Audit settings -->
+        <failOnError>true</failOnError>
+        <htmlReport>true</htmlReport>
+        <jsonReport>true</jsonReport>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-jpa</artifactId>
+            <version>${hexaglue.version}</version>
+        </dependency>
+    </dependencies>
+</plugin>
 ```
 
 ---
 
-## Plugin Documentation
+## Related Documentation
+
+- [Architecture Audit Guide](ARCHITECTURE_AUDIT.md) - Complete audit rules and CI/CD integration
+- [Getting Started](GETTING_STARTED.md) - Tutorial from audit to generation
+- [User Guide](USER_GUIDE.md) - Concepts and classification reference
+
+### Plugin Documentation
 
 For plugin-specific options, refer to each plugin's README:
 
@@ -252,7 +458,7 @@ For plugin-specific options, refer to each plugin's README:
 
 <div align="center">
 
-**HexaGlue - Focus on business code, not infrastructure glue.**
+**HexaGlue - Design, Audit, and Generate Hexagonal Architecture**
 
 Made with ❤️ by Scalastic<br>
 Copyright 2026 Scalastic - Released under MPL-2.0
