@@ -159,8 +159,16 @@ public final class MapperSpecBuilder {
         List<MappingSpec> toEntityMappings = buildToEntityMappings();
         List<MappingSpec> toDomainMappings = buildToDomainMappings();
 
+        MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentity();
+
         return new MapperSpec(
-                infrastructurePackage, interfaceName, domainTypeName, entityType, toEntityMappings, toDomainMappings);
+                infrastructurePackage,
+                interfaceName,
+                domainTypeName,
+                entityType,
+                toEntityMappings,
+                toDomainMappings,
+                wrappedIdentity);
     }
 
     /**
@@ -173,6 +181,7 @@ public final class MapperSpecBuilder {
      * <p>Mapping rules:
      * <ul>
      *   <li>Identity field: Maps domain ID field name to "id" (e.g., orderId → id)</li>
+     *   <li>Wrapped identity: Uses accessor method (e.g., orderId.value() → id)</li>
      *   <li>Version field: Ignored when optimistic locking is enabled</li>
      *   <li>Audit fields: Ignored when auditing is enabled (createdDate, lastModifiedDate)</li>
      *   <li>Relationships: Handled by nested mappers (uses clause)</li>
@@ -183,11 +192,13 @@ public final class MapperSpecBuilder {
     private List<MappingSpec> buildToEntityMappings() {
         List<MappingSpec> mappings = new ArrayList<>();
 
-        // Map identity field if name differs from "id"
+        // Map identity field if name differs from "id" or if it's wrapped
         if (domainType.hasIdentity()) {
             Identity identity = domainType.identity().orElseThrow();
             String identityFieldName = identity.fieldName();
 
+            // If identity is wrapped, we need to access the underlying value
+            // MapStruct will use the map() method we generate
             if (!identityFieldName.equals("id")) {
                 mappings.add(MappingSpec.direct("id", identityFieldName));
             }
@@ -236,6 +247,60 @@ public final class MapperSpecBuilder {
         }
 
         return mappings;
+    }
+
+    /**
+     * Detects if the identity type is wrapped (e.g., TaskId wrapping UUID).
+     *
+     * <p>This method analyzes the domain type's identity to determine if it uses
+     * a custom wrapper type that needs special handling in MapStruct conversions.
+     *
+     * <p>When the identity is wrapped (e.g., {@code record TaskId(UUID value)}),
+     * MapStruct needs explicit conversion methods to map between the wrapper type
+     * and the underlying primitive type.
+     *
+     * @return the wrapped identity spec, or null if identity is not wrapped
+     */
+    private MapperSpec.WrappedIdentitySpec detectWrappedIdentity() {
+        if (!domainType.hasIdentity()) {
+            return null;
+        }
+
+        Identity identity = domainType.identity().orElseThrow();
+
+        if (!identity.isWrapped()) {
+            return null;
+        }
+
+        // Extract wrapper and unwrapped types
+        String wrapperType = identity.type().qualifiedName();
+        String unwrappedType = identity.unwrappedType().qualifiedName();
+
+        // For records, the accessor method is typically "value()"
+        // For classes, it might be "getValue()" or "get" + fieldName
+        String accessorMethod = determineAccessorMethod(identity);
+
+        return new MapperSpec.WrappedIdentitySpec(wrapperType, unwrappedType, accessorMethod);
+    }
+
+    /**
+     * Determines the accessor method name for unwrapping the identity value.
+     *
+     * <p>For records, this is typically the component name (e.g., "value" for {@code record TaskId(UUID value)}).
+     * For classes, this follows JavaBeans convention (e.g., "getValue").
+     *
+     * @param identity the identity to analyze
+     * @return the accessor method name (without parentheses)
+     */
+    private String determineAccessorMethod(Identity identity) {
+        // For records, the accessor is the component name (typically "value")
+        // This is a conventional pattern used in DDD value objects
+        if (identity.wrapperKind() == io.hexaglue.spi.ir.IdentityWrapperKind.RECORD) {
+            return "value";
+        }
+
+        // For classes, follow JavaBeans convention
+        return "getValue";
     }
 
     /**

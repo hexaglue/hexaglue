@@ -9,6 +9,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Audit rules implementation** - Graph-aware code quality rules
+  - `DependencyNoCyclesRule` - Detects cyclic dependencies using DFS algorithm
+  - `DependencyStableRule` - Checks Stable Dependencies Principle (I = Ce/(Ca+Ce))
+  - Both rules use `ThreadLocal<Codebase>` pattern for graph-level analysis
+
+- **CachedSpoonAnalyzer enhancements** - Real Spoon AST analysis
+  - Method body analysis: invocations, field accesses, cyclomatic complexity
+  - Field analysis: type detection, collection handling, annotations
+  - LRU caching with statistics for performance optimization
+
+- **Bounded context detection** - Architecture-level cycle detection
+  - `findBoundedContextCycles()` in `DefaultArchitectureQuery`
+  - Extracts bounded contexts from package structure (3rd segment)
+
+- **Plugin configuration via hexaglue.yaml** - File-based plugin configuration
+  - Loads from project root (`hexaglue.yaml` or `hexaglue.yml`)
+  - Supports per-plugin configuration sections
+  - Graceful fallback when file not present
+
+- **Composite identity support** - Multi-field ID handling
+  - `COMPOSITE` strategy in `IdentityStrategy` enum
+  - Automatic detection of records with 2+ fields as composite IDs
+  - Maps to JPA `@EmbeddedId` strategy
+
+- **Classification inheritance** - Subclass detection improvements
+  - `InheritedClassificationCriteria` enhanced for repository-based parent detection
+  - Subclasses inherit AGGREGATE_ROOT when parent is repository-managed
+
+- **ProgressiveClassifier integration** - Deep classification with method analysis
+  - Integrates `CachedSpoonAnalyzer` for behavioral classification
+  - Detects Repository, UseCase, Entity, ValueObject based on method patterns
+
 - **Classification engine refactoring** - Unified and extensible classification system
   - `CriteriaEngine<K>` - Generic evaluation engine shared by domain and port classifiers
   - `CriteriaProfile` - Configurable criteria priorities via YAML profiles (`default.yaml`, `strict.yaml`, `annotation-only.yaml`)

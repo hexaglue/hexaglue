@@ -76,6 +76,13 @@ public enum IdentityStrategy {
     ASSIGNED,
 
     /**
+     * Composite strategy - multi-property identity (e.g., composite keys).
+     * Maps to {@code @EmbeddedId} or {@code @IdClass} in JPA.
+     * Used when the identity is composed of multiple fields.
+     */
+    COMPOSITE,
+
+    /**
      * Unknown strategy - could not be determined.
      */
     UNKNOWN;
@@ -86,7 +93,7 @@ public enum IdentityStrategy {
     public boolean requiresGeneratedValue() {
         return switch (this) {
             case AUTO, IDENTITY, SEQUENCE, TABLE, UUID -> true;
-            case NATURAL, SURROGATE, ASSIGNED, UNKNOWN -> false;
+            case NATURAL, SURROGATE, ASSIGNED, COMPOSITE, UNKNOWN -> false;
         };
     }
 
@@ -106,7 +113,7 @@ public enum IdentityStrategy {
     public boolean isGenerated() {
         return switch (this) {
             case AUTO, IDENTITY, SEQUENCE, TABLE, UUID, SURROGATE -> true;
-            case NATURAL, ASSIGNED, UNKNOWN -> false;
+            case NATURAL, ASSIGNED, COMPOSITE, UNKNOWN -> false;
         };
     }
 

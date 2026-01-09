@@ -60,6 +60,15 @@ public enum DomainKind {
     DOMAIN_EVENT,
 
     /**
+     * Externalized event - a domain event marked for external publication.
+     *
+     * <p>Externalized events are domain events that should be published
+     * outside the bounded context, typically through a message broker.
+     * Detected via @Externalized annotation (jMolecules).
+     */
+    EXTERNALIZED_EVENT,
+
+    /**
      * Domain service - stateless operations that don't belong to entities.
      *
      * <p>Domain services contain domain logic that doesn't naturally

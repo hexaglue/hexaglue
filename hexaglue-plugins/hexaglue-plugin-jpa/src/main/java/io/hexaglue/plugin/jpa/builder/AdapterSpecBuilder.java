@@ -183,8 +183,9 @@ public final class AdapterSpecBuilder {
         String className = domainType.simpleName() + config.adapterSuffix();
 
         // Convert all ports to TypeNames for implements clause
-        List<TypeName> implementedPorts =
-                ports.stream().map(port -> ClassName.bestGuess(port.qualifiedName())).collect(Collectors.toList());
+        List<TypeName> implementedPorts = ports.stream()
+                .map(port -> ClassName.bestGuess(port.qualifiedName()))
+                .collect(Collectors.toList());
 
         // Resolve domain, entity, repository, and mapper types
         TypeName domainClass = ClassName.bestGuess(domainType.qualifiedName());

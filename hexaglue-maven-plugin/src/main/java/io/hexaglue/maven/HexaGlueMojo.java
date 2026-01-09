@@ -18,7 +18,12 @@ import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import java.io.File;
+import java.io.IOException;
+import java.io.Reader;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.maven.artifact.Artifact;
@@ -29,6 +34,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.plugins.annotations.ResolutionScope;
 import org.apache.maven.project.MavenProject;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  * Executes HexaGlue analysis and code generation.
@@ -166,15 +172,99 @@ public class HexaGlueMojo extends AbstractMojo {
             javaVersion = 21;
         }
 
+        Map<String, Map<String, Object>> pluginConfigs = loadPluginConfigs();
+
         return new EngineConfig(
                 sourceRoots,
                 classpath,
                 javaVersion,
                 basePackage,
                 outputDirectory.toPath(),
-                Map.of(), // pluginConfigs - TODO: load from hexaglue.yaml
+                pluginConfigs,
                 Map.of(), // options
                 classificationProfile);
+    }
+
+    /**
+     * Loads plugin configurations from hexaglue.yaml or hexaglue.yml in the project root.
+     *
+     * <p>Expected YAML structure:
+     * <pre>{@code
+     * plugins:
+     *   jpa:
+     *     enabled: true
+     *     entitySuffix: "Entity"
+     *     repositoryPackage: "infra.persistence"
+     *   living-doc:
+     *     enabled: true
+     *     outputFormat: "html"
+     * }</pre>
+     *
+     * @return a map of plugin IDs to their configuration maps, or an empty map if no config file exists
+     */
+    private Map<String, Map<String, Object>> loadPluginConfigs() {
+        Path baseDir = project.getBasedir().toPath();
+
+        // Try hexaglue.yaml first, then hexaglue.yml
+        Path configPath = baseDir.resolve("hexaglue.yaml");
+        if (!Files.exists(configPath)) {
+            configPath = baseDir.resolve("hexaglue.yml");
+        }
+
+        if (!Files.exists(configPath)) {
+            getLog().debug(
+                            "No hexaglue.yaml or hexaglue.yml found in project root - using default plugin configurations");
+            return Map.of();
+        }
+
+        getLog().info("Loading plugin configurations from: " + configPath.getFileName());
+
+        try (Reader reader = Files.newBufferedReader(configPath)) {
+            Yaml yaml = new Yaml();
+            Map<String, Object> root = yaml.load(reader);
+
+            if (root == null || !root.containsKey("plugins")) {
+                getLog().warn("Configuration file exists but contains no 'plugins' section");
+                return Map.of();
+            }
+
+            Object pluginsObj = root.get("plugins");
+            if (!(pluginsObj instanceof Map)) {
+                getLog().warn("Invalid configuration: 'plugins' must be a map");
+                return Map.of();
+            }
+
+            @SuppressWarnings("unchecked")
+            Map<String, Object> pluginsMap = (Map<String, Object>) pluginsObj;
+
+            Map<String, Map<String, Object>> result = new HashMap<>();
+            for (Map.Entry<String, Object> entry : pluginsMap.entrySet()) {
+                String pluginId = entry.getKey();
+                Object configObj = entry.getValue();
+
+                if (configObj instanceof Map) {
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> configMap = (Map<String, Object>) configObj;
+                    result.put(pluginId, configMap);
+                    getLog().debug(String.format(
+                            "Loaded configuration for plugin '%s' with %d settings", pluginId, configMap.size()));
+                } else {
+                    getLog().warn(String.format(
+                            "Skipping plugin '%s': configuration must be a map, got %s",
+                            pluginId, configObj != null ? configObj.getClass().getSimpleName() : "null"));
+                }
+            }
+
+            getLog().info(String.format("Loaded configurations for %d plugin(s)", result.size()));
+            return Collections.unmodifiableMap(result);
+
+        } catch (IOException e) {
+            getLog().warn("Failed to read configuration file: " + configPath, e);
+            return Map.of();
+        } catch (Exception e) {
+            getLog().warn("Failed to parse configuration file: " + configPath, e);
+            return Map.of();
+        }
     }
 
     private String formatDiagnostic(Diagnostic diag) {

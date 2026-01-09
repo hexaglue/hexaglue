@@ -188,7 +188,8 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             PluginExecutionResult pluginResult = null;
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
-                PluginExecutor executor = new PluginExecutor(config.outputDirectory(), config.pluginConfigs());
+                PluginExecutor executor =
+                        new PluginExecutor(config.outputDirectory(), config.pluginConfigs(), graph);
                 pluginResult = executor.execute(ir);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",

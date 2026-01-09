@@ -348,10 +348,13 @@ final class TestFixtures {
                         new PortMethod("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
                         new PortMethod("findAll", "java.util.List<" + managedType + ">", List.of()),
                         new PortMethod("delete", "void", List.of(managedType)),
-                        new PortMethod("findByEmail", "java.util.Optional<" + managedType + ">", List.of(pkg + ".Email")),
+                        new PortMethod(
+                                "findByEmail", "java.util.Optional<" + managedType + ">", List.of(pkg + ".Email")),
                         new PortMethod("existsByEmail", "boolean", List.of(pkg + ".Email")),
                         new PortMethod(
-                                "findByCustomerId", "java.util.List<" + managedType + ">", List.of(pkg + ".CustomerId"))),
+                                "findByCustomerId",
+                                "java.util.List<" + managedType + ">",
+                                List.of(pkg + ".CustomerId"))),
                 List.of(),
                 SourceRef.unknown());
     }

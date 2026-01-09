@@ -127,9 +127,7 @@ public final class RepositorySpecBuilder {
 
         if (!domainType.hasIdentity()) {
             throw new IllegalArgumentException(
-                    "Domain type "
-                            + domainType.qualifiedName()
-                            + " has no identity. Cannot generate JPA repository.");
+                    "Domain type " + domainType.qualifiedName() + " has no identity. Cannot generate JPA repository.");
         }
 
         String interfaceName = domainType.simpleName() + config.repositorySuffix();
@@ -138,8 +136,7 @@ public final class RepositorySpecBuilder {
         TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
         TypeName idType = resolveIdType();
 
-        return new RepositorySpec(
-                infrastructurePackage, interfaceName, entityType, idType, domainType.qualifiedName());
+        return new RepositorySpec(infrastructurePackage, interfaceName, entityType, idType, domainType.qualifiedName());
     }
 
     /**
@@ -155,8 +152,8 @@ public final class RepositorySpecBuilder {
      * @return the JavaPoet TypeName of the unwrapped ID type
      */
     private TypeName resolveIdType() {
-        Identity identity = domainType.identity().orElseThrow(
-                () -> new IllegalArgumentException("Domain type has no identity"));
+        Identity identity =
+                domainType.identity().orElseThrow(() -> new IllegalArgumentException("Domain type has no identity"));
 
         String idTypeName = identity.unwrappedType().qualifiedName();
         return JpaModelUtils.resolveTypeName(idTypeName);

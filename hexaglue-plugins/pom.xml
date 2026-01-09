@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.hexaglue</groupId>
         <artifactId>hexaglue-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>3.0.0-SNAPSHOT</version>
     </parent>
 
     <groupId>io.hexaglue.plugins</groupId>
@@ -21,12 +21,13 @@
         <module>hexaglue-plugins-bom</module>
         <module>hexaglue-plugin-jpa</module>
         <module>hexaglue-plugin-living-doc</module>
+        <module>hexaglue-plugin-audit</module>
     </modules>
 
     <properties>
         <hexaglue.root>${project.basedir}/..</hexaglue.root>
         <!-- HexaGlue core version (explicit, cannot use ${project.version} because plugins have their own version) -->
-        <hexaglue.version>2.0.0-SNAPSHOT</hexaglue.version>
+        <hexaglue.version>3.0.0-SNAPSHOT</hexaglue.version>
         <!-- Plugin-specific dependencies -->
         <jakarta-persistence.version>3.2.0</jakarta-persistence.version>
     </properties>

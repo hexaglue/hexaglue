@@ -24,6 +24,7 @@ import io.hexaglue.core.classification.domain.criteria.EmbeddedValueObjectCriter
 import io.hexaglue.core.classification.domain.criteria.ExplicitAggregateRootCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitDomainEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitEntityCriteria;
+import io.hexaglue.core.classification.domain.criteria.ExplicitExternalizedEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitIdentifierCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.HasIdentityCriteria;
@@ -109,6 +110,7 @@ public final class DomainClassifier {
                 new ExplicitValueObjectCriteria(),
                 new ExplicitIdentifierCriteria(),
                 new ExplicitDomainEventCriteria(),
+                new ExplicitExternalizedEventCriteria(),
                 // Explicit interfaces (priority 100)
                 new ImplementsJMoleculesInterfaceCriteria(),
                 // Strong heuristics (priority 80)

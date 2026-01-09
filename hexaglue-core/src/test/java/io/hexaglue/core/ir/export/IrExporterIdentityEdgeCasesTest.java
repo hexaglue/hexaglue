@@ -34,7 +34,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -156,11 +155,37 @@ class IrExporterIdentityEdgeCasesTest {
         }
 
         @Test
-        @Disabled("TODO: Implement - Composite ID as @EmbeddedId strategy")
         @DisplayName("should mark composite identifier strategy as COMPOSITE")
         void shouldMarkCompositeIdentifierAsCompositeStrategy() throws IOException {
-            // This test documents that composite IDs should have a COMPOSITE strategy
-            // Currently IdentityStrategy doesn't have COMPOSITE - may need to add it
+            // This test verifies that composite IDs (multi-field records) are marked with COMPOSITE strategy
+            writeSource("com/example/CompositeOrderId.java", """
+                    package com.example;
+                    public record CompositeOrderId(String region, Long sequence) {}
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    public class Order {
+                        private CompositeOrderId id;
+                        private String description;
+                    }
+                    """);
+            writeSource("com/example/OrderRepository.java", """
+                    package com.example;
+                    public interface OrderRepository {
+                        Order findById(CompositeOrderId id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            List<ClassificationResult> classifications = classifyAll(graph);
+            IrSnapshot snapshot = exporter.export(graph, classifications);
+
+            DomainType order = findDomainType(snapshot, "Order");
+            Identity identity = order.identity().orElseThrow();
+
+            assertThat(identity.strategy())
+                    .as("Composite ID (2+ fields) should have COMPOSITE strategy")
+                    .isEqualTo(IdentityStrategy.COMPOSITE);
         }
     }
 

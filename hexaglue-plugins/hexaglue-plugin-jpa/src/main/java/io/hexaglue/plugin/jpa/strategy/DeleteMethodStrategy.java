@@ -77,9 +77,37 @@ public final class DeleteMethodStrategy implements MethodBodyStrategy {
         }
 
         // Generate method body
-        // repository.deleteById(id);
-        builder.addStatement("$L.deleteById($L)", context.repositoryFieldName(), firstParam.name());
+        // If parameter is domain object, extract and convert ID: mapper.map(task.getId())
+        // If parameter is ID type, convert it: mapper.map(taskId)
+        // Otherwise use parameter directly: id
+        String idExpression = generateIdExpression(firstParam, context);
+        builder.addStatement("$L.deleteById($L)", context.repositoryFieldName(), idExpression);
 
         return builder.build();
+    }
+
+    /**
+     * Generates the expression to obtain the unwrapped ID value for repository operations.
+     *
+     * <p>This method handles three cases:
+     * <ul>
+     *   <li>Domain object parameter (e.g., Task) - extracts ID and converts: {@code mapper.map(task.getId())}</li>
+     *   <li>Wrapped ID parameter (e.g., TaskId) - converts directly: {@code mapper.map(taskId)}</li>
+     *   <li>Primitive ID parameter (e.g., UUID) - uses directly: {@code id}</li>
+     * </ul>
+     *
+     * @param param the method parameter
+     * @param context the adapter context
+     * @return the expression to get the unwrapped ID
+     */
+    private String generateIdExpression(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
+        // If parameter type is the domain class, extract ID: task.getId()
+        if (param.type().equals(context.domainClass())) {
+            return String.format("%s.map(%s.getId())", context.mapperFieldName(), param.name());
+        }
+
+        // Otherwise assume it's an ID type and convert it: taskId
+        // The mapper's map() method will handle wrapped -> unwrapped conversion
+        return String.format("%s.map(%s)", context.mapperFieldName(), param.name());
     }
 }

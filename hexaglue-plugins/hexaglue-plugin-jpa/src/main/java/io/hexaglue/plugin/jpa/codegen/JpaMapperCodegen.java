@@ -142,6 +142,12 @@ public final class JpaMapperCodegen {
         // Add toDomain method with custom mappings
         builder.addMethod(createToDomainMethod(spec));
 
+        // Add identity conversion methods if identity is wrapped
+        if (spec.wrappedIdentity() != null) {
+            builder.addMethod(createMapToUnwrappedMethod(spec.wrappedIdentity()));
+            builder.addMethod(createMapToWrappedMethod(spec.wrappedIdentity()));
+        }
+
         return builder.build();
     }
 
@@ -253,6 +259,74 @@ public final class JpaMapperCodegen {
         }
 
         return methodBuilder.build();
+    }
+
+    /**
+     * Creates a method to unwrap identity values (e.g., TaskId → UUID).
+     *
+     * <p>This method allows MapStruct to automatically convert from wrapper types
+     * to their underlying primitive types. For example:
+     * <pre>{@code
+     * default UUID map(TaskId id) {
+     *     return id != null ? id.value() : null;
+     * }
+     * }</pre>
+     *
+     * @param wrappedIdentity the wrapped identity specification
+     * @return the method spec for unwrapping
+     */
+    private static MethodSpec createMapToUnwrappedMethod(MapperSpec.WrappedIdentitySpec wrappedIdentity) {
+        com.palantir.javapoet.ClassName wrapperClass =
+                com.palantir.javapoet.ClassName.bestGuess(wrappedIdentity.wrapperType());
+        com.palantir.javapoet.TypeName unwrappedType =
+                com.palantir.javapoet.ClassName.bestGuess(wrappedIdentity.unwrappedType());
+
+        return MethodSpec.methodBuilder("map")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(unwrappedType)
+                .addParameter(wrapperClass, "id")
+                .addStatement("return id != null ? id.$L() : null", wrappedIdentity.accessorMethod())
+                .addJavadoc(
+                        "Unwraps {@link $L} to {@link $L}.\n\n",
+                        wrappedIdentity.wrapperType(),
+                        wrappedIdentity.unwrappedType())
+                .addJavadoc("@param id the wrapped identity\n")
+                .addJavadoc("@return the unwrapped value, or null if input is null\n")
+                .build();
+    }
+
+    /**
+     * Creates a method to wrap identity values (e.g., UUID → TaskId).
+     *
+     * <p>This method allows MapStruct to automatically convert from primitive types
+     * to their wrapper types. For example:
+     * <pre>{@code
+     * default TaskId map(UUID id) {
+     *     return id != null ? new TaskId(id) : null;
+     * }
+     * }</pre>
+     *
+     * @param wrappedIdentity the wrapped identity specification
+     * @return the method spec for wrapping
+     */
+    private static MethodSpec createMapToWrappedMethod(MapperSpec.WrappedIdentitySpec wrappedIdentity) {
+        com.palantir.javapoet.ClassName wrapperClass =
+                com.palantir.javapoet.ClassName.bestGuess(wrappedIdentity.wrapperType());
+        com.palantir.javapoet.TypeName unwrappedType =
+                com.palantir.javapoet.ClassName.bestGuess(wrappedIdentity.unwrappedType());
+
+        return MethodSpec.methodBuilder("map")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(wrapperClass)
+                .addParameter(unwrappedType, "id")
+                .addStatement("return id != null ? new $T(id) : null", wrapperClass)
+                .addJavadoc(
+                        "Wraps {@link $L} into {@link $L}.\n\n",
+                        wrappedIdentity.unwrappedType(),
+                        wrappedIdentity.wrapperType())
+                .addJavadoc("@param id the unwrapped value\n")
+                .addJavadoc("@return the wrapped identity, or null if input is null\n")
+                .build();
     }
 
     // =====================================================================

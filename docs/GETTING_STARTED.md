@@ -1,13 +1,14 @@
 # Getting Started with HexaGlue
 
-***A progressive tutorial from simple to advanced.***
+***A progressive tutorial from audit to generation.***
 
 ---
 
-This guide takes you from your first HexaGlue project to advanced domain modeling. Choose your starting point based on your experience:
+This guide takes you from validating your architecture to generating infrastructure code. Choose your starting point based on your needs:
 
 | Level | Duration | What You'll Learn |
 |-------|----------|-------------------|
+| [Level 0: Architecture Audit](#level-0-architecture-audit) | 10 min | Validate your architecture with automated rules |
 | [Level 1: Discovery](#level-1-discovery) | 15 min | Run your first HexaGlue project |
 | [Level 2: Fundamentals](#level-2-fundamentals) | 30 min | Project structure, configuration, conventions |
 | [Level 3: Intermediate](#level-3-intermediate) | 1 hour | Rich domain modeling, relationships |
@@ -21,6 +22,135 @@ Before starting, ensure you have:
 
 - **Java 17+** - `java -version`
 - **Maven 3.8+** - `mvn -version`
+
+---
+
+# Level 0: Architecture Audit
+
+**Goal**: Validate your existing application architecture against clean architecture principles.
+
+This level is for teams who want to audit their architecture **before** adopting code generation.
+
+## Step 0.1: Add HexaGlue Audit to Your Project
+
+Add the HexaGlue Maven plugin with the `audit` goal to your existing project:
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue.version}</version>
+    <executions>
+        <execution>
+            <goals>
+                <goal>audit</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <basePackage>com.yourcompany.yourapp</basePackage>
+        <failOnError>false</failOnError>
+        <htmlReport>true</htmlReport>
+    </configuration>
+</plugin>
+```
+
+## Step 0.2: Run the Audit
+
+```bash
+mvn verify
+```
+
+You should see output like:
+
+```
+================================================================================
+HEXAGLUE AUDIT REPORT
+================================================================================
+Project: your-application
+Detected Architecture: LAYERED
+HexaGlue Version: 3.0.0
+
+SUMMARY
+--------------------------------------------------------------------------------
+Total Violations: 3
+  Errors:   1
+  Warnings: 2
+  Info:     0
+Status: FAILED
+
+QUALITY METRICS
+--------------------------------------------------------------------------------
+Test Coverage:          72.1%
+Documentation Coverage: 45.3%
+Technical Debt:         180 minutes
+Maintainability Rating: 3.8/5.0
+
+VIOLATIONS
+--------------------------------------------------------------------------------
+ERROR (1)
+  [hexaglue.layer.domain-purity]
+  Location: com/yourcompany/domain/Order.java:23
+  Domain type 'Order' has field 'repository' of infrastructure type 'JpaRepository'
+
+WARNING (2)
+  [hexaglue.dependency.no-cycles]
+  Location: com/yourcompany/service
+  Cycle detected: service -> repository -> service
+
+  [hexaglue.doc.public-api]
+  Location: com/yourcompany/api/OrderController.java:15
+  Public method 'createOrder' lacks documentation
+================================================================================
+```
+
+## Step 0.3: View the HTML Report
+
+Open `target/hexaglue-reports/hexaglue-audit.html` in your browser for a detailed, interactive report.
+
+## Step 0.4: Understand the Results
+
+**Detected Architecture**: HexaGlue automatically detects your architectural style:
+- `HEXAGONAL` - Ports and Adapters pattern
+- `CLEAN` - Clean Architecture
+- `ONION` - Onion Architecture
+- `LAYERED` - Traditional layered architecture
+
+**Violation Severities**:
+- **ERROR** - Critical violations that should be fixed
+- **WARNING** - Potential issues to address
+- **INFO** - Suggestions for improvement
+
+**Quality Metrics**:
+- Test Coverage, Documentation Coverage
+- Technical Debt (estimated fix time)
+- Maintainability Rating (0-5)
+
+## Step 0.5: Configure Quality Gates
+
+Enable build failure on violations:
+
+```xml
+<configuration>
+    <basePackage>com.yourcompany.yourapp</basePackage>
+    <failOnError>true</failOnError>   <!-- Fail on ERROR violations -->
+    <failOnWarning>false</failOnWarning>
+    <auditConfig>
+        <thresholds>
+            <minTestCoverage>80.0</minTestCoverage>
+            <maxTechnicalDebtMinutes>240</maxTechnicalDebtMinutes>
+        </thresholds>
+    </auditConfig>
+</configuration>
+```
+
+## What You've Learned
+
+- How to add architecture audit to an existing project
+- How to run and interpret audit results
+- How to configure quality gates for CI/CD
+
+**Next**: Continue to [Level 1](#level-1-discovery) to learn about code generation, or see the [Architecture Audit Guide](ARCHITECTURE_AUDIT.md) for complete rule reference.
 
 ---
 
@@ -808,6 +938,7 @@ com.example.plugin.OpenApiPlugin
 
 ## What's Next?
 
+- [Architecture Audit Guide](ARCHITECTURE_AUDIT.md) - Complete audit rules and configuration reference
 - [User Guide](USER_GUIDE.md) - Deep dive into all concepts
 - [Configuration Reference](CONFIGURATION.md) - All configuration options
 - [SPI Reference](SPI_REFERENCE.md) - Plugin development API
@@ -817,7 +948,7 @@ com.example.plugin.OpenApiPlugin
 
 <div align="center">
 
-**HexaGlue - Focus on business code, not infrastructure glue.**
+**HexaGlue - Design, Audit, and Generate Hexagonal Architecture**
 
 Made with ❤️ by Scalastic<br>
 Copyright 2026 Scalastic - Released under MPL-2.0

@@ -1,0 +1,37 @@
+# HexaGlue Configuration
+#
+# This file contains configuration for HexaGlue plugins.
+# Place this file in the root of your Maven project (same directory as pom.xml).
+#
+# The configuration is loaded automatically by the hexaglue-maven-plugin
+# and passed to the respective plugins during code generation.
+
+plugins:
+  # JPA Plugin Configuration
+  # Generates JPA entities and repositories from domain model
+  jpa:
+    enabled: false  # Temporarily disabled to test audit plugin
+    entitySuffix: "Entity"
+    repositoryPackage: "infra.persistence"
+    generateRepositories: true
+
+  # Living Documentation Plugin Configuration
+  # Generates architecture documentation from analyzed code
+  living-doc:
+    enabled: true
+    outputFormat: "html"
+    includeMetrics: true
+
+  # DDD Audit Plugin Configuration
+  # Validates DDD and Hexagonal Architecture constraints
+  # All constraints are enabled by default
+  audit:
+    enabled: true
+    failOnBlocker: true
+    failOnCritical: false
+    # enabledConstraints: omit to enable ALL constraints (default)
+    # Or explicitly list to enable only specific ones:
+    # enabledConstraints:
+    #   - "ddd:entity-identity"
+    #   - "ddd:aggregate-repository"
+    #   - "hexagonal:port-interface"

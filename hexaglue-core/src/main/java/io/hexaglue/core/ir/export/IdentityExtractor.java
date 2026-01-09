@@ -87,6 +87,31 @@ final class IdentityExtractor {
                         || a.simpleName().equals("Id"));
     }
 
+    /**
+     * Checks if the given type is a composite ID (record with 2+ fields).
+     *
+     * @param typeRef the type to check
+     * @param graph the application graph
+     * @return true if this is a composite ID
+     */
+    private boolean isCompositeId(TypeRef typeRef, ApplicationGraph graph) {
+        String typeName = typeRef.rawQualifiedName();
+
+        // Not a composite if it's a known primitive type
+        if (IDENTITY_TYPES.contains(typeName)) {
+            return false;
+        }
+
+        Optional<TypeNode> typeNode = graph.typeNode(typeName);
+        if (typeNode.isPresent()) {
+            List<FieldNode> fields = graph.fieldsOf(typeNode.get());
+            // Composite ID has 2 or more fields
+            return fields.size() >= 2;
+        }
+
+        return false;
+    }
+
     private Identity createIdentity(FieldNode field, ApplicationGraph graph) {
         TypeRef coreTypeRef = field.type();
         io.hexaglue.spi.ir.TypeRef spiType = typeConverter.toSpiTypeRef(coreTypeRef);
@@ -94,8 +119,10 @@ final class IdentityExtractor {
         UnwrapResult unwrapResult = unwrapIdentityType(coreTypeRef, graph);
         io.hexaglue.spi.ir.TypeRef spiUnwrappedType = typeConverter.toSpiTypeRef(unwrapResult.unwrappedType());
 
-        IdentityStrategy strategy =
-                determineStrategy(unwrapResult.unwrappedType().rawQualifiedName());
+        // Check if this is a composite ID (multi-field record)
+        IdentityStrategy strategy = isCompositeId(coreTypeRef, graph)
+                ? IdentityStrategy.COMPOSITE
+                : determineStrategy(unwrapResult.unwrappedType().rawQualifiedName());
 
         return new Identity(field.simpleName(), spiType, spiUnwrappedType, strategy, unwrapResult.wrapperKind());
     }
@@ -139,12 +166,19 @@ final class IdentityExtractor {
             return new UnwrapResult(typeRef, IdentityWrapperKind.NONE);
         }
 
-        // Check if the type is a record with a single component (likely an ID wrapper)
+        // Check if the type is a record with components
         Optional<TypeNode> idType = graph.typeNode(typeName);
         if (idType.isPresent()) {
             TypeNode typeNode = idType.get();
             List<FieldNode> fields = graph.fieldsOf(typeNode);
 
+            // Composite ID: record with 2+ fields
+            if (fields.size() >= 2) {
+                // Don't unwrap composite IDs - they stay as-is
+                return new UnwrapResult(typeRef, IdentityWrapperKind.NONE);
+            }
+
+            // Single-field wrapper: try to unwrap if it wraps a primitive
             if (fields.size() == 1) {
                 TypeRef innerType = fields.get(0).type();
                 if (IDENTITY_TYPES.contains(innerType.rawQualifiedName())) {

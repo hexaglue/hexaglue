@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.plugin;
 
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.Optional;
 
@@ -113,4 +114,18 @@ public interface PluginContext {
      * @return the template engine (never null)
      */
     TemplateEngine templates();
+
+    /**
+     * Returns the architecture query interface for advanced analysis.
+     *
+     * <p>This provides access to cycle detection, Lakos metrics, coupling analysis,
+     * layer violation detection, and other architectural insights computed from
+     * the full application dependency graph.
+     *
+     * @return the architecture query, or empty if not available
+     * @since 3.0.0
+     */
+    default Optional<ArchitectureQuery> architectureQuery() {
+        return Optional.empty();
+    }
 }

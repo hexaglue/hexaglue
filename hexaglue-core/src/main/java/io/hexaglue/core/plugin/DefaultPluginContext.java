@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.plugin;
 
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
@@ -34,6 +35,7 @@ final class DefaultPluginContext implements PluginContext {
     private final DiagnosticReporter diagnostics;
     private final PluginOutputStore outputStore;
     private final TemplateEngine templateEngine;
+    private final ArchitectureQuery architectureQuery;
 
     DefaultPluginContext(
             String pluginId,
@@ -41,7 +43,8 @@ final class DefaultPluginContext implements PluginContext {
             PluginConfig config,
             CodeWriter writer,
             DiagnosticReporter diagnostics,
-            PluginOutputStore outputStore) {
+            PluginOutputStore outputStore,
+            ArchitectureQuery architectureQuery) {
         this.pluginId = pluginId;
         this.ir = ir;
         this.config = config;
@@ -49,6 +52,7 @@ final class DefaultPluginContext implements PluginContext {
         this.diagnostics = diagnostics;
         this.outputStore = outputStore;
         this.templateEngine = new SimpleTemplateEngine();
+        this.architectureQuery = architectureQuery;
     }
 
     @Override
@@ -89,5 +93,10 @@ final class DefaultPluginContext implements PluginContext {
     @Override
     public TemplateEngine templates() {
         return templateEngine;
+    }
+
+    @Override
+    public Optional<ArchitectureQuery> architectureQuery() {
+        return Optional.ofNullable(architectureQuery);
     }
 }

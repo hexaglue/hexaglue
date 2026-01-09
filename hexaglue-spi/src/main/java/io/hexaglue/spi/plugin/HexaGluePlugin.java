@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.plugin;
 
+import io.hexaglue.spi.generation.PluginCategory;
 import java.util.List;
 
 /**
@@ -27,6 +28,8 @@ import java.util.List;
  *
  * <p>Registration: Create {@code META-INF/services/io.hexaglue.spi.plugin.HexaGluePlugin}
  * containing the fully-qualified class name of your implementation.
+ *
+ * @since 1.0.0
  */
 public interface HexaGluePlugin {
 
@@ -56,6 +59,19 @@ public interface HexaGluePlugin {
      */
     default List<String> dependsOn() {
         return List.of();
+    }
+
+    /**
+     * Returns the plugin category.
+     *
+     * <p>The category determines the plugin's primary purpose and execution context.
+     * Plugins should override this to return their appropriate category.
+     *
+     * @return the plugin category (defaults to GENERATOR for backward compatibility)
+     * @since 3.0.0
+     */
+    default PluginCategory category() {
+        return PluginCategory.GENERATOR;
     }
 
     /**
