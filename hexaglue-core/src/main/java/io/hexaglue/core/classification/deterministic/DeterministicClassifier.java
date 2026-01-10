@@ -68,7 +68,7 @@ public final class DeterministicClassifier {
         this.idWrapperDiscriminator = new IdWrapperDiscriminator();
         this.recordValueObjectDiscriminator = new RecordValueObjectDiscriminator(idWrapperDiscriminator);
         this.repositoryDiscriminator = new RepositoryDiscriminator();
-        this.compositionGraphBuilder = new CompositionGraphBuilder(idWrapperDiscriminator);
+        this.compositionGraphBuilder = new CompositionGraphBuilder();
         this.anomalyDetector = new AnomalyDetector();
     }
 

@@ -13,7 +13,6 @@
 
 package io.hexaglue.core.graph.composition;
 
-import io.hexaglue.core.classification.discriminator.IdWrapperDiscriminator;
 import io.hexaglue.core.frontend.JavaField;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.JavaType;
@@ -53,16 +52,10 @@ public final class CompositionGraphBuilder {
             "java.util.Deque",
             "java.lang.Iterable");
 
-    private final IdWrapperDiscriminator idWrapperDiscriminator;
-
     /**
-     * Creates a new builder with the given ID wrapper discriminator.
-     *
-     * @param idWrapperDiscriminator the discriminator for detecting ID wrappers
+     * Creates a new builder.
      */
-    public CompositionGraphBuilder(IdWrapperDiscriminator idWrapperDiscriminator) {
-        this.idWrapperDiscriminator = Objects.requireNonNull(idWrapperDiscriminator, "idWrapperDiscriminator required");
-    }
+    public CompositionGraphBuilder() {}
 
     /**
      * Builds a composition graph from the given semantic model.
@@ -238,11 +231,11 @@ public final class CompositionGraphBuilder {
     }
 
     /**
-     * Creates a builder with default ID wrapper discriminator.
+     * Creates a new builder instance.
      *
      * @return a new builder instance
      */
-    public static CompositionGraphBuilder withDefaults() {
-        return new CompositionGraphBuilder(new IdWrapperDiscriminator());
+    public static CompositionGraphBuilder create() {
+        return new CompositionGraphBuilder();
     }
 }
