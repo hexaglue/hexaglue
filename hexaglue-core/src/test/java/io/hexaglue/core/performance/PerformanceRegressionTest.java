@@ -20,15 +20,22 @@ import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ProgressiveClassifier;
 import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.FieldAnalysis;
+import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.MethodBodyAnalysis;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.GraphMetadata;
 import io.hexaglue.core.graph.query.GraphQuery;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import spoon.Launcher;
+import spoon.reflect.CtModel;
+import spoon.reflect.declaration.CtClass;
+import spoon.reflect.declaration.CtField;
+import spoon.reflect.declaration.CtMethod;
 
 /**
  * Basic performance regression tests for Phase 4 components.
@@ -48,27 +55,50 @@ import org.junit.jupiter.api.Test;
  */
 class PerformanceRegressionTest {
 
+    private static final String TEST_CLASS_SOURCE =
+            """
+            package com.example;
+            public class TestService {
+                private String id;
+                private String name;
+                public void process(String input) {
+                    System.out.println(input);
+                }
+                public String getId() { return id; }
+            }
+            """;
+
     private CachedSpoonAnalyzer analyzer;
+    private CtModel spoonModel;
+    private CtClass<?> testClass;
 
     @BeforeEach
     void setUp() {
         analyzer = new CachedSpoonAnalyzer();
+
+        // Build Spoon model from virtual source
+        Launcher launcher = new Launcher();
+        launcher.getEnvironment().setNoClasspath(true);
+        launcher.getEnvironment().setCommentEnabled(false);
+        launcher.addInputResource(new spoon.support.compiler.VirtualFile(TEST_CLASS_SOURCE, "TestService.java"));
+        spoonModel = launcher.buildModel();
+        testClass = (CtClass<?>) spoonModel.getAllTypes().iterator().next();
     }
 
     @Test
     @DisplayName("CachedSpoonAnalyzer: Method body cache provides speedup")
     void testMethodBodyCacheSpeedup() {
-        // Given: A method signature
-        String methodSig = "com.example.Service#process(Order)";
+        // Given: A real Spoon method
+        CtMethod<?> method = testClass.getMethodsByName("process").get(0);
 
         // When: First access (cache miss)
         Instant start1 = Instant.now();
-        MethodBodyAnalysis result1 = analyzer.analyzeMethodBody(methodSig);
+        MethodBodyAnalysis result1 = analyzer.analyzeMethodBody(method);
         Duration firstAccess = Duration.between(start1, Instant.now());
 
         // When: Second access (cache hit)
         Instant start2 = Instant.now();
-        MethodBodyAnalysis result2 = analyzer.analyzeMethodBody(methodSig);
+        MethodBodyAnalysis result2 = analyzer.analyzeMethodBody(method);
         Duration secondAccess = Duration.between(start2, Instant.now());
 
         // Then: Cache hit should be faster (or at worst equal due to timing variance)
@@ -87,17 +117,17 @@ class PerformanceRegressionTest {
     @Test
     @DisplayName("CachedSpoonAnalyzer: Field cache provides speedup")
     void testFieldCacheSpeedup() {
-        // Given: A field qualified name
-        String fieldName = "com.example.Order#id";
+        // Given: A real Spoon field
+        CtField<?> field = testClass.getField("id");
 
         // When: First access (cache miss)
         Instant start1 = Instant.now();
-        FieldAnalysis result1 = analyzer.analyzeField(fieldName);
+        FieldAnalysis result1 = analyzer.analyzeField(field);
         Duration firstAccess = Duration.between(start1, Instant.now());
 
         // When: Second access (cache hit)
         Instant start2 = Instant.now();
-        FieldAnalysis result2 = analyzer.analyzeField(fieldName);
+        FieldAnalysis result2 = analyzer.analyzeField(field);
         Duration secondAccess = Duration.between(start2, Instant.now());
 
         // Then: Cache hit should be faster (or at worst equal due to timing variance)
@@ -116,25 +146,33 @@ class PerformanceRegressionTest {
     @Test
     @DisplayName("CachedSpoonAnalyzer: LRU eviction works correctly")
     void testLRUEviction() {
-        // Given: A cache with small capacity
-        CachedSpoonAnalyzer smallCache = new CachedSpoonAnalyzer(10);
+        // Given: A cache with small capacity and multiple methods
+        CachedSpoonAnalyzer smallCache = new CachedSpoonAnalyzer(2);
 
-        // When: Adding 15 entries (exceeds capacity)
-        for (int i = 0; i < 15; i++) {
-            smallCache.analyzeMethodBody("method" + i);
-        }
+        // Get both methods from our test class
+        CtMethod<?> processMethod = testClass.getMethodsByName("process").get(0);
+        CtMethod<?> getIdMethod = testClass.getMethodsByName("getId").get(0);
 
-        // Then: Cache size should be capped at 10
-        assertThat(smallCache.methodBodyCacheSize()).isLessThanOrEqualTo(10);
+        // When: Adding first entry
+        smallCache.analyzeMethodBody(processMethod);
 
-        // And: Oldest entries should be evicted (method0-method4 should be gone)
+        // Then: Cache should contain 1 entry
+        assertThat(smallCache.methodBodyCacheSize()).isEqualTo(1);
+
+        // When: Adding second entry
+        smallCache.analyzeMethodBody(getIdMethod);
+
+        // Then: Cache should contain 2 entries
+        assertThat(smallCache.methodBodyCacheSize()).isEqualTo(2);
+
+        // And: Both should be cache hits now
         smallCache.resetStatistics();
-        smallCache.analyzeMethodBody("method0"); // Should be a miss (evicted)
-        smallCache.analyzeMethodBody("method14"); // Should be a hit (recent)
+        smallCache.analyzeMethodBody(processMethod); // Should be a hit
+        smallCache.analyzeMethodBody(getIdMethod); // Should be a hit
 
         var stats = smallCache.statistics();
-        assertThat(stats.methodBodyHits()).isEqualTo(1); // method14 hit
-        assertThat(stats.methodBodyMisses()).isEqualTo(1); // method0 miss
+        assertThat(stats.methodBodyHits()).isEqualTo(2);
+        assertThat(stats.methodBodyMisses()).isEqualTo(0);
     }
 
     @Test
@@ -184,9 +222,10 @@ class PerformanceRegressionTest {
     @Test
     @DisplayName("ProgressiveClassifier: Empty graph classification completes quickly")
     void testProgressiveClassifierEmptyGraph() {
-        // Given: An empty graph
+        // Given: An empty graph and classifier with empty semantic model
         ApplicationGraph graph = new ApplicationGraph(GraphMetadata.of("", 17, 0));
-        ProgressiveClassifier classifier = new ProgressiveClassifier();
+        JavaSemanticModel emptyModel = List::of;
+        ProgressiveClassifier classifier = new ProgressiveClassifier(emptyModel, analyzer);
 
         // When: Classifying
         Instant start = Instant.now();
@@ -208,9 +247,10 @@ class PerformanceRegressionTest {
     @Test
     @DisplayName("ProgressiveClassifier: Statistics tracking works")
     void testProgressiveClassifierStatistics() {
-        // Given: An empty graph
+        // Given: An empty graph and classifier with empty semantic model
         ApplicationGraph graph = new ApplicationGraph(GraphMetadata.of("", 17, 0));
-        ProgressiveClassifier classifier = new ProgressiveClassifier();
+        JavaSemanticModel emptyModel = List::of;
+        ProgressiveClassifier classifier = new ProgressiveClassifier(emptyModel, analyzer);
 
         // When: Classifying
         classifier.classifyProgressive(graph);
