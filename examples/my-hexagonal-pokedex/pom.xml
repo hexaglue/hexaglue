@@ -15,7 +15,7 @@
     <description>my-hexagonal-pokedex</description>
     <properties>
         <java.version>17</java.version>
-        <hexaglue.version>2.0.0-SNAPSHOT</hexaglue.version>
+        <hexaglue.version>3.0.0-SNAPSHOT</hexaglue.version>
     </properties>
     <dependencies>
         <dependency>
@@ -90,7 +90,7 @@
                 <executions>
                     <execution>
                         <goals>
-                            <goal>generate</goal>
+                            <goal>generate-and-audit</goal>
                         </goals>
                     </execution>
                 </executions>
@@ -109,6 +109,18 @@
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-jpa</artifactId>
                         <version>1.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <!-- DDD Audit Plugin -->
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-audit</artifactId>
+                        <version>1.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
+                    <dependency>
+                        <groupId>jakarta.persistence</groupId>
+                        <artifactId>jakarta.persistence-api</artifactId>
+                        <version>3.2.0</version>
                     </dependency>
                 </dependencies>
             </plugin>

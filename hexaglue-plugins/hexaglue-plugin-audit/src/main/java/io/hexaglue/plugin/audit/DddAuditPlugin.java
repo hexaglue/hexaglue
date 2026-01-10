@@ -13,9 +13,12 @@
 
 package io.hexaglue.plugin.audit;
 
+import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.PortCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.report.ConsoleReportGenerator;
 import io.hexaglue.plugin.audit.adapter.report.ReportFormat;
@@ -266,22 +269,30 @@ public class DddAuditPlugin implements AuditPlugin {
      * Builds the map of metric calculators.
      *
      * <p>Provides quality metrics for aggregate size, coupling, domain coverage,
-     * and port coverage. Each metric has defined thresholds that trigger warnings
-     * when exceeded.
+     * domain purity, port coverage, and boilerplate ratio. Each metric has defined
+     * thresholds that trigger warnings when exceeded.
      *
      * @return map of metric name to calculator
      */
     private Map<String, MetricCalculator> buildCalculatorMap() {
+        AggregateBoundaryMetricCalculator aggregateBoundaryMetric = new AggregateBoundaryMetricCalculator();
         AggregateMetricCalculator aggregateMetric = new AggregateMetricCalculator();
+        BoilerplateMetricCalculator boilerplateMetric = new BoilerplateMetricCalculator();
         CouplingMetricCalculator couplingMetric = new CouplingMetricCalculator();
         DomainCoverageMetricCalculator domainCoverageMetric = new DomainCoverageMetricCalculator();
+        DomainPurityMetricCalculator domainPurityMetric = new DomainPurityMetricCalculator();
         PortCoverageMetricCalculator portCoverageMetric = new PortCoverageMetricCalculator();
 
-        return Map.of(
-                aggregateMetric.metricName(), aggregateMetric,
-                couplingMetric.metricName(), couplingMetric,
-                domainCoverageMetric.metricName(), domainCoverageMetric,
-                portCoverageMetric.metricName(), portCoverageMetric);
+        Map<String, MetricCalculator> map = new HashMap<>();
+        map.put(aggregateBoundaryMetric.metricName(), aggregateBoundaryMetric);
+        map.put(aggregateMetric.metricName(), aggregateMetric);
+        map.put(boilerplateMetric.metricName(), boilerplateMetric);
+        map.put(couplingMetric.metricName(), couplingMetric);
+        map.put(domainCoverageMetric.metricName(), domainCoverageMetric);
+        map.put(domainPurityMetric.metricName(), domainPurityMetric);
+        map.put(portCoverageMetric.metricName(), portCoverageMetric);
+
+        return map;
     }
 
     /**
@@ -314,7 +325,8 @@ public class DddAuditPlugin implements AuditPlugin {
             AuditConfiguration config = AuditConfiguration.fromPluginConfig(context.config());
 
             // Execute audit (returns snapshot, result, and query for report generation)
-            AuditExecutionResult executionResult = executeDomainAudit(codebase, coreQuery, config, context.diagnostics());
+            AuditExecutionResult executionResult =
+                    executeDomainAudit(codebase, coreQuery, config, context.diagnostics());
 
             // Generate reports using the execution result
             generateReports(executionResult, context);
@@ -324,7 +336,9 @@ public class DddAuditPlugin implements AuditPlugin {
 
             // Report if failed
             if (!executionResult.snapshot().passed()) {
-                context.diagnostics().warn("Audit found %d errors".formatted(executionResult.snapshot().errorCount()));
+                context.diagnostics()
+                        .warn("Audit found %d errors"
+                                .formatted(executionResult.snapshot().errorCount()));
             }
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
@@ -348,7 +362,8 @@ public class DddAuditPlugin implements AuditPlugin {
             Codebase codebase,
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery,
             AuditConfiguration config,
-            io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) throws Exception {
+            io.hexaglue.spi.plugin.DiagnosticReporter diagnostics)
+            throws Exception {
 
         Instant startTime = Instant.now();
 
@@ -490,26 +505,50 @@ public class DddAuditPlugin implements AuditPlugin {
      * Builds a Codebase from IrSnapshot.
      *
      * <p>This converts the domain model and port model into code units that can
-     * be audited.
+     * be audited. The conversion handles:
+     * <ul>
+     *   <li>Layer classification based on DomainKind</li>
+     *   <li>Role mapping for validators</li>
+     *   <li>Field annotations for identity detection</li>
+     *   <li>Synthetic method generation for setter detection</li>
+     * </ul>
      */
     private Codebase buildCodebaseFromIr(IrSnapshot ir) {
         List<CodeUnit> units = new ArrayList<>();
 
         // Convert domain types to code units
         for (DomainType type : ir.domain().types()) {
+            // Build field declarations with annotations for identity detection
             List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = type.properties().stream()
                     .map(prop -> new io.hexaglue.spi.audit.FieldDeclaration(
-                            prop.name(), prop.type().qualifiedName(), Set.of(), Set.of()))
+                            prop.name(),
+                            prop.type().qualifiedName(),
+                            Set.of(), // modifiers
+                            prop.isIdentity() ? Set.of("Id") : Set.of()))
                     .toList();
 
-            CodeMetrics codeMetrics = new CodeMetrics(0, 0, 0, fieldDecls.size(), 100.0);
+            // Synthesize method declarations from properties for setter detection
+            List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                    synthesizeMethodsFromProperties(type.properties(), type.construct());
+
+            CodeMetrics codeMetrics =
+                    new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
+
+            // Determine layer based on DomainKind
+            LayerClassification layer = layerFromDomainKind(type.kind());
+
+            // Determine code unit kind
+            CodeUnitKind unitKind =
+                    type.construct() == io.hexaglue.spi.ir.JavaConstruct.RECORD
+                            ? CodeUnitKind.RECORD
+                            : CodeUnitKind.CLASS;
 
             units.add(new CodeUnit(
                     type.qualifiedName(),
-                    CodeUnitKind.CLASS,
-                    LayerClassification.DOMAIN,
+                    unitKind,
+                    layer,
                     roleFromDomainKind(type.kind()),
-                    List.of(), // methods - not available in current IR
+                    methodDecls,
                     fieldDecls,
                     codeMetrics,
                     new DocumentationInfo(false, 0, List.of())));
@@ -541,23 +580,107 @@ public class DddAuditPlugin implements AuditPlugin {
                     new DocumentationInfo(false, 0, List.of())));
         }
 
-        // Build dependency map from IR
+        // Build dependency map from IR (includes annotations for purity checking)
         Map<String, java.util.Set<String>> dependencies = extractDependencies(ir);
 
         return new Codebase("audit-target", inferBasePackage(units), units, dependencies);
     }
 
     /**
+     * Synthesizes method declarations from domain properties.
+     *
+     * <p>For non-record types, generates getter method declarations based on property names.
+     * This provides method information for validators that need it.
+     *
+     * <p>Note: We do NOT synthesize setter methods because:
+     * <ul>
+     *   <li>We cannot reliably detect if setters actually exist in the source</li>
+     *   <li>Synthesizing setters for all classes would create false positives</li>
+     *   <li>The ValueObjectImmutabilityValidator requires actual method info from the IR</li>
+     * </ul>
+     *
+     * <p>Records are assumed to have no setters (immutable by design) and only have
+     * accessor methods matching property names.
+     *
+     * @param properties the domain properties
+     * @param construct the Java construct (RECORD, CLASS, etc.)
+     * @return synthesized method declarations (getters only)
+     */
+    private List<io.hexaglue.spi.audit.MethodDeclaration> synthesizeMethodsFromProperties(
+            List<io.hexaglue.spi.ir.DomainProperty> properties,
+            io.hexaglue.spi.ir.JavaConstruct construct) {
+
+        List<io.hexaglue.spi.audit.MethodDeclaration> methods = new ArrayList<>();
+
+        for (io.hexaglue.spi.ir.DomainProperty prop : properties) {
+            String propName = prop.name();
+
+            if (construct == io.hexaglue.spi.ir.JavaConstruct.RECORD) {
+                // Records have accessor methods with the same name as the property
+                methods.add(new io.hexaglue.spi.audit.MethodDeclaration(
+                        propName,
+                        prop.type().qualifiedName(),
+                        List.of(),
+                        Set.of("public"),
+                        Set.of(),
+                        1));
+            } else {
+                // Regular classes typically have getXxx() methods
+                String capitalizedName = propName.substring(0, 1).toUpperCase() + propName.substring(1);
+                methods.add(new io.hexaglue.spi.audit.MethodDeclaration(
+                        "get" + capitalizedName,
+                        prop.type().qualifiedName(),
+                        List.of(),
+                        Set.of("public"),
+                        Set.of(),
+                        1));
+            }
+        }
+
+        return methods;
+    }
+
+    /**
+     * Determines the architectural layer from DomainKind.
+     *
+     * <p>Mapping:
+     * <ul>
+     *   <li>AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE → DOMAIN</li>
+     *   <li>APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA → APPLICATION</li>
+     * </ul>
+     *
+     * @param kind the domain kind
+     * @return the corresponding layer classification
+     */
+    private LayerClassification layerFromDomainKind(DomainKind kind) {
+        return switch (kind) {
+            case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE -> LayerClassification
+                    .DOMAIN;
+            case APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> LayerClassification.APPLICATION;
+        };
+    }
+
+    /**
      * Converts DomainKind to RoleClassification.
+     *
+     * <p>Mapping:
+     * <ul>
+     *   <li>AGGREGATE_ROOT → AGGREGATE_ROOT</li>
+     *   <li>ENTITY → ENTITY</li>
+     *   <li>VALUE_OBJECT, IDENTIFIER → VALUE_OBJECT</li>
+     *   <li>DOMAIN_EVENT → VALUE_OBJECT (events are immutable facts, semantically value objects)</li>
+     *   <li>DOMAIN_SERVICE, APPLICATION_SERVICE → SERVICE</li>
+     *   <li>Others → UNKNOWN</li>
+     * </ul>
      */
     private RoleClassification roleFromDomainKind(DomainKind kind) {
         return switch (kind) {
             case AGGREGATE_ROOT -> RoleClassification.AGGREGATE_ROOT;
             case ENTITY -> RoleClassification.ENTITY;
-            case VALUE_OBJECT -> RoleClassification.VALUE_OBJECT;
-            case DOMAIN_SERVICE -> RoleClassification.SERVICE;
-            case DOMAIN_EVENT -> RoleClassification.UNKNOWN; // No EVENT in RoleClassification
-            default -> RoleClassification.UNKNOWN;
+            case VALUE_OBJECT, IDENTIFIER -> RoleClassification.VALUE_OBJECT;
+            case DOMAIN_EVENT -> RoleClassification.VALUE_OBJECT; // Events are immutable facts
+            case DOMAIN_SERVICE, APPLICATION_SERVICE -> RoleClassification.SERVICE;
+            case INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> RoleClassification.UNKNOWN;
         };
     }
 
@@ -571,6 +694,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * <ul>
      *   <li>Domain relations (OneToMany, ManyToOne, etc.)</li>
      *   <li>Properties with non-primitive types</li>
+     *   <li>Annotations on the type (for domain purity checking)</li>
      * </ul>
      *
      * @param ir the IR snapshot
@@ -594,6 +718,13 @@ public class DddAuditPlugin implements AuditPlugin {
                 if (!isPrimitive(propType)) {
                     typeDeps.add(propType);
                 }
+            }
+
+            // From annotations (for domain purity validation)
+            // Annotations like jakarta.validation.constraints.Email indicate
+            // infrastructure dependencies in the domain layer
+            for (String annotation : type.annotations()) {
+                typeDeps.add(annotation);
             }
 
             deps.put(type.qualifiedName(), typeDeps);
