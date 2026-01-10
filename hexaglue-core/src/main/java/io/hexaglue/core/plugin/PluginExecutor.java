@@ -280,14 +280,27 @@ public final class PluginExecutor {
                     elapsed,
                     writer.getGeneratedFiles().size());
 
+            // Capture plugin outputs for retrieval by the engine/mojos
+            Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
+
             return new PluginResult(
-                    pluginId, true, writer.getGeneratedFiles(), diagnostics.getDiagnostics(), elapsed, null);
+                    pluginId,
+                    true,
+                    writer.getGeneratedFiles(),
+                    diagnostics.getDiagnostics(),
+                    elapsed,
+                    null,
+                    pluginOutputs);
 
         } catch (Exception e) {
             log.error("Plugin {} failed: {}", pluginId, e.getMessage(), e);
             diagnostics.error("Plugin execution failed: " + e.getMessage(), e);
 
-            return new PluginResult(pluginId, false, writer.getGeneratedFiles(), diagnostics.getDiagnostics(), 0, e);
+            // Capture outputs even on failure (partial outputs may exist)
+            Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
+
+            return new PluginResult(
+                    pluginId, false, writer.getGeneratedFiles(), diagnostics.getDiagnostics(), 0, e, pluginOutputs);
         }
     }
 }

@@ -17,6 +17,9 @@ import io.hexaglue.core.engine.Diagnostic;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
+import io.hexaglue.core.plugin.PluginCyclicDependencyException;
+import io.hexaglue.core.plugin.PluginDependencyException;
+import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -26,6 +29,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -121,7 +125,14 @@ public class HexaGlueMojo extends AbstractMojo {
         EngineConfig config = buildConfig();
         HexaGlueEngine engine = HexaGlueEngine.create();
 
-        EngineResult result = engine.analyze(config);
+        EngineResult result;
+        try {
+            result = engine.analyze(config);
+        } catch (PluginDependencyException e) {
+            throw new MojoExecutionException("Plugin dependency error: " + e.getMessage(), e);
+        } catch (PluginCyclicDependencyException e) {
+            throw new MojoExecutionException("Cyclic plugin dependency detected: " + e.getMessage(), e);
+        }
 
         // Log diagnostics
         for (Diagnostic diag : result.diagnostics()) {
@@ -182,7 +193,8 @@ public class HexaGlueMojo extends AbstractMojo {
                 outputDirectory.toPath(),
                 pluginConfigs,
                 Map.of(), // options
-                classificationProfile);
+                classificationProfile,
+                Set.of(PluginCategory.GENERATOR)); // Only run generator plugins
     }
 
     /**

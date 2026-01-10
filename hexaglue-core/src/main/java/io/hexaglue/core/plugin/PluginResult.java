@@ -15,6 +15,7 @@ package io.hexaglue.core.plugin;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Result of executing a single plugin.
@@ -25,6 +26,7 @@ import java.util.List;
  * @param diagnostics diagnostics reported by the plugin
  * @param executionTimeMs execution time in milliseconds
  * @param error the exception if execution failed, null otherwise
+ * @param outputs plugin outputs stored via setOutput() during execution
  */
 public record PluginResult(
         String pluginId,
@@ -32,7 +34,15 @@ public record PluginResult(
         List<Path> generatedFiles,
         List<PluginDiagnostic> diagnostics,
         long executionTimeMs,
-        Throwable error) {
+        Throwable error,
+        Map<String, Object> outputs) {
+
+    /**
+     * Compact constructor that ensures outputs is never null.
+     */
+    public PluginResult {
+        outputs = outputs != null ? Map.copyOf(outputs) : Map.of();
+    }
 
     /**
      * Returns all error diagnostics.
@@ -50,6 +60,6 @@ public record PluginResult(
      */
     public static PluginResult skipped(String pluginId, String reason) {
         PluginDiagnostic diagnostic = new PluginDiagnostic(PluginDiagnostic.Severity.WARNING, reason, null);
-        return new PluginResult(pluginId, false, List.of(), List.of(diagnostic), 0, null);
+        return new PluginResult(pluginId, false, List.of(), List.of(diagnostic), 0, null, Map.of());
     }
 }
