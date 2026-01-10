@@ -65,4 +65,15 @@ final class PluginOutputStore {
 
         return Optional.empty();
     }
+
+    /**
+     * Retrieves all outputs stored by a plugin.
+     *
+     * @param pluginId the plugin that stored the outputs
+     * @return an immutable copy of all outputs, or empty map if none
+     */
+    Map<String, Object> getAll(String pluginId) {
+        Map<String, Object> pluginOutputs = outputs.get(pluginId);
+        return pluginOutputs != null ? Map.copyOf(pluginOutputs) : Map.of();
+    }
 }

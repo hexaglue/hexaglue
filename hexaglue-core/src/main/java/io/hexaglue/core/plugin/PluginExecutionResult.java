@@ -15,6 +15,8 @@ package io.hexaglue.core.plugin;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * Result of executing all plugins.
@@ -63,5 +65,42 @@ public record PluginExecutionResult(List<PluginResult> pluginResults) {
      */
     public int pluginCount() {
         return pluginResults.size();
+    }
+
+    /**
+     * Gets the outputs from a specific plugin.
+     *
+     * @param pluginId the plugin identifier
+     * @return the plugin outputs, or empty map if not found
+     */
+    public Map<String, Object> getPluginOutputs(String pluginId) {
+        return pluginResults.stream()
+                .filter(r -> r.pluginId().equals(pluginId))
+                .findFirst()
+                .map(PluginResult::outputs)
+                .orElse(Map.of());
+    }
+
+    /**
+     * Gets a typed output from any plugin that provides it.
+     *
+     * <p>Searches all plugin results for an output with the given key and type.
+     * This is useful for retrieving shared data like AuditSnapshot without
+     * knowing which specific plugin produced it.
+     *
+     * @param key the output key
+     * @param type the expected type
+     * @param <T> the value type
+     * @return the output value, or empty if not found or wrong type
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Optional<T> findOutput(String key, Class<T> type) {
+        for (PluginResult result : pluginResults) {
+            Object value = result.outputs().get(key);
+            if (value != null && type.isInstance(value)) {
+                return Optional.of((T) value);
+            }
+        }
+        return Optional.empty();
     }
 }

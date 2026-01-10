@@ -18,13 +18,18 @@ import io.hexaglue.core.engine.Diagnostic;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
+import io.hexaglue.core.plugin.PluginCyclicDependencyException;
+import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.audit.AuditSnapshot;
+import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -154,7 +159,14 @@ public class AuditMojo extends AbstractMojo {
         HexaGlueEngine engine = HexaGlueEngine.create();
 
         // Run analysis
-        EngineResult result = engine.analyze(config);
+        EngineResult result;
+        try {
+            result = engine.analyze(config);
+        } catch (PluginDependencyException e) {
+            throw new MojoExecutionException("Plugin dependency error: " + e.getMessage(), e);
+        } catch (PluginCyclicDependencyException e) {
+            throw new MojoExecutionException("Cyclic plugin dependency detected: " + e.getMessage(), e);
+        }
 
         // Log diagnostics
         for (Diagnostic diag : result.diagnostics()) {
@@ -223,21 +235,27 @@ public class AuditMojo extends AbstractMojo {
                 classpath,
                 javaVersion,
                 basePackage,
-                null, // No code generation in audit mode
+                reportDirectory.toPath(), // Audit plugins need output directory for reports
                 pluginConfigs,
                 Map.of(),
-                classificationProfile);
+                classificationProfile,
+                Set.of(PluginCategory.AUDIT)); // Only run audit plugins
     }
 
     private AuditSnapshot extractAuditSnapshot(EngineResult result) {
-        // In a real implementation, the audit snapshot would be obtained from
-        // the plugin execution result. For now, this is a placeholder.
-        // The actual integration depends on how audit plugins expose their results.
+        if (result.pluginResult() == null) {
+            getLog().debug("No plugin execution result available");
+            return null;
+        }
 
-        // This method should extract the AuditSnapshot from the PluginExecutionResult
-        // when audit plugins are properly integrated with the engine.
+        // Try to find audit-snapshot from any audit plugin
+        Optional<AuditSnapshot> snapshot = result.pluginResult().findOutput("audit-snapshot", AuditSnapshot.class);
 
-        getLog().warn("AuditSnapshot extraction not fully implemented - requires engine integration");
+        if (snapshot.isPresent()) {
+            return snapshot.get();
+        }
+
+        getLog().warn("No audit plugin produced an AuditSnapshot - " + "ensure an audit plugin is on the classpath");
         return null;
     }
 

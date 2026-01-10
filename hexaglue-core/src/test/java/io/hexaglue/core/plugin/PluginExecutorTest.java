@@ -236,7 +236,7 @@ class PluginExecutorTest {
                 new PluginDiagnostic(PluginDiagnostic.Severity.WARNING, "warn", null),
                 new PluginDiagnostic(PluginDiagnostic.Severity.ERROR, "error2", null));
 
-        PluginResult result = new PluginResult("test", true, List.of(), diagnostics, 100, null);
+        PluginResult result = new PluginResult("test", true, List.of(), diagnostics, 100, null, Map.of());
 
         // Then
         assertThat(result.errors()).hasSize(2);
@@ -256,7 +256,8 @@ class PluginExecutorTest {
                 List.of(file1, file2),
                 List.of(new PluginDiagnostic(PluginDiagnostic.Severity.INFO, "info", null)),
                 50,
-                null);
+                null,
+                Map.of());
 
         PluginResult result2 = new PluginResult(
                 "plugin2",
@@ -264,7 +265,8 @@ class PluginExecutorTest {
                 List.of(file3),
                 List.of(new PluginDiagnostic(PluginDiagnostic.Severity.ERROR, "error", null)),
                 30,
-                null);
+                null,
+                Map.of());
 
         PluginExecutionResult execResult = new PluginExecutionResult(List.of(result1, result2));
 
@@ -279,8 +281,8 @@ class PluginExecutorTest {
     @Test
     void pluginExecutionResult_isSuccessFalse_whenPluginFails() {
         // Given
-        PluginResult success = new PluginResult("p1", true, List.of(), List.of(), 10, null);
-        PluginResult failure = new PluginResult("p2", false, List.of(), List.of(), 5, new RuntimeException());
+        PluginResult success = new PluginResult("p1", true, List.of(), List.of(), 10, null, Map.of());
+        PluginResult failure = new PluginResult("p2", false, List.of(), List.of(), 5, new RuntimeException(), Map.of());
 
         PluginExecutionResult result = new PluginExecutionResult(List.of(success, failure));
 

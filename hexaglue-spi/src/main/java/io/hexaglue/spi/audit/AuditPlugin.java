@@ -99,6 +99,9 @@ public interface AuditPlugin extends HexaGluePlugin {
      * {@link AuditContext} required by audit plugins. The implementation builds
      * a codebase representation from the classification snapshot.
      *
+     * <p>The resulting {@link AuditSnapshot} is stored in the plugin output store
+     * under the key {@code "audit-snapshot"} for retrieval by the engine/mojos.
+     *
      * @param context the generic plugin context
      */
     @Override
@@ -116,8 +119,13 @@ public interface AuditPlugin extends HexaGluePlugin {
                     context.config(),
                     context.architectureQuery().orElse(null));
 
-            // Execute the audit
-            audit(auditContext);
+            // Execute the audit and capture the snapshot
+            AuditSnapshot snapshot = audit(auditContext);
+
+            // Store the snapshot for retrieval by the engine/mojos
+            if (snapshot != null) {
+                context.setOutput("audit-snapshot", snapshot);
+            }
 
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
