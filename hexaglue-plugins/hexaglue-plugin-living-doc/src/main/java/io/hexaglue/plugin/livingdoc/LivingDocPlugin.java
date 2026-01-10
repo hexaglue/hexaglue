@@ -17,13 +17,12 @@ import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
+import io.hexaglue.spi.generation.ArtifactWriter;
+import io.hexaglue.spi.generation.GeneratorContext;
+import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
-import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginConfig;
-import io.hexaglue.spi.plugin.PluginContext;
-import java.io.IOException;
 
 /**
  * Living Documentation plugin for HexaGlue.
@@ -42,7 +41,7 @@ import java.io.IOException;
  *   <li>{@code generateDiagrams} - whether to generate Mermaid diagrams (default: true)</li>
  * </ul>
  */
-public final class LivingDocPlugin implements HexaGluePlugin {
+public final class LivingDocPlugin implements GeneratorPlugin {
 
     /** Plugin identifier. */
     public static final String PLUGIN_ID = "io.hexaglue.plugin.livingdoc";
@@ -53,10 +52,10 @@ public final class LivingDocPlugin implements HexaGluePlugin {
     }
 
     @Override
-    public void execute(PluginContext context) {
+    public void generate(GeneratorContext context) throws Exception {
         IrSnapshot ir = context.ir();
         PluginConfig config = context.config();
-        CodeWriter writer = context.writer();
+        ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
         if (ir.isEmpty()) {
@@ -75,37 +74,32 @@ public final class LivingDocPlugin implements HexaGluePlugin {
         DomainDocGenerator domainGen = new DomainDocGenerator(ir);
         PortDocGenerator portGen = new PortDocGenerator(ir);
 
-        try {
-            // Generate README/overview
-            String readme = overviewGen.generate(generateDiagrams);
-            writer.writeDoc(outputDir + "/README.md", readme);
-            diagnostics.info("Generated architecture overview");
+        // Generate README/overview
+        String readme = overviewGen.generate(generateDiagrams);
+        writer.writeDoc(outputDir + "/README.md", readme);
+        diagnostics.info("Generated architecture overview");
 
-            // Generate domain documentation
-            String domainDoc = domainGen.generate();
-            writer.writeDoc(outputDir + "/domain.md", domainDoc);
-            diagnostics.info("Generated domain model documentation");
+        // Generate domain documentation
+        String domainDoc = domainGen.generate();
+        writer.writeDoc(outputDir + "/domain.md", domainDoc);
+        diagnostics.info("Generated domain model documentation");
 
-            // Generate ports documentation
-            String portsDoc = portGen.generate();
-            writer.writeDoc(outputDir + "/ports.md", portsDoc);
-            diagnostics.info("Generated ports documentation");
+        // Generate ports documentation
+        String portsDoc = portGen.generate();
+        writer.writeDoc(outputDir + "/ports.md", portsDoc);
+        diagnostics.info("Generated ports documentation");
 
-            // Generate diagrams if enabled
-            if (generateDiagrams) {
-                DiagramGenerator diagramGen = new DiagramGenerator(ir);
-                String diagrams = diagramGen.generate();
-                writer.writeDoc(outputDir + "/diagrams.md", diagrams);
-                diagnostics.info("Generated architecture diagrams");
-            }
-
-            int typeCount = ir.domain().types().size();
-            int portCount = ir.ports().ports().size();
-            diagnostics.info(String.format(
-                    "Living documentation complete: %d domain types, %d ports documented", typeCount, portCount));
-
-        } catch (IOException e) {
-            diagnostics.error("Failed to generate documentation", e);
+        // Generate diagrams if enabled
+        if (generateDiagrams) {
+            DiagramGenerator diagramGen = new DiagramGenerator(ir);
+            String diagrams = diagramGen.generate();
+            writer.writeDoc(outputDir + "/diagrams.md", diagrams);
+            diagnostics.info("Generated architecture diagrams");
         }
+
+        int typeCount = ir.domain().types().size();
+        int portCount = ir.ports().ports().size();
+        diagnostics.info(String.format(
+                "Living documentation complete: %d domain types, %d ports documented", typeCount, portCount));
     }
 }

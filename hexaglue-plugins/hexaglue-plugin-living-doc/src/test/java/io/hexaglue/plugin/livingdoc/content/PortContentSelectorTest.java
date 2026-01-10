@@ -289,6 +289,7 @@ class PortContentSelectorTest {
                     io.hexaglue.spi.ir.PortDirection.DRIVING,
                     io.hexaglue.spi.ir.ConfidenceLevel.LOW,
                     List.of(),
+                    null,
                     List.of(),
                     List.of(),
                     io.hexaglue.spi.ir.SourceRef.unknown());

@@ -31,11 +31,11 @@ import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortKind;
-import io.hexaglue.spi.plugin.CodeWriter;
+import io.hexaglue.spi.generation.ArtifactWriter;
+import io.hexaglue.spi.generation.GeneratorContext;
+import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
-import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginConfig;
-import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -82,7 +82,7 @@ import java.util.Optional;
  *
  * @since 2.0.0
  */
-public final class JpaPlugin implements HexaGluePlugin {
+public final class JpaPlugin implements GeneratorPlugin {
 
     /** Plugin identifier. */
     public static final String PLUGIN_ID = "io.hexaglue.plugin.jpa";
@@ -96,10 +96,10 @@ public final class JpaPlugin implements HexaGluePlugin {
     }
 
     @Override
-    public void execute(PluginContext context) {
+    public void generate(GeneratorContext context) throws Exception {
         IrSnapshot ir = context.ir();
         PluginConfig pluginConfig = context.config();
-        CodeWriter writer = context.writer();
+        ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
         if (ir.isEmpty()) {

@@ -38,6 +38,7 @@ public final class PortBuilder {
     private PortDirection direction = PortDirection.DRIVEN;
     private ConfidenceLevel confidence = ConfidenceLevel.HIGH;
     private final List<String> managedTypes = new ArrayList<>();
+    private String primaryManagedType;
     private final List<PortMethod> methods = new ArrayList<>();
     private final List<String> annotations = new ArrayList<>();
     private SourceRef sourceRef;
@@ -147,6 +148,17 @@ public final class PortBuilder {
         return this;
     }
 
+    /**
+     * Sets the primary managed type (the main aggregate managed by this port).
+     */
+    public PortBuilder primaryManaging(String typeFqn) {
+        this.primaryManagedType = typeFqn;
+        if (!managedTypes.contains(typeFqn)) {
+            managedTypes.add(typeFqn);
+        }
+        return this;
+    }
+
     // =========================================================================
     // Methods
     // =========================================================================
@@ -249,6 +261,12 @@ public final class PortBuilder {
 
         SourceRef ref = sourceRef != null ? sourceRef : SourceRef.ofLine(simpleName + ".java", 1);
 
+        // Derive primaryManagedType from first managed type if not explicitly set
+        String primary = primaryManagedType;
+        if (primary == null && !managedTypes.isEmpty()) {
+            primary = managedTypes.get(0);
+        }
+
         return new Port(
                 qualifiedName,
                 simpleName,
@@ -257,6 +275,7 @@ public final class PortBuilder {
                 direction,
                 confidence,
                 List.copyOf(managedTypes),
+                primary,
                 List.copyOf(methods),
                 List.copyOf(annotations),
                 ref);

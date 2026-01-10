@@ -13,7 +13,6 @@
 
 package io.hexaglue.plugin.audit;
 
-import io.hexaglue.plugin.audit.adapter.analyzer.DefaultArchitectureQuery;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
@@ -95,6 +94,23 @@ public class DddAuditPlugin implements AuditPlugin {
     private final ConstraintRegistry registry;
 
     /**
+     * Encapsulates the complete audit execution result for report generation.
+     *
+     * <p>This internal record packages all data needed for report generation
+     * without relying on mutable state.
+     *
+     * @param snapshot the SPI audit snapshot
+     * @param domainResult the domain audit result (for metrics)
+     * @param config the audit configuration (for constraint IDs)
+     * @param architectureQuery the architecture query from core (may be null)
+     */
+    private record AuditExecutionResult(
+            AuditSnapshot snapshot,
+            AuditResult domainResult,
+            AuditConfiguration config,
+            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery) {}
+
+    /**
      * Default constructor for ServiceLoader.
      */
     public DddAuditPlugin() {
@@ -125,8 +141,8 @@ public class DddAuditPlugin implements AuditPlugin {
         MetricAggregator metricAggregator = new MetricAggregator(buildCalculatorMap());
         AuditOrchestrator orchestrator = new AuditOrchestrator(constraintEngine, metricAggregator);
 
-        // Use core's architecture query if available, otherwise create fallback
-        var architectureQuery = context.query().orElseGet(() -> new DefaultArchitectureQuery(codebase));
+        // Use core's architecture query if available
+        var architectureQuery = context.query().orElse(null);
 
         // Execute audit with architecture query
         AuditResult result = orchestrator.executeAudit(
@@ -135,10 +151,6 @@ public class DddAuditPlugin implements AuditPlugin {
                 config.enabledConstraints(),
                 config.enabledMetrics(),
                 config.allowCriticalViolations());
-
-        // Store result for report generation (if called from execute method)
-        this.lastAuditResult = result;
-        this.lastAuditConfig = config;
 
         // Log summary
         diagnostics.info("Audit complete: %d violations, %d metrics"
@@ -153,24 +165,21 @@ public class DddAuditPlugin implements AuditPlugin {
 
         // Convert to SPI snapshot
         Duration duration = Duration.between(startTime, Instant.now());
-        return convertToAuditSnapshot(result, codebase, duration, architectureQuery);
+        return convertToAuditSnapshot(result, codebase, duration, architectureQuery, config);
     }
-
-    // Transient state for report generation
-    private AuditResult lastAuditResult;
-    private AuditConfiguration lastAuditConfig;
-
-    // Store architecture query for report generation
-    private io.hexaglue.spi.audit.ArchitectureQuery lastArchitectureQuery;
 
     /**
      * Converts domain AuditResult to SPI AuditSnapshot.
+     *
+     * <p>This method enriches the snapshot with audit configuration and result data
+     * needed for report generation.
      */
     private AuditSnapshot convertToAuditSnapshot(
             AuditResult result,
             Codebase codebase,
             Duration duration,
-            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery) {
+            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery,
+            AuditConfiguration config) {
         // Convert violations
         List<RuleViolation> ruleViolations =
                 result.violations().stream().map(this::convertViolation).toList();
@@ -180,9 +189,6 @@ public class DddAuditPlugin implements AuditPlugin {
 
         // Compute architecture metrics using the architecture query
         ArchitectureMetrics archMetrics = computeArchitectureMetrics(codebase, architectureQuery);
-
-        // Store for report generation
-        this.lastArchitectureQuery = architectureQuery;
 
         // Build metadata
         AuditMetadata metadata = new AuditMetadata(Instant.now(), "1.0.0", duration);
@@ -203,7 +209,14 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts domain Severity to SPI Severity.
+     * Maps plugin's fine-grained severity levels to SPI's coarse-grained levels.
+     *
+     * <p>Mapping:
+     * <ul>
+     *   <li>{@code BLOCKER, CRITICAL} → {@code Severity.ERROR}</li>
+     *   <li>{@code MAJOR} → {@code Severity.WARNING}</li>
+     *   <li>{@code MINOR, INFO} → {@code Severity.INFO}</li>
+     * </ul>
      */
     private io.hexaglue.spi.audit.Severity convertSeverity(Severity domainSeverity) {
         return switch (domainSeverity) {
@@ -272,11 +285,20 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Overrides execute to properly build AuditContext.
+     * Overrides execute to properly build AuditContext and generate reports.
      *
      * <p>This method adapts the generic PluginContext to AuditContext by building
      * a Codebase from the IrSnapshot. If the core's ArchitectureQuery is available,
      * it is passed through to leverage rich analysis capabilities.
+     *
+     * <p>The execution flow is stateless:
+     * <ol>
+     *   <li>Build codebase from IR</li>
+     *   <li>Load configuration</li>
+     *   <li>Execute audit to produce snapshot</li>
+     *   <li>Generate reports from snapshot and domain data</li>
+     *   <li>Store snapshot in context outputs</li>
+     * </ol>
      */
     @Override
     public void execute(PluginContext context) {
@@ -288,21 +310,21 @@ public class DddAuditPlugin implements AuditPlugin {
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery =
                     context.architectureQuery().orElse(null);
 
-            // Create audit context with core's architecture query
-            AuditContext auditContext =
-                    new AuditContext(codebase, List.of(), context.diagnostics(), context.config(), coreQuery);
+            // Load configuration
+            AuditConfiguration config = AuditConfiguration.fromPluginConfig(context.config());
 
-            // Execute audit
-            AuditSnapshot snapshot = audit(auditContext);
+            // Execute audit (returns snapshot, result, and query for report generation)
+            AuditExecutionResult executionResult = executeDomainAudit(codebase, coreQuery, config, context.diagnostics());
 
-            // Generate reports (uses lastAuditResult and lastAuditConfig set by audit method)
-            if (lastAuditResult != null && lastAuditConfig != null) {
-                generateReports(snapshot, context, lastAuditResult, lastAuditConfig);
-            }
+            // Generate reports using the execution result
+            generateReports(executionResult, context);
+
+            // Store snapshot in context outputs
+            context.setOutput("audit-snapshot", executionResult.snapshot());
 
             // Report if failed
-            if (!snapshot.passed()) {
-                context.diagnostics().warn("Audit found %d errors".formatted(snapshot.errorCount()));
+            if (!executionResult.snapshot().passed()) {
+                context.diagnostics().warn("Audit found %d errors".formatted(executionResult.snapshot().errorCount()));
             }
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
@@ -310,29 +332,86 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
+     * Executes the domain audit without mutable state.
+     *
+     * <p>This internal method orchestrates the audit execution in a stateless manner,
+     * returning all needed data for report generation.
+     *
+     * @param codebase the codebase to audit
+     * @param coreQuery the architecture query from core (may be null)
+     * @param config the audit configuration
+     * @param diagnostics the diagnostics handler
+     * @return the audit execution result containing snapshot and domain data
+     * @throws Exception if audit fails
+     */
+    private AuditExecutionResult executeDomainAudit(
+            Codebase codebase,
+            io.hexaglue.spi.audit.ArchitectureQuery coreQuery,
+            AuditConfiguration config,
+            io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) throws Exception {
+
+        Instant startTime = Instant.now();
+
+        // Build services
+        ConstraintEngine constraintEngine = new ConstraintEngine(registry.allValidators());
+        MetricAggregator metricAggregator = new MetricAggregator(buildCalculatorMap());
+        AuditOrchestrator orchestrator = new AuditOrchestrator(constraintEngine, metricAggregator);
+
+        // Execute audit with architecture query
+        AuditResult result = orchestrator.executeAudit(
+                codebase,
+                coreQuery,
+                config.enabledConstraints(),
+                config.enabledMetrics(),
+                config.allowCriticalViolations());
+
+        // Log summary
+        diagnostics.info("Audit complete: %d violations, %d metrics"
+                .formatted(result.violations().size(), result.metrics().size()));
+
+        if (result.outcome() == BuildOutcome.FAIL) {
+            long blockerCount = result.blockerCount();
+            long criticalCount = result.criticalCount();
+            diagnostics.error(
+                    "Audit FAILED: %d blocker, %d critical violations".formatted(blockerCount, criticalCount));
+        }
+
+        // Convert to SPI snapshot
+        Duration duration = Duration.between(startTime, Instant.now());
+        AuditSnapshot snapshot = convertToAuditSnapshot(result, codebase, duration, coreQuery, config);
+
+        // Return all data needed for report generation
+        return new AuditExecutionResult(snapshot, result, config, coreQuery);
+    }
+
+    /**
      * Generates audit reports in multiple formats.
      *
-     * <p>This method uses the stored architecture query to include rich
-     * architecture analysis data (cycles, layer violations, coupling metrics)
-     * in the reports when available from the core.
+     * <p>This method includes architecture analysis data (cycles, layer violations,
+     * coupling metrics) in the reports when the architecture query is available from core.
      *
-     * @param snapshot the audit snapshot
-     * @param context  the plugin context
-     * @param result   the domain audit result
-     * @param config   the audit configuration
+     * <p>All needed data is passed as parameters - no mutable state is used.
+     *
+     * @param executionResult the audit execution result
+     * @param context the plugin context (for writer access and config)
      */
-    private void generateReports(
-            AuditSnapshot snapshot, PluginContext context, AuditResult result, AuditConfiguration config) {
+    private void generateReports(AuditExecutionResult executionResult, PluginContext context) {
         try {
+            // Unpack execution result
+            AuditSnapshot snapshot = executionResult.snapshot();
+            AuditResult domainResult = executionResult.domainResult();
+            AuditConfiguration config = executionResult.config();
+            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
+
             // Build unified report model
             List<String> constraintIds = new ArrayList<>(config.enabledConstraints());
 
-            // Extract project name from IR or use a default
+            // Extract project name from IR or use codebase name
             String projectName = inferProjectName(context.ir());
 
             // Build report with architecture analysis from core
             AuditReport report =
-                    AuditReport.from(snapshot, projectName, result.metrics(), constraintIds, lastArchitectureQuery);
+                    AuditReport.from(snapshot, projectName, domainResult.metrics(), constraintIds, architectureQuery);
 
             // Always generate console output
             ConsoleReportGenerator consoleGenerator = new ConsoleReportGenerator();
