@@ -92,6 +92,7 @@ class LivingDocPluginTest {
                 PortDirection.DRIVEN,
                 ConfidenceLevel.HIGH,
                 List.of("com.example.domain.Order"),
+                "com.example.domain.Order",
                 List.of(
                         new PortMethod("findById", "Optional<Order>", List.of("OrderId")),
                         new PortMethod("save", "Order", List.of("Order"))),
@@ -106,6 +107,7 @@ class LivingDocPluginTest {
                 PortDirection.DRIVING,
                 ConfidenceLevel.MEDIUM,
                 List.of(),
+                null,
                 List.of(new PortMethod("placeOrder", "OrderId", List.of("OrderRequest"))),
                 List.of(),
                 SourceRef.unknown());

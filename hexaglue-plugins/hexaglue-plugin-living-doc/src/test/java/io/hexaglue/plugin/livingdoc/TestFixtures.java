@@ -222,6 +222,7 @@ public final class TestFixtures {
                 PortDirection.DRIVING,
                 ConfidenceLevel.HIGH,
                 managedTypes,
+                managedTypes.isEmpty() ? null : managedTypes.get(0),
                 methods,
                 List.of("org.springframework.stereotype.Service"),
                 sourceRef(packageName, name, 12, 35));
@@ -237,6 +238,7 @@ public final class TestFixtures {
                 PortDirection.DRIVEN,
                 ConfidenceLevel.HIGH,
                 managedTypes,
+                managedTypes.isEmpty() ? null : managedTypes.get(0),
                 methods,
                 List.of("org.springframework.stereotype.Repository"),
                 sourceRef(packageName, name, 8, 25));
