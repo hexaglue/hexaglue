@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.SinglePassClassifier;
 import io.hexaglue.core.classification.engine.CriteriaProfile;
 import io.hexaglue.core.classification.engine.YamlCriteriaProfile;
+import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -51,7 +52,29 @@ import org.slf4j.LoggerFactory;
  *   <li>Derive edges (DerivedEdgeComputer)</li>
  *   <li>Classify types (SinglePassClassifier - ports first, then domain)</li>
  *   <li>Export to IR (IrExporter)</li>
+ *   <li>Export primary classifications for plugin access</li>
+ *   <li>Execute plugins (if enabled):
+ *     <ul>
+ *       <li>ANALYSIS plugins can implement secondary classification</li>
+ *       <li>ENRICHMENT plugins can add semantic labels and metadata</li>
+ *       <li>GENERATOR plugins generate code artifacts</li>
+ *       <li>AUDIT plugins perform architecture compliance checks</li>
+ *     </ul>
+ *   </li>
  * </ol>
+ *
+ * <p><b>Note on Secondary Classification and Enrichment:</b>
+ * <p>Unlike the primary classification which is built into the engine pipeline,
+ * secondary classification and enrichment are implemented as plugins:
+ * <ul>
+ *   <li><b>Secondary classifiers</b> are ANALYSIS plugins that can refine or override
+ *       primary classifications by accessing primary results via the PluginOutputStore</li>
+ *   <li><b>Enrichment</b> is performed by ENRICHMENT plugins that add semantic labels
+ *       (factory methods, immutability, etc.) without generating code artifacts</li>
+ * </ul>
+ *
+ * <p>This design keeps the core engine focused on deterministic classification while
+ * allowing custom analysis and enrichment through the plugin ecosystem.
  */
 public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
@@ -184,13 +207,21 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             log.info("Exporting to IR");
             IrSnapshot ir = irExporter.export(graph, classifications);
 
+            // Step 4.5: Export primary classifications for enrichment and secondary classifiers
+            // These classifications are made available to plugins via the PluginOutputStore
+            List<PrimaryClassificationResult> primaryClassifications =
+                    irExporter.exportPrimaryClassifications(classifications);
+            log.debug("Exported {} primary classifications for plugin access", primaryClassifications.size());
+
             // Step 5: Execute plugins (if enabled)
+            // Plugins of category ANALYSIS can implement secondary classification
+            // Plugins of category ENRICHMENT can add semantic labels and metadata
             PluginExecutionResult pluginResult = null;
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
-                PluginExecutor executor =
-                        new PluginExecutor(config.outputDirectory(), config.pluginConfigs(), graph);
-                pluginResult = executor.execute(ir);
+                PluginExecutor executor = new PluginExecutor(
+                        config.outputDirectory(), config.pluginConfigs(), graph, config.enabledCategories());
+                pluginResult = executor.execute(ir, primaryClassifications);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",
                         pluginResult.pluginCount(),

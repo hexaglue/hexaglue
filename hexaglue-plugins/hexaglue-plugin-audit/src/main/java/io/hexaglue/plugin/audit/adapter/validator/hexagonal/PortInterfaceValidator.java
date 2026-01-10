@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
@@ -15,9 +19,9 @@ import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
@@ -61,8 +65,7 @@ public class PortInterfaceValidator implements ConstraintValidator {
             if (port.kind() != CodeUnitKind.INTERFACE) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.CRITICAL)
-                        .message("Port '%s' is not an interface (found: %s)"
-                                .formatted(port.simpleName(), port.kind()))
+                        .message("Port '%s' is not an interface (found: %s)".formatted(port.simpleName(), port.kind()))
                         .affectedType(port.qualifiedName())
                         .location(SourceLocation.of(port.qualifiedName(), 1, 1))
                         .evidence(StructuralEvidence.of(

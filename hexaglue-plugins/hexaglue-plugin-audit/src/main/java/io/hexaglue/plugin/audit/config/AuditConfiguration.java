@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.config;
@@ -52,7 +56,8 @@ public record AuditConfiguration(
      * @return default configuration
      */
     public static AuditConfiguration defaults() {
-        return new AuditConfiguration(Set.of(), // Empty = all enabled
+        return new AuditConfiguration(
+                Set.of(), // Empty = all enabled
                 Set.of(), // Empty = all enabled
                 false, // Don't allow CRITICAL violations
                 Map.of() // No overrides
@@ -77,7 +82,8 @@ public record AuditConfiguration(
         Objects.requireNonNull(config, "config required");
 
         // Parse allowCriticalViolations
-        boolean allowCritical = config.getBoolean("audit.allowCriticalViolations").orElse(false);
+        boolean allowCritical =
+                config.getBoolean("audit.allowCriticalViolations").orElse(false);
 
         // Parse enabled constraints (comma-separated list)
         Set<String> enabledConstraints = config.getString("audit.enabledConstraints")

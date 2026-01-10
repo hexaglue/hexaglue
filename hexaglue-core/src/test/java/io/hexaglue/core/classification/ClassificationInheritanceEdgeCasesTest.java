@@ -22,7 +22,6 @@ import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.graph.testing.TestGraphBuilder;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -336,92 +335,6 @@ class ClassificationInheritanceEdgeCasesTest {
 
             assertThat(result.status())
                     .as("Class extending AbstractEntity<ID> should be classified as ENTITY")
-                    .isEqualTo(ClassificationStatus.CLASSIFIED);
-        }
-    }
-
-    // =========================================================================
-    // Repository-Based Classification with Inheritance
-    // =========================================================================
-
-    @Nested
-    @DisplayName("Repository-Based Classification with Inheritance")
-    class RepositoryInheritanceTests {
-
-        @Test
-        @Disabled("TestGraphBuilder does not create TYPE_REFERENCE edges needed by RepositoryDominantCriteria. "
-                + "See DomainClassifierTest.shouldClassifyRepositoryDominantAsAggregateRoot for working test.")
-        @DisplayName("should classify aggregate root when referenced by repository")
-        void shouldClassifyAggregateRootWhenReferencedByRepository() {
-            // NOTE: This test requires real source compilation to create proper edges.
-            // TestGraphBuilder's withMethod() doesn't create TYPE_REFERENCE edges.
-            // The working test is in DomainClassifierTest.shouldClassifyRepositoryDominantAsAggregateRoot
-            //
-            // interface OrderRepository { Order save(Order order); }
-            // class Order { UUID id; }
-            ApplicationGraph graph = TestGraphBuilder.create()
-                    .withClass(PKG + ".Order")
-                    .asPublic()
-                    .withField("id", "java.util.UUID")
-                    .withInterface(PKG + ".OrderRepository")
-                    .withMethod("save", PKG + ".Order", PKG + ".Order")
-                    .withMethod("findById", "java.util.Optional<" + PKG + ".Order>", PKG + ".OrderId")
-                    .build();
-
-            GraphQuery query = graph.query();
-            TypeNode order = query.type(PKG + ".Order").orElseThrow();
-
-            ClassificationResult result = classifier.classify(order, query);
-
-            assertThat(result.status())
-                    .as("Class referenced by Repository should be classified")
-                    .isEqualTo(ClassificationStatus.CLASSIFIED);
-            // Repository in DDD is specifically for Aggregate Roots
-            // RepositoryDominantCriteria (priority 80) > HasIdentityCriteria (priority 60)
-            assertThat(result.kind())
-                    .as("Type referenced by Repository should be AGGREGATE_ROOT (per DDD)")
-                    .isEqualTo(DomainKind.AGGREGATE_ROOT.name());
-        }
-
-        @Test
-        @Disabled("TestGraphBuilder does not create USES_IN_SIGNATURE edges needed by RepositoryDominantCriteria. "
-                + "InheritedClassificationCriteria now supports this via checkParentViaRepository(). "
-                + "See DomainClassifierTest for tests using real source compilation that create proper edges.")
-        @DisplayName("should classify subclass when parent is detected via repository")
-        void shouldClassifySubclassWhenParentIsDetectedViaRepository() {
-            // NOTE: This test documents the desired behavior but cannot be implemented with TestGraphBuilder
-            // because TestGraphBuilder.withMethod() doesn't create USES_IN_SIGNATURE edges.
-            //
-            // The functionality IS implemented in InheritedClassificationCriteria.checkParentViaRepository()
-            // and can be tested using real source compilation (see DomainClassifierTest).
-            //
-            // interface OrderRepository { Order save(Order order); }
-            // class Order { UUID id; }
-            // class SpecialOrder extends Order { }
-            ApplicationGraph graph = TestGraphBuilder.create()
-                    .withClass(PKG + ".Order")
-                    .asPublic()
-                    .withField("id", "java.util.UUID")
-                    .withClass(PKG + ".SpecialOrder")
-                    .asPublic()
-                    .extending(PKG + ".Order")
-                    .withInterface(PKG + ".OrderRepository")
-                    .withMethod("save", PKG + ".Order", PKG + ".Order")
-                    .build();
-
-            GraphQuery query = graph.query();
-
-            // First classify parent via repository
-            TypeNode order = query.type(PKG + ".Order").orElseThrow();
-            ClassificationResult parentResult = classifier.classify(order, query);
-            assertThat(parentResult.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
-
-            // Then classify child - should inherit
-            TypeNode specialOrder = query.type(PKG + ".SpecialOrder").orElseThrow();
-            ClassificationResult childResult = classifier.classify(specialOrder, query);
-
-            assertThat(childResult.status())
-                    .as("Subclass of repository-managed type should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
         }
     }

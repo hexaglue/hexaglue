@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report.model;
@@ -22,13 +26,7 @@ package io.hexaglue.plugin.audit.adapter.report.model;
  * @since 1.0.0
  */
 public record AuditSummary(
-        boolean passed,
-        int totalViolations,
-        int blockers,
-        int criticals,
-        int majors,
-        int minors,
-        int infos) {
+        boolean passed, int totalViolations, int blockers, int criticals, int majors, int minors, int infos) {
 
     public AuditSummary {
         if (totalViolations < 0) {

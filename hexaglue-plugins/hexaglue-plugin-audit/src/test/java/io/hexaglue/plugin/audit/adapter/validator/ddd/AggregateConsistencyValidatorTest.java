@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -16,8 +20,8 @@ import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -119,8 +123,7 @@ class AggregateConsistencyValidatorTest {
 
         // Then: Single violation listing all three aggregates
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message())
-                .contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
+        assertThat(violations.get(0).message()).contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
     }
 
     // === Rule 2: Size Limit ===
@@ -202,8 +205,7 @@ class AggregateConsistencyValidatorTest {
 
         for (int i = 1; i <= 15; i++) {
             CodeUnit entity = entity("Entity" + i, true);
-            builder.addUnit(entity)
-                    .addDependency("com.example.domain.MassiveAggregate", entity.qualifiedName());
+            builder.addUnit(entity).addDependency("com.example.domain.MassiveAggregate", entity.qualifiedName());
         }
 
         Codebase codebase = builder.build();

@@ -11,26 +11,22 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.plugin.audit.domain.model;
+package io.hexaglue.core.plugin;
 
 /**
- * Comparison operator for metric thresholds.
+ * Thrown when a cyclic dependency is detected among plugins.
  *
- * @since 1.0.0
+ * <p>This occurs when the plugin dependency graph contains cycles, making it
+ * impossible to determine a valid execution order.
  */
-public enum ThresholdOperator {
-    /**
-     * Value exceeds threshold if it is greater than the maximum.
-     */
-    GREATER_THAN,
+public class PluginCyclicDependencyException extends RuntimeException {
 
     /**
-     * Value exceeds threshold if it is less than the minimum.
+     * Creates a new exception with the specified message.
+     *
+     * @param message the detail message
      */
-    LESS_THAN,
-
-    /**
-     * Value exceeds threshold if it is outside the [min, max] range.
-     */
-    BETWEEN
+    public PluginCyclicDependencyException(String message) {
+        super(message);
+    }
 }

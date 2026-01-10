@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -14,10 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeMetrics;
 import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.DocumentationInfo;
 import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.MethodDeclaration;
@@ -190,8 +194,7 @@ class AggregateMetricCalculatorTest {
         List<MethodDeclaration> methods = new ArrayList<>();
 
         for (int i = 0; i < methodCount; i++) {
-            methods.add(new MethodDeclaration(
-                    "method" + i, "void", List.of(), Set.of("public"), Set.of(), 1));
+            methods.add(new MethodDeclaration("method" + i, "void", List.of(), Set.of("public"), Set.of(), 1));
         }
 
         return new CodeUnit(

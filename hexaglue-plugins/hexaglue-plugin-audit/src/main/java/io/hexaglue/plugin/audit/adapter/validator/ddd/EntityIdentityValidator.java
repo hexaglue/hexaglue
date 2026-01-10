@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -15,8 +19,8 @@ import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
@@ -64,8 +68,7 @@ public class EntityIdentityValidator implements ConstraintValidator {
             if (!hasIdentity) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.CRITICAL)
-                        .message("Entity '%s' has no identity field"
-                                .formatted(entity.simpleName()))
+                        .message("Entity '%s' has no identity field".formatted(entity.simpleName()))
                         .affectedType(entity.qualifiedName())
                         .location(SourceLocation.of(entity.qualifiedName(), 1, 1))
                         .evidence(StructuralEvidence.of(

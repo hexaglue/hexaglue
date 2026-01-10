@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.domain.model;
@@ -29,8 +33,8 @@ import java.util.Objects;
  * @param relationships  the specific relationships involved (e.g., "Order -> Customer -> Order")
  * @since 1.0.0
  */
-public record RelationshipEvidence(
-        String description, List<String> involvedTypes, List<String> relationships) implements Evidence {
+public record RelationshipEvidence(String description, List<String> involvedTypes, List<String> relationships)
+        implements Evidence {
 
     /**
      * Compact constructor with validation and defensive copies.
@@ -49,8 +53,7 @@ public record RelationshipEvidence(
      * @param relationships  the specific relationships
      * @return a new RelationshipEvidence instance
      */
-    public static RelationshipEvidence of(
-            String description, List<String> involvedTypes, List<String> relationships) {
+    public static RelationshipEvidence of(String description, List<String> involvedTypes, List<String> relationships) {
         return new RelationshipEvidence(description, involvedTypes, relationships);
     }
 

@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
@@ -15,8 +19,8 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
@@ -53,20 +57,17 @@ public class LayerIsolationValidator implements ConstraintValidator {
      * Defines allowed dependencies for each layer.
      * Each layer can depend on itself and the layers listed in the set.
      */
-    private static final Map<LayerClassification, Set<LayerClassification>> ALLOWED_DEPENDENCIES =
-            Map.of(
-                    // Domain can only depend on itself
-                    LayerClassification.DOMAIN,
-                            EnumSet.of(LayerClassification.DOMAIN),
-                    // Application can depend on itself and Domain
-                    LayerClassification.APPLICATION,
-                            EnumSet.of(LayerClassification.APPLICATION, LayerClassification.DOMAIN),
-                    // Infrastructure can depend on all layers
-                    LayerClassification.INFRASTRUCTURE,
-                            EnumSet.of(
-                                    LayerClassification.INFRASTRUCTURE,
-                                    LayerClassification.APPLICATION,
-                                    LayerClassification.DOMAIN));
+    private static final Map<LayerClassification, Set<LayerClassification>> ALLOWED_DEPENDENCIES = Map.of(
+            // Domain can only depend on itself
+            LayerClassification.DOMAIN, EnumSet.of(LayerClassification.DOMAIN),
+            // Application can depend on itself and Domain
+            LayerClassification.APPLICATION, EnumSet.of(LayerClassification.APPLICATION, LayerClassification.DOMAIN),
+            // Infrastructure can depend on all layers
+            LayerClassification.INFRASTRUCTURE,
+                    EnumSet.of(
+                            LayerClassification.INFRASTRUCTURE,
+                            LayerClassification.APPLICATION,
+                            LayerClassification.DOMAIN));
 
     @Override
     public ConstraintId constraintId() {
@@ -117,8 +118,7 @@ public class LayerIsolationValidator implements ConstraintValidator {
                                     .affectedType(unit.qualifiedName())
                                     .location(SourceLocation.of(unit.qualifiedName(), 1, 1))
                                     .evidence(DependencyEvidence.of(
-                                            "Layer %s can only depend on: %s"
-                                                    .formatted(layer.name(), allowedLayers),
+                                            "Layer %s can only depend on: %s".formatted(layer.name(), allowedLayers),
                                             unit.qualifiedName(),
                                             illegalDep.qualifiedName()))
                                     .build());

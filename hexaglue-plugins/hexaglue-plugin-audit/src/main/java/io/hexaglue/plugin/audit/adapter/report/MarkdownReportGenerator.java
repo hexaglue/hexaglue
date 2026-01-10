@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report;
@@ -33,8 +37,7 @@ import java.util.Objects;
  */
 public final class MarkdownReportGenerator implements ReportGenerator {
 
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public ReportFormat format() {
@@ -60,12 +63,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         // Metadata
         md.append("**Project:** `").append(report.metadata().projectName()).append("`  \n");
         md.append("**Timestamp:** ")
-                .append(TIMESTAMP_FORMATTER.format(
-                        report.metadata().timestamp().atZone(ZoneId.systemDefault())))
+                .append(TIMESTAMP_FORMATTER.format(report.metadata().timestamp().atZone(ZoneId.systemDefault())))
                 .append("  \n");
-        md.append("**Duration:** ")
-                .append(report.metadata().duration())
-                .append("  \n");
+        md.append("**Duration:** ").append(report.metadata().duration()).append("  \n");
         md.append("**HexaGlue Version:** ")
                 .append(report.metadata().hexaglueVersion())
                 .append("  \n\n");
@@ -77,18 +77,10 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("| Total Violations | ")
                 .append(report.summary().totalViolations())
                 .append(" |\n");
-        md.append("| Blockers | ")
-                .append(report.summary().blockers())
-                .append(" |\n");
-        md.append("| Criticals | ")
-                .append(report.summary().criticals())
-                .append(" |\n");
-        md.append("| Majors | ")
-                .append(report.summary().majors())
-                .append(" |\n");
-        md.append("| Minors | ")
-                .append(report.summary().minors())
-                .append(" |\n");
+        md.append("| Blockers | ").append(report.summary().blockers()).append(" |\n");
+        md.append("| Criticals | ").append(report.summary().criticals()).append(" |\n");
+        md.append("| Majors | ").append(report.summary().majors()).append(" |\n");
+        md.append("| Minors | ").append(report.summary().minors()).append(" |\n");
         md.append("| Infos | ").append(report.summary().infos()).append(" |\n\n");
 
         // Violations section
@@ -146,9 +138,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                         .append(" | ");
 
                 if (m.threshold() != null) {
-                    md.append(m.thresholdType())
-                            .append(" ")
-                            .append(String.format("%.2f", m.threshold()));
+                    md.append(m.thresholdType()).append(" ").append(String.format("%.2f", m.threshold()));
                 } else {
                     md.append("-");
                 }

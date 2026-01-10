@@ -18,12 +18,16 @@ import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
+import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
+import io.hexaglue.spi.classification.ClassificationEvidence;
+import io.hexaglue.spi.classification.ClassificationStrategy;
+import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.ir.*;
 import java.time.Instant;
 import java.util.*;
@@ -194,5 +198,172 @@ public final class IrExporter {
                 .map(TypeNode::packageName)
                 .min(Comparator.comparingInt(String::length))
                 .orElse("");
+    }
+
+    /**
+     * Exports primary classification results for enrichment plugins.
+     *
+     * <p>Converts core classification results to SPI PrimaryClassificationResult instances
+     * that enrichment plugins can analyze and potentially override.
+     *
+     * @param classifications the core classification results
+     * @return list of primary classification results for the SPI
+     */
+    public List<PrimaryClassificationResult> exportPrimaryClassifications(List<ClassificationResult> classifications) {
+        Objects.requireNonNull(classifications, "classifications cannot be null");
+
+        return classifications.stream()
+                .filter(c -> c.target() == ClassificationTarget.DOMAIN
+                        || (c.target() == null && c.status() == ClassificationStatus.UNCLASSIFIED))
+                .map(this::toPrimaryClassificationResult)
+                .sorted(Comparator.comparing(PrimaryClassificationResult::typeName))
+                .toList();
+    }
+
+    /**
+     * Converts a Core ClassificationResult to an SPI PrimaryClassificationResult.
+     *
+     * <p>This adapter bridges the internal classification model with the stable SPI,
+     * enabling enrichment plugins to work with classification results.
+     *
+     * <p>Mapping details:
+     * <ul>
+     *   <li>typeName: Extracted from subjectId</li>
+     *   <li>kind: Converted via TypeConverter (null for unclassified)</li>
+     *   <li>certainty: Derived from both confidence and status</li>
+     *   <li>strategy: Inferred from criteria name and evidence</li>
+     *   <li>reasoning: Taken from justification</li>
+     *   <li>evidences: Transformed from Evidence to ClassificationEvidence</li>
+     * </ul>
+     *
+     * @param coreResult the core classification result
+     * @return the SPI primary classification result
+     */
+    private PrimaryClassificationResult toPrimaryClassificationResult(ClassificationResult coreResult) {
+        // Extract the qualified type name from NodeId (format: "type:com.example.Order")
+        String nodeIdValue = coreResult.subjectId().value();
+        String typeName = nodeIdValue.startsWith("type:") ? nodeIdValue.substring(5) : nodeIdValue;
+
+        // Handle unclassified case
+        if (coreResult.status() == ClassificationStatus.UNCLASSIFIED) {
+            return PrimaryClassificationResult.unclassified(
+                    typeName, coreResult.justification() != null ? coreResult.justification() : "No criteria matched");
+        }
+
+        // Handle conflict case - mark as uncertain
+        if (coreResult.status() == ClassificationStatus.CONFLICT) {
+            return new PrimaryClassificationResult(
+                    typeName,
+                    null, // kind is null for conflicts
+                    io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN,
+                    ClassificationStrategy.WEIGHTED, // conflicts suggest weighted decision
+                    coreResult.justification() != null ? coreResult.justification() : "Multiple conflicting criteria",
+                    extractEvidences(coreResult));
+        }
+
+        // Handle successful classification
+        DomainKind domainKind = typeConverter.toDomainKind(coreResult.kind());
+        io.hexaglue.spi.classification.CertaintyLevel certainty = typeConverter.toSpiCertainty(coreResult.confidence());
+        ClassificationStrategy strategy = deriveStrategy(coreResult);
+
+        return new PrimaryClassificationResult(
+                typeName,
+                domainKind,
+                certainty,
+                strategy,
+                coreResult.justification() != null ? coreResult.justification() : "",
+                extractEvidences(coreResult));
+    }
+
+    /**
+     * Derives the classification strategy from the core result.
+     *
+     * <p>Maps criteria names to SPI ClassificationStrategy values:
+     * <ul>
+     *   <li>Annotation criteria → ANNOTATION</li>
+     *   <li>Repository criteria → REPOSITORY</li>
+     *   <li>Record criteria → RECORD</li>
+     *   <li>Relationship/composition → COMPOSITION</li>
+     *   <li>Others → WEIGHTED</li>
+     * </ul>
+     *
+     * @param result the core classification result
+     * @return the inferred strategy
+     */
+    private ClassificationStrategy deriveStrategy(ClassificationResult result) {
+        if (result.matchedCriteria() == null) {
+            return ClassificationStrategy.UNCLASSIFIED;
+        }
+
+        String criteriaName = result.matchedCriteria().toLowerCase();
+
+        // Check for annotation-based classification
+        if (criteriaName.contains("annotation") || criteriaName.contains("@")) {
+            return ClassificationStrategy.ANNOTATION;
+        }
+
+        // Check for repository pattern
+        if (criteriaName.contains("repository")) {
+            return ClassificationStrategy.REPOSITORY;
+        }
+
+        // Check for record heuristic
+        if (criteriaName.contains("record")) {
+            return ClassificationStrategy.RECORD;
+        }
+
+        // Check for composition/relationship based
+        if (criteriaName.contains("composition")
+                || criteriaName.contains("relationship")
+                || criteriaName.contains("embedded")) {
+            return ClassificationStrategy.COMPOSITION;
+        }
+
+        // Default to weighted for other criteria
+        return ClassificationStrategy.WEIGHTED;
+    }
+
+    /**
+     * Extracts and converts evidence from core model to SPI model.
+     *
+     * <p>Each core Evidence is transformed to a ClassificationEvidence with:
+     * <ul>
+     *   <li>signal: Evidence type name (ANNOTATION, NAMING, STRUCTURE, etc.)</li>
+     *   <li>weight: Derived from evidence priority (1-100 scale)</li>
+     *   <li>description: Original evidence description</li>
+     * </ul>
+     *
+     * @param result the core classification result
+     * @return list of SPI classification evidences
+     */
+    private List<ClassificationEvidence> extractEvidences(ClassificationResult result) {
+        if (result.evidence() == null || result.evidence().isEmpty()) {
+            return List.of();
+        }
+
+        return result.evidence().stream().map(this::toClassificationEvidence).toList();
+    }
+
+    /**
+     * Converts a single core Evidence to SPI ClassificationEvidence.
+     *
+     * @param evidence the core evidence
+     * @return the SPI classification evidence
+     */
+    private ClassificationEvidence toClassificationEvidence(Evidence evidence) {
+        // Map evidence type to signal name
+        String signal = evidence.type().name();
+
+        // Derive weight from evidence type (annotation = 100, structure = 80, etc.)
+        int weight =
+                switch (evidence.type()) {
+                    case ANNOTATION -> 100;
+                    case STRUCTURE -> 80;
+                    case RELATIONSHIP -> 70;
+                    case NAMING -> 50;
+                    case PACKAGE -> 40;
+                };
+
+        return new ClassificationEvidence(signal, weight, evidence.description());
     }
 }

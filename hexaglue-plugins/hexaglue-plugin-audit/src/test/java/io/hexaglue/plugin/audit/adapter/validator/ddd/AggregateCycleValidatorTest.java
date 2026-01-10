@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -73,7 +77,10 @@ class AggregateCycleValidatorTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).constraintId().value()).isEqualTo("ddd:aggregate-cycle");
         assertThat(violations.get(0).severity()).isEqualTo(Severity.BLOCKER);
-        assertThat(violations.get(0).message()).contains("Circular dependency").contains("A").contains("B");
+        assertThat(violations.get(0).message())
+                .contains("Circular dependency")
+                .contains("A")
+                .contains("B");
     }
 
     @Test
@@ -192,7 +199,8 @@ class AggregateCycleValidatorTest {
         assertThat(violations.get(0).evidence()).isNotEmpty();
         assertThat(violations.get(0).evidence().get(0)).isInstanceOf(RelationshipEvidence.class);
 
-        RelationshipEvidence evidence = (RelationshipEvidence) violations.get(0).evidence().get(0);
+        RelationshipEvidence evidence =
+                (RelationshipEvidence) violations.get(0).evidence().get(0);
         assertThat(evidence.description()).contains("Aggregates").contains("consistency boundaries");
         assertThat(evidence.relationships()).isNotEmpty();
     }

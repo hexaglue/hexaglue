@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report;
@@ -35,8 +39,7 @@ import java.util.Objects;
  */
 public final class ConsoleReportGenerator implements ReportGenerator {
 
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     // ANSI color codes
     private static final String RESET = "\u001B[0m";
@@ -102,8 +105,7 @@ public final class ConsoleReportGenerator implements ReportGenerator {
                 .append(report.metadata().projectName())
                 .append("\n");
         console.append(colorize(CYAN, "Timestamp:       "))
-                .append(TIMESTAMP_FORMATTER.format(
-                        report.metadata().timestamp().atZone(ZoneId.systemDefault())))
+                .append(TIMESTAMP_FORMATTER.format(report.metadata().timestamp().atZone(ZoneId.systemDefault())))
                 .append("\n");
         console.append(colorize(CYAN, "Duration:        "))
                 .append(report.metadata().duration())
@@ -116,11 +118,9 @@ public final class ConsoleReportGenerator implements ReportGenerator {
         // Summary
         String statusColor = report.summary().passed() ? GREEN : RED;
         String status = report.summary().passed() ? "PASSED" : "FAILED";
-        console.append(colorize(BOLD + statusColor, "Status: " + status))
-                .append("\n\n");
+        console.append(colorize(BOLD + statusColor, "Status: " + status)).append("\n\n");
 
-        console.append(colorize(BOLD, "Summary:"))
-                .append("\n");
+        console.append(colorize(BOLD, "Summary:")).append("\n");
         console.append("  Total Violations: ")
                 .append(report.summary().totalViolations())
                 .append("\n");
@@ -142,13 +142,11 @@ public final class ConsoleReportGenerator implements ReportGenerator {
 
         // Violations
         console.append(separator(80));
-        console.append(colorize(BOLD, "VIOLATIONS"))
-                .append("\n");
+        console.append(colorize(BOLD, "VIOLATIONS")).append("\n");
         console.append(separator(80));
 
         if (report.violations().isEmpty()) {
-            console.append(colorize(GREEN, "No violations found."))
-                    .append("\n");
+            console.append(colorize(GREEN, "No violations found.")).append("\n");
         } else {
             for (int i = 0; i < report.violations().size(); i++) {
                 ViolationEntry v = report.violations().get(i);
@@ -157,12 +155,8 @@ public final class ConsoleReportGenerator implements ReportGenerator {
                         .append(" - ")
                         .append(colorize(GRAY, v.constraintId()))
                         .append("\n");
-                console.append("   Message:       ")
-                        .append(v.message())
-                        .append("\n");
-                console.append("   Affected Type: ")
-                        .append(v.affectedType())
-                        .append("\n");
+                console.append("   Message:       ").append(v.message()).append("\n");
+                console.append("   Affected Type: ").append(v.affectedType()).append("\n");
                 console.append("   Location:      ")
                         .append(colorize(GRAY, v.location()))
                         .append("\n");
@@ -173,14 +167,12 @@ public final class ConsoleReportGenerator implements ReportGenerator {
         if (!report.metrics().isEmpty()) {
             console.append("\n");
             console.append(separator(80));
-            console.append(colorize(BOLD, "METRICS"))
-                    .append("\n");
+            console.append(colorize(BOLD, "METRICS")).append("\n");
             console.append(separator(80));
 
             for (MetricEntry m : report.metrics()) {
                 console.append("\n");
-                console.append(colorize(CYAN, m.name()))
-                        .append("\n");
+                console.append(colorize(CYAN, m.name())).append("\n");
                 console.append("  Value:     ")
                         .append(colorize(BOLD, String.format(Locale.US, "%.2f", m.value())))
                         .append(" ")
@@ -195,12 +187,13 @@ public final class ConsoleReportGenerator implements ReportGenerator {
                             .append("\n");
                 }
 
-                String statusColor2 = switch (m.status()) {
-                    case "OK" -> GREEN;
-                    case "WARNING" -> YELLOW;
-                    case "CRITICAL" -> RED;
-                    default -> RESET;
-                };
+                String statusColor2 =
+                        switch (m.status()) {
+                            case "OK" -> GREEN;
+                            case "WARNING" -> YELLOW;
+                            case "CRITICAL" -> RED;
+                            default -> RESET;
+                        };
                 console.append("  Status:    ")
                         .append(colorize(statusColor2, m.status()))
                         .append("\n");

@@ -13,11 +13,13 @@
 
 package io.hexaglue.core.engine;
 
+import io.hexaglue.spi.generation.PluginCategory;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Configuration for the HexaGlue engine.
@@ -31,6 +33,7 @@ import java.util.Objects;
  * @param options additional options (key-value pairs)
  * @param classificationProfile the classification profile name (e.g., "default", "strict",
  *     "repository-aware") or null for legacy behavior
+ * @param enabledCategories plugin categories to execute (null or empty for all categories)
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -40,7 +43,8 @@ public record EngineConfig(
         Path outputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options,
-        String classificationProfile) {
+        String classificationProfile,
+        Set<PluginCategory> enabledCategories) {
 
     /**
      * Compact constructor with validation.
@@ -80,13 +84,14 @@ public record EngineConfig(
         classpathEntries = List.copyOf(classpathEntries);
         pluginConfigs = Map.copyOf(pluginConfigs);
         options = Map.copyOf(options);
+        enabledCategories = enabledCategories != null ? Set.copyOf(enabledCategories) : null;
     }
 
     /**
      * Creates a minimal configuration for testing (no plugin execution).
      */
     public static EngineConfig minimal(Path sourceRoot, String basePackage) {
-        return new EngineConfig(List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), null);
+        return new EngineConfig(List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), null, null);
     }
 
     /**
@@ -95,7 +100,7 @@ public record EngineConfig(
     public static EngineConfig withPlugins(
             Path sourceRoot, String basePackage, Path outputDirectory, Map<String, Map<String, Object>> pluginConfigs) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, outputDirectory, pluginConfigs, Map.of(), null);
+                List.of(sourceRoot), List.of(), 21, basePackage, outputDirectory, pluginConfigs, Map.of(), null, null);
     }
 
     /**
@@ -108,7 +113,61 @@ public record EngineConfig(
      */
     public static EngineConfig withProfile(Path sourceRoot, String basePackage, String classificationProfile) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), classificationProfile);
+                List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), classificationProfile, null);
+    }
+
+    /**
+     * Returns a new config with only GENERATOR plugins enabled.
+     *
+     * @return a config restricted to generator plugins
+     */
+    public EngineConfig onlyGenerators() {
+        return new EngineConfig(
+                sourceRoots,
+                classpathEntries,
+                javaVersion,
+                basePackage,
+                outputDirectory,
+                pluginConfigs,
+                options,
+                classificationProfile,
+                Set.of(PluginCategory.GENERATOR));
+    }
+
+    /**
+     * Returns a new config with only AUDIT plugins enabled.
+     *
+     * @return a config restricted to audit plugins
+     */
+    public EngineConfig onlyAuditors() {
+        return new EngineConfig(
+                sourceRoots,
+                classpathEntries,
+                javaVersion,
+                basePackage,
+                outputDirectory,
+                pluginConfigs,
+                options,
+                classificationProfile,
+                Set.of(PluginCategory.AUDIT));
+    }
+
+    /**
+     * Returns a new config with all plugin categories enabled.
+     *
+     * @return a config with all categories enabled
+     */
+    public EngineConfig allCategories() {
+        return new EngineConfig(
+                sourceRoots,
+                classpathEntries,
+                javaVersion,
+                basePackage,
+                outputDirectory,
+                pluginConfigs,
+                options,
+                classificationProfile,
+                null);
     }
 
     /**

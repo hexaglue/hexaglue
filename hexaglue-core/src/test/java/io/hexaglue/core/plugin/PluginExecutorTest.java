@@ -47,7 +47,7 @@ class PluginExecutorTest {
     @Test
     void executeWithEmptyIr_noFilesGenerated() {
         // Given: No plugins registered (JPA plugin is external)
-        PluginExecutor executor = new PluginExecutor(outputDir, Map.of(), null);
+        PluginExecutor executor = new PluginExecutor(outputDir, Map.of(), null, null);
         IrSnapshot ir = IrSnapshot.empty("com.example");
 
         // When

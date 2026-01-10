@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report;
@@ -34,8 +38,7 @@ import java.util.Objects;
  */
 public final class HtmlReportGenerator implements ReportGenerator {
 
-    private static final DateTimeFormatter TIMESTAMP_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     @Override
     public ReportFormat format() {
@@ -71,8 +74,7 @@ public final class HtmlReportGenerator implements ReportGenerator {
                 .append(escape(report.metadata().projectName()))
                 .append("</span>\n");
         html.append("      <span><strong>Timestamp:</strong> ")
-                .append(TIMESTAMP_FORMATTER.format(
-                        report.metadata().timestamp().atZone(ZoneId.systemDefault())))
+                .append(TIMESTAMP_FORMATTER.format(report.metadata().timestamp().atZone(ZoneId.systemDefault())))
                 .append("</span>\n");
         html.append("      <span><strong>Duration:</strong> ")
                 .append(escape(report.metadata().duration()))
@@ -94,21 +96,15 @@ public final class HtmlReportGenerator implements ReportGenerator {
         html.append("      <p>Audit Status</p>\n");
         html.append("    </div>\n");
         html.append("    <div class=\"card\">\n");
-        html.append("      <h2>")
-                .append(report.summary().totalViolations())
-                .append("</h2>\n");
+        html.append("      <h2>").append(report.summary().totalViolations()).append("</h2>\n");
         html.append("      <p>Total Violations</p>\n");
         html.append("    </div>\n");
         html.append("    <div class=\"card error-card\">\n");
-        html.append("      <h2>")
-                .append(report.summary().blockers())
-                .append("</h2>\n");
+        html.append("      <h2>").append(report.summary().blockers()).append("</h2>\n");
         html.append("      <p>Blockers</p>\n");
         html.append("    </div>\n");
         html.append("    <div class=\"card warning-card\">\n");
-        html.append("      <h2>")
-                .append(report.summary().majors())
-                .append("</h2>\n");
+        html.append("      <h2>").append(report.summary().majors()).append("</h2>\n");
         html.append("      <p>Majors</p>\n");
         html.append("    </div>\n");
         html.append("  </section>\n");
@@ -178,9 +174,7 @@ public final class HtmlReportGenerator implements ReportGenerator {
                         .append("</td>\n");
                 html.append("          <td>");
                 if (m.threshold() != null) {
-                    html.append(m.thresholdType())
-                            .append(" ")
-                            .append(String.format("%.2f", m.threshold()));
+                    html.append(m.thresholdType()).append(" ").append(String.format("%.2f", m.threshold()));
                 } else {
                     html.append("-");
                 }
@@ -280,8 +274,12 @@ public final class HtmlReportGenerator implements ReportGenerator {
             html.append("      <tbody>\n");
             for (var v : analysis.layerViolations()) {
                 html.append("        <tr>\n");
-                html.append("          <td><code>").append(escape(v.sourceType())).append("</code></td>\n");
-                html.append("          <td><code>").append(escape(v.targetType())).append("</code></td>\n");
+                html.append("          <td><code>")
+                        .append(escape(v.sourceType()))
+                        .append("</code></td>\n");
+                html.append("          <td><code>")
+                        .append(escape(v.targetType()))
+                        .append("</code></td>\n");
                 html.append("          <td><span class=\"badge badge-info\">")
                         .append(escape(v.sourceLayer()))
                         .append("</span></td>\n");
@@ -309,10 +307,18 @@ public final class HtmlReportGenerator implements ReportGenerator {
             html.append("      <tbody>\n");
             for (var v : analysis.stabilityViolations()) {
                 html.append("        <tr>\n");
-                html.append("          <td><code>").append(escape(v.sourceType())).append("</code></td>\n");
-                html.append("          <td><code>").append(escape(v.targetType())).append("</code></td>\n");
-                html.append("          <td>").append(String.format("%.2f", v.sourceStability())).append("</td>\n");
-                html.append("          <td>").append(String.format("%.2f", v.targetStability())).append("</td>\n");
+                html.append("          <td><code>")
+                        .append(escape(v.sourceType()))
+                        .append("</code></td>\n");
+                html.append("          <td><code>")
+                        .append(escape(v.targetType()))
+                        .append("</code></td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.2f", v.sourceStability()))
+                        .append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.2f", v.targetStability()))
+                        .append("</td>\n");
                 html.append("        </tr>\n");
             }
             html.append("      </tbody>\n");
@@ -337,12 +343,20 @@ public final class HtmlReportGenerator implements ReportGenerator {
             html.append("      <tbody>\n");
             for (var m : analysis.couplingMetrics()) {
                 html.append("        <tr>\n");
-                html.append("          <td><code>").append(escape(m.packageName())).append("</code></td>\n");
+                html.append("          <td><code>")
+                        .append(escape(m.packageName()))
+                        .append("</code></td>\n");
                 html.append("          <td>").append(m.afferentCoupling()).append("</td>\n");
                 html.append("          <td>").append(m.efferentCoupling()).append("</td>\n");
-                html.append("          <td>").append(String.format("%.2f", m.instability())).append("</td>\n");
-                html.append("          <td>").append(String.format("%.2f", m.abstractness())).append("</td>\n");
-                html.append("          <td>").append(String.format("%.2f", m.distance())).append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.2f", m.instability()))
+                        .append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.2f", m.abstractness()))
+                        .append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.2f", m.distance()))
+                        .append("</td>\n");
                 html.append("          <td>");
                 if (m.isInZoneOfPain()) {
                     html.append("<span class=\"badge badge-error\">Zone of Pain</span>");

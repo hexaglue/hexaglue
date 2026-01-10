@@ -25,6 +25,7 @@ package io.hexaglue.spi.generation;
  *   <li><b>GENERATOR</b>: Generates code artifacts (JPA entities, REST controllers, etc.)</li>
  *   <li><b>AUDIT</b>: Analyzes code quality, architecture compliance, documentation</li>
  *   <li><b>ANALYSIS</b>: Performs custom analysis without generating code or auditing</li>
+ *   <li><b>ENRICHMENT</b>: Adds semantic labels and metadata to classifications</li>
  * </ul>
  *
  * @since 3.0.0
@@ -90,5 +91,29 @@ public enum PluginCategory {
      * <p>Analysis plugins have the most flexibility and can perform any
      * custom processing of the classification data.
      */
-    ANALYSIS
+    ANALYSIS,
+
+    /**
+     * Plugins adding semantic labels to classifications.
+     *
+     * <p>Enrichment plugins analyze classification results and add semantic
+     * labels or metadata without generating code artifacts. Examples include:
+     * <ul>
+     *   <li>Factory method detection</li>
+     *   <li>Immutability analysis</li>
+     *   <li>Behavioral pattern recognition</li>
+     *   <li>Architectural pattern detection</li>
+     * </ul>
+     *
+     * <p>Enrichment plugins typically:
+     * <ol>
+     *   <li>Analyze the classification snapshot</li>
+     *   <li>Detect semantic patterns and properties</li>
+     *   <li>Add labels and metadata to the IR</li>
+     *   <li>Make enriched data available to generator plugins</li>
+     * </ol>
+     *
+     * @since 3.0.0
+     */
+    ENRICHMENT
 }
