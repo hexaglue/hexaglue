@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.domain.model;
@@ -87,7 +91,8 @@ class ViolationTest {
     @DisplayName("Should reject blank message")
     void shouldRejectBlankMessage() {
         // When/Then
-        assertThatThrownBy(() -> Violation.builder(TEST_CONSTRAINT).message("   ").build())
+        assertThatThrownBy(
+                        () -> Violation.builder(TEST_CONSTRAINT).message("   ").build())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("message must be set");
     }
@@ -106,10 +111,7 @@ class ViolationTest {
         // Then
         assertThat(violation.affectedTypes())
                 .containsExactly(
-                        "com.example.Order",
-                        "com.example.Customer",
-                        "com.example.Product",
-                        "com.example.Invoice");
+                        "com.example.Order", "com.example.Customer", "com.example.Product", "com.example.Invoice");
     }
 
     @Test
@@ -144,8 +146,7 @@ class ViolationTest {
         assertThatThrownBy(() -> violation.affectedTypes().add("NewType"))
                 .isInstanceOf(UnsupportedOperationException.class);
 
-        assertThatThrownBy(() -> violation.evidence().add(null))
-                .isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> violation.evidence().add(null)).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test

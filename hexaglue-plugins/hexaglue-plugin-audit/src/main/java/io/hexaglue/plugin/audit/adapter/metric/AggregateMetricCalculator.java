@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -12,8 +16,8 @@ package io.hexaglue.plugin.audit.adapter.metric;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 
@@ -47,10 +51,7 @@ public class AggregateMetricCalculator implements MetricCalculator {
 
         if (aggregates.isEmpty()) {
             return Metric.of(
-                    METRIC_NAME,
-                    0.0,
-                    "methods",
-                    "Average number of methods in aggregate roots (no aggregates found)");
+                    METRIC_NAME, 0.0, "methods", "Average number of methods in aggregate roots (no aggregates found)");
         }
 
         double avgMethods = aggregates.stream()

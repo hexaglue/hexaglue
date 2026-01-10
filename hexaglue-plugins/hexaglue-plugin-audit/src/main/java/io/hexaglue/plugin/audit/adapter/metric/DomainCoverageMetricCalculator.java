@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -47,8 +51,7 @@ public class DomainCoverageMetricCalculator implements MetricCalculator {
         long totalTypes = codebase.units().size();
 
         if (totalTypes == 0) {
-            return Metric.of(
-                    METRIC_NAME, 0.0, "%", "Percentage of types in domain layer (no types found)");
+            return Metric.of(METRIC_NAME, 0.0, "%", "Percentage of types in domain layer (no types found)");
         }
 
         long domainTypes = codebase.unitsInLayer(LayerClassification.DOMAIN).size();

@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -12,8 +16,8 @@ package io.hexaglue.plugin.audit.adapter.metric;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 import java.util.Set;
@@ -87,8 +91,7 @@ public class CouplingMetricCalculator implements MetricCalculator {
      * @return the number of aggregate dependencies
      */
     private int calculateEfferentCoupling(CodeUnit aggregate, Set<String> aggregateNames, Codebase codebase) {
-        Set<String> dependencies =
-                codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
+        Set<String> dependencies = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
 
         // Count dependencies to other aggregates (excluding self)
         return (int) dependencies.stream()

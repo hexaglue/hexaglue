@@ -20,19 +20,19 @@ import java.util.*;
 /**
  * Immutable snapshot of classification results enriched with semantic labels and properties.
  *
- * <p>This record wraps the primary classification result and adds:
+ * <p>This record wraps the primary classification results and adds:
  * <ul>
  *   <li>Semantic labels for types and methods (factory methods, validators, etc.)</li>
  *   <li>Custom properties contributed by enrichment plugins</li>
  *   <li>Convenience query methods for accessing enrichment data</li>
  * </ul>
  *
- * @param classification the primary classification result
+ * @param classifications primary classification results keyed by type name
  * @param labels semantic labels keyed by type/method identifier
  * @param properties custom properties keyed by type/method identifier
  */
 public record EnrichedSnapshot(
-        PrimaryClassificationResult classification,
+        Map<String, PrimaryClassificationResult> classifications,
         Map<String, Set<SemanticLabel>> labels,
         Map<String, Map<String, Object>> properties) {
 
@@ -40,18 +40,66 @@ public record EnrichedSnapshot(
      * Creates an enriched snapshot with defensive copies.
      */
     public EnrichedSnapshot {
+        classifications = Collections.unmodifiableMap(new HashMap<>(classifications));
         labels = Collections.unmodifiableMap(new HashMap<>(labels));
         properties = Collections.unmodifiableMap(new HashMap<>(properties));
     }
 
     /**
+     * Creates an enriched snapshot from a list of classifications.
+     *
+     * @param classificationList list of classification results
+     * @param labels semantic labels
+     * @param properties custom properties
+     * @return enriched snapshot with classifications indexed by type name
+     */
+    public static EnrichedSnapshot of(
+            List<PrimaryClassificationResult> classificationList,
+            Map<String, Set<SemanticLabel>> labels,
+            Map<String, Map<String, Object>> properties) {
+        Map<String, PrimaryClassificationResult> classificationsMap = new HashMap<>();
+        for (PrimaryClassificationResult result : classificationList) {
+            classificationsMap.put(result.typeName(), result);
+        }
+        return new EnrichedSnapshot(classificationsMap, labels, properties);
+    }
+
+    /**
      * Creates an empty enriched snapshot (for error cases).
      *
-     * @param classification the classification result
+     * @param classificationList the classification results
      * @return an empty enriched snapshot
      */
-    public static EnrichedSnapshot empty(PrimaryClassificationResult classification) {
-        return new EnrichedSnapshot(classification, Map.of(), Map.of());
+    public static EnrichedSnapshot empty(List<PrimaryClassificationResult> classificationList) {
+        return of(classificationList, Map.of(), Map.of());
+    }
+
+    /**
+     * Returns the classification for the given type name.
+     *
+     * @param typeName the fully qualified type name
+     * @return the classification result, or empty if not found
+     */
+    public Optional<PrimaryClassificationResult> classificationFor(String typeName) {
+        return Optional.ofNullable(classifications.get(typeName));
+    }
+
+    /**
+     * Returns all classification results as a list.
+     *
+     * @return list of all classification results
+     */
+    public List<PrimaryClassificationResult> allClassifications() {
+        return List.copyOf(classifications.values());
+    }
+
+    /**
+     * Returns the number of classifications.
+     *
+     * @return classification count
+     */
+    public int classificationCount() {
+        return classifications.size();
     }
 
     /**

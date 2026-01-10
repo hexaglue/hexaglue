@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.util;
@@ -56,8 +60,7 @@ class CycleDetectorTest {
     void shouldFindIndirectCycle() {
         // Given: A -> B -> C -> A
         Set<String> nodes = Set.of("A", "B", "C");
-        Map<String, Set<String>> edges =
-                Map.of("A", Set.of("B"), "B", Set.of("C"), "C", Set.of("A"));
+        Map<String, Set<String>> edges = Map.of("A", Set.of("B"), "B", Set.of("C"), "C", Set.of("A"));
 
         // When
         List<List<String>> cycles = detector.findCycles(nodes, edges);
@@ -117,8 +120,7 @@ class CycleDetectorTest {
     void shouldDetectMultipleCycles() {
         // Given: A -> B -> A and C -> D -> C
         Set<String> nodes = Set.of("A", "B", "C", "D");
-        Map<String, Set<String>> edges =
-                Map.of("A", Set.of("B"), "B", Set.of("A"), "C", Set.of("D"), "D", Set.of("C"));
+        Map<String, Set<String>> edges = Map.of("A", Set.of("B"), "B", Set.of("A"), "C", Set.of("D"), "D", Set.of("C"));
 
         // When
         List<List<String>> cycles = detector.findCycles(nodes, edges);

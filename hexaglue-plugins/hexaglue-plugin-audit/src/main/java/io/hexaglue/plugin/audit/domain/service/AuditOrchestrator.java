@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.domain.service;
@@ -102,16 +106,14 @@ public class AuditOrchestrator {
      */
     private BuildOutcome computeOutcome(List<Violation> violations, boolean allowCriticalViolations) {
         // Check for BLOCKER violations (non-overridable)
-        boolean hasBlockers =
-                violations.stream().anyMatch(v -> v.severity() == Severity.BLOCKER);
+        boolean hasBlockers = violations.stream().anyMatch(v -> v.severity() == Severity.BLOCKER);
 
         if (hasBlockers) {
             return BuildOutcome.FAIL;
         }
 
         // Check for CRITICAL violations (overridable via config)
-        boolean hasCritical =
-                violations.stream().anyMatch(v -> v.severity() == Severity.CRITICAL);
+        boolean hasCritical = violations.stream().anyMatch(v -> v.severity() == Severity.CRITICAL);
 
         if (hasCritical && !allowCriticalViolations) {
             return BuildOutcome.FAIL;

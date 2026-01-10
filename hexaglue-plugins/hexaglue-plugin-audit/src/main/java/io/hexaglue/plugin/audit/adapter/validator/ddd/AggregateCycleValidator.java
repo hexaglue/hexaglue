@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -16,8 +20,8 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
@@ -115,8 +119,7 @@ public class AggregateCycleValidator implements ConstraintValidator {
      * @param aggregateNames the set of aggregate qualified names
      * @return map of aggregate name to set of aggregates it depends on
      */
-    private Map<String, Set<String>> buildAggregateDependencyGraph(
-            Codebase codebase, Set<String> aggregateNames) {
+    private Map<String, Set<String>> buildAggregateDependencyGraph(Codebase codebase, Set<String> aggregateNames) {
 
         Map<String, Set<String>> aggregateDeps = new HashMap<>();
 

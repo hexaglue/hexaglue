@@ -49,10 +49,11 @@ class EnrichmentEngineTest {
     void shouldRunBuiltInEnricher() {
         EnrichmentEngine engine = new EnrichmentEngine(graph, diagnostics, List.of());
 
-        EnrichedSnapshot snapshot = engine.enrich(classification);
+        EnrichedSnapshot snapshot = engine.enrich(List.of(classification));
 
         assertThat(snapshot).isNotNull();
-        assertThat(snapshot.classification()).isEqualTo(classification);
+        assertThat(snapshot.classificationCount()).isEqualTo(1);
+        assertThat(snapshot.classificationFor(classification.typeName())).contains(classification);
     }
 
     @Test
@@ -64,7 +65,7 @@ class EnrichmentEngineTest {
 
         EnrichmentEngine engine = new EnrichmentEngine(graph, diagnostics, List.of(plugin));
 
-        EnrichedSnapshot snapshot = engine.enrich(classification);
+        EnrichedSnapshot snapshot = engine.enrich(List.of(classification));
 
         assertThat(snapshot.hasLabel("Order", SemanticLabel.AGGREGATE_BOUNDARY)).isTrue();
         assertThat(snapshot.property("Order", "complexity")).contains(10);
@@ -80,7 +81,7 @@ class EnrichmentEngineTest {
 
         EnrichmentEngine engine = new EnrichmentEngine(graph, diagnostics, List.of(plugin1, plugin2));
 
-        EnrichedSnapshot snapshot = engine.enrich(classification);
+        EnrichedSnapshot snapshot = engine.enrich(List.of(classification));
 
         assertThat(snapshot.labelsFor("Order"))
                 .contains(SemanticLabel.AGGREGATE_BOUNDARY, SemanticLabel.EVENT_PUBLISHER);
@@ -92,7 +93,7 @@ class EnrichmentEngineTest {
 
         EnrichmentEngine engine = new EnrichmentEngine(graph, diagnostics, List.of(failingPlugin));
 
-        EnrichedSnapshot snapshot = engine.enrich(classification);
+        EnrichedSnapshot snapshot = engine.enrich(List.of(classification));
 
         assertThat(snapshot).isNotNull();
         assertThat(diagnostics.errors).isNotEmpty();

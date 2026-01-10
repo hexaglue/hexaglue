@@ -158,4 +158,30 @@ final class TypeConverter {
                     SAGA -> false;
         };
     }
+
+    /**
+     * Converts a core ConfidenceLevel to SPI CertaintyLevel.
+     *
+     * <p>Maps core confidence levels to SPI certainty levels for enrichment plugins:
+     * <ul>
+     *   <li>EXPLICIT → EXPLICIT (annotation-based)</li>
+     *   <li>HIGH → CERTAIN_BY_STRUCTURE (strong structural signals)</li>
+     *   <li>MEDIUM → INFERRED (medium strength inference)</li>
+     *   <li>LOW → UNCERTAIN (weak signals)</li>
+     * </ul>
+     *
+     * @param confidence the core confidence level
+     * @return the corresponding SPI certainty level
+     */
+    io.hexaglue.spi.classification.CertaintyLevel toSpiCertainty(ConfidenceLevel confidence) {
+        if (confidence == null) {
+            return io.hexaglue.spi.classification.CertaintyLevel.NONE;
+        }
+        return switch (confidence) {
+            case EXPLICIT -> io.hexaglue.spi.classification.CertaintyLevel.EXPLICIT;
+            case HIGH -> io.hexaglue.spi.classification.CertaintyLevel.CERTAIN_BY_STRUCTURE;
+            case MEDIUM -> io.hexaglue.spi.classification.CertaintyLevel.INFERRED;
+            case LOW -> io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN;
+        };
+    }
 }

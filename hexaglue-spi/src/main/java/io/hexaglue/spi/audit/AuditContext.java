@@ -68,8 +68,7 @@ public record AuditContext(
      * @param diagnostics the diagnostic reporter
      * @param config      the plugin-specific configuration
      */
-    public AuditContext(
-            Codebase codebase, List<AuditRule> rules, DiagnosticReporter diagnostics, PluginConfig config) {
+    public AuditContext(Codebase codebase, List<AuditRule> rules, DiagnosticReporter diagnostics, PluginConfig config) {
         this(codebase, rules, diagnostics, config, null);
     }
 

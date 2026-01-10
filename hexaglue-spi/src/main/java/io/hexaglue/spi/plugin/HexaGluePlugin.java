@@ -45,29 +45,49 @@ public interface HexaGluePlugin {
     /**
      * Returns the list of plugin IDs this plugin depends on.
      *
-     * <p>Dependencies are executed before this plugin. If a dependency is missing
-     * or fails, this plugin will not be executed.
+     * <p><strong>Contract:</strong>
+     * <ul>
+     *   <li>Dependencies are executed <em>before</em> this plugin</li>
+     *   <li>If a dependency is missing, execution fails with
+     *       {@code PluginDependencyException}</li>
+     *   <li>If a dependency fails, this plugin is <em>skipped</em></li>
+     *   <li>Circular dependencies cause {@code PluginCyclicDependencyException}</li>
+     * </ul>
      *
-     * <p>Example:
+     * <p><strong>Example:</strong>
      * <pre>{@code
+     * @Override
      * public List<String> dependsOn() {
-     *     return List.of("io.hexaglue.plugin.jpa"); // Depends on JPA plugin
+     *     return List.of("io.hexaglue.plugin.jpa");
      * }
      * }</pre>
      *
-     * @return list of plugin IDs (empty if no dependencies)
+     * @return plugin IDs this plugin depends on; empty list if no dependencies
+     * @since 3.0.0
      */
     default List<String> dependsOn() {
         return List.of();
     }
 
     /**
-     * Returns the plugin category.
+     * Returns the category of this plugin.
      *
-     * <p>The category determines the plugin's primary purpose and execution context.
-     * Plugins should override this to return their appropriate category.
+     * <p><strong>Contract:</strong>
+     * <ul>
+     *   <li>Used for targeted execution (e.g., "run only generators")</li>
+     *   <li>Configurable via {@code EngineConfig.enabledCategories()}</li>
+     *   <li>Plugins of disabled categories are silently skipped</li>
+     * </ul>
      *
-     * @return the plugin category (defaults to GENERATOR for backward compatibility)
+     * <p>Categories:
+     * <ul>
+     *   <li>{@link PluginCategory#GENERATOR} - Generates code artifacts</li>
+     *   <li>{@link PluginCategory#AUDIT} - Validates architecture compliance</li>
+     *   <li>{@link PluginCategory#ENRICHMENT} - Adds semantic labels</li>
+     *   <li>{@link PluginCategory#ANALYSIS} - Custom analysis without code generation</li>
+     * </ul>
+     *
+     * @return plugin category; defaults to {@link PluginCategory#GENERATOR}
      * @since 3.0.0
      */
     default PluginCategory category() {

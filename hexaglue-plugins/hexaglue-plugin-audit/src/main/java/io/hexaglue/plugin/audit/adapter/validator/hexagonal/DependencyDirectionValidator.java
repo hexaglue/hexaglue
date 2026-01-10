@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
@@ -15,8 +19,8 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
@@ -89,15 +93,11 @@ public class DependencyDirectionValidator implements ConstraintValidator {
                             violations.add(Violation.builder(CONSTRAINT_ID)
                                     .severity(Severity.BLOCKER)
                                     .message("%s type '%s' depends on Infrastructure type '%s'"
-                                            .formatted(
-                                                    layer.name(),
-                                                    unit.simpleName(),
-                                                    infraUnit.simpleName()))
+                                            .formatted(layer.name(), unit.simpleName(), infraUnit.simpleName()))
                                     .affectedType(unit.qualifiedName())
                                     .location(SourceLocation.of(unit.qualifiedName(), 1, 1))
                                     .evidence(DependencyEvidence.of(
-                                            "Illegal dependency from %s to Infrastructure"
-                                                    .formatted(layer.name()),
+                                            "Illegal dependency from %s to Infrastructure".formatted(layer.name()),
                                             unit.qualifiedName(),
                                             infraUnit.qualifiedName()))
                                     .build());

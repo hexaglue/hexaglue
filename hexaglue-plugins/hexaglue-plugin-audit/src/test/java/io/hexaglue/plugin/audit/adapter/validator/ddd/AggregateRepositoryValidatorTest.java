@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -56,7 +60,8 @@ class AggregateRepositoryValidatorTest {
     @DisplayName("Should fail when aggregate is missing repository")
     void shouldFail_whenAggregateMissingRepository() {
         // Given
-        Codebase codebase = new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
+        Codebase codebase =
+                new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
 
         // When
         List<Violation> violations = validator.validate(codebase, null);
@@ -84,7 +89,8 @@ class AggregateRepositoryValidatorTest {
 
         // Then
         assertThat(violations).hasSize(2);
-        assertThat(violations).extracting(v -> v.message())
+        assertThat(violations)
+                .extracting(v -> v.message())
                 .anyMatch(msg -> msg.contains("Customer"))
                 .anyMatch(msg -> msg.contains("Product"));
     }
@@ -106,7 +112,8 @@ class AggregateRepositoryValidatorTest {
     @DisplayName("Should provide structural evidence")
     void shouldProvideStructuralEvidence() {
         // Given
-        Codebase codebase = new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
+        Codebase codebase =
+                new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
 
         // When
         List<Violation> violations = validator.validate(codebase, null);

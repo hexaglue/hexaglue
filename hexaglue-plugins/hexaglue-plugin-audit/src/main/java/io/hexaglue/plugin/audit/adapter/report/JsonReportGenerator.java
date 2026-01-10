@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report;
@@ -74,9 +78,7 @@ public final class JsonReportGenerator implements ReportGenerator {
                 .append(report.summary().totalViolations())
                 .append(",\n");
         json.append("    \"blockers\": ").append(report.summary().blockers()).append(",\n");
-        json.append("    \"criticals\": ")
-                .append(report.summary().criticals())
-                .append(",\n");
+        json.append("    \"criticals\": ").append(report.summary().criticals()).append(",\n");
         json.append("    \"majors\": ").append(report.summary().majors()).append(",\n");
         json.append("    \"minors\": ").append(report.summary().minors()).append(",\n");
         json.append("    \"infos\": ").append(report.summary().infos()).append("\n");
@@ -178,7 +180,9 @@ public final class JsonReportGenerator implements ReportGenerator {
 
         // Summary
         json.append("    \"totalCycles\": ").append(analysis.totalCycles()).append(",\n");
-        json.append("    \"totalViolations\": ").append(analysis.totalViolations()).append(",\n");
+        json.append("    \"totalViolations\": ")
+                .append(analysis.totalViolations())
+                .append(",\n");
         json.append("    \"isClean\": ").append(analysis.isClean()).append(",\n");
 
         // Type cycles
@@ -247,11 +251,21 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < violations.size(); i++) {
                 var v = violations.get(i);
                 json.append("      {\n");
-                json.append("        \"sourceType\": ").append(quote(v.sourceType())).append(",\n");
-                json.append("        \"targetType\": ").append(quote(v.targetType())).append(",\n");
-                json.append("        \"sourceLayer\": ").append(quote(v.sourceLayer())).append(",\n");
-                json.append("        \"targetLayer\": ").append(quote(v.targetLayer())).append(",\n");
-                json.append("        \"description\": ").append(quote(v.description())).append("\n");
+                json.append("        \"sourceType\": ")
+                        .append(quote(v.sourceType()))
+                        .append(",\n");
+                json.append("        \"targetType\": ")
+                        .append(quote(v.targetType()))
+                        .append(",\n");
+                json.append("        \"sourceLayer\": ")
+                        .append(quote(v.sourceLayer()))
+                        .append(",\n");
+                json.append("        \"targetLayer\": ")
+                        .append(quote(v.targetLayer()))
+                        .append(",\n");
+                json.append("        \"description\": ")
+                        .append(quote(v.description()))
+                        .append("\n");
                 json.append("      }");
                 if (i < violations.size() - 1) json.append(",");
                 json.append("\n");
@@ -269,11 +283,21 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < violations.size(); i++) {
                 var v = violations.get(i);
                 json.append("      {\n");
-                json.append("        \"sourceType\": ").append(quote(v.sourceType())).append(",\n");
-                json.append("        \"targetType\": ").append(quote(v.targetType())).append(",\n");
-                json.append("        \"sourceStability\": ").append(v.sourceStability()).append(",\n");
-                json.append("        \"targetStability\": ").append(v.targetStability()).append(",\n");
-                json.append("        \"description\": ").append(quote(v.description())).append("\n");
+                json.append("        \"sourceType\": ")
+                        .append(quote(v.sourceType()))
+                        .append(",\n");
+                json.append("        \"targetType\": ")
+                        .append(quote(v.targetType()))
+                        .append(",\n");
+                json.append("        \"sourceStability\": ")
+                        .append(v.sourceStability())
+                        .append(",\n");
+                json.append("        \"targetStability\": ")
+                        .append(v.targetStability())
+                        .append(",\n");
+                json.append("        \"description\": ")
+                        .append(quote(v.description()))
+                        .append("\n");
                 json.append("      }");
                 if (i < violations.size() - 1) json.append(",");
                 json.append("\n");
@@ -291,14 +315,30 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < metrics.size(); i++) {
                 var m = metrics.get(i);
                 json.append("      {\n");
-                json.append("        \"packageName\": ").append(quote(m.packageName())).append(",\n");
-                json.append("        \"afferentCoupling\": ").append(m.afferentCoupling()).append(",\n");
-                json.append("        \"efferentCoupling\": ").append(m.efferentCoupling()).append(",\n");
-                json.append("        \"instability\": ").append(String.format("%.4f", m.instability())).append(",\n");
-                json.append("        \"abstractness\": ").append(String.format("%.4f", m.abstractness())).append(",\n");
-                json.append("        \"distance\": ").append(String.format("%.4f", m.distance())).append(",\n");
-                json.append("        \"zoneOfPain\": ").append(m.isInZoneOfPain()).append(",\n");
-                json.append("        \"zoneOfUselessness\": ").append(m.isInZoneOfUselessness()).append("\n");
+                json.append("        \"packageName\": ")
+                        .append(quote(m.packageName()))
+                        .append(",\n");
+                json.append("        \"afferentCoupling\": ")
+                        .append(m.afferentCoupling())
+                        .append(",\n");
+                json.append("        \"efferentCoupling\": ")
+                        .append(m.efferentCoupling())
+                        .append(",\n");
+                json.append("        \"instability\": ")
+                        .append(String.format("%.4f", m.instability()))
+                        .append(",\n");
+                json.append("        \"abstractness\": ")
+                        .append(String.format("%.4f", m.abstractness()))
+                        .append(",\n");
+                json.append("        \"distance\": ")
+                        .append(String.format("%.4f", m.distance()))
+                        .append(",\n");
+                json.append("        \"zoneOfPain\": ")
+                        .append(m.isInZoneOfPain())
+                        .append(",\n");
+                json.append("        \"zoneOfUselessness\": ")
+                        .append(m.isInZoneOfUselessness())
+                        .append("\n");
                 json.append("      }");
                 if (i < metrics.size() - 1) json.append(",");
                 json.append("\n");

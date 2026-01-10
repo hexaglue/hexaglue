@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
@@ -16,14 +20,13 @@ import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -139,7 +142,8 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
 
             // Count entities within this aggregate
             long entityCount = deps.stream()
-                    .flatMap(dep -> codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
+                    .flatMap(dep -> codebase.units().stream()
+                            .filter(u -> u.qualifiedName().equals(dep)))
                     .filter(u -> u.role() == RoleClassification.ENTITY)
                     .count();
 
@@ -213,7 +217,8 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
             Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
 
             Set<String> entities = deps.stream()
-                    .flatMap(dep -> codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
+                    .flatMap(dep -> codebase.units().stream()
+                            .filter(u -> u.qualifiedName().equals(dep)))
                     .filter(u -> u.role() == RoleClassification.ENTITY)
                     .map(CodeUnit::qualifiedName)
                     .collect(Collectors.toSet());
@@ -262,10 +267,10 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
                 .formatted(aggregate.simpleName(), entityCount, MAX_AGGREGATE_SIZE);
 
         // Get entity names for evidence
-        Set<String> deps =
-                codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
+        Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
         List<String> entityNames = deps.stream()
-                .flatMap(dep -> codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
+                .flatMap(dep ->
+                        codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
                 .filter(u -> u.role() == RoleClassification.ENTITY)
                 .map(CodeUnit::simpleName)
                 .toList();
@@ -276,8 +281,7 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
                 .affectedType(aggregate.qualifiedName())
                 .location(SourceLocation.of(aggregate.qualifiedName(), 1, 1))
                 .evidence(StructuralEvidence.of(
-                        "Aggregate contains %d entities: %s"
-                                .formatted(entityCount, String.join(", ", entityNames)),
+                        "Aggregate contains %d entities: %s".formatted(entityCount, String.join(", ", entityNames)),
                         aggregate.qualifiedName()))
                 .build();
     }

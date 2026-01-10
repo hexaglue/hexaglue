@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -15,7 +19,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.spi.audit.Codebase;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -129,7 +132,7 @@ class DomainCoverageMetricCalculatorTest {
                 infraClass("Infra5"),
                 infraClass("Infra6"),
                 infraClass("Infra7") // 7 infrastructure
-        );
+                );
 
         // When
         Metric metric = calculator.calculate(codebase);
@@ -150,7 +153,7 @@ class DomainCoverageMetricCalculatorTest {
                 infraClass("Infra3"),
                 infraClass("Infra4"),
                 infraClass("Infra5") // 5 infrastructure
-                                     // Total: 7 types, 2/7 = 28.57%
+                // Total: 7 types, 2/7 = 28.57%
                 );
 
         // When

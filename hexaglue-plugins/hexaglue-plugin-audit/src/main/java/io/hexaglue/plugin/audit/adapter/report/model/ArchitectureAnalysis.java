@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report.model;
@@ -53,8 +57,7 @@ public record ArchitectureAnalysis(
      * Creates an empty architecture analysis.
      */
     public static ArchitectureAnalysis empty() {
-        return new ArchitectureAnalysis(
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        return new ArchitectureAnalysis(List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
     }
 
     /**
@@ -69,19 +72,16 @@ public record ArchitectureAnalysis(
         }
 
         // Convert type-level cycles
-        List<CycleEntry> typeCycles = query.findDependencyCycles().stream()
-                .map(CycleEntry::from)
-                .toList();
+        List<CycleEntry> typeCycles =
+                query.findDependencyCycles().stream().map(CycleEntry::from).toList();
 
         // Convert package-level cycles
-        List<CycleEntry> packageCycles = query.findPackageCycles().stream()
-                .map(CycleEntry::from)
-                .toList();
+        List<CycleEntry> packageCycles =
+                query.findPackageCycles().stream().map(CycleEntry::from).toList();
 
         // Convert bounded context cycles
-        List<CycleEntry> boundedContextCycles = query.findBoundedContextCycles().stream()
-                .map(CycleEntry::from)
-                .toList();
+        List<CycleEntry> boundedContextCycles =
+                query.findBoundedContextCycles().stream().map(CycleEntry::from).toList();
 
         // Convert layer violations
         List<LayerViolationEntry> layerViolations = query.findLayerViolations().stream()
@@ -99,12 +99,7 @@ public record ArchitectureAnalysis(
                 .toList();
 
         return new ArchitectureAnalysis(
-                typeCycles,
-                packageCycles,
-                boundedContextCycles,
-                layerViolations,
-                stabilityViolations,
-                couplingMetrics);
+                typeCycles, packageCycles, boundedContextCycles, layerViolations, stabilityViolations, couplingMetrics);
     }
 
     /**
@@ -179,11 +174,7 @@ public record ArchitectureAnalysis(
                                     violation.fromLayer(),
                                     violation.toLayer());
             return new LayerViolationEntry(
-                    violation.fromType(),
-                    violation.toType(),
-                    violation.fromLayer(),
-                    violation.toLayer(),
-                    description);
+                    violation.fromType(), violation.toType(), violation.fromLayer(), violation.toLayer(), description);
         }
     }
 
@@ -205,13 +196,12 @@ public record ArchitectureAnalysis(
         }
 
         public static StabilityViolationEntry from(StabilityViolation violation) {
-            String description =
-                    "Unstable component %s (I=%.2f) depends on more stable component %s (I=%.2f)"
-                            .formatted(
-                                    violation.fromType(),
-                                    violation.fromStability(),
-                                    violation.toType(),
-                                    violation.toStability());
+            String description = "Unstable component %s (I=%.2f) depends on more stable component %s (I=%.2f)"
+                    .formatted(
+                            violation.fromType(),
+                            violation.fromStability(),
+                            violation.toType(),
+                            violation.toStability());
             return new StabilityViolationEntry(
                     violation.fromType(),
                     violation.toType(),

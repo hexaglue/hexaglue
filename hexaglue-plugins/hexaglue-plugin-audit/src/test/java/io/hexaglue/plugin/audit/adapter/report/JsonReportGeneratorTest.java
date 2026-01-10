@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report;
@@ -50,12 +54,12 @@ class JsonReportGeneratorTest {
         ReportMetadata metadata =
                 new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 2, 1, 0, 1, 0, 0);
-        ViolationEntry v1 =
-                new ViolationEntry("ddd:entity-identity", "BLOCKER", "Entity must have ID", "Order", "Order.java:1:1", "");
+        ViolationEntry v1 = new ViolationEntry(
+                "ddd:entity-identity", "BLOCKER", "Entity must have ID", "Order", "Order.java:1:1", "");
         ViolationEntry v2 = new ViolationEntry(
                 "ddd:value-object-immutable", "MAJOR", "Value object must be immutable", "Money", "Money.java:5:1", "");
-        AuditReport report = new AuditReport(
-                metadata, summary, List.of(v1, v2), List.of(), new ConstraintsSummary(0, List.of()));
+        AuditReport report =
+                new AuditReport(metadata, summary, List.of(v1, v2), List.of(), new ConstraintsSummary(0, List.of()));
 
         JsonReportGenerator generator = new JsonReportGenerator();
 
@@ -109,8 +113,8 @@ class JsonReportGeneratorTest {
                 "Type",
                 "File.java:1:1",
                 "Evidence with \\ backslash");
-        AuditReport report = new AuditReport(
-                metadata, summary, List.of(v), List.of(), new ConstraintsSummary(0, List.of()));
+        AuditReport report =
+                new AuditReport(metadata, summary, List.of(v), List.of(), new ConstraintsSummary(0, List.of()));
 
         JsonReportGenerator generator = new JsonReportGenerator();
 

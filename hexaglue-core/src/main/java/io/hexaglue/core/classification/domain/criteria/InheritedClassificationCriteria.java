@@ -220,7 +220,8 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
                 "Inherits AGGREGATE_ROOT from parent " + parent.simpleName() + " (repository-managed)",
                 new Evidence(
                         EvidenceType.RELATIONSHIP,
-                        "Parent type " + parent.qualifiedName() + " is used by repository [" + repoNames + "] and has identity field",
+                        "Parent type " + parent.qualifiedName() + " is used by repository [" + repoNames
+                                + "] and has identity field",
                         List.of(parent.id())));
     }
 

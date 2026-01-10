@@ -5,20 +5,21 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.report.model;
 
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
-import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.ThresholdOperator;
-import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.AuditSnapshot;
 import io.hexaglue.spi.audit.RuleViolation;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -131,10 +132,7 @@ public record AuditReport(
      * @return a new AuditReport
      */
     public static AuditReport from(
-            AuditSnapshot snapshot,
-            String projectName,
-            Map<String, Metric> domainMetrics,
-            List<String> constraintIds) {
+            AuditSnapshot snapshot, String projectName, Map<String, Metric> domainMetrics, List<String> constraintIds) {
         return from(snapshot, projectName, domainMetrics, constraintIds, null);
     }
 
@@ -197,9 +195,8 @@ public record AuditReport(
                 violations.stream().map(AuditReport::convertViolation).toList();
 
         // Convert metrics
-        List<MetricEntry> metricEntries = domainMetrics.values().stream()
-                .map(AuditReport::convertMetric)
-                .toList();
+        List<MetricEntry> metricEntries =
+                domainMetrics.values().stream().map(AuditReport::convertMetric).toList();
 
         // Constraints summary
         ConstraintsSummary constraintsSummary = new ConstraintsSummary(constraintIds.size(), constraintIds);
@@ -212,8 +209,8 @@ public record AuditReport(
     }
 
     private static ViolationEntry convertViolation(RuleViolation violation) {
-        String location = violation.location().filePath() + ":" + violation.location().lineStart() + ":"
-                + violation.location().columnStart();
+        String location = violation.location().filePath() + ":"
+                + violation.location().lineStart() + ":" + violation.location().columnStart();
         return new ViolationEntry(
                 violation.ruleId(),
                 violation.severity().name(),
@@ -232,7 +229,8 @@ public record AuditReport(
             if (mt.operator() == ThresholdOperator.LESS_THAN && mt.min().isPresent()) {
                 threshold = mt.min().get();
                 thresholdType = "min";
-            } else if (mt.operator() == ThresholdOperator.GREATER_THAN && mt.max().isPresent()) {
+            } else if (mt.operator() == ThresholdOperator.GREATER_THAN
+                    && mt.max().isPresent()) {
                 threshold = mt.max().get();
                 thresholdType = "max";
             } else if (mt.operator() == ThresholdOperator.BETWEEN) {

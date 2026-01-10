@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.domain.model;
@@ -35,8 +39,7 @@ public final class DependencyEvidence {
      * @return a new RelationshipEvidence instance
      */
     public static RelationshipEvidence of(String description, String source, String target) {
-        return RelationshipEvidence.of(
-                description, List.of(source, target), List.of(source + " -> " + target));
+        return RelationshipEvidence.of(description, List.of(source, target), List.of(source + " -> " + target));
     }
 
     /**
@@ -47,8 +50,7 @@ public final class DependencyEvidence {
      * @param relationships the specific dependency relationships
      * @return a new RelationshipEvidence instance
      */
-    public static RelationshipEvidence of(
-            String description, List<String> involvedTypes, List<String> relationships) {
+    public static RelationshipEvidence of(String description, List<String> involvedTypes, List<String> relationships) {
         return RelationshipEvidence.of(description, involvedTypes, relationships);
     }
 }

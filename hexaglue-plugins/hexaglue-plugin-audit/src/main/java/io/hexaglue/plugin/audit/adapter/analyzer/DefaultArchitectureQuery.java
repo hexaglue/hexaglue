@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.analyzer;
@@ -12,8 +16,8 @@ package io.hexaglue.plugin.audit.adapter.analyzer;
 import io.hexaglue.plugin.audit.adapter.validator.util.CycleDetector;
 import io.hexaglue.spi.audit.AggregateInfo;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CouplingMetrics;
 import io.hexaglue.spi.audit.CycleKind;
 import io.hexaglue.spi.audit.DependencyCycle;
@@ -137,7 +141,8 @@ public class DefaultArchitectureQuery implements ArchitectureQuery {
         Set<String> deps = codebase.dependencies().getOrDefault(aggregateRootType, Set.of());
 
         return deps.stream()
-                .flatMap(dep -> codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
+                .flatMap(dep ->
+                        codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
                 .filter(u -> u.role() == RoleClassification.ENTITY)
                 .map(CodeUnit::qualifiedName)
                 .toList();
@@ -286,7 +291,8 @@ public class DefaultArchitectureQuery implements ArchitectureQuery {
         Set<String> deps = codebase.dependencies().getOrDefault(aggregateRootType, Set.of());
 
         return deps.stream()
-                .flatMap(dep -> codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
+                .flatMap(dep ->
+                        codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
                 .filter(u -> u.role() == RoleClassification.VALUE_OBJECT)
                 .map(CodeUnit::qualifiedName)
                 .toList();
@@ -330,9 +336,8 @@ public class DefaultArchitectureQuery implements ArchitectureQuery {
 
         for (CodeUnit unit : typesInPackage) {
             Set<String> deps = codebase.dependencies().getOrDefault(unit.qualifiedName(), Set.of());
-            outgoingTypes.addAll(deps.stream()
-                    .filter(dep -> !packageTypes.contains(dep))
-                    .toList());
+            outgoingTypes.addAll(
+                    deps.stream().filter(dep -> !packageTypes.contains(dep)).toList());
         }
 
         return outgoingTypes.size();

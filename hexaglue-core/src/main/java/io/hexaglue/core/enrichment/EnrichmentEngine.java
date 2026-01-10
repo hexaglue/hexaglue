@@ -75,10 +75,10 @@ public class EnrichmentEngine {
     /**
      * Performs enrichment and returns the enriched snapshot.
      *
-     * @param classification the classification result
+     * @param classifications the list of classification results for all types
      * @return enriched snapshot with labels and properties
      */
-    public EnrichedSnapshot enrich(PrimaryClassificationResult classification) {
+    public EnrichedSnapshot enrich(List<PrimaryClassificationResult> classifications) {
         diagnostics.info("Starting enrichment phase...");
 
         // Run built-in behavioral pattern detection
@@ -98,7 +98,7 @@ public class EnrichmentEngine {
         if (!plugins.isEmpty()) {
             diagnostics.info(String.format("Running %d enrichment plugin(s)...", plugins.size()));
             ArchitectureQuery query = new DefaultArchitectureQuery(graph);
-            EnrichmentContext context = new EnrichmentContext(classification, query, diagnostics);
+            EnrichmentContext context = EnrichmentContext.of(classifications, query, diagnostics);
 
             for (EnrichmentPlugin plugin : plugins) {
                 try {
@@ -126,7 +126,8 @@ public class EnrichmentEngine {
             }
         }
 
-        EnrichedSnapshot snapshot = new EnrichedSnapshot(classification, allLabels, allProperties);
+        // Create enriched snapshot with all classifications
+        EnrichedSnapshot snapshot = EnrichedSnapshot.of(classifications, allLabels, allProperties);
 
         var stats = snapshot.stats();
         diagnostics.info(String.format(

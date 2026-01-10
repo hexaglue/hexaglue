@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.metric;
@@ -12,8 +16,8 @@ package io.hexaglue.plugin.audit.adapter.metric;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 
@@ -50,17 +54,15 @@ public class PortCoverageMetricCalculator implements MetricCalculator {
 
         if (aggregates.isEmpty()) {
             return Metric.of(
-                    METRIC_NAME,
-                    100.0,
-                    "%",
-                    "Percentage of aggregates with repository ports (no aggregates found)");
+                    METRIC_NAME, 100.0, "%", "Percentage of aggregates with repository ports (no aggregates found)");
         }
 
         List<CodeUnit> repositories = codebase.unitsWithRole(RoleClassification.REPOSITORY);
 
         // Calculate how many aggregates have repositories
-        long aggregatesWithRepo =
-                aggregates.stream().filter(agg -> hasRepository(agg, repositories)).count();
+        long aggregatesWithRepo = aggregates.stream()
+                .filter(agg -> hasRepository(agg, repositories))
+                .count();
 
         double coverage = (double) aggregatesWithRepo / aggregates.size() * 100.0;
 

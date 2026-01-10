@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
@@ -14,7 +18,6 @@ import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.domainClass;
 import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.infraClass;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.plugin.audit.domain.model.DependencyEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
@@ -42,7 +45,8 @@ class DependencyDirectionValidatorTest {
     @DisplayName("Should pass when domain has no dependencies")
     void shouldPass_whenDomainHasNoDependencies() {
         // Given
-        Codebase codebase = new TestCodebaseBuilder().addUnit(domainClass("Order")).build();
+        Codebase codebase =
+                new TestCodebaseBuilder().addUnit(domainClass("Order")).build();
 
         // When
         List<Violation> violations = validator.validate(codebase, null);
@@ -99,8 +103,7 @@ class DependencyDirectionValidatorTest {
         Codebase codebase = new TestCodebaseBuilder()
                 .addUnit(applicationClass("OrderService"))
                 .addUnit(infraClass("JpaOrderRepository"))
-                .addDependency(
-                        "com.example.application.OrderService", "com.example.infrastructure.JpaOrderRepository")
+                .addDependency("com.example.application.OrderService", "com.example.infrastructure.JpaOrderRepository")
                 .build();
 
         // When

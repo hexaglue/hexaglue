@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.util;
@@ -123,8 +127,7 @@ public class TestCodebaseBuilder {
         List<FieldDeclaration> fields = new ArrayList<>();
 
         if (hasId) {
-            fields.add(new FieldDeclaration(
-                    "id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
+            fields.add(new FieldDeclaration("id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
         }
 
         return new CodeUnit(
@@ -160,8 +163,7 @@ public class TestCodebaseBuilder {
         List<FieldDeclaration> fields = new ArrayList<>();
 
         if (hasId) {
-            fields.add(new FieldDeclaration(
-                    "id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
+            fields.add(new FieldDeclaration("id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
         }
 
         return new CodeUnit(

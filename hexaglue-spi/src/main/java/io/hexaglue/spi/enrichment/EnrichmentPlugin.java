@@ -13,7 +13,12 @@
 
 package io.hexaglue.spi.enrichment;
 
+import io.hexaglue.spi.classification.PrimaryClassificationResult;
+import io.hexaglue.spi.generation.PluginCategory;
 import io.hexaglue.spi.plugin.HexaGluePlugin;
+import io.hexaglue.spi.plugin.PluginContext;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Service Provider Interface for enrichment plugins.
@@ -62,6 +67,18 @@ import io.hexaglue.spi.plugin.HexaGluePlugin;
 public interface EnrichmentPlugin extends HexaGluePlugin {
 
     /**
+     * Returns the plugin category.
+     *
+     * <p>Enrichment plugins always return {@link PluginCategory#ENRICHMENT}.
+     *
+     * @return {@link PluginCategory#ENRICHMENT}
+     */
+    @Override
+    default PluginCategory category() {
+        return PluginCategory.ENRICHMENT;
+    }
+
+    /**
      * Performs enrichment analysis and returns contributions.
      *
      * <p>This method is called during the enrichment phase, after classification
@@ -80,4 +97,73 @@ public interface EnrichmentPlugin extends HexaGluePlugin {
      * @return the enrichment contribution (never null)
      */
     EnrichmentContribution enrich(EnrichmentContext context);
+
+    /**
+     * Executes the plugin (delegates to enrich with context adaptation).
+     *
+     * <p>This method adapts the generic {@link PluginContext} to the specialized
+     * {@link EnrichmentContext} required by enrichment plugins. It extracts
+     * primary classification results from the plugin output store (populated by
+     * the engine) and creates an EnrichmentContext for the plugin to analyze.
+     *
+     * <p>The implementation follows these steps:
+     * <ol>
+     *   <li>Retrieve primary classifications from the plugin output store</li>
+     *   <li>Create an EnrichmentContext with classifications and architecture query</li>
+     *   <li>Execute the enrichment analysis via {@link #enrich(EnrichmentContext)}</li>
+     *   <li>Store the contribution in the output store for downstream plugins</li>
+     * </ol>
+     *
+     * <p><b>Note:</b> Primary classifications must be stored in the output store
+     * by the engine before enrichment plugins execute. The engine should call:
+     * <pre>{@code
+     * List<PrimaryClassificationResult> classifications =
+     *     irExporter.exportPrimaryClassifications(classificationResults);
+     * context.setOutput("primary-classifications", classifications);
+     * }</pre>
+     *
+     * @param context the generic plugin context
+     */
+    @Override
+    default void execute(PluginContext context) {
+        try {
+            // Retrieve primary classifications from the output store
+            // The engine must populate this before enrichment plugins run
+            Optional<?> rawOpt = context.getOutput("io.hexaglue.engine", "primary-classifications", List.class);
+
+            if (rawOpt.isEmpty()) {
+                context.diagnostics()
+                        .error(
+                                "Enrichment plugin execution failed: " + id(),
+                                new IllegalStateException("Primary classifications not available in plugin context. "
+                                        + "The engine must populate the output store with primary-classifications before "
+                                        + "enrichment plugins execute."));
+                return;
+            }
+
+            @SuppressWarnings("unchecked")
+            List<PrimaryClassificationResult> classifications = (List<PrimaryClassificationResult>) rawOpt.get();
+
+            // Create EnrichmentContext
+            EnrichmentContext enrichmentContext = EnrichmentContext.of(
+                    classifications, context.architectureQuery().orElse(null), context.diagnostics());
+
+            // Execute the enrichment
+            EnrichmentContribution contribution = enrich(enrichmentContext);
+
+            // Store contribution for downstream plugins
+            if (contribution != null) {
+                context.setOutput("enrichment-contribution", contribution);
+                context.diagnostics()
+                        .info(String.format(
+                                "Enrichment plugin %s completed: %d labels, %d properties",
+                                id(),
+                                contribution.labels().size(),
+                                contribution.properties().size()));
+            }
+
+        } catch (Exception e) {
+            context.diagnostics().error("Enrichment plugin execution failed: " + id(), e);
+        }
+    }
 }

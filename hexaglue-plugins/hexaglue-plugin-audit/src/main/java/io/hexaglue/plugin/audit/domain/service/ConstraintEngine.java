@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit.domain.service;
@@ -63,8 +67,7 @@ public class ConstraintEngine {
         Objects.requireNonNull(enabledConstraints, "enabledConstraints required");
 
         // If empty, enable all constraints
-        Set<ConstraintId> toExecute =
-                enabledConstraints.isEmpty() ? validators.keySet() : enabledConstraints;
+        Set<ConstraintId> toExecute = enabledConstraints.isEmpty() ? validators.keySet() : enabledConstraints;
 
         return toExecute.stream()
                 .map(validators::get)

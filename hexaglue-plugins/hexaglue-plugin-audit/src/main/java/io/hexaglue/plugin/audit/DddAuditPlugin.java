@@ -5,6 +5,10 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
  */
 
 package io.hexaglue.plugin.audit;
@@ -45,7 +49,6 @@ import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.QualityMetrics;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.core.SourceLocation;
 import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
@@ -62,7 +65,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * DDD Audit Plugin for HexaGlue.
@@ -124,8 +126,7 @@ public class DddAuditPlugin implements AuditPlugin {
         AuditOrchestrator orchestrator = new AuditOrchestrator(constraintEngine, metricAggregator);
 
         // Use core's architecture query if available, otherwise create fallback
-        var architectureQuery = context.query()
-                .orElseGet(() -> new DefaultArchitectureQuery(codebase));
+        var architectureQuery = context.query().orElseGet(() -> new DefaultArchitectureQuery(codebase));
 
         // Execute audit with architecture query
         AuditResult result = orchestrator.executeAudit(
@@ -146,8 +147,8 @@ public class DddAuditPlugin implements AuditPlugin {
         if (result.outcome() == BuildOutcome.FAIL) {
             long blockerCount = result.blockerCount();
             long criticalCount = result.criticalCount();
-            diagnostics.error("Audit FAILED: %d blocker, %d critical violations"
-                    .formatted(blockerCount, criticalCount));
+            diagnostics.error(
+                    "Audit FAILED: %d blocker, %d critical violations".formatted(blockerCount, criticalCount));
         }
 
         // Convert to SPI snapshot
@@ -195,7 +196,9 @@ public class DddAuditPlugin implements AuditPlugin {
      */
     private RuleViolation convertViolation(Violation violation) {
         return new RuleViolation(
-                violation.constraintId().value(), convertSeverity(violation.severity()), violation.message(),
+                violation.constraintId().value(),
+                convertSeverity(violation.severity()),
+                violation.message(),
                 violation.location());
     }
 
@@ -219,7 +222,8 @@ public class DddAuditPlugin implements AuditPlugin {
      */
     private ArchitectureMetrics computeArchitectureMetrics(
             Codebase codebase, io.hexaglue.spi.audit.ArchitectureQuery architectureQuery) {
-        int aggregateCount = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT).size();
+        int aggregateCount =
+                codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT).size();
 
         // Use architecture query for cycle detection
         int circularDependencies = 0;
@@ -285,8 +289,8 @@ public class DddAuditPlugin implements AuditPlugin {
                     context.architectureQuery().orElse(null);
 
             // Create audit context with core's architecture query
-            AuditContext auditContext = new AuditContext(
-                    codebase, List.of(), context.diagnostics(), context.config(), coreQuery);
+            AuditContext auditContext =
+                    new AuditContext(codebase, List.of(), context.diagnostics(), context.config(), coreQuery);
 
             // Execute audit
             AuditSnapshot snapshot = audit(auditContext);
@@ -327,8 +331,8 @@ public class DddAuditPlugin implements AuditPlugin {
             String projectName = inferProjectName(context.ir());
 
             // Build report with architecture analysis from core
-            AuditReport report = AuditReport.from(
-                    snapshot, projectName, result.metrics(), constraintIds, lastArchitectureQuery);
+            AuditReport report =
+                    AuditReport.from(snapshot, projectName, result.metrics(), constraintIds, lastArchitectureQuery);
 
             // Always generate console output
             ConsoleReportGenerator consoleGenerator = new ConsoleReportGenerator();
@@ -349,9 +353,7 @@ public class DddAuditPlugin implements AuditPlugin {
                         generator.writeToFile(report, outputDir);
                         context.diagnostics()
                                 .info("Generated %s report: %s"
-                                        .formatted(
-                                                format.name(),
-                                                outputDir.resolve(format.defaultFilename())));
+                                        .formatted(format.name(), outputDir.resolve(format.defaultFilename())));
                     }
                 }
             }
@@ -421,8 +423,7 @@ public class DddAuditPlugin implements AuditPlugin {
                             prop.name(), prop.type().qualifiedName(), Set.of(), Set.of()))
                     .toList();
 
-            CodeMetrics codeMetrics =
-                    new CodeMetrics(0, 0, 0, fieldDecls.size(), 100.0);
+            CodeMetrics codeMetrics = new CodeMetrics(0, 0, 0, fieldDecls.size(), 100.0);
 
             units.add(new CodeUnit(
                     type.qualifiedName(),
@@ -533,27 +534,27 @@ public class DddAuditPlugin implements AuditPlugin {
      */
     private boolean isPrimitive(String type) {
         return Set.of(
-                        "int",
-                        "long",
-                        "double",
-                        "float",
-                        "boolean",
-                        "byte",
-                        "short",
-                        "char",
-                        "String",
-                        "Integer",
-                        "Long",
-                        "Double",
-                        "Float",
-                        "Boolean",
-                        "BigDecimal",
-                        "BigInteger",
-                        "LocalDate",
-                        "LocalDateTime",
-                        "Instant",
-                        "UUID")
-                .contains(type)
+                                "int",
+                                "long",
+                                "double",
+                                "float",
+                                "boolean",
+                                "byte",
+                                "short",
+                                "char",
+                                "String",
+                                "Integer",
+                                "Long",
+                                "Double",
+                                "Float",
+                                "Boolean",
+                                "BigDecimal",
+                                "BigInteger",
+                                "LocalDate",
+                                "LocalDateTime",
+                                "Instant",
+                                "UUID")
+                        .contains(type)
                 || type.startsWith("java.");
     }
 

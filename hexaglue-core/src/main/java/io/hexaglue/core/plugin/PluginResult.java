@@ -40,4 +40,16 @@ public record PluginResult(
     public List<PluginDiagnostic> errors() {
         return diagnostics.stream().filter(PluginDiagnostic::isError).toList();
     }
+
+    /**
+     * Creates a skipped plugin result.
+     *
+     * @param pluginId the plugin identifier
+     * @param reason the reason the plugin was skipped
+     * @return a failed result with the skip reason
+     */
+    public static PluginResult skipped(String pluginId, String reason) {
+        PluginDiagnostic diagnostic = new PluginDiagnostic(PluginDiagnostic.Severity.WARNING, reason, null);
+        return new PluginResult(pluginId, false, List.of(), List.of(diagnostic), 0, null);
+    }
 }
