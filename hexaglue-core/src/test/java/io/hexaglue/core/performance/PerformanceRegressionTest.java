@@ -55,8 +55,7 @@ import spoon.reflect.declaration.CtMethod;
  */
 class PerformanceRegressionTest {
 
-    private static final String TEST_CLASS_SOURCE =
-            """
+    private static final String TEST_CLASS_SOURCE = """
             package com.example;
             public class TestService {
                 private String id;

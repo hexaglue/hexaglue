@@ -13,13 +13,19 @@
 
 package io.hexaglue.plugin.audit.config;
 
+import io.hexaglue.plugin.audit.adapter.validator.ddd.AggregateBoundaryValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.AggregateConsistencyValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.AggregateCycleValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.AggregateRepositoryValidator;
+import io.hexaglue.plugin.audit.adapter.validator.ddd.DomainPurityValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.EntityIdentityValidator;
+import io.hexaglue.plugin.audit.adapter.validator.ddd.EventNamingValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.ValueObjectImmutabilityValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.DependencyDirectionValidator;
+import io.hexaglue.plugin.audit.adapter.validator.hexagonal.DependencyInversionValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.LayerIsolationValidator;
+import io.hexaglue.plugin.audit.adapter.validator.hexagonal.PortCoverageValidator;
+import io.hexaglue.plugin.audit.adapter.validator.hexagonal.PortDirectionValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.PortInterfaceValidator;
 import io.hexaglue.plugin.audit.domain.model.Constraint;
 import io.hexaglue.plugin.audit.domain.model.Severity;
@@ -100,6 +106,17 @@ public final class DefaultConstraints {
                                 + "can lead to transaction boundary issues and tight coupling.",
                         Severity.BLOCKER));
 
+        // Aggregate Boundary
+        registry.register(
+                new AggregateBoundaryValidator(),
+                Constraint.ddd(
+                        "ddd:aggregate-boundary",
+                        "Entities must be accessible only through aggregate root",
+                        "Entities within an aggregate should only be accessible through the aggregate root, "
+                                + "never directly from outside code. This ensures that all modifications to the "
+                                + "aggregate go through the root, which can enforce invariants and maintain consistency.",
+                        Severity.MAJOR));
+
         // Aggregate Consistency
         registry.register(
                 new AggregateConsistencyValidator(),
@@ -110,6 +127,29 @@ public final class DefaultConstraints {
                                 + "aggregates should not be too large (max 7 entities), and internal entities "
                                 + "should not be directly accessible from outside the aggregate.",
                         Severity.MAJOR));
+
+        // Domain Purity
+        registry.register(
+                new DomainPurityValidator(),
+                Constraint.ddd(
+                        "ddd:domain-purity",
+                        "Domain layer must not depend on infrastructure",
+                        "The domain layer should be pure and independent of infrastructure concerns. "
+                                + "Domain types should not depend on frameworks, databases, external APIs, or any "
+                                + "infrastructure implementation details. This ensures the domain model remains "
+                                + "portable, testable, and focused on business logic.",
+                        Severity.MAJOR));
+
+        // Event Naming
+        registry.register(
+                new EventNamingValidator(),
+                Constraint.ddd(
+                        "ddd:event-naming",
+                        "Domain events must be named in past tense",
+                        "Domain events represent facts that have already occurred in the business domain. "
+                                + "Their names should reflect this by using past-tense verbs (e.g., OrderPlaced, "
+                                + "UserCreated, PaymentCompleted), making the timeline of events explicit in the code.",
+                        Severity.MINOR));
     }
 
     /**
@@ -147,6 +187,41 @@ public final class DefaultConstraints {
                         "Layers should have clear boundaries: Domain depends on nothing external, "
                                 + "Application depends only on Domain, and Infrastructure can depend on both. "
                                 + "This ensures maintainability and flexibility.",
+                        Severity.MAJOR));
+
+        // Port Direction
+        registry.register(
+                new PortDirectionValidator(),
+                Constraint.hexagonal(
+                        "hexagonal:port-direction",
+                        "Port direction must match usage",
+                        "DRIVING ports (inbound) should be implemented by application services and called by adapters. "
+                                + "DRIVEN ports (outbound) should be used by application services and implemented by adapters. "
+                                + "Incorrect port direction violates hexagonal architecture principles.",
+                        Severity.MAJOR));
+
+        // Dependency Inversion
+        registry.register(
+                new DependencyInversionValidator(),
+                Constraint.hexagonal(
+                        "hexagonal:dependency-inversion",
+                        "Dependencies must be on abstractions",
+                        "Application layer should depend only on abstractions (interfaces) when referencing "
+                                + "infrastructure. Depending on concrete infrastructure classes violates the Dependency "
+                                + "Inversion Principle, creates tight coupling, and makes the application difficult to "
+                                + "test and modify.",
+                        Severity.CRITICAL));
+
+        // Port Coverage
+        registry.register(
+                new PortCoverageValidator(),
+                Constraint.hexagonal(
+                        "hexagonal:port-coverage",
+                        "Ports must have adapter implementations",
+                        "All ports should have at least one adapter implementing them. Ports without adapters "
+                                + "indicate incomplete hexagonal architecture where the application cannot interact "
+                                + "with external systems. Each port must have a concrete implementation in the "
+                                + "infrastructure/adapter layer.",
                         Severity.MAJOR));
     }
 

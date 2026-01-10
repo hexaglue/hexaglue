@@ -71,6 +71,12 @@
                         <artifactId>hexaglue-plugin-jpa</artifactId>
                         <version>1.0.0-SNAPSHOT</version>
                     </dependency>
+                    <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
+                    <dependency>
+                        <groupId>jakarta.persistence</groupId>
+                        <artifactId>jakarta.persistence-api</artifactId>
+                        <version>3.2.0</version>
+                    </dependency>
                 </dependencies>
             </plugin>
         </plugins>
