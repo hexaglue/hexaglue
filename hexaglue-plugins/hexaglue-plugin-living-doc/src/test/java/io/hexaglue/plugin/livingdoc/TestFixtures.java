@@ -259,15 +259,15 @@ public final class TestFixtures {
     public static IrSnapshot createIrSnapshot(List<DomainType> domainTypes, List<Port> ports) {
         DomainModel domain = new DomainModel(domainTypes);
         PortModel portModel = new PortModel(ports);
-        IrMetadata metadata =
-                new IrMetadata("com.example", Instant.now(), "1.0.0-SNAPSHOT", domainTypes.size(), ports.size());
+        IrMetadata metadata = IrMetadata.withDefaults(
+                "com.example", Instant.now(), "1.0.0-SNAPSHOT", domainTypes.size(), ports.size());
         return new IrSnapshot(domain, portModel, metadata);
     }
 
     public static IrSnapshot emptyIrSnapshot() {
         DomainModel domain = new DomainModel(List.of());
         PortModel portModel = new PortModel(List.of());
-        IrMetadata metadata = new IrMetadata("com.example", Instant.now(), "1.0.0-SNAPSHOT", 0, 0);
+        IrMetadata metadata = IrMetadata.withDefaults("com.example", Instant.now(), "1.0.0-SNAPSHOT", 0, 0);
         return new IrSnapshot(domain, portModel, metadata);
     }
 

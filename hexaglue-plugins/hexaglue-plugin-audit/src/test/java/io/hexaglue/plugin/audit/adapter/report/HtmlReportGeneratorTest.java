@@ -30,7 +30,7 @@ class HtmlReportGeneratorTest {
     void shouldGenerateValidHtmlStructure() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -53,7 +53,7 @@ class HtmlReportGeneratorTest {
     void shouldDisplayPassedStatus() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -72,7 +72,7 @@ class HtmlReportGeneratorTest {
     void shouldDisplayFailedStatus() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry("ddd:test", "BLOCKER", "Test violation", "Type", "File.java:1:1", "");
         AuditReport report =
@@ -92,7 +92,7 @@ class HtmlReportGeneratorTest {
     void shouldRenderViolationsTable() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry(
                 "ddd:entity-identity", "BLOCKER", "Entity must have ID", "Order", "Order.java:10:5", "");
@@ -116,7 +116,7 @@ class HtmlReportGeneratorTest {
     void shouldEscapeHtmlSpecialCharacters() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test<script>", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test<script>", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 0, 0, 1, 0, 0);
         ViolationEntry v = new ViolationEntry(
                 "test:xss", "MAJOR", "Message with <script>alert('xss')</script>", "Type&Name", "File.java:1:1", "");

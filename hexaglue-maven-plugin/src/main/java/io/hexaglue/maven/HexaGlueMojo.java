@@ -190,6 +190,8 @@ public class HexaGlueMojo extends AbstractMojo {
                 classpath,
                 javaVersion,
                 basePackage,
+                project.getName(),
+                project.getVersion(),
                 outputDirectory.toPath(),
                 pluginConfigs,
                 Map.of(), // options

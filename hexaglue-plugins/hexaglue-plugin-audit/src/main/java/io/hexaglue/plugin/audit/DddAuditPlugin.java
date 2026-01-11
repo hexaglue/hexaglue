@@ -103,15 +103,17 @@ public class DddAuditPlugin implements AuditPlugin {
      * without relying on mutable state.
      *
      * @param snapshot the SPI audit snapshot
-     * @param domainResult the domain audit result (for metrics)
+     * @param domainResult the domain audit result (for metrics and violations)
      * @param config the audit configuration (for constraint IDs)
      * @param architectureQuery the architecture query from core (may be null)
+     * @param ir the IR snapshot for inventory building
      */
     private record AuditExecutionResult(
             AuditSnapshot snapshot,
             AuditResult domainResult,
             AuditConfiguration config,
-            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery) {}
+            io.hexaglue.spi.audit.ArchitectureQuery architectureQuery,
+            IrSnapshot ir) {}
 
     /**
      * Default constructor for ServiceLoader.
@@ -326,7 +328,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
             // Execute audit (returns snapshot, result, and query for report generation)
             AuditExecutionResult executionResult =
-                    executeDomainAudit(codebase, coreQuery, config, context.diagnostics());
+                    executeDomainAudit(codebase, coreQuery, config, context.diagnostics(), context.ir());
 
             // Generate reports using the execution result
             generateReports(executionResult, context);
@@ -355,6 +357,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * @param coreQuery the architecture query from core (may be null)
      * @param config the audit configuration
      * @param diagnostics the diagnostics handler
+     * @param ir the IR snapshot for inventory building
      * @return the audit execution result containing snapshot and domain data
      * @throws Exception if audit fails
      */
@@ -362,7 +365,8 @@ public class DddAuditPlugin implements AuditPlugin {
             Codebase codebase,
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery,
             AuditConfiguration config,
-            io.hexaglue.spi.plugin.DiagnosticReporter diagnostics)
+            io.hexaglue.spi.plugin.DiagnosticReporter diagnostics,
+            IrSnapshot ir)
             throws Exception {
 
         Instant startTime = Instant.now();
@@ -396,7 +400,7 @@ public class DddAuditPlugin implements AuditPlugin {
         AuditSnapshot snapshot = convertToAuditSnapshot(result, codebase, duration, coreQuery, config);
 
         // Return all data needed for report generation
-        return new AuditExecutionResult(snapshot, result, config, coreQuery);
+        return new AuditExecutionResult(snapshot, result, config, coreQuery, ir);
     }
 
     /**
@@ -417,16 +421,23 @@ public class DddAuditPlugin implements AuditPlugin {
             AuditResult domainResult = executionResult.domainResult();
             AuditConfiguration config = executionResult.config();
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
+            IrSnapshot ir = executionResult.ir();
 
             // Build unified report model
             List<String> constraintIds = new ArrayList<>(config.enabledConstraints());
 
             // Extract project name from IR or use codebase name
-            String projectName = inferProjectName(context.ir());
+            String projectName = inferProjectName(ir);
 
-            // Build report with architecture analysis from core
-            AuditReport report =
-                    AuditReport.from(snapshot, projectName, domainResult.metrics(), constraintIds, architectureQuery);
+            // Build complete report with all enriched data
+            AuditReport report = AuditReport.fromComplete(
+                    snapshot,
+                    projectName,
+                    domainResult.metrics(),
+                    constraintIds,
+                    architectureQuery,
+                    ir,
+                    domainResult.violations());
 
             // Always generate console output
             ConsoleReportGenerator consoleGenerator = new ConsoleReportGenerator();
@@ -457,21 +468,18 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Infers project name from IR snapshot.
+     * Gets project name from IR metadata.
+     *
+     * <p>Uses the project name from IrMetadata which is populated by the Maven plugin
+     * from the project's pom.xml. Falls back to the inferred name from metadata
+     * if not explicitly set.
      *
      * @param ir the IR snapshot
-     * @return inferred project name
+     * @return the project name
      */
     private String inferProjectName(IrSnapshot ir) {
-        // Try to extract from base package
-        if (!ir.domain().types().isEmpty()) {
-            String firstType = ir.domain().types().get(0).qualifiedName();
-            int firstDot = firstType.indexOf('.');
-            if (firstDot > 0) {
-                return firstType.substring(0, firstDot);
-            }
-        }
-        return "audit-target";
+        // Use project name from IR metadata (set by Maven plugin)
+        return ir.metadata().projectName();
     }
 
     /**

@@ -205,7 +205,8 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 4: Export to IR
             log.info("Exporting to IR");
-            IrSnapshot ir = irExporter.export(graph, classifications);
+            IrSnapshot ir =
+                    irExporter.export(graph, classifications, config.projectName(), config.projectVersion());
 
             // Step 4.5: Export primary classifications for enrichment and secondary classifiers
             // These classifications are made available to plugins via the PluginOutputStore

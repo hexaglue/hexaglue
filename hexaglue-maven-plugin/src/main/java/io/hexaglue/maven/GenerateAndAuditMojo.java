@@ -243,6 +243,8 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 classpath,
                 javaVersion,
                 basePackage,
+                project.getName(),
+                project.getVersion(),
                 outputDirectory.toPath(),
                 Map.of(), // pluginConfigs loaded by ServiceLoader
                 Map.of(),
@@ -275,6 +277,8 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 classpath,
                 javaVersion,
                 basePackage,
+                project.getName(),
+                project.getVersion(),
                 reportDirectory.toPath(), // Audit plugins need output directory for reports
                 pluginConfigs,
                 Map.of(),

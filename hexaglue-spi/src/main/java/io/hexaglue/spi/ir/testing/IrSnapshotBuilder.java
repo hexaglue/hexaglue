@@ -38,6 +38,8 @@ import java.util.List;
 public final class IrSnapshotBuilder {
 
     private String basePackage = "com.example";
+    private String projectName = null;
+    private String projectVersion = null;
     private String engineVersion = "2.0.0-SNAPSHOT";
     private Instant timestamp = Instant.now();
     private final List<DomainType> domainTypes = new ArrayList<>();
@@ -70,6 +72,26 @@ public final class IrSnapshotBuilder {
      */
     public IrSnapshotBuilder basePackage(String basePackage) {
         this.basePackage = basePackage;
+        return this;
+    }
+
+    /**
+     * Sets the project name.
+     *
+     * @since 3.0.0
+     */
+    public IrSnapshotBuilder projectName(String projectName) {
+        this.projectName = projectName;
+        return this;
+    }
+
+    /**
+     * Sets the project version.
+     *
+     * @since 3.0.0
+     */
+    public IrSnapshotBuilder projectVersion(String projectVersion) {
+        this.projectVersion = projectVersion;
         return this;
     }
 
@@ -209,7 +231,8 @@ public final class IrSnapshotBuilder {
     public IrSnapshot build() {
         DomainModel domain = new DomainModel(List.copyOf(domainTypes));
         PortModel portModel = new PortModel(List.copyOf(ports));
-        IrMetadata metadata = new IrMetadata(basePackage, timestamp, engineVersion, domainTypes.size(), ports.size());
+        IrMetadata metadata = new IrMetadata(
+                basePackage, projectName, projectVersion, timestamp, engineVersion, domainTypes.size(), ports.size());
 
         return new IrSnapshot(domain, portModel, metadata);
     }

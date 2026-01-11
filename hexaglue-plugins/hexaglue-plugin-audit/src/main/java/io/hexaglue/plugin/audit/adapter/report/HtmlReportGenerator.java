@@ -15,10 +15,17 @@ package io.hexaglue.plugin.audit.adapter.report;
 
 import io.hexaglue.plugin.audit.adapter.report.model.ArchitectureAnalysis;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
+import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
+import io.hexaglue.plugin.audit.adapter.report.model.ExecutiveSummary;
+import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
 import io.hexaglue.plugin.audit.adapter.report.model.MetricEntry;
+import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
+import io.hexaglue.plugin.audit.adapter.report.model.TechnicalDebtSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
+import io.hexaglue.plugin.audit.domain.model.Recommendation;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -95,6 +102,21 @@ public final class HtmlReportGenerator implements ReportGenerator {
                 .append("</h2>\n");
         html.append("      <p>Audit Status</p>\n");
         html.append("    </div>\n");
+        // Health Score card
+        html.append("    <div class=\"card\">\n");
+        html.append("      <h2>").append(report.healthScore().overall()).append("<small>/100</small></h2>\n");
+        html.append("      <p>Health Score (").append(report.healthScore().grade()).append(")</p>\n");
+        html.append("    </div>\n");
+        // DDD Compliance
+        html.append("    <div class=\"card\">\n");
+        html.append("      <h2>").append(report.dddCompliancePercent()).append("<small>%</small></h2>\n");
+        html.append("      <p>DDD Compliance</p>\n");
+        html.append("    </div>\n");
+        // Hex Compliance
+        html.append("    <div class=\"card\">\n");
+        html.append("      <h2>").append(report.hexCompliancePercent()).append("<small>%</small></h2>\n");
+        html.append("      <p>Hexagonal Compliance</p>\n");
+        html.append("    </div>\n");
         html.append("    <div class=\"card\">\n");
         html.append("      <h2>").append(report.summary().totalViolations()).append("</h2>\n");
         html.append("      <p>Total Violations</p>\n");
@@ -103,11 +125,25 @@ public final class HtmlReportGenerator implements ReportGenerator {
         html.append("      <h2>").append(report.summary().blockers()).append("</h2>\n");
         html.append("      <p>Blockers</p>\n");
         html.append("    </div>\n");
-        html.append("    <div class=\"card warning-card\">\n");
-        html.append("      <h2>").append(report.summary().majors()).append("</h2>\n");
-        html.append("      <p>Majors</p>\n");
-        html.append("    </div>\n");
         html.append("  </section>\n");
+
+        // Executive Summary
+        appendExecutiveSummary(html, report.executiveSummary());
+
+        // Health Score Details
+        appendHealthScore(html, report.healthScore());
+
+        // Component Inventory
+        appendComponentInventory(html, report.inventory());
+
+        // Port Matrix
+        appendPortMatrix(html, report.portMatrix());
+
+        // Technical Debt
+        appendTechnicalDebt(html, report.technicalDebt());
+
+        // Recommendations
+        appendRecommendations(html, report.recommendations());
 
         // Violations section
         html.append("  <section>\n");
@@ -551,6 +587,98 @@ public final class HtmlReportGenerator implements ReportGenerator {
               font-size: 0.9em;
             }
 
+            .card h2 small {
+              font-size: 0.4em;
+              color: #6b7280;
+            }
+
+            .verdict-box {
+              background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);
+              border-left: 4px solid #667eea;
+              padding: 20px;
+              margin-bottom: 20px;
+              border-radius: 4px;
+            }
+
+            .verdict-box p {
+              font-size: 1.1em;
+              line-height: 1.6;
+            }
+
+            .strengths-list, .actions-list {
+              padding-left: 20px;
+              margin: 15px 0;
+            }
+
+            .strengths-list li, .actions-list li {
+              padding: 8px 0;
+              color: #374151;
+            }
+
+            .strengths-list li::marker {
+              color: #10b981;
+            }
+
+            .score-overview {
+              margin-bottom: 25px;
+            }
+
+            .score-main {
+              display: flex;
+              align-items: baseline;
+              margin-bottom: 10px;
+            }
+
+            .score-value {
+              font-size: 3em;
+              font-weight: bold;
+              color: #667eea;
+            }
+
+            .score-label {
+              font-size: 1.2em;
+              color: #6b7280;
+              margin-left: 5px;
+            }
+
+            .progress-bar {
+              height: 20px;
+              background-color: #e5e7eb;
+              border-radius: 10px;
+              overflow: hidden;
+            }
+
+            .progress-fill {
+              height: 100%;
+              background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+              border-radius: 10px;
+              transition: width 0.5s ease;
+            }
+
+            .recommendation-card {
+              background: #f9fafb;
+              border-radius: 8px;
+              padding: 20px;
+              margin-bottom: 15px;
+              border-left: 4px solid #667eea;
+            }
+
+            .recommendation-card h3 {
+              margin-bottom: 10px;
+              display: flex;
+              align-items: center;
+              gap: 10px;
+            }
+
+            .recommendation-card p {
+              margin: 8px 0;
+            }
+
+            section h3 {
+              margin: 20px 0 15px 0;
+              color: #374151;
+            }
+
             @media print {
               body {
                 background: white;
@@ -562,6 +690,379 @@ public final class HtmlReportGenerator implements ReportGenerator {
               }
             }
             """;
+    }
+
+    /**
+     * Appends executive summary section.
+     */
+    private void appendExecutiveSummary(StringBuilder html, ExecutiveSummary summary) {
+        if (summary == null || summary.verdict() == null) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Executive Summary</h2>\n");
+
+        // Verdict
+        html.append("    <div class=\"verdict-box\">\n");
+        html.append("      <p>").append(escape(summary.verdict())).append("</p>\n");
+        html.append("    </div>\n");
+
+        // Strengths
+        if (summary.strengths() != null && !summary.strengths().isEmpty()) {
+            html.append("    <h3>Key Strengths</h3>\n");
+            html.append("    <ul class=\"strengths-list\">\n");
+            for (String strength : summary.strengths()) {
+                html.append("      <li>").append(escape(strength)).append("</li>\n");
+            }
+            html.append("    </ul>\n");
+        }
+
+        // Concerns
+        if (summary.concerns() != null && !summary.concerns().isEmpty()) {
+            html.append("    <h3>Areas of Concern</h3>\n");
+            html.append("    <table>\n");
+            html.append("      <thead>\n");
+            html.append("        <tr>\n");
+            html.append("          <th>Severity</th>\n");
+            html.append("          <th>Description</th>\n");
+            html.append("          <th>Count</th>\n");
+            html.append("        </tr>\n");
+            html.append("      </thead>\n");
+            html.append("      <tbody>\n");
+            for (ExecutiveSummary.ConcernEntry concern : summary.concerns()) {
+                html.append("        <tr>\n");
+                html.append("          <td><span class=\"badge badge-")
+                        .append(concern.severity().toLowerCase())
+                        .append("\">")
+                        .append(escape(concern.severity()))
+                        .append("</span></td>\n");
+                html.append("          <td>").append(escape(concern.description())).append("</td>\n");
+                html.append("          <td><strong>").append(concern.count()).append("</strong></td>\n");
+                html.append("        </tr>\n");
+            }
+            html.append("      </tbody>\n");
+            html.append("    </table>\n");
+        }
+
+        // KPIs
+        if (summary.kpis() != null && !summary.kpis().isEmpty()) {
+            html.append("    <h3>Key Performance Indicators</h3>\n");
+            html.append("    <table>\n");
+            html.append("      <thead>\n");
+            html.append("        <tr>\n");
+            html.append("          <th>Indicator</th>\n");
+            html.append("          <th>Value</th>\n");
+            html.append("          <th>Threshold</th>\n");
+            html.append("          <th>Status</th>\n");
+            html.append("        </tr>\n");
+            html.append("      </thead>\n");
+            html.append("      <tbody>\n");
+            for (ExecutiveSummary.KpiEntry kpi : summary.kpis()) {
+                html.append("        <tr>\n");
+                html.append("          <td>").append(escape(kpi.name())).append("</td>\n");
+                html.append("          <td><strong>").append(escape(kpi.value())).append("</strong></td>\n");
+                html.append("          <td>").append(escape(kpi.threshold())).append("</td>\n");
+                html.append("          <td><span class=\"badge badge-")
+                        .append(kpi.status().toLowerCase())
+                        .append("\">")
+                        .append(escape(kpi.status()))
+                        .append("</span></td>\n");
+                html.append("        </tr>\n");
+            }
+            html.append("      </tbody>\n");
+            html.append("    </table>\n");
+        }
+
+        // Immediate Actions
+        if (summary.immediateActions() != null && !summary.immediateActions().isEmpty()) {
+            html.append("    <h3>Immediate Actions Required</h3>\n");
+            html.append("    <ol class=\"actions-list\">\n");
+            for (String action : summary.immediateActions()) {
+                html.append("      <li>").append(escape(action)).append("</li>\n");
+            }
+            html.append("    </ol>\n");
+        }
+
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Appends health score details section.
+     */
+    private void appendHealthScore(StringBuilder html, HealthScore score) {
+        if (score == null) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Health Score Breakdown</h2>\n");
+
+        // Overall score with progress bar
+        html.append("    <div class=\"score-overview\">\n");
+        html.append("      <div class=\"score-main\">\n");
+        html.append("        <span class=\"score-value\">").append(score.overall()).append("</span>\n");
+        html.append("        <span class=\"score-label\">/100 (Grade ").append(score.grade()).append(")</span>\n");
+        html.append("      </div>\n");
+        html.append("      <div class=\"progress-bar\">\n");
+        html.append("        <div class=\"progress-fill\" style=\"width: ")
+                .append(score.overall())
+                .append("%;\"></div>\n");
+        html.append("      </div>\n");
+        html.append("    </div>\n");
+
+        // Component scores
+        html.append("    <table>\n");
+        html.append("      <thead>\n");
+        html.append("        <tr>\n");
+        html.append("          <th>Component</th>\n");
+        html.append("          <th>Score</th>\n");
+        html.append("          <th>Weight</th>\n");
+        html.append("          <th>Status</th>\n");
+        html.append("        </tr>\n");
+        html.append("      </thead>\n");
+        html.append("      <tbody>\n");
+
+        appendScoreRow(html, "DDD Compliance", score.dddCompliance(), "25%");
+        appendScoreRow(html, "Hexagonal Compliance", score.hexCompliance(), "25%");
+        appendScoreRow(html, "Dependency Quality", score.dependencyQuality(), "20%");
+        appendScoreRow(html, "Coupling", score.coupling(), "15%");
+        appendScoreRow(html, "Cohesion", score.cohesion(), "15%");
+
+        html.append("      </tbody>\n");
+        html.append("    </table>\n");
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Helper to append a score row in the health score table.
+     */
+    private void appendScoreRow(StringBuilder html, String name, int score, String weight) {
+        String status = score >= 80 ? "ok" : score >= 60 ? "warning" : "error";
+        html.append("        <tr>\n");
+        html.append("          <td>").append(name).append("</td>\n");
+        html.append("          <td><strong>").append(score).append("%</strong></td>\n");
+        html.append("          <td>").append(weight).append("</td>\n");
+        html.append("          <td><span class=\"badge badge-").append(status).append("\">")
+                .append(score >= 80 ? "Good" : score >= 60 ? "Fair" : "Poor")
+                .append("</span></td>\n");
+        html.append("        </tr>\n");
+    }
+
+    /**
+     * Appends component inventory section.
+     */
+    private void appendComponentInventory(StringBuilder html, ComponentInventory inventory) {
+        if (inventory == null) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Component Inventory</h2>\n");
+
+        // Domain Model subsection
+        html.append("    <h3>Domain Model</h3>\n");
+        html.append("    <div class=\"summary-cards\" style=\"margin-bottom: 20px;\">\n");
+
+        appendInventoryCard(html, "Aggregate Roots", inventory.aggregateRoots());
+        appendInventoryCard(html, "Entities", inventory.entities());
+        appendInventoryCard(html, "Value Objects", inventory.valueObjects());
+        appendInventoryCard(html, "Domain Events", inventory.domainEvents());
+        appendInventoryCard(html, "Domain Services", inventory.domainServices());
+        appendInventoryCard(html, "Application Services", inventory.applicationServices());
+
+        html.append("    </div>\n");
+
+        // Ports subsection
+        html.append("    <h3>Ports</h3>\n");
+        html.append("    <div class=\"summary-cards\" style=\"margin-bottom: 20px;\">\n");
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(inventory.drivingPorts()).append("</h2>\n");
+        html.append("        <p>Driving Ports</p>\n");
+        html.append("      </div>\n");
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(inventory.drivenPorts()).append("</h2>\n");
+        html.append("        <p>Driven Ports</p>\n");
+        html.append("      </div>\n");
+        html.append("    </div>\n");
+
+        // Totals
+        html.append("    <p><strong>Total Domain Types:</strong> ").append(inventory.totalDomainTypes()).append("</p>\n");
+        html.append("    <p><strong>Total Ports:</strong> ").append(inventory.totalPorts()).append("</p>\n");
+
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Helper to append an inventory card.
+     */
+    private void appendInventoryCard(StringBuilder html, String label, int count) {
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(count).append("</h2>\n");
+        html.append("        <p>").append(label).append("</p>\n");
+        html.append("      </div>\n");
+    }
+
+    /**
+     * Appends port matrix section.
+     */
+    private void appendPortMatrix(StringBuilder html, List<PortMatrixEntry> portMatrix) {
+        if (portMatrix == null || portMatrix.isEmpty()) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Port Matrix</h2>\n");
+        html.append("    <table>\n");
+        html.append("      <thead>\n");
+        html.append("        <tr>\n");
+        html.append("          <th>Port Name</th>\n");
+        html.append("          <th>Direction</th>\n");
+        html.append("          <th>Kind</th>\n");
+        html.append("          <th>Managed Type</th>\n");
+        html.append("          <th>Methods</th>\n");
+        html.append("          <th>Adapter</th>\n");
+        html.append("        </tr>\n");
+        html.append("      </thead>\n");
+        html.append("      <tbody>\n");
+
+        for (PortMatrixEntry port : portMatrix) {
+            html.append("        <tr>\n");
+            html.append("          <td><code>").append(escape(port.portName())).append("</code></td>\n");
+            html.append("          <td><span class=\"badge badge-")
+                    .append("DRIVING".equals(port.direction()) ? "ok" : "info")
+                    .append("\">")
+                    .append(escape(port.direction()))
+                    .append("</span></td>\n");
+            html.append("          <td>").append(escape(port.kind())).append("</td>\n");
+            html.append("          <td><code>")
+                    .append(escape(port.managedType() != null ? port.managedType() : "-"))
+                    .append("</code></td>\n");
+            html.append("          <td>").append(port.methodCount()).append("</td>\n");
+            html.append("          <td>");
+            if (port.hasAdapter()) {
+                html.append("<span class=\"badge badge-ok\">Yes</span>");
+            } else {
+                html.append("<span class=\"badge badge-warning\">No</span>");
+            }
+            html.append("</td>\n");
+            html.append("        </tr>\n");
+        }
+
+        html.append("      </tbody>\n");
+        html.append("    </table>\n");
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Appends technical debt section.
+     */
+    private void appendTechnicalDebt(StringBuilder html, TechnicalDebtSummary debt) {
+        if (debt == null || debt.totalDays() == 0) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Technical Debt</h2>\n");
+
+        // Summary cards
+        html.append("    <div class=\"summary-cards\" style=\"margin-bottom: 20px;\">\n");
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(String.format("%.1f", debt.totalDays())).append("<small> days</small></h2>\n");
+        html.append("        <p>Total Debt</p>\n");
+        html.append("      </div>\n");
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(String.format("%.0f", debt.totalCost())).append("<small> €</small></h2>\n");
+        html.append("        <p>Estimated Cost</p>\n");
+        html.append("      </div>\n");
+        html.append("      <div class=\"card\">\n");
+        html.append("        <h2>").append(String.format("%.0f", debt.monthlyInterest())).append("<small> €/month</small></h2>\n");
+        html.append("        <p>Monthly Interest</p>\n");
+        html.append("      </div>\n");
+        html.append("    </div>\n");
+
+        // Breakdown table
+        if (debt.breakdown() != null && !debt.breakdown().isEmpty()) {
+            html.append("    <h3>Debt by Category</h3>\n");
+            html.append("    <table>\n");
+            html.append("      <thead>\n");
+            html.append("        <tr>\n");
+            html.append("          <th>Category</th>\n");
+            html.append("          <th>Days</th>\n");
+            html.append("          <th>Cost</th>\n");
+            html.append("          <th>Description</th>\n");
+            html.append("        </tr>\n");
+            html.append("      </thead>\n");
+            html.append("      <tbody>\n");
+
+            for (TechnicalDebtSummary.DebtCategory cat : debt.breakdown()) {
+                html.append("        <tr>\n");
+                html.append("          <td>").append(escape(cat.category())).append("</td>\n");
+                html.append("          <td>").append(String.format("%.1f", cat.days())).append("</td>\n");
+                html.append("          <td>").append(String.format("%.0f €", cat.cost())).append("</td>\n");
+                html.append("          <td>").append(escape(cat.description())).append("</td>\n");
+                html.append("        </tr>\n");
+            }
+
+            html.append("      </tbody>\n");
+            html.append("    </table>\n");
+        }
+
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Appends recommendations section.
+     */
+    private void appendRecommendations(StringBuilder html, List<Recommendation> recommendations) {
+        if (recommendations == null || recommendations.isEmpty()) {
+            return;
+        }
+
+        html.append("  <section>\n");
+        html.append("    <h2>Recommendations</h2>\n");
+
+        for (Recommendation rec : recommendations) {
+            html.append("    <div class=\"recommendation-card\">\n");
+            html.append("      <h3><span class=\"badge badge-")
+                    .append(getPriorityClass(rec.priority()))
+                    .append("\">")
+                    .append(rec.priority().name())
+                    .append("</span> ")
+                    .append(escape(rec.title()))
+                    .append("</h3>\n");
+            html.append("      <p>").append(escape(rec.description())).append("</p>\n");
+
+            if (!rec.affectedTypes().isEmpty()) {
+                html.append("      <p><strong>Affected Types:</strong> ");
+                html.append(String.join(", ", rec.affectedTypes().stream()
+                        .map(t -> "<code>" + escape(t) + "</code>")
+                        .toList()));
+                html.append("</p>\n");
+            }
+
+            html.append("      <p><strong>Estimated Effort:</strong> ")
+                    .append(String.format("%.1f", rec.estimatedEffort()))
+                    .append(" person-days</p>\n");
+            html.append("      <p><strong>Expected Impact:</strong> ")
+                    .append(escape(rec.expectedImpact()))
+                    .append("</p>\n");
+            html.append("    </div>\n");
+        }
+
+        html.append("  </section>\n");
+    }
+
+    /**
+     * Returns CSS class for recommendation priority.
+     */
+    private String getPriorityClass(io.hexaglue.plugin.audit.domain.model.RecommendationPriority priority) {
+        return switch (priority) {
+            case IMMEDIATE -> "error";
+            case SHORT_TERM -> "warning";
+            case MEDIUM_TERM -> "info";
+            case LOW -> "ok";
+        };
     }
 
     /**

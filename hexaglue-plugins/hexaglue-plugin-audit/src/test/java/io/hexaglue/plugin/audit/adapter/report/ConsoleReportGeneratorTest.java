@@ -31,7 +31,7 @@ class ConsoleReportGeneratorTest {
     void shouldGenerateConsoleReportWithoutColors() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -52,7 +52,7 @@ class ConsoleReportGeneratorTest {
     void shouldGenerateConsoleReportWithColors() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -70,7 +70,7 @@ class ConsoleReportGeneratorTest {
     void shouldDisplayPassedStatus() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -88,7 +88,7 @@ class ConsoleReportGeneratorTest {
     void shouldDisplayFailedStatus() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry("ddd:test", "BLOCKER", "Test violation", "Type", "File.java:1:1", "");
         AuditReport report =
@@ -107,7 +107,7 @@ class ConsoleReportGeneratorTest {
     void shouldDisplayViolationsSummary() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 5, 1, 1, 2, 1, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -127,7 +127,7 @@ class ConsoleReportGeneratorTest {
     void shouldDisplayViolationDetails() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry(
                 "ddd:entity-identity", "BLOCKER", "Entity must have ID", "Order", "Order.java:10:5", "");
@@ -151,7 +151,7 @@ class ConsoleReportGeneratorTest {
     void shouldDisplayMetrics() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         MetricEntry metric = new MetricEntry("aggregate.avgSize", 15.5, "methods", 20.0, "max", "OK");
         AuditReport report =

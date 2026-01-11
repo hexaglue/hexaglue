@@ -30,7 +30,7 @@ class MarkdownReportGeneratorTest {
     void shouldGenerateMarkdownWithTitle() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -41,14 +41,14 @@ class MarkdownReportGeneratorTest {
         String markdown = generator.generate(report);
 
         // Then
-        assertThat(markdown).contains("# HexaGlue Audit Report");
+        assertThat(markdown).contains("# HexaGlue Architecture Audit Report");
     }
 
     @Test
     void shouldShowPassedStatusWithEmoji() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -67,7 +67,7 @@ class MarkdownReportGeneratorTest {
     void shouldShowFailedStatusWithEmoji() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry("ddd:test", "BLOCKER", "Test violation", "Type", "File.java:1:1", "");
         AuditReport report =
@@ -86,7 +86,7 @@ class MarkdownReportGeneratorTest {
     void shouldGenerateSummaryTable() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 5, 1, 1, 2, 1, 0);
         AuditReport report =
                 new AuditReport(metadata, summary, List.of(), List.of(), new ConstraintsSummary(0, List.of()));
@@ -97,7 +97,7 @@ class MarkdownReportGeneratorTest {
         String markdown = generator.generate(report);
 
         // Then
-        assertThat(markdown).contains("## Summary");
+        assertThat(markdown).contains("## 6. Summary");
         assertThat(markdown).contains("| Total Violations | 5 |");
         assertThat(markdown).contains("| Blockers | 1 |");
         assertThat(markdown).contains("| Majors | 2 |");
@@ -107,7 +107,7 @@ class MarkdownReportGeneratorTest {
     void shouldGenerateViolationsTable() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry(
                 "ddd:entity-identity", "BLOCKER", "Entity must have ID", "Order", "Order.java:10:5", "");
@@ -120,7 +120,7 @@ class MarkdownReportGeneratorTest {
         String markdown = generator.generate(report);
 
         // Then
-        assertThat(markdown).contains("## Violations");
+        assertThat(markdown).contains("## 7. Violations");
         assertThat(markdown).contains("| Severity | Constraint | Message | Affected Type | Location |");
         assertThat(markdown).contains("ddd:entity-identity");
         assertThat(markdown).contains("Entity must have ID");
@@ -131,7 +131,7 @@ class MarkdownReportGeneratorTest {
     void shouldUseCollapsibleSections() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 1, 0, 0, 0, 0);
         ViolationEntry v = new ViolationEntry("ddd:test", "BLOCKER", "Test violation", "Type", "File.java:1:1", "");
         AuditReport report =
@@ -152,7 +152,7 @@ class MarkdownReportGeneratorTest {
     void shouldEscapeMarkdownSpecialCharacters() {
         // Given
         ReportMetadata metadata =
-                new ReportMetadata("test-project", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
+                new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-09T10:00:00Z"), "1.23s", "3.0.0");
         AuditSummary summary = new AuditSummary(false, 1, 0, 0, 1, 0, 0);
         ViolationEntry v =
                 new ViolationEntry("test:pipe", "MAJOR", "Message with | pipe character", "Type", "File.java:1:1", "");
