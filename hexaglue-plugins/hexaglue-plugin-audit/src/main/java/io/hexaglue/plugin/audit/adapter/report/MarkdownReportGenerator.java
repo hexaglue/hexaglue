@@ -55,6 +55,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         Objects.requireNonNull(report, "report required");
 
         StringBuilder md = new StringBuilder();
+        SectionNumbering numbering = SectionNumbering.create();
 
         // Title
         md.append("# HexaGlue Architecture Audit Report\n\n");
@@ -92,22 +93,22 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         appendTableOfContents(md);
 
         // Executive Summary
-        appendExecutiveSummary(md, report.executiveSummary());
+        appendExecutiveSummary(md, report.executiveSummary(), numbering);
 
         // Health Score
-        appendHealthScore(md, report.healthScore());
+        appendHealthScore(md, report.healthScore(), numbering);
 
         // Component Inventory
-        appendComponentInventory(md, report.inventory());
+        appendComponentInventory(md, report.inventory(), numbering);
 
         // DDD Compliance
-        appendDddCompliance(md, report.dddCompliancePercent(), report);
+        appendDddCompliance(md, report.dddCompliancePercent(), report, numbering);
 
         // Hexagonal Compliance with port matrix
-        appendHexagonalCompliance(md, report.hexCompliancePercent(), report.portMatrix());
+        appendHexagonalCompliance(md, report.hexCompliancePercent(), report.portMatrix(), numbering);
 
         // Summary section
-        md.append("## 6. Summary\n\n");
+        md.append(numbering.h2("Summary")).append("\n\n");
         md.append("| Metric | Count |\n");
         md.append("|--------|-------|\n");
         md.append("| Total Violations | ")
@@ -120,7 +121,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("| Infos | ").append(report.summary().infos()).append(" |\n\n");
 
         // Violations section
-        md.append("## 7. Violations\n\n");
+        md.append(numbering.h2("Violations")).append("\n\n");
         if (report.violations().isEmpty()) {
             md.append("✅ **No violations found.**\n\n");
         } else {
@@ -154,7 +155,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Metrics section
         if (!report.metrics().isEmpty()) {
-            md.append("## 8. Metrics\n\n");
+            md.append(numbering.h2("Metrics")).append("\n\n");
             md.append("<details>\n");
             md.append("<summary><strong>")
                     .append(report.metrics().size())
@@ -191,7 +192,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Constraints section
         if (report.constraints().totalConstraints() > 0) {
-            md.append("## Constraints Evaluated\n\n");
+            md.append(numbering.h2("Constraints Evaluated")).append("\n\n");
             md.append("<details>\n");
             md.append("<summary><strong>")
                     .append(report.constraints().totalConstraints())
@@ -205,13 +206,13 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         }
 
         // Architecture Analysis section
-        appendArchitectureAnalysis(md, report.architectureAnalysis());
+        appendArchitectureAnalysis(md, report.architectureAnalysis(), numbering);
 
         // Technical Debt
-        appendTechnicalDebt(md, report.technicalDebt());
+        appendTechnicalDebt(md, report.technicalDebt(), numbering);
 
         // Recommendations
-        appendRecommendations(md, report.recommendations());
+        appendRecommendations(md, report.recommendations(), numbering);
 
         // Footer
         md.append("---\n\n");
@@ -225,12 +226,12 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends architecture analysis section to the Markdown output.
      */
-    private void appendArchitectureAnalysis(StringBuilder md, ArchitectureAnalysis analysis) {
+    private void appendArchitectureAnalysis(StringBuilder md, ArchitectureAnalysis analysis, SectionNumbering numbering) {
         if (analysis.isClean() && analysis.couplingMetrics().isEmpty()) {
             return; // Skip section if no interesting data
         }
 
-        md.append("## 9. Architecture Analysis\n\n");
+        md.append(numbering.h2("Architecture Analysis")).append("\n\n");
 
         // Summary
         if (analysis.isClean()) {
@@ -268,7 +269,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Dependency Cycles
         if (!analysis.typeCycles().isEmpty() || !analysis.packageCycles().isEmpty()) {
-            md.append("### Dependency Cycles\n\n");
+            md.append(numbering.h3("Dependency Cycles")).append("\n\n");
 
             if (!analysis.typeCycles().isEmpty()) {
                 md.append("<details>\n");
@@ -299,7 +300,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Layer Violations
         if (!analysis.layerViolations().isEmpty()) {
-            md.append("### Layer Violations\n\n");
+            md.append(numbering.h3("Layer Violations")).append("\n\n");
             md.append("<details open>\n");
             md.append("<summary><strong>⚠️ ")
                     .append(analysis.layerViolations().size())
@@ -324,7 +325,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Stability Violations
         if (!analysis.stabilityViolations().isEmpty()) {
-            md.append("### Stability Violations (SDP)\n\n");
+            md.append(numbering.h3("Stability Violations (SDP)")).append("\n\n");
             md.append("<details>\n");
             md.append("<summary><strong>⚖️ ")
                     .append(analysis.stabilityViolations().size())
@@ -347,7 +348,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Package Coupling Metrics
         if (!analysis.couplingMetrics().isEmpty()) {
-            md.append("### Package Coupling Metrics\n\n");
+            md.append(numbering.h3("Package Coupling Metrics")).append("\n\n");
             md.append("<details>\n");
             md.append("<summary><strong>📊 ")
                     .append(analysis.couplingMetrics().size())
@@ -438,16 +439,16 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the executive summary section.
      */
-    private void appendExecutiveSummary(StringBuilder md, ExecutiveSummary summary) {
-        md.append("## 1. Executive Summary\n\n");
+    private void appendExecutiveSummary(StringBuilder md, ExecutiveSummary summary, SectionNumbering numbering) {
+        md.append(numbering.h2("Executive Summary")).append("\n\n");
 
         // Verdict
-        md.append("### Verdict\n\n");
+        md.append(numbering.h3("Verdict")).append("\n\n");
         md.append(summary.verdict()).append("\n\n");
 
         // Strengths (table format)
         if (!summary.strengths().isEmpty()) {
-            md.append("### Strengths\n\n");
+            md.append(numbering.h3("Strengths")).append("\n\n");
             md.append("| Category | Observation |\n");
             md.append("|----------|-------------|\n");
             for (String strength : summary.strengths()) {
@@ -460,7 +461,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Concerns
         if (!summary.concerns().isEmpty()) {
-            md.append("### Concerns\n\n");
+            md.append(numbering.h3("Concerns")).append("\n\n");
             md.append("| Severity | Description | Count |\n");
             md.append("|----------|-------------|-------|\n");
             for (var concern : summary.concerns()) {
@@ -477,7 +478,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // KPIs
         if (!summary.kpis().isEmpty()) {
-            md.append("### Key Performance Indicators\n\n");
+            md.append(numbering.h3("Key Performance Indicators")).append("\n\n");
             md.append("| Indicator | Value | Threshold | Status |\n");
             md.append("|-----------|-------|-----------|--------|\n");
             for (var kpi : summary.kpis()) {
@@ -499,7 +500,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Immediate Actions
         if (!summary.immediateActions().isEmpty()) {
-            md.append("### Immediate Actions\n\n");
+            md.append(numbering.h3("Immediate Actions")).append("\n\n");
             for (String action : summary.immediateActions()) {
                 md.append("- ").append(action).append("\n");
             }
@@ -510,8 +511,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the health score section with Mermaid pie chart.
      */
-    private void appendHealthScore(StringBuilder md, HealthScore score) {
-        md.append("## 2. Health Score\n\n");
+    private void appendHealthScore(StringBuilder md, HealthScore score, SectionNumbering numbering) {
+        md.append(numbering.h2("Health Score")).append("\n\n");
 
         md.append("**Overall Score: ")
                 .append(score.overall())
@@ -543,8 +544,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the component inventory section with Mermaid chart.
      */
-    private void appendComponentInventory(StringBuilder md, ComponentInventory inventory) {
-        md.append("## 3. Component Inventory\n\n");
+    private void appendComponentInventory(StringBuilder md, ComponentInventory inventory, SectionNumbering numbering) {
+        md.append(numbering.h2("Component Inventory")).append("\n\n");
 
         // Mermaid bar chart
         md.append("```mermaid\n");
@@ -573,7 +574,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("```\n\n");
 
         // Domain Model table
-        md.append("### Domain Model\n\n");
+        md.append(numbering.h3("Domain Model")).append("\n\n");
         md.append("| Type | Count |\n");
         md.append("|------|-------|\n");
         md.append("| Aggregate Roots | ").append(inventory.aggregateRoots()).append(" |\n");
@@ -585,7 +586,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("| **Total Domain Types** | **").append(inventory.totalDomainTypes()).append("** |\n\n");
 
         // Ports table
-        md.append("### Ports\n\n");
+        md.append(numbering.h3("Ports")).append("\n\n");
         md.append("| Direction | Count |\n");
         md.append("|-----------|-------|\n");
         md.append("| Driving (Inbound) | ").append(inventory.drivingPorts()).append(" |\n");
@@ -596,8 +597,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the DDD compliance section.
      */
-    private void appendDddCompliance(StringBuilder md, int dddCompliancePercent, AuditReport report) {
-        md.append("## 4. DDD Compliance\n\n");
+    private void appendDddCompliance(StringBuilder md, int dddCompliancePercent, AuditReport report, SectionNumbering numbering) {
+        md.append(numbering.h2("DDD Compliance")).append("\n\n");
         md.append("**Score: ").append(dddCompliancePercent).append("%**\n\n");
 
         // Filter DDD-related violations
@@ -630,13 +631,13 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the hexagonal compliance section with port matrix.
      */
-    private void appendHexagonalCompliance(StringBuilder md, int hexCompliancePercent, java.util.List<PortMatrixEntry> portMatrix) {
-        md.append("## 5. Hexagonal Compliance\n\n");
+    private void appendHexagonalCompliance(StringBuilder md, int hexCompliancePercent, java.util.List<PortMatrixEntry> portMatrix, SectionNumbering numbering) {
+        md.append(numbering.h2("Hexagonal Compliance")).append("\n\n");
         md.append("**Score: ").append(hexCompliancePercent).append("%**\n\n");
 
         // Port Matrix
         if (!portMatrix.isEmpty()) {
-            md.append("### Port Matrix\n\n");
+            md.append(numbering.h3("Port Matrix")).append("\n\n");
             md.append("| Port | Direction | Kind | Managed Type | Methods | Adapter |\n");
             md.append("|------|-----------|------|--------------|---------|--------|\n");
             for (var port : portMatrix) {
@@ -662,8 +663,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the technical debt section.
      */
-    private void appendTechnicalDebt(StringBuilder md, TechnicalDebtSummary debt) {
-        md.append("## 10. Technical Debt\n\n");
+    private void appendTechnicalDebt(StringBuilder md, TechnicalDebtSummary debt, SectionNumbering numbering) {
+        md.append(numbering.h2("Technical Debt")).append("\n\n");
 
         if (debt.isZero()) {
             md.append("✅ **No technical debt detected.**\n\n");
@@ -685,7 +686,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Breakdown by category
         if (!debt.breakdown().isEmpty()) {
-            md.append("### Breakdown by Category\n\n");
+            md.append(numbering.h3("Breakdown by Category")).append("\n\n");
             md.append("| Category | Days | Cost | Description |\n");
             md.append("|----------|------|------|-------------|\n");
             for (var cat : debt.breakdown()) {
@@ -706,8 +707,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the recommendations section.
      */
-    private void appendRecommendations(StringBuilder md, java.util.List<Recommendation> recommendations) {
-        md.append("## 11. Recommendations\n\n");
+    private void appendRecommendations(StringBuilder md, java.util.List<Recommendation> recommendations, SectionNumbering numbering) {
+        md.append(numbering.h2("Recommendations")).append("\n\n");
 
         if (recommendations.isEmpty()) {
             md.append("✅ **No specific recommendations - the architecture is in good shape!**\n\n");
