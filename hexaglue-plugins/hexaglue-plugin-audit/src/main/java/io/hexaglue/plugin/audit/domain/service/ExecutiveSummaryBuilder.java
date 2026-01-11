@@ -41,6 +41,7 @@ public class ExecutiveSummaryBuilder {
     /**
      * Builds an executive summary from the audit results.
      *
+     * @param projectName    the project/application name
      * @param healthScore    the health score
      * @param inventory      the component inventory
      * @param violations     the list of violations
@@ -51,6 +52,7 @@ public class ExecutiveSummaryBuilder {
      * @return the executive summary
      */
     public ExecutiveSummary build(
+            String projectName,
             HealthScore healthScore,
             ComponentInventory inventory,
             List<Violation> violations,
@@ -58,11 +60,12 @@ public class ExecutiveSummaryBuilder {
             Map<String, Metric> metrics,
             int dddCompliance,
             int hexCompliance) {
+        Objects.requireNonNull(projectName, "projectName required");
         Objects.requireNonNull(healthScore, "healthScore required");
         Objects.requireNonNull(inventory, "inventory required");
         Objects.requireNonNull(violations, "violations required");
 
-        String verdict = createVerdict(healthScore, violations);
+        String verdict = createVerdict(projectName, healthScore, violations, dddCompliance, hexCompliance);
         List<String> strengths = identifyStrengths(healthScore, inventory, analysis, dddCompliance, hexCompliance);
         List<ConcernEntry> concerns = identifyConcerns(violations, analysis);
         List<KpiEntry> kpis = buildKpis(healthScore, metrics, dddCompliance, hexCompliance);
@@ -72,45 +75,137 @@ public class ExecutiveSummaryBuilder {
     }
 
     /**
-     * Creates the verdict text based on health score and violations.
+     * Creates a descriptive verdict text based on health score, violations, and compliance metrics.
+     *
+     * <p>The verdict provides a comprehensive assessment including:
+     * <ul>
+     *   <li>Application name with overall score</li>
+     *   <li>Assessment of DDD and Hexagonal Architecture compliance</li>
+     *   <li>Contextual improvement recommendations</li>
+     * </ul>
      */
-    private String createVerdict(HealthScore healthScore, List<Violation> violations) {
+    private String createVerdict(
+            String projectName, HealthScore healthScore, List<Violation> violations, int dddCompliance, int hexCompliance) {
         int score = healthScore.overall();
+        String grade = healthScore.grade();
         long blockers = violations.stream().filter(v -> v.severity() == Severity.BLOCKER).count();
         long criticals = violations.stream().filter(v -> v.severity() == Severity.CRITICAL).count();
+        long majors = violations.stream().filter(v -> v.severity() == Severity.MAJOR).count();
+
+        StringBuilder verdict = new StringBuilder();
+
+        // Opening statement with application name and score
+        verdict.append("The **").append(projectName).append("** application ");
 
         if (blockers > 0) {
-            return "Architecture requires immediate attention. " + blockers
-                    + " blocker issue(s) must be resolved before proceeding.";
+            verdict.append("requires immediate architectural attention with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ")
+                    .append(blockers)
+                    .append(" blocker issue(s) must be resolved before proceeding with further development.");
+            return verdict.toString();
         }
 
         if (criticals > 0) {
-            return "Architecture has critical issues requiring prompt attention. "
-                    + "Review and address " + criticals + " critical violation(s).";
+            verdict.append("has critical issues requiring prompt attention with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "however");
+            verdict.append(" ").append(criticals).append(" critical violation(s) need to be addressed promptly.");
+            return verdict.toString();
         }
 
+        // Score-based assessment
         if (score >= 90) {
-            return "Excellent architectural health. The codebase demonstrates strong adherence to "
-                    + "DDD and Hexagonal Architecture principles.";
+            verdict.append("demonstrates excellent architectural health with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "and");
+            verdict.append(" The codebase is well-structured and ready for sustainable growth.");
+        } else if (score >= 80) {
+            verdict.append("demonstrates a solid architecture with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "and");
+            if (majors > 0) {
+                verdict.append(" Minor improvements are recommended to achieve architectural excellence.");
+            } else {
+                verdict.append(" The architecture is well-positioned for continued development.");
+            }
+        } else if (score >= 70) {
+            verdict.append("demonstrates a generally sound architecture with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "but");
+            verdict.append(" Improvements are needed to achieve architectural excellence.");
+        } else if (score >= 60) {
+            verdict.append("needs architectural improvement with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "and");
+            verdict.append(" Significant refactoring is recommended to improve code quality and maintainability.");
+        } else {
+            verdict.append("requires significant architectural restructuring with a score of **")
+                    .append(score)
+                    .append("/100** (Grade: ")
+                    .append(grade)
+                    .append("). ");
+            appendComplianceAssessment(verdict, dddCompliance, hexCompliance, "and");
+            verdict.append(" Fundamental architectural issues need resolution before adding new features.");
         }
 
-        if (score >= 80) {
-            return "Good architectural health with room for improvement. "
-                    + "Address identified violations to further strengthen the architecture.";
-        }
+        return verdict.toString();
+    }
 
-        if (score >= 70) {
-            return "Acceptable architectural health. Several areas need attention to improve "
-                    + "compliance with architectural principles.";
-        }
+    /**
+     * Appends compliance assessment text based on DDD and Hexagonal compliance levels.
+     */
+    private void appendComplianceAssessment(StringBuilder sb, int dddCompliance, int hexCompliance, String conjunction) {
+        String dddLevel = getComplianceLevel(dddCompliance);
+        String hexLevel = getComplianceLevel(hexCompliance);
 
-        if (score >= 60) {
-            return "Architecture needs improvement. Significant violations detected that should be "
-                    + "addressed to maintain code quality.";
+        if (dddCompliance >= 80 && hexCompliance >= 80) {
+            sb.append("DDD and Hexagonal Architecture patterns are ")
+                    .append(dddLevel.equals(hexLevel) ? dddLevel : dddLevel + "/" + hexLevel)
+                    .append(" applied across the codebase");
+        } else if (dddCompliance >= 80) {
+            sb.append("DDD patterns are ").append(dddLevel).append(" applied, ").append(conjunction)
+                    .append(" Hexagonal Architecture compliance needs attention (").append(hexCompliance).append("%)");
+        } else if (hexCompliance >= 80) {
+            sb.append("Hexagonal Architecture is ").append(hexLevel).append(" implemented, ").append(conjunction)
+                    .append(" DDD pattern compliance needs attention (").append(dddCompliance).append("%)");
+        } else {
+            sb.append("both DDD (").append(dddCompliance).append("%) and Hexagonal Architecture (")
+                    .append(hexCompliance).append("%) compliance need improvement");
         }
+    }
 
-        return "Architecture requires significant restructuring. Multiple violations indicate "
-                + "fundamental architectural issues that need resolution.";
+    /**
+     * Returns a human-readable compliance level description.
+     */
+    private String getComplianceLevel(int compliance) {
+        if (compliance >= 95) {
+            return "excellently";
+        } else if (compliance >= 90) {
+            return "very well";
+        } else if (compliance >= 80) {
+            return "correctly";
+        } else if (compliance >= 70) {
+            return "partially";
+        }
+        return "insufficiently";
     }
 
     /**

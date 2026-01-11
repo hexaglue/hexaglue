@@ -450,7 +450,7 @@ public record AuditReport(
         // Build executive summary
         ExecutiveSummaryBuilder summaryBuilder = new ExecutiveSummaryBuilder();
         ExecutiveSummary executiveSummary = summaryBuilder.build(
-                healthScore, inventory, domainViolations, architectureAnalysis, domainMetrics, dddCompliance, hexCompliance);
+                effectiveProjectName, healthScore, inventory, domainViolations, architectureAnalysis, domainMetrics, dddCompliance, hexCompliance);
 
         return new AuditReport(
                 metadata,
