@@ -25,6 +25,7 @@ import io.hexaglue.plugin.audit.domain.service.InventoryBuilder;
 import io.hexaglue.plugin.audit.domain.service.RecommendationGenerator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.AuditSnapshot;
+import io.hexaglue.spi.audit.DetectedArchitectureStyle;
 import io.hexaglue.spi.audit.RuleViolation;
 import io.hexaglue.spi.ir.IrSnapshot;
 import java.time.Duration;
@@ -52,6 +53,7 @@ import java.util.Objects;
  * @param executiveSummary     executive summary for stakeholders
  * @param dddCompliancePercent DDD compliance percentage (0-100)
  * @param hexCompliancePercent hexagonal architecture compliance percentage (0-100)
+ * @param detectedStyle        the detected architectural style
  * @since 1.0.0
  */
 public record AuditReport(
@@ -68,7 +70,8 @@ public record AuditReport(
         List<Recommendation> recommendations,
         ExecutiveSummary executiveSummary,
         int dddCompliancePercent,
-        int hexCompliancePercent) {
+        int hexCompliancePercent,
+        DetectedArchitectureStyle detectedStyle) {
 
     public AuditReport {
         Objects.requireNonNull(metadata, "metadata required");
@@ -101,6 +104,9 @@ public record AuditReport(
         if (hexCompliancePercent < 0 || hexCompliancePercent > 100) {
             throw new IllegalArgumentException("hexCompliancePercent must be 0-100: " + hexCompliancePercent);
         }
+        if (detectedStyle == null) {
+            detectedStyle = DetectedArchitectureStyle.UNKNOWN;
+        }
     }
 
     /**
@@ -126,7 +132,8 @@ public record AuditReport(
                 null,
                 null,
                 100,
-                100);
+                100,
+                DetectedArchitectureStyle.UNKNOWN);
     }
 
     /**
@@ -153,7 +160,8 @@ public record AuditReport(
                 null,
                 null,
                 100,
-                100);
+                100,
+                DetectedArchitectureStyle.UNKNOWN);
     }
 
     /**
@@ -466,7 +474,8 @@ public record AuditReport(
                 recommendations,
                 executiveSummary,
                 dddCompliance,
-                hexCompliance);
+                hexCompliance,
+                snapshot.style());
     }
 
     private static ViolationEntry convertViolation(RuleViolation violation) {
