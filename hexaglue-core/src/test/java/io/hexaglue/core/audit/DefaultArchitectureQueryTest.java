@@ -150,6 +150,119 @@ class DefaultArchitectureQueryTest {
         assertThat(nccd).isGreaterThanOrEqualTo(0.0).isLessThanOrEqualTo(1.0);
     }
 
+    // === LakosMetrics record tests ===
+
+    @Test
+    void shouldCalculateLakosMetrics_forPackage() {
+        TypeNode typeA = createType("com.example.pkg.A");
+        TypeNode typeB = createType("com.example.pkg.B");
+        TypeNode typeC = createType("com.example.pkg.C");
+
+        graph.addNode(typeA);
+        graph.addNode(typeB);
+        graph.addNode(typeC);
+
+        // A -> B -> C (chain)
+        graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.REFERENCES));
+        graph.addEdge(Edge.raw(typeB.id(), typeC.id(), EdgeKind.REFERENCES));
+
+        LakosMetrics metrics = query.calculateLakosMetrics("com.example.pkg");
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.componentCount()).isEqualTo(3);
+        assertThat(metrics.ccd()).isGreaterThan(0);
+        assertThat(metrics.acd()).isGreaterThan(0.0);
+        assertThat(metrics.nccd()).isGreaterThanOrEqualTo(0.0);
+        assertThat(metrics.isEmpty()).isFalse();
+    }
+
+    @Test
+    void shouldCalculateLakosMetrics_forPackage_returnsEmpty_whenPackageNotFound() {
+        LakosMetrics metrics = query.calculateLakosMetrics("com.nonexistent.pkg");
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.isEmpty()).isTrue();
+        assertThat(metrics.componentCount()).isZero();
+    }
+
+    @Test
+    void shouldCalculateLakosMetrics_forTypeSet() {
+        TypeNode typeA = createType("com.example.A");
+        TypeNode typeB = createType("com.example.B");
+
+        graph.addNode(typeA);
+        graph.addNode(typeB);
+
+        graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.REFERENCES));
+
+        Set<String> types = Set.of("com.example.A", "com.example.B");
+        LakosMetrics metrics = query.calculateLakosMetrics(types);
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.componentCount()).isEqualTo(2);
+        assertThat(metrics.isEmpty()).isFalse();
+    }
+
+    @Test
+    void shouldCalculateLakosMetrics_forTypeSet_returnsEmpty_whenSetIsEmpty() {
+        LakosMetrics metrics = query.calculateLakosMetrics(Set.of());
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.isEmpty()).isTrue();
+    }
+
+    @Test
+    void shouldCalculateLakosMetrics_forTypeSet_returnsEmpty_whenTypesNotFound() {
+        LakosMetrics metrics = query.calculateLakosMetrics(Set.of("com.nonexistent.Type"));
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.isEmpty()).isTrue();
+    }
+
+    @Test
+    void shouldCalculateGlobalLakosMetrics() {
+        TypeNode typeA = createType("com.example.pkg1.A");
+        TypeNode typeB = createType("com.example.pkg2.B");
+        TypeNode typeC = createType("com.example.pkg3.C");
+
+        graph.addNode(typeA);
+        graph.addNode(typeB);
+        graph.addNode(typeC);
+
+        graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.REFERENCES));
+        graph.addEdge(Edge.raw(typeB.id(), typeC.id(), EdgeKind.REFERENCES));
+
+        LakosMetrics metrics = query.calculateGlobalLakosMetrics();
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.componentCount()).isEqualTo(3);
+        assertThat(metrics.isEmpty()).isFalse();
+    }
+
+    @Test
+    void shouldCalculateGlobalLakosMetrics_returnsEmpty_whenGraphIsEmpty() {
+        // Empty graph (no nodes added)
+        LakosMetrics metrics = query.calculateGlobalLakosMetrics();
+
+        assertThat(metrics).isNotNull();
+        assertThat(metrics.isEmpty()).isTrue();
+    }
+
+    @Test
+    void shouldReturnQualityLevel_fromLakosMetrics() {
+        TypeNode typeA = createType("com.example.pkg.A");
+        TypeNode typeB = createType("com.example.pkg.B");
+
+        graph.addNode(typeA);
+        graph.addNode(typeB);
+
+        LakosMetrics metrics = query.calculateLakosMetrics("com.example.pkg");
+
+        // Quality level should be derivable from metrics
+        QualityLevel level = metrics.qualityLevel();
+        assertThat(level).isNotNull();
+    }
+
     // === Coupling metrics ===
 
     @Test

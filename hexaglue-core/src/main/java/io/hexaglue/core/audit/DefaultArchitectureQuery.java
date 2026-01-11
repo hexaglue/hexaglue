@@ -337,6 +337,121 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
         return (double) ccd / (n * n);
     }
 
+    @Override
+    public LakosMetrics calculateLakosMetrics(String packageName) {
+        var typesInPackage = graph.query().typesInPackage(packageName).toList();
+        if (typesInPackage.isEmpty()) {
+            return LakosMetrics.empty();
+        }
+
+        Set<String> qualifiedNames =
+                typesInPackage.stream().map(TypeNode::qualifiedName).collect(Collectors.toSet());
+
+        return calculateLakosMetrics(qualifiedNames);
+    }
+
+    @Override
+    public LakosMetrics calculateLakosMetrics(Set<String> qualifiedNames) {
+        if (qualifiedNames == null || qualifiedNames.isEmpty()) {
+            return LakosMetrics.empty();
+        }
+
+        // Collect TypeNodes for the given names
+        Set<TypeNode> types = qualifiedNames.stream()
+                .map(graph::typeNode)
+                .flatMap(Optional::stream)
+                .collect(Collectors.toSet());
+
+        if (types.isEmpty()) {
+            return LakosMetrics.empty();
+        }
+
+        return calculateLakosMetricsForTypes(types);
+    }
+
+    @Override
+    public LakosMetrics calculateGlobalLakosMetrics() {
+        Set<TypeNode> allTypes = new HashSet<>(graph.typeNodes());
+        if (allTypes.isEmpty()) {
+            return LakosMetrics.empty();
+        }
+
+        return calculateLakosMetricsForTypes(allTypes);
+    }
+
+    /**
+     * Calculates Lakos metrics for a set of types.
+     *
+     * <p>Algorithm:
+     * <pre>
+     * 1. For each type, calculate DependsOn (transitive dependencies)
+     * 2. CCD = sum of all DependsOn scores
+     * 3. ACD = CCD / componentCount
+     * 4. NCCD = CCD / (n * log2(n))  [ideal balanced tree]
+     * 5. RACD = ACD / log2(n)        [minimum ACD]
+     * </pre>
+     */
+    private LakosMetrics calculateLakosMetricsForTypes(Set<TypeNode> types) {
+        int componentCount = types.size();
+
+        // Calculate CCD (Cumulative Component Dependency)
+        int ccd = 0;
+        for (TypeNode type : types) {
+            ccd += calculateDependsOnScore(type.qualifiedName());
+        }
+
+        // Calculate ACD (Average Component Dependency)
+        double acd = componentCount > 0 ? (double) ccd / componentCount : 0.0;
+
+        // Calculate NCCD (Normalized CCD)
+        double nccd = calculateNormalizedCCD(componentCount, ccd);
+
+        // Calculate RACD (Relative ACD)
+        double racd = calculateRelativeACD(componentCount, acd);
+
+        return new LakosMetrics(componentCount, ccd, acd, nccd, racd);
+    }
+
+    /**
+     * Calculates NCCD (Normalized CCD).
+     *
+     * <p>NCCD compares the actual CCD to the CCD of a balanced binary tree
+     * with the same number of nodes. A balanced tree represents an ideal
+     * dependency structure.
+     *
+     * <p>For a balanced binary tree with n nodes:
+     * CCD_ideal ≈ n * log₂(n)
+     *
+     * <p>NCCD = CCD_actual / CCD_ideal
+     */
+    private double calculateNormalizedCCD(int componentCount, int ccd) {
+        if (componentCount <= 1) {
+            return 0.0;
+        }
+
+        double idealCCD = componentCount * (Math.log(componentCount) / Math.log(2));
+        return idealCCD > 0 ? ccd / idealCCD : 0.0;
+    }
+
+    /**
+     * Calculates RACD (Relative ACD).
+     *
+     * <p>RACD compares the actual ACD to the theoretical minimum ACD.
+     * The minimum occurs when dependencies form a balanced tree.
+     *
+     * <p>Minimum ACD ≈ log₂(n)
+     *
+     * <p>RACD = ACD_actual / ACD_min
+     */
+    private double calculateRelativeACD(int componentCount, double acd) {
+        if (componentCount <= 1) {
+            return 0.0;
+        }
+
+        double minACD = Math.log(componentCount) / Math.log(2);
+        return minACD > 0 ? acd / minACD : 0.0;
+    }
+
     // === Aggregate analysis ===
 
     @Override

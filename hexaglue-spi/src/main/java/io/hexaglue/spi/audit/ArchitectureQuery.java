@@ -15,6 +15,7 @@ package io.hexaglue.spi.audit;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Query interface for architecture analysis and auditing.
@@ -103,6 +104,48 @@ public interface ArchitectureQuery {
      * @return normalized CCD (0.0 to 1.0)
      */
     double calculateNCCD(String packageName);
+
+    /**
+     * Calculates complete Lakos metrics for a specific package.
+     *
+     * <p>Lakos metrics measure architectural quality based on cumulative
+     * component dependencies:
+     * <ul>
+     *   <li>CCD: Sum of transitive dependencies</li>
+     *   <li>ACD: Average component dependency</li>
+     *   <li>NCCD: Normalized compared to balanced tree</li>
+     *   <li>RACD: Relative to theoretical minimum</li>
+     * </ul>
+     *
+     * @param packageName the package to analyze
+     * @return Lakos metrics for the package
+     * @since 3.0.0
+     */
+    LakosMetrics calculateLakosMetrics(String packageName);
+
+    /**
+     * Calculates Lakos metrics for a set of types.
+     *
+     * <p>This method allows calculating metrics for an arbitrary set of types,
+     * not necessarily in the same package. Useful for analyzing aggregates
+     * or bounded contexts.
+     *
+     * @param qualifiedNames the fully-qualified names of types to include
+     * @return Lakos metrics for the specified types
+     * @since 3.0.0
+     */
+    LakosMetrics calculateLakosMetrics(Set<String> qualifiedNames);
+
+    /**
+     * Calculates Lakos metrics for the entire codebase.
+     *
+     * <p>This provides a global view of the system's architectural quality
+     * and coupling characteristics.
+     *
+     * @return global Lakos metrics
+     * @since 3.0.0
+     */
+    LakosMetrics calculateGlobalLakosMetrics();
 
     // === Aggregate analysis ===
 
