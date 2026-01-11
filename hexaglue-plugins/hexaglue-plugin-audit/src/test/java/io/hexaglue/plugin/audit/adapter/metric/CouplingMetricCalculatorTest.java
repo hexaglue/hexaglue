@@ -15,11 +15,16 @@ package io.hexaglue.plugin.audit.adapter.metric;
 
 import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.spi.audit.CouplingMetrics;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -258,5 +263,84 @@ class CouplingMetricCalculatorTest {
 
         // Then: Average = (4 + 2 + 1 + 1 + 0) / 5 = 1.6, still under 3
         assertThat(metric.value()).isEqualTo(1.6);
+    }
+
+    // === Tests with ArchitectureQuery (v3 refactored) ===
+
+    @Test
+    void shouldCalculateWithArchitectureQuery_whenQueryProvided() {
+        // Given: Mock ArchitectureQuery returning coupling metrics
+        ArchitectureQuery mockQuery = mock(ArchitectureQuery.class);
+        Codebase mockCodebase = mock(Codebase.class);
+
+        CouplingMetrics pkg1Metrics = new CouplingMetrics("com.example.pkg1", 2, 3, 0.4);
+        CouplingMetrics pkg2Metrics = new CouplingMetrics("com.example.pkg2", 3, 2, 0.6);
+
+        when(mockQuery.analyzeAllPackageCoupling()).thenReturn(List.of(pkg1Metrics, pkg2Metrics));
+
+        // When
+        Metric metric = calculator.calculate(mockCodebase, mockQuery);
+
+        // Then: Uses Core's metrics, average instability = (0.6 + 0.4) / 2 = 0.5
+        assertThat(metric.name()).isEqualTo("aggregate.coupling.efferent");
+        assertThat(metric.value()).isCloseTo(0.5, org.assertj.core.data.Offset.offset(0.01));
+        assertThat(metric.unit()).isEqualTo("ratio");
+    }
+
+    @Test
+    void shouldReturnZeroWithArchitectureQuery_whenNoPackages() {
+        // Given: Mock ArchitectureQuery returning empty list
+        ArchitectureQuery mockQuery = mock(ArchitectureQuery.class);
+        Codebase mockCodebase = mock(Codebase.class);
+
+        when(mockQuery.analyzeAllPackageCoupling()).thenReturn(List.of());
+
+        // When
+        Metric metric = calculator.calculate(mockCodebase, mockQuery);
+
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
+    }
+
+    @Test
+    void shouldCountProblematicPackagesWithArchitectureQuery() {
+        // Given: Some problematic packages
+        ArchitectureQuery mockQuery = mock(ArchitectureQuery.class);
+        Codebase mockCodebase = mock(Codebase.class);
+
+        // Problematic: A=0, I=0 -> ZONE_OF_PAIN
+        CouplingMetrics problematic = new CouplingMetrics("com.example.pain", 5, 0, 0.0);
+        // Healthy: A=0.5, I=0.5 -> IDEAL
+        CouplingMetrics healthy = new CouplingMetrics("com.example.ideal", 1, 1, 0.5);
+
+        when(mockQuery.analyzeAllPackageCoupling()).thenReturn(List.of(problematic, healthy));
+
+        // When
+        Metric metric = calculator.calculate(mockCodebase, mockQuery);
+
+        // Then: Description should mention problematic packages
+        assertThat(metric.description()).contains("1");
+        assertThat(metric.description()).containsIgnoringCase("problematic");
+    }
+
+    @Test
+    void shouldFallbackToLegacy_whenArchitectureQueryIsNull() {
+        // Given: Codebase with aggregates but no ArchitectureQuery
+        CodeUnit order = aggregate("Order");
+        CodeUnit customer = aggregate("Customer");
+
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(order)
+                .addUnit(customer)
+                .addDependency("com.example.domain.Order", "com.example.domain.Customer")
+                .build();
+
+        // When
+        Metric metric = calculator.calculate(codebase, null);
+
+        // Then: Falls back to legacy calculation
+        assertThat(metric.name()).isEqualTo("aggregate.coupling.efferent");
+        assertThat(metric.value()).isEqualTo(0.5); // Same as legacy test
+        assertThat(metric.unit()).isEqualTo("dependencies");
     }
 }

@@ -77,4 +77,37 @@ public record CouplingMetrics(String packageName, int afferentCoupling, int effe
     public boolean isInZoneOfUselessness() {
         return instability() > 0.7 && abstractness > 0.7;
     }
+
+    /**
+     * Classifies this package into a zone based on Martin's metrics.
+     *
+     * <p>Algorithm:
+     * <pre>
+     * D = distanceFromMainSequence()
+     * I = instability()
+     *
+     * if D == 0.0           -&gt; IDEAL
+     * else if D &le; 0.3    -&gt; MAIN_SEQUENCE
+     * else if I &lt; 0.5     -&gt; ZONE_OF_PAIN
+     * else                  -&gt; ZONE_OF_USELESSNESS
+     * </pre>
+     *
+     * @return the zone classification
+     * @since 3.0.0
+     */
+    public ZoneClassification zone() {
+        return ZoneClassification.classify(distanceFromMainSequence(), instability());
+    }
+
+    /**
+     * Returns true if this package is in a problematic zone.
+     *
+     * <p>A package is problematic if it's in the Zone of Pain or Zone of Uselessness.
+     *
+     * @return true for ZONE_OF_PAIN or ZONE_OF_USELESSNESS
+     * @since 3.0.0
+     */
+    public boolean isProblematic() {
+        return zone().isProblematic();
+    }
 }

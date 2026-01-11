@@ -88,8 +88,8 @@ public class AuditOrchestrator {
         // 1. Execute constraints
         List<Violation> violations = constraintEngine.executeConstraints(codebase, query, constraintIds);
 
-        // 2. Calculate metrics
-        Map<String, Metric> metrics = metricAggregator.calculateMetrics(codebase, enabledMetrics);
+        // 2. Calculate metrics (with architecture query for rich analysis)
+        Map<String, Metric> metrics = metricAggregator.calculateMetrics(codebase, query, enabledMetrics);
 
         // 3. Determine build outcome
         BuildOutcome outcome = computeOutcome(violations, allowCriticalViolations);

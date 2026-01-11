@@ -17,6 +17,7 @@ import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.spi.audit.LakosMetrics;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -43,14 +44,14 @@ public final class LakosMetricsCalculator {
      */
     public LakosMetrics calculate(ApplicationGraph graph) {
         if (graph == null) {
-            return new LakosMetrics(0, 0, 0.0, 0.0, 0.0);
+            return LakosMetrics.empty();
         }
 
         Set<TypeNode> types = collectTypes(graph);
         int componentCount = types.size();
 
         if (componentCount == 0) {
-            return new LakosMetrics(0, 0, 0.0, 0.0, 0.0);
+            return LakosMetrics.empty();
         }
 
         // Calculate CCD (Cumulative Component Dependency)

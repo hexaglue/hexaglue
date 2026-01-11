@@ -15,6 +15,7 @@ package io.hexaglue.plugin.audit.domain.service;
 
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
 import java.util.Map;
 import java.util.Objects;
@@ -31,6 +32,9 @@ import java.util.stream.Collectors;
  *   <li>Collecting calculated metrics</li>
  *   <li>Handling calculation errors gracefully</li>
  * </ul>
+ *
+ * <p><b>REFACTORED (v3):</b> Now passes {@link ArchitectureQuery} to calculators
+ * so they can leverage Core's rich analysis capabilities.
  *
  * @since 1.0.0
  */
@@ -57,8 +61,29 @@ public class MetricAggregator {
      * @param codebase       the codebase to analyze
      * @param enabledMetrics the set of metric names to calculate (empty = all)
      * @return map of calculated metrics (metric name -> metric)
+     * @deprecated Use {@link #calculateMetrics(Codebase, ArchitectureQuery, Set)} instead
      */
+    @Deprecated
     public Map<String, Metric> calculateMetrics(Codebase codebase, Set<String> enabledMetrics) {
+        return calculateMetrics(codebase, null, enabledMetrics);
+    }
+
+    /**
+     * Calculates the specified metrics for the codebase using architecture query.
+     *
+     * <p>This method iterates through the enabled metrics, executes their
+     * calculators with access to the Core's ArchitectureQuery, and collects
+     * all results. If a calculator throws an exception, it is logged but
+     * doesn't stop execution of other calculators.
+     *
+     * @param codebase          the codebase to analyze
+     * @param architectureQuery the query interface from Core (may be null)
+     * @param enabledMetrics    the set of metric names to calculate (empty = all)
+     * @return map of calculated metrics (metric name -> metric)
+     * @since 3.0.0
+     */
+    public Map<String, Metric> calculateMetrics(
+            Codebase codebase, ArchitectureQuery architectureQuery, Set<String> enabledMetrics) {
         Objects.requireNonNull(codebase, "codebase required");
         Objects.requireNonNull(enabledMetrics, "enabledMetrics required");
 
@@ -70,7 +95,8 @@ public class MetricAggregator {
                 .filter(Objects::nonNull)
                 .map(calculator -> {
                     try {
-                        Metric metric = calculator.calculate(codebase);
+                        // Use the new method that accepts ArchitectureQuery
+                        Metric metric = calculator.calculate(codebase, architectureQuery);
                         return Map.entry(calculator.metricName(), metric);
                     } catch (Exception e) {
                         // Log error but continue with other calculators

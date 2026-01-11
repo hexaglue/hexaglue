@@ -16,40 +16,117 @@ package io.hexaglue.plugin.audit.adapter.metric;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.spi.audit.CouplingMetrics;
 import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Calculates aggregate coupling metrics.
+ * Calculates coupling metrics using ArchitectureQuery.
  *
- * <p>This calculator measures the average efferent coupling between aggregates,
- * which represents the average number of outgoing dependencies from one aggregate
- * to other aggregates. High coupling indicates tight dependencies that can make
- * the system harder to change and understand.
+ * <p><b>REFACTORED (v3):</b> This calculator now delegates to Core via ArchitectureQuery.
+ * It only interprets the results and applies thresholds (judgment).
+ *
+ * <p>Principle: "Le Core produit des faits, les plugins les exploitent."
+ *
+ * <p>This calculator measures the average coupling between packages,
+ * which represents the overall dependency health of the codebase. High
+ * coupling indicates tight dependencies that can make the system harder
+ * to change and understand.
  *
  * <p><strong>Metric:</strong> aggregate.coupling.efferent<br>
  * <strong>Unit:</strong> dependencies<br>
- * <strong>Threshold:</strong> Warning if > 3 dependencies<br>
- * <strong>Interpretation:</strong> Lower is better. Aggregates should be relatively
- * independent. More than 3 aggregate dependencies suggests the aggregate boundaries
- * may need reconsideration.
+ * <strong>Threshold:</strong> Warning if &gt; 0.7 (high instability)<br>
+ * <strong>Interpretation:</strong> Lower is better. Packages should have
+ * balanced coupling. More than 0.7 average instability suggests the
+ * architecture may need refactoring.
  *
  * @since 1.0.0
  */
 public class CouplingMetricCalculator implements MetricCalculator {
 
     private static final String METRIC_NAME = "aggregate.coupling.efferent";
-    private static final double WARNING_THRESHOLD = 3.0;
+    private static final double WARNING_THRESHOLD = 0.7;
 
     @Override
     public String metricName() {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates coupling metric using ArchitectureQuery when available.
+     *
+     * <p>When ArchitectureQuery is available, delegates to Core for accurate
+     * coupling analysis. Otherwise, falls back to legacy aggregate-based
+     * calculation.
+     *
+     * @param codebase the codebase to analyze
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 3.0.0
+     */
+    @Override
+    public Metric calculate(Codebase codebase, ArchitectureQuery architectureQuery) {
+        if (architectureQuery != null) {
+            return calculateWithArchitectureQuery(architectureQuery);
+        }
+        // Fallback to legacy calculation
+        return calculate(codebase);
+    }
+
+    /**
+     * Calculates coupling metric using Core's ArchitectureQuery.
+     *
+     * <p>This method leverages the Core's rich analysis capabilities:
+     * <ul>
+     *   <li>Uses {@link ArchitectureQuery#analyzeAllPackageCoupling()} for metrics</li>
+     *   <li>Calculates average instability across all packages</li>
+     *   <li>Counts problematic packages using {@link CouplingMetrics#isProblematic()}</li>
+     * </ul>
+     *
+     * @param architectureQuery the query interface from Core
+     * @return the calculated metric
+     */
+    private Metric calculateWithArchitectureQuery(ArchitectureQuery architectureQuery) {
+        // Delegate to Core
+        List<CouplingMetrics> allMetrics = architectureQuery.analyzeAllPackageCoupling();
+
+        if (allMetrics.isEmpty()) {
+            return Metric.of(
+                    METRIC_NAME,
+                    0.0,
+                    "ratio",
+                    "Average package coupling (no packages found)",
+                    MetricThreshold.lessThan(WARNING_THRESHOLD));
+        }
+
+        // Calculate average instability (judgment)
+        double averageCoupling =
+                allMetrics.stream().mapToDouble(CouplingMetrics::instability).average().orElse(0.0);
+
+        // Count problematic packages (judgment)
+        long problematicCount = allMetrics.stream().filter(CouplingMetrics::isProblematic).count();
+
+        String description = String.format(
+                "Average package instability: %.2f (%d of %d packages are problematic)",
+                averageCoupling, problematicCount, allMetrics.size());
+
+        return Metric.of(METRIC_NAME, averageCoupling, "ratio", description, MetricThreshold.lessThan(WARNING_THRESHOLD));
+    }
+
+    /**
+     * Legacy calculation for aggregate coupling (fallback).
+     *
+     * <p>This method is retained for backward compatibility when
+     * ArchitectureQuery is not available.
+     *
+     * @param codebase the codebase to analyze
+     * @return the calculated metric
+     */
     @Override
     public Metric calculate(Codebase codebase) {
         List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
@@ -77,7 +154,7 @@ public class CouplingMetricCalculator implements MetricCalculator {
                 avgEfferent,
                 "dependencies",
                 "Average outgoing dependencies between aggregates",
-                MetricThreshold.greaterThan(WARNING_THRESHOLD));
+                MetricThreshold.greaterThan(3.0));
     }
 
     /**

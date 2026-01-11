@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.core.audit.metrics;
+package io.hexaglue.spi.audit;
 
 /**
  * Lakos metrics for assessing large-scale architectural quality.
@@ -32,6 +32,9 @@ package io.hexaglue.core.audit.metrics;
  *       to 1.0 indicate optimal dependency structure.</li>
  * </ul>
  *
+ * <p><b>Note:</b> This record contains only derived calculations (pure functions).
+ * The actual collection of CCD is done in the Core's LakosMetricsCalculator.
+ *
  * @param componentCount number of components (packages or types)
  * @param ccd            cumulative component dependency
  * @param acd            average component dependency
@@ -42,29 +45,23 @@ package io.hexaglue.core.audit.metrics;
 public record LakosMetrics(int componentCount, int ccd, double acd, double nccd, double racd) {
 
     /**
-     * Returns the quality level based on Lakos metrics.
+     * Creates an empty metrics instance (for error cases or empty codebases).
+     *
+     * @return empty metrics with all values at 0
+     */
+    public static LakosMetrics empty() {
+        return new LakosMetrics(0, 0, 0.0, 0.0, 0.0);
+    }
+
+    /**
+     * Returns the quality level based on NCCD.
+     *
+     * <p>This is a derived calculation - a pure function of nccd.
      *
      * @return the quality level
      */
     public QualityLevel qualityLevel() {
-        // NCCD interpretation (lower is better):
-        // < 1.5: Excellent
-        // 1.5 - 2.0: Good
-        // 2.0 - 3.0: Acceptable
-        // 3.0 - 5.0: Warning
-        // > 5.0: Critical
-
-        if (nccd < 1.5) {
-            return QualityLevel.EXCELLENT;
-        } else if (nccd < 2.0) {
-            return QualityLevel.GOOD;
-        } else if (nccd < 3.0) {
-            return QualityLevel.ACCEPTABLE;
-        } else if (nccd < 5.0) {
-            return QualityLevel.WARNING;
-        } else {
-            return QualityLevel.CRITICAL;
-        }
+        return QualityLevel.fromNCCD(nccd);
     }
 
     /**
@@ -73,32 +70,24 @@ public record LakosMetrics(int componentCount, int ccd, double acd, double nccd,
      * @return assessment message
      */
     public String assessment() {
-        return switch (qualityLevel()) {
-            case EXCELLENT -> "Excellent dependency structure. Components are well-organized with minimal coupling.";
-            case GOOD -> "Good dependency structure. Minor improvements possible.";
-            case ACCEPTABLE -> "Acceptable dependency structure. Consider refactoring high-dependency components.";
-            case WARNING -> "Dependency structure needs attention. High coupling may impact maintainability.";
-            case CRITICAL -> "Critical dependency issues. Significant refactoring recommended.";
-        };
+        return qualityLevel().assessment();
     }
 
     /**
-     * Quality level enumeration.
+     * Returns true if the metrics indicate problems requiring attention.
+     *
+     * @return true if qualityLevel is WARNING or CRITICAL
      */
-    public enum QualityLevel {
-        /** Excellent quality (NCCD < 1.5) */
-        EXCELLENT,
+    public boolean requiresAttention() {
+        return qualityLevel().requiresAttention();
+    }
 
-        /** Good quality (NCCD 1.5-2.0) */
-        GOOD,
-
-        /** Acceptable quality (NCCD 2.0-3.0) */
-        ACCEPTABLE,
-
-        /** Warning level (NCCD 3.0-5.0) */
-        WARNING,
-
-        /** Critical issues (NCCD > 5.0) */
-        CRITICAL
+    /**
+     * Returns true if this represents an empty or invalid metrics set.
+     *
+     * @return true if componentCount is 0
+     */
+    public boolean isEmpty() {
+        return componentCount == 0;
     }
 }
