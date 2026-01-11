@@ -14,14 +14,71 @@
 package io.hexaglue.spi.ir;
 
 import java.time.Instant;
+import java.util.Objects;
 
 /**
  * Metadata about the IR analysis.
  *
  * @param basePackage the base package that was analyzed
+ * @param projectName the name of the analyzed project (e.g., from Maven project.name)
+ * @param projectVersion the version of the analyzed project (e.g., "1.0.0-SNAPSHOT")
  * @param timestamp when the analysis was performed
  * @param engineVersion the HexaGlue engine version
  * @param typeCount total number of types analyzed
  * @param portCount total number of ports detected
+ * @since 3.0.0
  */
-public record IrMetadata(String basePackage, Instant timestamp, String engineVersion, int typeCount, int portCount) {}
+public record IrMetadata(
+        String basePackage,
+        String projectName,
+        String projectVersion,
+        Instant timestamp,
+        String engineVersion,
+        int typeCount,
+        int portCount) {
+
+    /**
+     * Compact constructor with defaults for optional fields.
+     */
+    public IrMetadata {
+        Objects.requireNonNull(basePackage, "basePackage required");
+        Objects.requireNonNull(timestamp, "timestamp required");
+        Objects.requireNonNull(engineVersion, "engineVersion required");
+        // projectName and projectVersion can be null - will use defaults
+        if (projectName == null || projectName.isBlank()) {
+            projectName = inferProjectName(basePackage);
+        }
+        if (projectVersion == null || projectVersion.isBlank()) {
+            projectVersion = "unknown";
+        }
+    }
+
+    /**
+     * Creates metadata without project info (for backward compatibility).
+     *
+     * @param basePackage the base package
+     * @param timestamp the timestamp
+     * @param engineVersion the engine version
+     * @param typeCount type count
+     * @param portCount port count
+     * @return metadata with inferred project name
+     */
+    public static IrMetadata withDefaults(
+            String basePackage, Instant timestamp, String engineVersion, int typeCount, int portCount) {
+        return new IrMetadata(basePackage, null, null, timestamp, engineVersion, typeCount, portCount);
+    }
+
+    /**
+     * Infers a project name from the base package.
+     *
+     * <p>Uses the last segment of the base package as project name.
+     * For example: "com.example.ecommerce" → "ecommerce"
+     */
+    private static String inferProjectName(String basePackage) {
+        if (basePackage == null || basePackage.isBlank()) {
+            return "unknown";
+        }
+        int lastDot = basePackage.lastIndexOf('.');
+        return lastDot >= 0 ? basePackage.substring(lastDot + 1) : basePackage;
+    }
+}

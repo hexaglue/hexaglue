@@ -15,9 +15,16 @@ package io.hexaglue.plugin.audit.adapter.report;
 
 import io.hexaglue.plugin.audit.adapter.report.model.ArchitectureAnalysis;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
+import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
+import io.hexaglue.plugin.audit.adapter.report.model.ExecutiveSummary;
+import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
 import io.hexaglue.plugin.audit.adapter.report.model.MetricEntry;
+import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
+import io.hexaglue.plugin.audit.adapter.report.model.TechnicalDebtSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
+import io.hexaglue.plugin.audit.domain.model.Recommendation;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -166,6 +173,35 @@ public final class JsonReportGenerator implements ReportGenerator {
 
         // Architecture Analysis
         appendArchitectureAnalysis(json, report.architectureAnalysis());
+        json.append(",\n");
+
+        // Health Score
+        appendHealthScore(json, report.healthScore());
+        json.append(",\n");
+
+        // Component Inventory
+        appendInventory(json, report.inventory());
+        json.append(",\n");
+
+        // Port Matrix
+        appendPortMatrix(json, report.portMatrix());
+        json.append(",\n");
+
+        // Technical Debt
+        appendTechnicalDebt(json, report.technicalDebt());
+        json.append(",\n");
+
+        // Recommendations
+        appendRecommendations(json, report.recommendations());
+        json.append(",\n");
+
+        // Executive Summary
+        appendExecutiveSummary(json, report.executiveSummary());
+        json.append(",\n");
+
+        // Compliance percentages
+        json.append("  \"dddCompliancePercent\": ").append(report.dddCompliancePercent()).append(",\n");
+        json.append("  \"hexCompliancePercent\": ").append(report.hexCompliancePercent()).append("\n");
 
         json.append("}\n");
 
@@ -345,6 +381,208 @@ public final class JsonReportGenerator implements ReportGenerator {
             }
             json.append("    ]");
         }
+    }
+
+    /**
+     * Appends health score to JSON output.
+     */
+    private void appendHealthScore(StringBuilder json, HealthScore score) {
+        json.append("  \"healthScore\": {\n");
+        json.append("    \"overall\": ").append(score.overall()).append(",\n");
+        json.append("    \"dddCompliance\": ").append(score.dddCompliance()).append(",\n");
+        json.append("    \"hexCompliance\": ").append(score.hexCompliance()).append(",\n");
+        json.append("    \"dependencyQuality\": ").append(score.dependencyQuality()).append(",\n");
+        json.append("    \"coupling\": ").append(score.coupling()).append(",\n");
+        json.append("    \"cohesion\": ").append(score.cohesion()).append(",\n");
+        json.append("    \"grade\": ").append(quote(score.grade())).append("\n");
+        json.append("  }");
+    }
+
+    /**
+     * Appends component inventory to JSON output.
+     */
+    private void appendInventory(StringBuilder json, ComponentInventory inv) {
+        json.append("  \"inventory\": {\n");
+        json.append("    \"aggregateRoots\": ").append(inv.aggregateRoots()).append(",\n");
+        json.append("    \"entities\": ").append(inv.entities()).append(",\n");
+        json.append("    \"valueObjects\": ").append(inv.valueObjects()).append(",\n");
+        json.append("    \"domainEvents\": ").append(inv.domainEvents()).append(",\n");
+        json.append("    \"domainServices\": ").append(inv.domainServices()).append(",\n");
+        json.append("    \"applicationServices\": ").append(inv.applicationServices()).append(",\n");
+        json.append("    \"drivingPorts\": ").append(inv.drivingPorts()).append(",\n");
+        json.append("    \"drivenPorts\": ").append(inv.drivenPorts()).append(",\n");
+        json.append("    \"totalDomainTypes\": ").append(inv.totalDomainTypes()).append(",\n");
+        json.append("    \"totalPorts\": ").append(inv.totalPorts()).append("\n");
+        json.append("  }");
+    }
+
+    /**
+     * Appends port matrix to JSON output.
+     */
+    private void appendPortMatrix(StringBuilder json, List<PortMatrixEntry> portMatrix) {
+        json.append("  \"portMatrix\": ");
+        if (portMatrix == null || portMatrix.isEmpty()) {
+            json.append("[]");
+        } else {
+            json.append("[\n");
+            for (int i = 0; i < portMatrix.size(); i++) {
+                PortMatrixEntry p = portMatrix.get(i);
+                json.append("    {\n");
+                json.append("      \"portName\": ").append(quote(p.portName())).append(",\n");
+                json.append("      \"direction\": ").append(quote(p.direction())).append(",\n");
+                json.append("      \"kind\": ").append(quote(p.kind())).append(",\n");
+                json.append("      \"managedType\": ").append(quote(p.managedType())).append(",\n");
+                json.append("      \"methodCount\": ").append(p.methodCount()).append(",\n");
+                json.append("      \"hasAdapter\": ").append(p.hasAdapter()).append("\n");
+                json.append("    }");
+                if (i < portMatrix.size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("  ]");
+        }
+    }
+
+    /**
+     * Appends technical debt summary to JSON output.
+     */
+    private void appendTechnicalDebt(StringBuilder json, TechnicalDebtSummary debt) {
+        json.append("  \"technicalDebt\": {\n");
+        json.append("    \"totalDays\": ").append(String.format("%.2f", debt.totalDays())).append(",\n");
+        json.append("    \"totalCost\": ").append(String.format("%.2f", debt.totalCost())).append(",\n");
+        json.append("    \"monthlyInterest\": ").append(String.format("%.2f", debt.monthlyInterest())).append(",\n");
+        json.append("    \"breakdown\": ");
+        if (debt.breakdown() == null || debt.breakdown().isEmpty()) {
+            json.append("[]\n");
+        } else {
+            json.append("[\n");
+            for (int i = 0; i < debt.breakdown().size(); i++) {
+                TechnicalDebtSummary.DebtCategory cat = debt.breakdown().get(i);
+                json.append("      {\n");
+                json.append("        \"category\": ").append(quote(cat.category())).append(",\n");
+                json.append("        \"days\": ").append(String.format("%.2f", cat.days())).append(",\n");
+                json.append("        \"cost\": ").append(String.format("%.2f", cat.cost())).append(",\n");
+                json.append("        \"description\": ").append(quote(cat.description())).append("\n");
+                json.append("      }");
+                if (i < debt.breakdown().size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("    ]\n");
+        }
+        json.append("  }");
+    }
+
+    /**
+     * Appends recommendations to JSON output.
+     */
+    private void appendRecommendations(StringBuilder json, List<Recommendation> recommendations) {
+        json.append("  \"recommendations\": ");
+        if (recommendations == null || recommendations.isEmpty()) {
+            json.append("[]");
+        } else {
+            json.append("[\n");
+            for (int i = 0; i < recommendations.size(); i++) {
+                Recommendation r = recommendations.get(i);
+                json.append("    {\n");
+                json.append("      \"priority\": ").append(quote(r.priority().name())).append(",\n");
+                json.append("      \"title\": ").append(quote(r.title())).append(",\n");
+                json.append("      \"description\": ").append(quote(r.description())).append(",\n");
+                json.append("      \"affectedTypes\": [");
+                for (int j = 0; j < r.affectedTypes().size(); j++) {
+                    json.append(quote(r.affectedTypes().get(j)));
+                    if (j < r.affectedTypes().size() - 1) json.append(", ");
+                }
+                json.append("],\n");
+                json.append("      \"estimatedEffort\": ").append(String.format("%.2f", r.estimatedEffort())).append(",\n");
+                json.append("      \"expectedImpact\": ").append(quote(r.expectedImpact())).append(",\n");
+                json.append("      \"relatedViolations\": [");
+                for (int j = 0; j < r.relatedViolations().size(); j++) {
+                    json.append(quote(r.relatedViolations().get(j).value()));
+                    if (j < r.relatedViolations().size() - 1) json.append(", ");
+                }
+                json.append("]\n");
+                json.append("    }");
+                if (i < recommendations.size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("  ]");
+        }
+    }
+
+    /**
+     * Appends executive summary to JSON output.
+     */
+    private void appendExecutiveSummary(StringBuilder json, ExecutiveSummary summary) {
+        json.append("  \"executiveSummary\": {\n");
+        json.append("    \"verdict\": ").append(quote(summary.verdict())).append(",\n");
+
+        // Strengths
+        json.append("    \"strengths\": [");
+        if (summary.strengths() != null && !summary.strengths().isEmpty()) {
+            json.append("\n");
+            for (int i = 0; i < summary.strengths().size(); i++) {
+                json.append("      ").append(quote(summary.strengths().get(i)));
+                if (i < summary.strengths().size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("    ");
+        }
+        json.append("],\n");
+
+        // Concerns
+        json.append("    \"concerns\": ");
+        if (summary.concerns() == null || summary.concerns().isEmpty()) {
+            json.append("[]");
+        } else {
+            json.append("[\n");
+            for (int i = 0; i < summary.concerns().size(); i++) {
+                ExecutiveSummary.ConcernEntry c = summary.concerns().get(i);
+                json.append("      {\n");
+                json.append("        \"severity\": ").append(quote(c.severity())).append(",\n");
+                json.append("        \"description\": ").append(quote(c.description())).append(",\n");
+                json.append("        \"count\": ").append(c.count()).append("\n");
+                json.append("      }");
+                if (i < summary.concerns().size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("    ]");
+        }
+        json.append(",\n");
+
+        // KPIs
+        json.append("    \"kpis\": ");
+        if (summary.kpis() == null || summary.kpis().isEmpty()) {
+            json.append("[]");
+        } else {
+            json.append("[\n");
+            for (int i = 0; i < summary.kpis().size(); i++) {
+                ExecutiveSummary.KpiEntry k = summary.kpis().get(i);
+                json.append("      {\n");
+                json.append("        \"name\": ").append(quote(k.name())).append(",\n");
+                json.append("        \"value\": ").append(quote(k.value())).append(",\n");
+                json.append("        \"threshold\": ").append(quote(k.threshold())).append(",\n");
+                json.append("        \"status\": ").append(quote(k.status())).append("\n");
+                json.append("      }");
+                if (i < summary.kpis().size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("    ]");
+        }
+        json.append(",\n");
+
+        // Immediate actions
+        json.append("    \"immediateActions\": [");
+        if (summary.immediateActions() != null && !summary.immediateActions().isEmpty()) {
+            json.append("\n");
+            for (int i = 0; i < summary.immediateActions().size(); i++) {
+                json.append("      ").append(quote(summary.immediateActions().get(i)));
+                if (i < summary.immediateActions().size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("    ");
+        }
+        json.append("]\n");
+
+        json.append("  }");
     }
 
     /**

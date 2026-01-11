@@ -28,6 +28,8 @@ import java.util.Set;
  * @param classpathEntries classpath entries for type resolution
  * @param javaVersion the Java version (e.g., 21)
  * @param basePackage the base package to analyze (types outside are ignored)
+ * @param projectName the name of the project being analyzed (e.g., from Maven pom.xml)
+ * @param projectVersion the version of the project (e.g., "1.0.0-SNAPSHOT")
  * @param outputDirectory directory for generated sources (null to skip plugin execution)
  * @param pluginConfigs plugin configurations keyed by plugin ID
  * @param options additional options (key-value pairs)
@@ -40,6 +42,8 @@ public record EngineConfig(
         List<Path> classpathEntries,
         int javaVersion,
         String basePackage,
+        String projectName,
+        String projectVersion,
         Path outputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options,
@@ -91,7 +95,8 @@ public record EngineConfig(
      * Creates a minimal configuration for testing (no plugin execution).
      */
     public static EngineConfig minimal(Path sourceRoot, String basePackage) {
-        return new EngineConfig(List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), null, null);
+        return new EngineConfig(
+                List.of(sourceRoot), List.of(), 21, basePackage, null, null, null, Map.of(), Map.of(), null, null);
     }
 
     /**
@@ -100,7 +105,17 @@ public record EngineConfig(
     public static EngineConfig withPlugins(
             Path sourceRoot, String basePackage, Path outputDirectory, Map<String, Map<String, Object>> pluginConfigs) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, outputDirectory, pluginConfigs, Map.of(), null, null);
+                List.of(sourceRoot),
+                List.of(),
+                21,
+                basePackage,
+                null,
+                null,
+                outputDirectory,
+                pluginConfigs,
+                Map.of(),
+                null,
+                null);
     }
 
     /**
@@ -113,7 +128,17 @@ public record EngineConfig(
      */
     public static EngineConfig withProfile(Path sourceRoot, String basePackage, String classificationProfile) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, null, Map.of(), Map.of(), classificationProfile, null);
+                List.of(sourceRoot),
+                List.of(),
+                21,
+                basePackage,
+                null,
+                null,
+                null,
+                Map.of(),
+                Map.of(),
+                classificationProfile,
+                null);
     }
 
     /**
@@ -127,6 +152,8 @@ public record EngineConfig(
                 classpathEntries,
                 javaVersion,
                 basePackage,
+                projectName,
+                projectVersion,
                 outputDirectory,
                 pluginConfigs,
                 options,
@@ -145,6 +172,8 @@ public record EngineConfig(
                 classpathEntries,
                 javaVersion,
                 basePackage,
+                projectName,
+                projectVersion,
                 outputDirectory,
                 pluginConfigs,
                 options,
@@ -163,6 +192,8 @@ public record EngineConfig(
                 classpathEntries,
                 javaVersion,
                 basePackage,
+                projectName,
+                projectVersion,
                 outputDirectory,
                 pluginConfigs,
                 options,

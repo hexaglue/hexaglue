@@ -39,7 +39,7 @@ public record IrSnapshot(DomainModel domain, PortModel ports, IrMetadata metadat
         return new IrSnapshot(
                 new DomainModel(List.of()),
                 new PortModel(List.of()),
-                new IrMetadata(basePackage, Instant.now(), "2.0.0-SNAPSHOT", 0, 0));
+                IrMetadata.withDefaults(basePackage, Instant.now(), "2.0.0-SNAPSHOT", 0, 0));
     }
 
     /**

@@ -115,7 +115,7 @@ class LivingDocPluginTest {
         PortModel ports = new PortModel(List.of(orderRepository, orderUseCase));
 
         // Create IR metadata
-        IrMetadata metadata = new IrMetadata("com.example", Instant.now(), "2.0.0-SNAPSHOT", 2, 2);
+        IrMetadata metadata = IrMetadata.withDefaults("com.example", Instant.now(), "2.0.0-SNAPSHOT", 2, 2);
 
         testIr = new IrSnapshot(domain, ports, metadata);
     }

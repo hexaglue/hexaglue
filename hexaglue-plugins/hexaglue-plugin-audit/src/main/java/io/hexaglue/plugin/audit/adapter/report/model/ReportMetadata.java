@@ -20,17 +20,23 @@ import java.util.Objects;
  * Metadata about the audit report generation.
  *
  * @param projectName     the name of the project audited
+ * @param projectVersion  the version of the project audited (e.g., "1.0.0-SNAPSHOT")
  * @param timestamp       when the audit was performed
  * @param duration        how long the audit took (formatted string like "1.23s")
  * @param hexaglueVersion the HexaGlue version used
  * @since 1.0.0
  */
-public record ReportMetadata(String projectName, Instant timestamp, String duration, String hexaglueVersion) {
+public record ReportMetadata(
+        String projectName, String projectVersion, Instant timestamp, String duration, String hexaglueVersion) {
 
     public ReportMetadata {
         Objects.requireNonNull(projectName, "projectName required");
         Objects.requireNonNull(timestamp, "timestamp required");
         Objects.requireNonNull(duration, "duration required");
         Objects.requireNonNull(hexaglueVersion, "hexaglueVersion required");
+        // projectVersion can be null for backward compatibility
+        if (projectVersion == null || projectVersion.isBlank()) {
+            projectVersion = "unknown";
+        }
     }
 }

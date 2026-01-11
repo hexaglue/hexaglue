@@ -108,7 +108,9 @@ class EngineConfigTest {
                 java.util.List.of(),
                 21,
                 "com.example",
-                null,
+                null, // projectName
+                null, // projectVersion
+                null, // outputDirectory
                 java.util.Map.of(),
                 java.util.Map.of(),
                 null,
@@ -130,6 +132,8 @@ class EngineConfigTest {
                 java.util.List.of(),
                 21,
                 "com.example",
+                "Test Project", // projectName
+                "1.0.0",        // projectVersion
                 outputDir,
                 java.util.Map.of("plugin1", java.util.Map.of("key", "value")),
                 java.util.Map.of("option", "value"),
@@ -144,6 +148,8 @@ class EngineConfigTest {
         assertThat(filtered.classpathEntries()).isEqualTo(config.classpathEntries());
         assertThat(filtered.javaVersion()).isEqualTo(config.javaVersion());
         assertThat(filtered.basePackage()).isEqualTo(config.basePackage());
+        assertThat(filtered.projectName()).isEqualTo(config.projectName());
+        assertThat(filtered.projectVersion()).isEqualTo(config.projectVersion());
         assertThat(filtered.outputDirectory()).isEqualTo(config.outputDirectory());
         assertThat(filtered.pluginConfigs()).isEqualTo(config.pluginConfigs());
         assertThat(filtered.options()).isEqualTo(config.options());

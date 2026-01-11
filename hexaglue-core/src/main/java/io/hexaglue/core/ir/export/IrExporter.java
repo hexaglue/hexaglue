@@ -77,6 +77,24 @@ public final class IrExporter {
      * @return the IR snapshot for plugins
      */
     public IrSnapshot export(ApplicationGraph graph, List<ClassificationResult> classifications) {
+        return export(graph, classifications, null, null);
+    }
+
+    /**
+     * Exports the classified graph to an IR snapshot with project information.
+     *
+     * @param graph the application graph
+     * @param classifications the classification results for all types
+     * @param projectName the project name (e.g., from Maven pom.xml), can be null
+     * @param projectVersion the project version (e.g., "1.0.0-SNAPSHOT"), can be null
+     * @return the IR snapshot for plugins
+     * @since 3.0.0
+     */
+    public IrSnapshot export(
+            ApplicationGraph graph,
+            List<ClassificationResult> classifications,
+            String projectName,
+            String projectVersion) {
         Objects.requireNonNull(graph, "graph cannot be null");
         Objects.requireNonNull(classifications, "classifications cannot be null");
 
@@ -93,7 +111,9 @@ public final class IrExporter {
         List<Port> ports = exportPorts(graph, classifications);
 
         return new IrSnapshot(
-                new DomainModel(domainTypes), new PortModel(ports), createMetadata(graph, domainTypes, ports));
+                new DomainModel(domainTypes),
+                new PortModel(ports),
+                createMetadata(graph, domainTypes, ports, projectName, projectVersion));
     }
 
     private List<DomainType> exportDomainTypes(
@@ -188,9 +208,15 @@ public final class IrExporter {
         return node.annotations().stream().map(AnnotationRef::qualifiedName).toList();
     }
 
-    private IrMetadata createMetadata(ApplicationGraph graph, List<DomainType> domainTypes, List<Port> ports) {
+    private IrMetadata createMetadata(
+            ApplicationGraph graph,
+            List<DomainType> domainTypes,
+            List<Port> ports,
+            String projectName,
+            String projectVersion) {
         String basePackage = inferBasePackage(graph);
-        return new IrMetadata(basePackage, Instant.now(), ENGINE_VERSION, domainTypes.size(), ports.size());
+        return new IrMetadata(
+                basePackage, projectName, projectVersion, Instant.now(), ENGINE_VERSION, domainTypes.size(), ports.size());
     }
 
     private String inferBasePackage(ApplicationGraph graph) {
