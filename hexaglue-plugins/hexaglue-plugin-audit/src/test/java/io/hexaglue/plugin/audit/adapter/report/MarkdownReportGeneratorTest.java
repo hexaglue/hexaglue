@@ -96,7 +96,7 @@ class MarkdownReportGeneratorTest {
         // When
         String markdown = generator.generate(report);
 
-        // Then
+        // Then - section numbers are auto-generated
         assertThat(markdown).contains("## 6. Summary");
         assertThat(markdown).contains("| Total Violations | 5 |");
         assertThat(markdown).contains("| Blockers | 1 |");
