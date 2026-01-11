@@ -23,6 +23,7 @@ import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
 import io.hexaglue.plugin.audit.adapter.report.model.TechnicalDebtSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
+import io.hexaglue.spi.audit.DetectedArchitectureStyle;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
@@ -98,8 +99,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         // Health Score
         appendHealthScore(md, report.healthScore(), numbering);
 
-        // Component Inventory
-        appendComponentInventory(md, report.inventory(), numbering);
+        // Architecture Overview (Component Inventory + Bounded Contexts + Architecture Diagram)
+        appendComponentInventory(md, report.inventory(), report.detectedStyle(), numbering);
 
         // DDD Compliance
         appendDddCompliance(md, report.dddCompliancePercent(), report, numbering);
@@ -424,8 +425,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     private void appendTableOfContents(StringBuilder md) {
         md.append("## Table of Contents\n\n");
         md.append("1. [Executive Summary](#1-executive-summary)\n");
-        md.append("2. [Health Score](#2-health-score)\n");
-        md.append("3. [Component Inventory](#3-component-inventory)\n");
+        md.append("2. [Architectural Health Score](#2-architectural-health-score)\n");
+        md.append("3. [Architecture Overview](#3-architecture-overview)\n");
         md.append("4. [DDD Compliance](#4-ddd-compliance)\n");
         md.append("5. [Hexagonal Compliance](#5-hexagonal-compliance)\n");
         md.append("6. [Summary](#6-summary)\n");
@@ -478,7 +479,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // KPIs
         if (!summary.kpis().isEmpty()) {
-            md.append(numbering.h3("Key Performance Indicators")).append("\n\n");
+            md.append(numbering.h3("Key Performance Indicators (KPIs)")).append("\n\n");
             md.append("| Indicator | Value | Threshold | Status |\n");
             md.append("|-----------|-------|-----------|--------|\n");
             for (var kpi : summary.kpis()) {
@@ -500,7 +501,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Immediate Actions
         if (!summary.immediateActions().isEmpty()) {
-            md.append(numbering.h3("Immediate Actions")).append("\n\n");
+            md.append(numbering.h3("Immediate Actions Required")).append("\n\n");
             for (String action : summary.immediateActions()) {
                 md.append("- ").append(action).append("\n");
             }
@@ -509,89 +510,400 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     }
 
     /**
-     * Appends the health score section with Mermaid pie chart.
+     * Appends the health score section with Mermaid radar chart.
      */
     private void appendHealthScore(StringBuilder md, HealthScore score, SectionNumbering numbering) {
-        md.append(numbering.h2("Health Score")).append("\n\n");
+        md.append(numbering.h2("Architectural Health Score")).append("\n\n");
 
-        md.append("**Overall Score: ")
-                .append(score.overall())
-                .append("/100 (Grade: ")
-                .append(score.grade())
-                .append(")**\n\n");
+        md.append(numbering.h3("Overall Score: " + score.overall() + "/100 (" + score.grade() + " grade)"))
+                .append("\n\n");
 
-        // Mermaid pie chart for score distribution
+        // Mermaid radar chart for score visualization
         md.append("```mermaid\n");
-        md.append("pie showData\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("---\n");
+        md.append("radar-beta\n");
         md.append("    title Health Score Components\n");
-        md.append("    \"DDD Compliance (25%)\" : ").append(score.dddCompliance()).append("\n");
-        md.append("    \"Hexagonal (25%)\" : ").append(score.hexCompliance()).append("\n");
-        md.append("    \"Dependencies (20%)\" : ").append(score.dependencyQuality()).append("\n");
-        md.append("    \"Coupling (15%)\" : ").append(score.coupling()).append("\n");
-        md.append("    \"Cohesion (15%)\" : ").append(score.cohesion()).append("\n");
+        md.append("    max 100\n");
+        md.append("    axis ddd[\"DDD (25%)\"], hex[\"Hexagonal (25%)\"], dep[\"Dependencies (20%)\"], cpl[\"Coupling (15%)\"], coh[\"Cohesion (15%)\"]\n");
+        md.append("    curve Score{")
+                .append(score.dddCompliance()).append(", ")
+                .append(score.hexCompliance()).append(", ")
+                .append(score.dependencyQuality()).append(", ")
+                .append(score.coupling()).append(", ")
+                .append(score.cohesion())
+                .append("}\n");
         md.append("```\n\n");
 
-        // Score breakdown table
-        md.append("| Component | Score | Weight |\n");
-        md.append("|-----------|-------|--------|\n");
-        md.append("| DDD Compliance | ").append(score.dddCompliance()).append("% | 25% |\n");
-        md.append("| Hexagonal Compliance | ").append(score.hexCompliance()).append("% | 25% |\n");
-        md.append("| Dependency Quality | ").append(score.dependencyQuality()).append("% | 20% |\n");
-        md.append("| Coupling Quality | ").append(score.coupling()).append("% | 15% |\n");
-        md.append("| Cohesion Quality | ").append(score.cohesion()).append("% | 15% |\n\n");
+        // Score breakdown subsection
+        md.append(numbering.h3("Score Breakdown")).append("\n\n");
+
+        // Calculate contributions
+        double dddContrib = score.dddCompliance() * 0.25;
+        double hexContrib = score.hexCompliance() * 0.25;
+        double depContrib = score.dependencyQuality() * 0.20;
+        double cplContrib = score.coupling() * 0.15;
+        double cohContrib = score.cohesion() * 0.15;
+        double total = dddContrib + hexContrib + depContrib + cplContrib + cohContrib;
+
+        md.append("| Dimension | Weight | Score | Contribution |\n");
+        md.append("|-----------|:------:|:-----:|:------------:|\n");
+        md.append("| **DDD Compliance** | 25% | ")
+                .append(score.dddCompliance()).append("/100 | ")
+                .append(String.format("%.2f", dddContrib)).append(" |\n");
+        md.append("| **Hexagonal Compliance** | 25% | ")
+                .append(score.hexCompliance()).append("/100 | ")
+                .append(String.format("%.2f", hexContrib)).append(" |\n");
+        md.append("| **Dependency Quality** | 20% | ")
+                .append(score.dependencyQuality()).append("/100 | ")
+                .append(String.format("%.2f", depContrib)).append(" |\n");
+        md.append("| **Coupling Metrics** | 15% | ")
+                .append(score.coupling()).append("/100 | ")
+                .append(String.format("%.2f", cplContrib)).append(" |\n");
+        md.append("| **Domain Cohesion** | 15% | ")
+                .append(score.cohesion()).append("/100 | ")
+                .append(String.format("%.2f", cohContrib)).append(" |\n");
+        md.append("| **TOTAL** | 100% | – | **")
+                .append(String.format("%.2f", total)).append("** |\n\n");
     }
 
     /**
-     * Appends the component inventory section with Mermaid chart.
+     * Appends the architecture overview section with component inventory, bounded context breakdown,
+     * and architectural style diagram.
      */
-    private void appendComponentInventory(StringBuilder md, ComponentInventory inventory, SectionNumbering numbering) {
-        md.append(numbering.h2("Component Inventory")).append("\n\n");
+    private void appendComponentInventory(
+            StringBuilder md, ComponentInventory inventory, DetectedArchitectureStyle style, SectionNumbering numbering) {
+        md.append(numbering.h2("Architecture Overview")).append("\n\n");
 
-        // Mermaid bar chart
+        // 3.1 Component Inventory
+        md.append(numbering.h3("Component Inventory")).append("\n\n");
+        md.append("| Category | Count | Details |\n");
+        md.append("|----------|:-----:|--------|\n");
+
+        // Bounded Contexts count
+        int bcCount = inventory.boundedContexts().size();
+        String bcNames = inventory.boundedContexts().stream()
+                .map(bc -> bc.name())
+                .limit(4)
+                .collect(java.util.stream.Collectors.joining(", "));
+        if (bcCount > 4) {
+            bcNames += ", ...";
+        }
+        md.append("| **Bounded Contexts** | ").append(bcCount).append(" | ")
+                .append(bcNames.isEmpty() ? "–" : bcNames).append(" |\n");
+
+        // Domain types with examples
+        md.append("| **Aggregate Roots** | ").append(inventory.aggregateRoots()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.aggregateExamples(), inventory.aggregateRoots()))
+                .append(" |\n");
+        md.append("| **Entities** | ").append(inventory.entities()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.entityExamples(), inventory.entities()))
+                .append(" |\n");
+        md.append("| **Value Objects** | ").append(inventory.valueObjects()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.valueObjectExamples(), inventory.valueObjects()))
+                .append(" |\n");
+        md.append("| **Domain Services** | ").append(inventory.domainServices()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.domainServiceExamples(), inventory.domainServices()))
+                .append(" |\n");
+        md.append("| **Domain Events** | ").append(inventory.domainEvents()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.domainEventExamples(), inventory.domainEvents()))
+                .append(" |\n");
+
+        // Ports with examples
+        md.append("| **Ports (Driving)** | ").append(inventory.drivingPorts()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.drivingPortExamples(), inventory.drivingPorts()))
+                .append(" |\n");
+        md.append("| **Ports (Driven)** | ").append(inventory.drivenPorts()).append(" | ")
+                .append(ComponentInventory.formatExamples(inventory.drivenPortExamples(), inventory.drivenPorts()))
+                .append(" |\n\n");
+
+        // 3.2 Breakdown by Bounded Context
+        if (!inventory.boundedContexts().isEmpty()) {
+            md.append(numbering.h3("Breakdown by Bounded Context")).append("\n\n");
+            md.append("| Bounded Context | Aggregates | Entities | VOs | Ports | LOC |\n");
+            md.append("|-----------------|:----------:|:--------:|:---:|:-----:|----:|\n");
+
+            int totalAgg = 0, totalEnt = 0, totalVo = 0, totalPorts = 0, totalLoc = 0;
+            for (var bc : inventory.boundedContexts()) {
+                md.append("| **").append(bc.name()).append("** | ")
+                        .append(bc.aggregates()).append(" | ")
+                        .append(bc.entities()).append(" | ")
+                        .append(bc.valueObjects()).append(" | ")
+                        .append(bc.ports()).append(" | ")
+                        .append(formatLoc(bc.estimatedLoc())).append(" |\n");
+                totalAgg += bc.aggregates();
+                totalEnt += bc.entities();
+                totalVo += bc.valueObjects();
+                totalPorts += bc.ports();
+                totalLoc += bc.estimatedLoc();
+            }
+            md.append("| **TOTAL** | ").append(totalAgg).append(" | ")
+                    .append(totalEnt).append(" | ")
+                    .append(totalVo).append(" | ")
+                    .append(totalPorts).append(" | ")
+                    .append(formatLoc(totalLoc)).append(" |\n\n");
+        }
+
+        // 3.3 Detected Architectural Style
+        md.append(numbering.h3("Detected Architectural Style")).append("\n\n");
+        appendArchitectureDiagram(md, inventory, style, numbering);
+    }
+
+    /**
+     * Formats LOC with thousands separator and tilde for approximation.
+     */
+    private String formatLoc(int loc) {
+        if (loc == 0) {
+            return "–";
+        }
+        return String.format("%,d", loc);
+    }
+
+    /**
+     * Appends a Mermaid diagram representing the detected architectural style.
+     */
+    private void appendArchitectureDiagram(
+            StringBuilder md, ComponentInventory inventory, DetectedArchitectureStyle style, SectionNumbering numbering) {
+        String styleName = getStyleDisplayName(style);
+        md.append(numbering.h4(styleName)).append("\n\n");
+
+        switch (style) {
+            case HEXAGONAL -> appendHexagonalDiagram(md, inventory);
+            case LAYERED -> appendLayeredDiagram(md, inventory);
+            case CLEAN -> appendCleanDiagram(md, inventory);
+            case ONION -> appendOnionDiagram(md, inventory);
+            default -> appendUnknownDiagram(md, inventory);
+        }
+    }
+
+    private String getStyleDisplayName(DetectedArchitectureStyle style) {
+        return switch (style) {
+            case HEXAGONAL -> "Hexagonal Architecture (Ports & Adapters)";
+            case LAYERED -> "Layered Architecture";
+            case CLEAN -> "Clean Architecture";
+            case ONION -> "Onion Architecture";
+            case UNKNOWN -> "Unknown / Mixed";
+        };
+    }
+
+    private void appendHexagonalDiagram(StringBuilder md, ComponentInventory inventory) {
         md.append("```mermaid\n");
-        md.append("xychart-beta\n");
-        md.append("    title \"Domain Model Components\"\n");
-        md.append("    x-axis [\"Aggregates\", \"Entities\", \"ValueObjects\", \"Events\", \"DomainSvc\", \"AppSvc\"]\n");
-        int maxY = Math.max(10, Math.max(inventory.aggregateRoots(),
-                Math.max(inventory.entities(),
-                        Math.max(inventory.valueObjects(),
-                                Math.max(inventory.domainEvents(),
-                                        Math.max(inventory.domainServices(), inventory.applicationServices()))))));
-        md.append("    y-axis \"Count\" 0 --> ").append(maxY + 2).append("\n");
-        md.append("    bar [")
-                .append(inventory.aggregateRoots())
-                .append(", ")
-                .append(inventory.entities())
-                .append(", ")
-                .append(inventory.valueObjects())
-                .append(", ")
-                .append(inventory.domainEvents())
-                .append(", ")
-                .append(inventory.domainServices())
-                .append(", ")
-                .append(inventory.applicationServices())
-                .append("]\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("title: Hexagonal Architecture (Ports & Adapters)\n");
+        md.append("---\n");
+        md.append("flowchart LR\n");
+        md.append("    subgraph DRIVING[\"DRIVING ADAPTERS\"]\n");
+        md.append("        direction TB\n");
+        md.append("        DA1[REST API]\n");
+        md.append("        DA2[GraphQL]\n");
+        md.append("        DA3[CLI]\n\n");
+        md.append("        DA1 ~~~ DA2\n");
+        md.append("        DA2 ~~~ DA3\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph CORE[\"DOMAIN CORE\"]\n");
+        md.append("        direction TB\n");
+        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n");
+        md.append("        SVC[\"Domain Services (").append(inventory.domainServices()).append(")\"]\n\n");
+        md.append("        AGG ~~~ ENT\n");
+        md.append("        ENT ~~~ VO\n");
+        md.append("        VO ~~~ SVC\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph DRIVEN[\"DRIVEN ADAPTERS\"]\n");
+        md.append("        direction TB\n");
+        md.append("        DB[(Database)]\n");
+        md.append("        MQ[Message Queue]\n");
+        md.append("        EXT[External APIs]\n\n");
+        md.append("        DB ~~~ MQ\n");
+        md.append("        MQ ~~~ EXT\n");
+        md.append("    end\n\n");
+
+        md.append("\n");
+        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("\n\n");
+
+        md.append("    DRIVING -->|\"Driving Ports (").append(inventory.drivingPorts()).append(")\"| CORE\n");
+        md.append("    CORE -->|\"Driven Ports (").append(inventory.drivenPorts()).append(")\"| DRIVEN\n");
         md.append("```\n\n");
+    }
 
-        // Domain Model table
-        md.append(numbering.h3("Domain Model")).append("\n\n");
-        md.append("| Type | Count |\n");
-        md.append("|------|-------|\n");
-        md.append("| Aggregate Roots | ").append(inventory.aggregateRoots()).append(" |\n");
-        md.append("| Entities | ").append(inventory.entities()).append(" |\n");
-        md.append("| Value Objects | ").append(inventory.valueObjects()).append(" |\n");
-        md.append("| Domain Events | ").append(inventory.domainEvents()).append(" |\n");
-        md.append("| Domain Services | ").append(inventory.domainServices()).append(" |\n");
-        md.append("| Application Services | ").append(inventory.applicationServices()).append(" |\n");
-        md.append("| **Total Domain Types** | **").append(inventory.totalDomainTypes()).append("** |\n\n");
+    private void appendLayeredDiagram(StringBuilder md, ComponentInventory inventory) {
+        md.append("```mermaid\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("title: Layered Architecture\n");
+        md.append("---\n");
+        md.append("flowchart TB\n");
+        md.append("    subgraph PRESENTATION[\"PRESENTATION LAYER\"]\n");
+        md.append("        UI[Controllers / UI]\n");
+        md.append("    end\n\n");
 
-        // Ports table
-        md.append(numbering.h3("Ports")).append("\n\n");
-        md.append("| Direction | Count |\n");
-        md.append("|-----------|-------|\n");
-        md.append("| Driving (Inbound) | ").append(inventory.drivingPorts()).append(" |\n");
-        md.append("| Driven (Outbound) | ").append(inventory.drivenPorts()).append(" |\n");
-        md.append("| **Total Ports** | **").append(inventory.totalPorts()).append("** |\n\n");
+        md.append("    subgraph APPLICATION[\"APPLICATION LAYER\"]\n");
+        md.append("        SVC[\"Services (").append(inventory.domainServices()).append(")\"]\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph DOMAIN[\"DOMAIN LAYER\"]\n");
+        md.append("        direction LR\n");
+        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        AGG ~~~ ENT\n");
+        md.append("        ENT ~~~ VO\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph INFRASTRUCTURE[\"INFRASTRUCTURE LAYER\"]\n");
+        md.append("        direction LR\n");
+        md.append("        DB[(Database)]\n");
+        md.append("        EXT[External Services]\n\n");
+        md.append("        DB ~~~ EXT\n");
+        md.append("    end\n\n");
+
+        md.append("\n");
+        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("\n\n");
+
+        md.append("    PRESENTATION --> APPLICATION\n");
+        md.append("    APPLICATION --> DOMAIN\n");
+        md.append("    APPLICATION --> INFRASTRUCTURE\n");
+        md.append("```\n\n");
+    }
+
+    private void appendCleanDiagram(StringBuilder md, ComponentInventory inventory) {
+        md.append("```mermaid\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("title: Clean Architecture\n");
+        md.append("---\n");
+        md.append("flowchart TB\n");
+        md.append("    subgraph FRAMEWORKS[\"FRAMEWORKS & DRIVERS\"]\n");
+        md.append("        direction LR\n");
+        md.append("        WEB[Web / UI]\n");
+        md.append("        DB[(Database)]\n\n");
+        md.append("        WEB ~~~ DB\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph ADAPTERS[\"INTERFACE ADAPTERS\"]\n");
+        md.append("        direction LR\n");
+        md.append("        CTRL[Controllers]\n");
+        md.append("        GW[Gateways]\n");
+        md.append("        PRES[Presenters]\n\n");
+        md.append("        CTRL ~~~ GW\n");
+        md.append("        GW ~~~ PRES\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph USECASES[\"USE CASES\"]\n");
+        md.append("        UC[\"Use Cases (").append(inventory.drivingPorts()).append(")\"]\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph ENTITIES[\"ENTITIES\"]\n");
+        md.append("        direction LR\n");
+        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        AGG ~~~ ENT\n");
+        md.append("        ENT ~~~ VO\n");
+        md.append("    end\n\n");
+
+        md.append("\n");
+        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("\n\n");
+
+        md.append("    FRAMEWORKS --> ADAPTERS\n");
+        md.append("    ADAPTERS --> USECASES\n");
+        md.append("    USECASES --> ENTITIES\n");
+        md.append("```\n\n");
+    }
+
+    private void appendOnionDiagram(StringBuilder md, ComponentInventory inventory) {
+        md.append("```mermaid\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("title: Onion Architecture\n");
+        md.append("---\n");
+        md.append("flowchart TB\n");
+        md.append("    subgraph INFRA[\"INFRASTRUCTURE\"]\n");
+        md.append("        direction LR\n");
+        md.append("        UI[UI / API]\n");
+        md.append("        DB[(Database)]\n");
+        md.append("        EXT[External Services]\n\n");
+        md.append("        UI ~~~ DB\n");
+        md.append("        DB ~~~ EXT\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph APP[\"APPLICATION SERVICES\"]\n");
+        md.append("        SVC[\"Services (").append(inventory.domainServices()).append(")\"]\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph DOMAIN[\"DOMAIN SERVICES\"]\n");
+        md.append("        DS[Domain Logic]\n");
+        md.append("    end\n\n");
+
+        md.append("    subgraph CORE[\"DOMAIN MODEL\"]\n");
+        md.append("        direction LR\n");
+        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        AGG ~~~ ENT\n");
+        md.append("        ENT ~~~ VO\n");
+        md.append("    end\n\n");
+
+        md.append("\n");
+        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("\n\n");
+
+        md.append("    INFRA --> APP\n");
+        md.append("    APP --> DOMAIN\n");
+        md.append("    DOMAIN --> CORE\n");
+        md.append("```\n\n");
+    }
+
+    private void appendUnknownDiagram(StringBuilder md, ComponentInventory inventory) {
+        md.append("```mermaid\n");
+        md.append("---\n");
+        md.append("config:\n");
+        md.append("  look: neo\n");
+        md.append("  theme: forest\n");
+        md.append("title: Unknown / Mixed\n");
+        md.append("---\n");
+        md.append("flowchart LR\n");
+        md.append("    subgraph COMPONENTS[\"DETECTED COMPONENTS\"]\n");
+        md.append("        direction TB\n");
+        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n");
+        md.append("        SVC[\"Services (").append(inventory.domainServices()).append(")\"]\n");
+        md.append("        PORTS[\"Ports (").append(inventory.totalPorts()).append(")\"]\n\n");
+        md.append("        AGG ~~~ ENT\n");
+        md.append("        ENT ~~~ VO\n");
+        md.append("        VO ~~~ SVC\n");
+        md.append("        SVC ~~~ PORTS\n");
+        md.append("    end\n\n");
+
+        md.append("\n");
+        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("\n");
+        md.append("```\n\n");
+        md.append("*Note: The architectural style could not be clearly identified. Consider reviewing package structure and dependencies.*\n\n");
     }
 
     /**
