@@ -16,13 +16,18 @@ package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.applicationClass;
 import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.port;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.CodeUnitKind;
 import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.spi.ir.PortDirection;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -30,16 +35,18 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link PortDirectionValidator}.
  *
- * <p>Validates that port direction checking works correctly based on naming
- * conventions and usage patterns.
+ * <p>Validates that port direction checking works correctly using the port direction
+ * information provided by the core's ArchitectureQuery.
  */
 class PortDirectionValidatorTest {
 
     private PortDirectionValidator validator;
+    private ArchitectureQuery mockQuery;
 
     @BeforeEach
     void setUp() {
         validator = new PortDirectionValidator();
+        mockQuery = mock(ArchitectureQuery.class);
     }
 
     @Test
@@ -52,8 +59,11 @@ class PortDirectionValidatorTest {
                 .addDependency("com.example.application.OrderService", "com.example.domain.port.OrderRepository")
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderRepository"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
@@ -68,8 +78,11 @@ class PortDirectionValidatorTest {
                 .addUnit(applicationClass("OrderService")) // Exists but doesn't use the repository
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderRepository"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -91,8 +104,11 @@ class PortDirectionValidatorTest {
                 .addDependency("com.example.application.OrderServiceImpl", "com.example.domain.port.OrderService")
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderService"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
@@ -106,8 +122,11 @@ class PortDirectionValidatorTest {
                 .addUnit(port("OrderService", CodeUnitKind.INTERFACE))
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderService"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -120,8 +139,8 @@ class PortDirectionValidatorTest {
     }
 
     @Test
-    @DisplayName("Should recognize common DRIVEN port suffixes")
-    void shouldRecognizeDrivenPortSuffixes() {
+    @DisplayName("Should validate multiple DRIVEN ports correctly")
+    void shouldValidateMultipleDrivenPorts() {
         // Given: Various DRIVEN port types
         Codebase codebase = new TestCodebaseBuilder()
                 .addUnit(port("PaymentGateway", CodeUnitKind.INTERFACE))
@@ -130,10 +149,19 @@ class PortDirectionValidatorTest {
                 .addUnit(port("ProductStore", CodeUnitKind.INTERFACE))
                 .build();
 
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
+        when(mockQuery.findPortDirection("com.example.domain.port.PaymentGateway"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+        when(mockQuery.findPortDirection("com.example.domain.port.EmailClient"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+        when(mockQuery.findPortDirection("com.example.domain.port.EventPublisher"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+        when(mockQuery.findPortDirection("com.example.domain.port.ProductStore"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
 
-        // Then: All should be detected as DRIVEN and flagged (no app service uses them)
+        // When
+        List<Violation> violations = validator.validate(codebase, mockQuery);
+
+        // Then: All should be flagged (no app service uses them)
         assertThat(violations).hasSize(4);
         assertThat(violations)
                 .extracting(v -> v.message())
@@ -141,8 +169,8 @@ class PortDirectionValidatorTest {
     }
 
     @Test
-    @DisplayName("Should recognize common DRIVING port suffixes")
-    void shouldRecognizeDrivingPortSuffixes() {
+    @DisplayName("Should validate multiple DRIVING ports correctly")
+    void shouldValidateMultipleDrivingPorts() {
         // Given: Various DRIVING port types
         Codebase codebase = new TestCodebaseBuilder()
                 .addUnit(port("PlaceOrderUseCase", CodeUnitKind.INTERFACE))
@@ -150,10 +178,17 @@ class PortDirectionValidatorTest {
                 .addUnit(port("PaymentHandler", CodeUnitKind.INTERFACE))
                 .build();
 
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
+        when(mockQuery.findPortDirection("com.example.domain.port.PlaceOrderUseCase"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderFacade"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+        when(mockQuery.findPortDirection("com.example.domain.port.PaymentHandler"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
 
-        // Then: All should be detected as DRIVING and flagged (no app service implements them)
+        // When
+        List<Violation> violations = validator.validate(codebase, mockQuery);
+
+        // Then: All should be flagged (no app service implements them)
         assertThat(violations).hasSize(3);
         assertThat(violations)
                 .extracting(v -> v.message())
@@ -163,15 +198,18 @@ class PortDirectionValidatorTest {
     @Test
     @DisplayName("Should skip ports with unknown direction")
     void shouldSkipPortsWithUnknownDirection() {
-        // Given: A port with non-standard naming
+        // Given: A port without direction in core
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(port("OrderManager", CodeUnitKind.INTERFACE)) // No recognizable suffix
+                .addUnit(port("OrderManager", CodeUnitKind.INTERFACE))
                 .build();
 
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderManager"))
+                .thenReturn(Optional.empty());
 
-        // Then: Should not produce violations (cannot infer direction)
+        // When
+        List<Violation> violations = validator.validate(codebase, mockQuery);
+
+        // Then: Should not produce violations
         assertThat(violations).isEmpty();
     }
 
@@ -189,8 +227,17 @@ class PortDirectionValidatorTest {
                 .addDependency("com.example.application.ProductManager", "com.example.domain.port.ProductService")
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderRepository"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderService"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+        when(mockQuery.findPortDirection("com.example.domain.port.ProductRepository"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+        when(mockQuery.findPortDirection("com.example.domain.port.ProductService"))
+                .thenReturn(Optional.of(PortDirection.DRIVING));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then: Two violations (OrderRepository and OrderService)
         assertThat(violations).hasSize(2);
@@ -208,8 +255,11 @@ class PortDirectionValidatorTest {
                 .addUnit(port("OrderRepository", CodeUnitKind.INTERFACE))
                 .build();
 
+        when(mockQuery.findPortDirection("com.example.domain.port.OrderRepository"))
+                .thenReturn(Optional.of(PortDirection.DRIVEN));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -225,6 +275,21 @@ class PortDirectionValidatorTest {
         // Given
         Codebase codebase = new TestCodebaseBuilder()
                 .addUnit(applicationClass("OrderService"))
+                .build();
+
+        // When
+        List<Violation> violations = validator.validate(codebase, mockQuery);
+
+        // Then
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should return empty list when query is null")
+    void shouldReturnEmptyList_whenQueryIsNull() {
+        // Given
+        Codebase codebase = new TestCodebaseBuilder()
+                .addUnit(port("OrderRepository", CodeUnitKind.INTERFACE))
                 .build();
 
         // When
@@ -246,21 +311,5 @@ class PortDirectionValidatorTest {
     void shouldReturnCorrectConstraintId() {
         // When/Then
         assertThat(validator.constraintId().value()).isEqualTo("hexagonal:port-direction");
-    }
-
-    @Test
-    @DisplayName("Should handle edge case: port with Repository and Service suffix")
-    void shouldHandleConflictingSuffixes() {
-        // Given: Port with conflicting name (should match first found - Repository)
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(port("OrderRepositoryService", CodeUnitKind.INTERFACE))
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: Should be treated as DRIVING (Service suffix at end)
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("DRIVING port");
     }
 }

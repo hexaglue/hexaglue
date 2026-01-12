@@ -44,8 +44,9 @@ import java.util.Set;
  *   <li>Entities should only be accessible through the aggregate root's interface</li>
  * </ul>
  *
- * <p>An entity belongs to an aggregate if it is in the same package as the aggregate root
- * or in a sub-package of the aggregate root's package.
+ * <p>Aggregate membership is determined by the core's classification analysis via
+ * {@link ArchitectureQuery#findAggregateMembership()}, which uses actual type relationships
+ * rather than package-based inference.
  *
  * <p><strong>Constraint:</strong> ddd:aggregate-boundary<br>
  * <strong>Severity:</strong> MAJOR<br>
@@ -67,18 +68,23 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
     public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all aggregate roots
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
-
-        // Find all entities
-        List<CodeUnit> entities = codebase.unitsWithRole(RoleClassification.ENTITY);
-
-        if (aggregates.isEmpty() || entities.isEmpty()) {
-            return violations; // No aggregates or entities to validate
+        if (query == null) {
+            // Cannot validate without architecture query
+            return violations;
         }
 
-        // Build aggregate membership map (entity -> aggregate root it belongs to)
-        Map<String, String> entityToAggregate = buildEntityToAggregateMap(aggregates, entities);
+        // Get aggregate membership from core's analysis
+        Map<String, List<String>> aggregateMembership = query.findAggregateMembership();
+
+        if (aggregateMembership.isEmpty()) {
+            return violations; // No aggregates with members to validate
+        }
+
+        // Build reverse map: entity -> aggregate root it belongs to
+        Map<String, String> entityToAggregate = buildEntityToAggregateMap(aggregateMembership);
+
+        // Find all entities in the codebase
+        List<CodeUnit> entities = codebase.unitsWithRole(RoleClassification.ENTITY);
 
         // Check each entity to see if it's referenced from outside its aggregate
         for (CodeUnit entity : entities) {
@@ -86,7 +92,7 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
             String aggregateQName = entityToAggregate.get(entityQName);
 
             if (aggregateQName == null) {
-                // Entity doesn't belong to any aggregate, skip
+                // Entity doesn't belong to any aggregate (per core analysis), skip
                 continue;
             }
 
@@ -95,7 +101,7 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
 
             // Filter out dependencies from within the same aggregate
             Set<String> externalDependents =
-                    filterExternalDependents(dependents, aggregateQName, entityToAggregate, codebase);
+                    filterExternalDependents(dependents, aggregateQName, entityToAggregate);
 
             if (!externalDependents.isEmpty()) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
@@ -115,30 +121,18 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
     }
 
     /**
-     * Builds a map of entity qualified names to their owning aggregate root.
+     * Builds a reverse map from entity qualified names to their owning aggregate root.
      *
-     * <p>An entity belongs to an aggregate if it is in the same package as the aggregate
-     * or in a sub-package of the aggregate's package.
-     *
-     * @param aggregates all aggregate roots
-     * @param entities all entities
+     * @param aggregateMembership the aggregate membership map from core (aggregate -> [members])
      * @return map of entity qualified name to aggregate qualified name
      */
-    private Map<String, String> buildEntityToAggregateMap(List<CodeUnit> aggregates, List<CodeUnit> entities) {
+    private Map<String, String> buildEntityToAggregateMap(Map<String, List<String>> aggregateMembership) {
         Map<String, String> map = new HashMap<>();
 
-        for (CodeUnit entity : entities) {
-            String entityPackage = entity.packageName();
-
-            // Find the aggregate this entity belongs to
-            for (CodeUnit aggregate : aggregates) {
-                String aggregatePackage = aggregate.packageName();
-
-                // Entity belongs to aggregate if in same package or sub-package
-                if (entityPackage.equals(aggregatePackage) || entityPackage.startsWith(aggregatePackage + ".")) {
-                    map.put(entity.qualifiedName(), aggregate.qualifiedName());
-                    break; // Assume entity belongs to only one aggregate
-                }
+        for (Map.Entry<String, List<String>> entry : aggregateMembership.entrySet()) {
+            String aggregateQName = entry.getKey();
+            for (String memberQName : entry.getValue()) {
+                map.put(memberQName, aggregateQName);
             }
         }
 
@@ -170,14 +164,12 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
      * @param dependents all dependents of the entity
      * @param aggregateQName the aggregate that owns the entity
      * @param entityToAggregate map of entities to their aggregates
-     * @param codebase the codebase
      * @return dependents that are external to the aggregate
      */
     private Set<String> filterExternalDependents(
-            Set<String> dependents, String aggregateQName, Map<String, String> entityToAggregate, Codebase codebase) {
+            Set<String> dependents, String aggregateQName, Map<String, String> entityToAggregate) {
 
         Set<String> externalDeps = new HashSet<>();
-        String aggregatePackage = getPackageName(aggregateQName);
 
         for (String dependentQName : dependents) {
             // Skip if dependent is the aggregate root itself
@@ -191,28 +183,11 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
                 continue;
             }
 
-            // Skip if dependent is in the same package (part of aggregate boundary)
-            String dependentPackage = getPackageName(dependentQName);
-            if (dependentPackage.equals(aggregatePackage) || dependentPackage.startsWith(aggregatePackage + ".")) {
-                continue;
-            }
-
             // This is an external dependency
             externalDeps.add(dependentQName);
         }
 
         return externalDeps;
-    }
-
-    /**
-     * Extracts the package name from a qualified name.
-     *
-     * @param qualifiedName the qualified name
-     * @return the package name
-     */
-    private String getPackageName(String qualifiedName) {
-        int lastDot = qualifiedName.lastIndexOf('.');
-        return lastDot >= 0 ? qualifiedName.substring(0, lastDot) : "";
     }
 
     /**

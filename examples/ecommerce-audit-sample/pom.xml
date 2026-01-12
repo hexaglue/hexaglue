@@ -66,6 +66,13 @@
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
                 <version>${hexaglue.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate-and-audit</goal>
+                        </goals>
+                    </execution>
+                </executions>
                 <configuration>
                     <basePackage>com.example.ecommerce</basePackage>
                 </configuration>

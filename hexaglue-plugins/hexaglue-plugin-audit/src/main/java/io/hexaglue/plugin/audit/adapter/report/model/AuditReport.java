@@ -428,9 +428,9 @@ public record AuditReport(
 
         // === NEW: Build enriched data using domain services ===
 
-        // Build component inventory from IR
+        // Build component inventory from IR (using architecture query for bounded contexts)
         InventoryBuilder inventoryBuilder = new InventoryBuilder();
-        ComponentInventory inventory = inventoryBuilder.build(ir);
+        ComponentInventory inventory = inventoryBuilder.build(ir, architectureQuery);
 
         // Calculate compliance scores
         ComplianceCalculator complianceCalculator = new ComplianceCalculator();

@@ -18,6 +18,9 @@ import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.spi.audit.*;
+import io.hexaglue.spi.ir.Port;
+import io.hexaglue.spi.ir.PortDirection;
+import io.hexaglue.spi.ir.PortModel;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,9 +33,41 @@ import java.util.stream.Collectors;
 public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     private final ApplicationGraph graph;
+    private final Map<String, PortDirection> portDirections;
 
+    /**
+     * Creates a new architecture query with graph only (no port information).
+     *
+     * @param graph the application graph
+     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel)} for full port support
+     */
+    @Deprecated(since = "3.0.0", forRemoval = false)
     public DefaultArchitectureQuery(ApplicationGraph graph) {
+        this(graph, (PortModel) null);
+    }
+
+    /**
+     * Creates a new architecture query with graph and port model.
+     *
+     * @param graph the application graph
+     * @param portModel the port model containing classified ports (may be null)
+     */
+    public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel) {
         this.graph = Objects.requireNonNull(graph, "graph cannot be null");
+        this.portDirections = buildPortDirectionMap(portModel);
+    }
+
+    private static Map<String, PortDirection> buildPortDirectionMap(PortModel portModel) {
+        if (portModel == null || portModel.ports() == null) {
+            return Map.of();
+        }
+        Map<String, PortDirection> map = new HashMap<>();
+        for (Port port : portModel.ports()) {
+            if (port.direction() != null) {
+                map.put(port.qualifiedName(), port.direction());
+            }
+        }
+        return Map.copyOf(map);
     }
 
     // === Cycle detection ===
@@ -216,6 +251,64 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
         }
 
         return cycles;
+    }
+
+    @Override
+    public List<BoundedContextInfo> findBoundedContexts() {
+        // Group types by bounded context
+        Map<String, List<String>> contextToTypes = new HashMap<>();
+        Map<String, String> contextToRootPackage = new HashMap<>();
+
+        for (TypeNode type : graph.typeNodes()) {
+            String packageName = type.packageName();
+            Optional<String> contextName = extractBoundedContext(packageName);
+
+            if (contextName.isPresent()) {
+                String context = contextName.get();
+                contextToTypes.computeIfAbsent(context, k -> new ArrayList<>()).add(type.qualifiedName());
+
+                // Compute the root package (first 3 segments)
+                if (!contextToRootPackage.containsKey(context)) {
+                    String rootPackage = computeRootPackage(packageName);
+                    contextToRootPackage.put(context, rootPackage);
+                }
+            }
+        }
+
+        // Build BoundedContextInfo records
+        List<BoundedContextInfo> result = new ArrayList<>();
+        for (Map.Entry<String, List<String>> entry : contextToTypes.entrySet()) {
+            String contextName = entry.getKey();
+            List<String> typeNames = entry.getValue();
+            String rootPackage = contextToRootPackage.getOrDefault(contextName, "");
+
+            result.add(new BoundedContextInfo(contextName, rootPackage, typeNames));
+        }
+
+        // Sort by context name for deterministic output
+        result.sort(Comparator.comparing(BoundedContextInfo::name));
+
+        return result;
+    }
+
+    /**
+     * Computes the root package for a bounded context (first 3 segments).
+     *
+     * <p>For example:
+     * <ul>
+     *   <li>"com.example.order.domain" → "com.example.order"</li>
+     *   <li>"com.example.inventory.application.service" → "com.example.inventory"</li>
+     * </ul>
+     *
+     * @param packageName the full package name
+     * @return the root package (first 3 segments)
+     */
+    private String computeRootPackage(String packageName) {
+        String[] segments = packageName.split("\\.");
+        if (segments.length < 3) {
+            return packageName;
+        }
+        return segments[0] + "." + segments[1] + "." + segments[2];
     }
 
     /**
@@ -665,5 +758,36 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
                 .map(this::analyzePackageCoupling)
                 .flatMap(Optional::stream)
                 .toList();
+    }
+
+    // === Port analysis ===
+
+    @Override
+    public Optional<PortDirection> findPortDirection(String portQualifiedName) {
+        if (portQualifiedName == null) {
+            return Optional.empty();
+        }
+        return Optional.ofNullable(portDirections.get(portQualifiedName));
+    }
+
+    // === Aggregate membership ===
+
+    @Override
+    public Map<String, List<String>> findAggregateMembership() {
+        Map<String, List<String>> membership = new HashMap<>();
+
+        List<AggregateInfo> aggregates = findAggregates();
+        for (AggregateInfo aggregate : aggregates) {
+            // Combine entities and value objects as members
+            List<String> members = new ArrayList<>();
+            members.addAll(aggregate.entities());
+            members.addAll(aggregate.valueObjects());
+
+            if (!members.isEmpty()) {
+                membership.put(aggregate.rootType(), members);
+            }
+        }
+
+        return Map.copyOf(membership);
     }
 }

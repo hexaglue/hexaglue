@@ -23,8 +23,10 @@ import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.spi.ir.PortDirection;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -36,14 +38,9 @@ import java.util.Set;
  *   <li><b>DRIVEN ports</b> (outbound): Used/called by application services, implemented by adapters</li>
  * </ul>
  *
- * <p><strong>Implementation Note:</strong> Due to current SPI limitations, this validator
- * infers port direction from naming conventions:
- * <ul>
- *   <li>Ports ending in "Repository", "Gateway", "Client" → DRIVEN (outbound)</li>
- *   <li>Ports ending in "Service", "UseCase", "Handler" → DRIVING (inbound)</li>
- * </ul>
- *
- * <p>Future enhancement: Access Port.direction() directly from IR snapshot.
+ * <p>This validator obtains port direction from the core's classification analysis via
+ * {@link ArchitectureQuery#findPortDirection(String)}, ensuring consistency with the
+ * deterministic classification performed by the core engine.
  *
  * <p><strong>Constraint:</strong> hexagonal:port-direction<br>
  * <strong>Severity:</strong> MAJOR<br>
@@ -56,19 +53,6 @@ public class PortDirectionValidator implements ConstraintValidator {
 
     private static final ConstraintId CONSTRAINT_ID = ConstraintId.of("hexagonal:port-direction");
 
-    /**
-     * Suffixes that indicate a driven (outbound) port.
-     * These ports should be USED by application services, not implemented by them.
-     */
-    private static final Set<String> DRIVEN_PORT_SUFFIXES =
-            Set.of("Repository", "Gateway", "Client", "Publisher", "Adapter", "Store");
-
-    /**
-     * Suffixes that indicate a driving (inbound) port.
-     * These ports should be IMPLEMENTED by application services.
-     */
-    private static final Set<String> DRIVING_PORT_SUFFIXES = Set.of("Service", "UseCase", "Handler", "Facade");
-
     @Override
     public ConstraintId constraintId() {
         return CONSTRAINT_ID;
@@ -78,20 +62,30 @@ public class PortDirectionValidator implements ConstraintValidator {
     public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
+        if (query == null) {
+            // Cannot validate without architecture query
+            return violations;
+        }
+
         // Get all ports
         List<CodeUnit> ports = codebase.unitsWithRole(RoleClassification.PORT);
 
         for (CodeUnit port : ports) {
-            PortDirection inferredDirection = inferPortDirection(port);
+            // Get port direction from core's classification
+            Optional<PortDirection> direction = query.findPortDirection(port.qualifiedName());
 
-            if (inferredDirection == PortDirection.DRIVEN) {
+            if (direction.isEmpty()) {
+                // Port direction not available from core - skip validation
+                continue;
+            }
+
+            if (direction.get() == PortDirection.DRIVEN) {
                 // DRIVEN ports should be used by application services
                 violations.addAll(validateDrivenPort(port, codebase));
-            } else if (inferredDirection == PortDirection.DRIVING) {
+            } else if (direction.get() == PortDirection.DRIVING) {
                 // DRIVING ports should be implemented by application services
                 violations.addAll(validateDrivingPort(port, codebase));
             }
-            // If direction cannot be inferred, skip validation
         }
 
         return violations;
@@ -173,40 +167,8 @@ public class PortDirectionValidator implements ConstraintValidator {
         return violations;
     }
 
-    /**
-     * Infers port direction from naming conventions.
-     *
-     * @param port the port to analyze
-     * @return the inferred direction, or UNKNOWN if cannot be determined
-     */
-    private PortDirection inferPortDirection(CodeUnit port) {
-        String simpleName = port.simpleName();
-
-        // Check if it matches driven port suffixes
-        if (DRIVEN_PORT_SUFFIXES.stream().anyMatch(simpleName::endsWith)) {
-            return PortDirection.DRIVEN;
-        }
-
-        // Check if it matches driving port suffixes
-        if (DRIVING_PORT_SUFFIXES.stream().anyMatch(simpleName::endsWith)) {
-            return PortDirection.DRIVING;
-        }
-
-        // Cannot determine direction from naming
-        return PortDirection.UNKNOWN;
-    }
-
     @Override
     public Severity defaultSeverity() {
         return Severity.MAJOR;
-    }
-
-    /**
-     * Internal enum for port direction inference.
-     */
-    private enum PortDirection {
-        DRIVING,
-        DRIVEN,
-        UNKNOWN
     }
 }
