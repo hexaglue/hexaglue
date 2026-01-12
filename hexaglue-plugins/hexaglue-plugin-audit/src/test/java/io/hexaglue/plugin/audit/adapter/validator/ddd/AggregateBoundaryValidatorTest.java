@@ -15,11 +15,14 @@ package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
 import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.aggregate;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.CodeMetrics;
 import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.CodeUnitKind;
@@ -28,6 +31,7 @@ import io.hexaglue.spi.audit.DocumentationInfo;
 import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -36,24 +40,41 @@ import org.junit.jupiter.api.Test;
  * Tests for {@link AggregateBoundaryValidator}.
  *
  * <p>Validates that entities within an aggregate are only accessible through the aggregate root.
+ * Aggregate membership is determined by the core via ArchitectureQuery.findAggregateMembership().
  */
 class AggregateBoundaryValidatorTest {
 
     private AggregateBoundaryValidator validator;
+    private ArchitectureQuery mockQuery;
 
     @BeforeEach
     void setUp() {
         validator = new AggregateBoundaryValidator();
+        mockQuery = mock(ArchitectureQuery.class);
     }
 
     @Test
-    @DisplayName("Should pass when no aggregates or entities exist")
-    void shouldPass_whenNoAggregatesOrEntities() {
+    @DisplayName("Should return empty list when query is null")
+    void shouldReturnEmptyList_whenQueryIsNull() {
         // Given
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
         List<Violation> violations = validator.validate(codebase, null);
+
+        // Then
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should pass when no aggregates with members exist")
+    void shouldPass_whenNoAggregatesWithMembers() {
+        // Given
+        Codebase codebase = new TestCodebaseBuilder().build();
+        when(mockQuery.findAggregateMembership()).thenReturn(Map.of());
+
+        // When
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
@@ -72,8 +93,12 @@ class AggregateBoundaryValidatorTest {
                 .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
                 .build();
 
+        // Core says OrderLine belongs to Order aggregate
+        when(mockQuery.findAggregateMembership())
+                .thenReturn(Map.of("com.example.domain.Order", List.of("com.example.domain.OrderLine")));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
@@ -95,8 +120,11 @@ class AggregateBoundaryValidatorTest {
                 .addDependency("com.example.billing.InvoiceService", "com.example.domain.OrderLine")
                 .build();
 
+        when(mockQuery.findAggregateMembership())
+                .thenReturn(Map.of("com.example.domain.Order", List.of("com.example.domain.OrderLine")));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -125,61 +153,23 @@ class AggregateBoundaryValidatorTest {
                 .addDependency("com.example.domain.OrderLine", "com.example.domain.OrderItem")
                 .build();
 
+        // Both entities belong to the Order aggregate
+        when(mockQuery.findAggregateMembership())
+                .thenReturn(Map.of(
+                        "com.example.domain.Order",
+                        List.of("com.example.domain.OrderLine", "com.example.domain.OrderItem")));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
     }
 
     @Test
-    @DisplayName("Should pass when entity is in sub-package of aggregate")
-    void shouldPass_whenEntityInSubPackage() {
-        // Given: Order aggregate in com.example.domain, OrderLine in com.example.domain.line
-        CodeUnit order = aggregateInPackage("Order", "com.example.domain");
-        CodeUnit orderLine = entityInPackage("OrderLine", "com.example.domain.line");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(order)
-                .addUnit(orderLine)
-                .addDependency("com.example.domain.Order", "com.example.domain.line.OrderLine")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then
-        assertThat(violations).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should fail when entity in sub-package accessed externally")
-    void shouldFail_whenSubPackageEntityAccessedExternally() {
-        // Given: Order aggregate, OrderLine in sub-package, external access
-        CodeUnit order = aggregateInPackage("Order", "com.example.domain");
-        CodeUnit orderLine = entityInPackage("OrderLine", "com.example.domain.line");
-        CodeUnit externalService = serviceInPackage("BillingService", "com.example.billing");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(order)
-                .addUnit(orderLine)
-                .addUnit(externalService)
-                .addDependency("com.example.domain.Order", "com.example.domain.line.OrderLine")
-                .addDependency("com.example.billing.BillingService", "com.example.domain.line.OrderLine")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).affectedTypes()).containsExactly("com.example.domain.line.OrderLine");
-    }
-
-    @Test
-    @DisplayName("Should pass when entity is not part of any aggregate")
-    void shouldPass_whenEntityStandalone() {
-        // Given: Entity not in aggregate package
+    @DisplayName("Should pass when entity is not part of any aggregate per core")
+    void shouldPass_whenEntityNotInAnyAggregate() {
+        // Given: Entity exists but core doesn't include it in any aggregate
         CodeUnit order = aggregateInPackage("Order", "com.example.domain");
         CodeUnit standaloneEntity = entityInPackage("AuditLog", "com.example.audit");
         CodeUnit externalService = serviceInPackage("ReportService", "com.example.reporting");
@@ -191,8 +181,11 @@ class AggregateBoundaryValidatorTest {
                 .addDependency("com.example.reporting.ReportService", "com.example.audit.AuditLog")
                 .build();
 
+        // Core says Order has no members, AuditLog is not in any aggregate
+        when(mockQuery.findAggregateMembership()).thenReturn(Map.of());
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).isEmpty();
@@ -220,37 +213,19 @@ class AggregateBoundaryValidatorTest {
                 .addDependency("com.example.billing.InvoiceService", "com.example.customer.Address")
                 .build();
 
+        when(mockQuery.findAggregateMembership())
+                .thenReturn(Map.of(
+                        "com.example.order.Order", List.of("com.example.order.OrderLine"),
+                        "com.example.customer.Customer", List.of("com.example.customer.Address")));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(2);
         assertThat(violations)
                 .flatExtracting(v -> v.affectedTypes())
                 .containsExactlyInAnyOrder("com.example.order.OrderLine", "com.example.customer.Address");
-    }
-
-    @Test
-    @DisplayName("Should pass when code in same package accesses entity")
-    void shouldPass_whenSamePackageAccess() {
-        // Given: Order aggregate with OrderFactory in same package accessing OrderLine
-        CodeUnit order = aggregateInPackage("Order", "com.example.domain");
-        CodeUnit orderLine = entityInPackage("OrderLine", "com.example.domain");
-        CodeUnit orderFactory = factoryInPackage("OrderFactory", "com.example.domain");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(order)
-                .addUnit(orderLine)
-                .addUnit(orderFactory)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
-                .addDependency("com.example.domain.OrderFactory", "com.example.domain.OrderLine")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then
-        assertThat(violations).isEmpty();
     }
 
     @Test
@@ -265,11 +240,15 @@ class AggregateBoundaryValidatorTest {
                 .addUnit(order)
                 .addUnit(orderLine)
                 .addUnit(externalService)
+                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
                 .addDependency("com.example.billing.BillingService", "com.example.domain.OrderLine")
                 .build();
 
+        when(mockQuery.findAggregateMembership())
+                .thenReturn(Map.of("com.example.domain.Order", List.of("com.example.domain.OrderLine")));
+
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(codebase, mockQuery);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -331,19 +310,6 @@ class AggregateBoundaryValidatorTest {
                 CodeUnitKind.CLASS,
                 LayerClassification.DOMAIN,
                 RoleClassification.SERVICE,
-                List.of(),
-                List.of(),
-                defaultMetrics(),
-                defaultDocumentation());
-    }
-
-    private CodeUnit factoryInPackage(String simpleName, String packageName) {
-        String qualifiedName = packageName + "." + simpleName;
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                LayerClassification.DOMAIN,
-                RoleClassification.FACTORY,
                 List.of(),
                 List.of(),
                 defaultMetrics(),

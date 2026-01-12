@@ -26,6 +26,8 @@ import io.hexaglue.plugin.audit.domain.model.Recommendation;
 import io.hexaglue.spi.audit.DetectedArchitectureStyle;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -427,7 +429,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("1. [Executive Summary](#1-executive-summary)\n");
         md.append("2. [Architectural Health Score](#2-architectural-health-score)\n");
         md.append("3. [Architecture Overview](#3-architecture-overview)\n");
-        md.append("4. [DDD Compliance](#4-ddd-compliance)\n");
+        md.append("4. [Domain-Driven Design Compliance](#4-domain-driven-design-compliance)\n");
         md.append("5. [Hexagonal Compliance](#5-hexagonal-compliance)\n");
         md.append("6. [Summary](#6-summary)\n");
         md.append("7. [Violations](#7-violations)\n");
@@ -907,37 +909,246 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     }
 
     /**
-     * Appends the DDD compliance section.
+     * Appends the DDD compliance section with enhanced formatting.
      */
     private void appendDddCompliance(StringBuilder md, int dddCompliancePercent, AuditReport report, SectionNumbering numbering) {
-        md.append(numbering.h2("DDD Compliance")).append("\n\n");
-        md.append("**Score: ").append(dddCompliancePercent).append("%**\n\n");
+        md.append(numbering.h2("Domain-Driven Design Compliance")).append("\n\n");
 
         // Filter DDD-related violations
-        var dddViolations = report.violations().stream()
+        List<ViolationEntry> dddViolations = report.violations().stream()
                 .filter(v -> v.constraintId().startsWith("ddd:"))
                 .toList();
 
-        if (dddViolations.isEmpty()) {
-            md.append("✅ No DDD constraint violations detected.\n\n");
-        } else {
-            md.append("| Constraint | Count | Description |\n");
-            md.append("|------------|-------|-------------|\n");
+        // Group violations by constraint ID
+        Map<String, List<ViolationEntry>> byConstraint = dddViolations.stream()
+                .collect(java.util.stream.Collectors.groupingBy(ViolationEntry::constraintId));
 
-            // Group by constraint ID
-            var byConstraint = dddViolations.stream()
-                    .collect(java.util.stream.Collectors.groupingBy(ViolationEntry::constraintId));
-            for (var entry : byConstraint.entrySet()) {
-                md.append("| `")
-                        .append(entry.getKey())
-                        .append("` | ")
-                        .append(entry.getValue().size())
-                        .append(" | ")
-                        .append(escapeMarkdown(entry.getValue().get(0).message()))
-                        .append(" |\n");
+        // 4.1 DDD Compliance Score
+        md.append(numbering.h3("DDD Compliance Score: " + dddCompliancePercent + "%")).append("\n\n");
+
+        // DDD Rules compliance table
+        md.append("| DDD Rule | Compliance | Details |\n");
+        md.append("|----------|:----------:|---------|");
+        md.append("\n");
+
+        // Calculate rule compliance based on violations and inventory
+        var inventory = report.inventory();
+        int totalAggregates = inventory.aggregateRoots();
+        int totalEntities = inventory.entities() + inventory.aggregateRoots();
+        int totalValueObjects = inventory.valueObjects();
+        int totalDomainEvents = inventory.domainEvents();
+
+        // Aggregates with identity
+        int identityViolations = byConstraint.getOrDefault("ddd:entity-identity", List.of()).size();
+        int aggregatesWithIdentity = Math.max(0, totalAggregates - identityViolations);
+        int identityPercent = totalAggregates > 0 ? (aggregatesWithIdentity * 100 / totalAggregates) : 100;
+        md.append("| Aggregates with identity | ")
+                .append(identityPercent).append("% | ")
+                .append(aggregatesWithIdentity).append("/").append(totalAggregates)
+                .append(" aggregates have proper identity |\n");
+
+        // Aggregate boundaries respected
+        int boundaryViolations = byConstraint.getOrDefault("ddd:aggregate-boundary", List.of()).size();
+        int boundaryPercent = totalEntities > 0 ? Math.max(0, 100 - (boundaryViolations * 100 / totalEntities)) : 100;
+        String boundaryDetails = boundaryViolations == 0 ? "All boundaries respected" :
+                boundaryViolations + " violation(s): entities accessible outside aggregate";
+        md.append("| Aggregate boundaries respected | ")
+                .append(boundaryPercent).append("% | ")
+                .append(boundaryDetails).append(" |\n");
+
+        // Immutable Value Objects
+        int immutabilityViolations = byConstraint.getOrDefault("ddd:value-object-immutable", List.of()).size();
+        int immutableVOs = Math.max(0, totalValueObjects - immutabilityViolations);
+        int voPercent = totalValueObjects > 0 ? (immutableVOs * 100 / totalValueObjects) : 100;
+        String voDetails = immutabilityViolations == 0 ? "All VOs are immutable" :
+                immutableVOs + "/" + totalValueObjects + " VOs are immutable (" + immutabilityViolations + " with setters)";
+        md.append("| Immutable Value Objects | ")
+                .append(voPercent).append("% | ")
+                .append(voDetails).append(" |\n");
+
+        // One repository per Aggregate Root
+        int repoViolations = byConstraint.getOrDefault("ddd:aggregate-repository", List.of()).size();
+        int repoPercent = totalAggregates > 0 ? Math.max(0, 100 - (repoViolations * 100 / totalAggregates)) : 100;
+        String repoDetails = repoViolations == 0 ? totalAggregates + " repositories for " + totalAggregates + " aggregate roots" :
+                repoViolations + " aggregate(s) missing repository";
+        md.append("| One repository per Aggregate Root | ")
+                .append(repoPercent).append("% | ")
+                .append(repoDetails).append(" |\n");
+
+        // No cycles between aggregates
+        int cycleViolations = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of()).size();
+        int cyclePercent = cycleViolations == 0 ? 100 : Math.max(0, 100 - (cycleViolations * 20));
+        String cycleDetails = cycleViolations == 0 ? "No cycles detected" :
+                cycleViolations + " cycle(s) detected";
+        md.append("| No cycles between aggregates | ")
+                .append(cyclePercent).append("% | ")
+                .append(cycleDetails).append(" |\n");
+
+        // Domain Events named in past tense
+        int eventNamingViolations = byConstraint.getOrDefault("ddd:event-naming", List.of()).size();
+        int correctEvents = Math.max(0, totalDomainEvents - eventNamingViolations);
+        int eventPercent = totalDomainEvents > 0 ? (correctEvents * 100 / totalDomainEvents) : 100;
+        String eventDetails = eventNamingViolations == 0 ? "All events correctly named" :
+                correctEvents + "/" + totalDomainEvents + " events correctly named";
+        md.append("| Domain Events named in past tense | ")
+                .append(eventPercent).append("% | ")
+                .append(eventDetails).append(" |\n");
+
+        // Domain purity
+        int purityViolations = byConstraint.getOrDefault("ddd:domain-purity", List.of()).size();
+        int purityPercent = purityViolations == 0 ? 100 : Math.max(0, 100 - (purityViolations * 10));
+        String purityDetails = purityViolations == 0 ? "Domain layer is pure" :
+                purityViolations + " domain type(s) with forbidden imports";
+        md.append("| Domain purity (no infrastructure) | ")
+                .append(purityPercent).append("% | ")
+                .append(purityDetails).append(" |\n\n");
+
+        // 4.2 Aggregate Analysis
+        if (!inventory.aggregateExamples().isEmpty()) {
+            md.append(numbering.h3("Aggregate Analysis")).append("\n\n");
+
+            md.append("| Aggregate Root | Repository | Status |\n");
+            md.append("|----------------|:----------:|:------:|\n");
+
+            // Use aggregateExamples which contains actual aggregate root names
+            for (String agg : inventory.aggregateExamples()) {
+                // Check if there's a repository violation for this aggregate
+                boolean hasRepoViolation = byConstraint.getOrDefault("ddd:aggregate-repository", List.of())
+                        .stream()
+                        .anyMatch(v -> v.message().contains(agg) || v.affectedType().contains(agg));
+                String repoStatus = hasRepoViolation ? "❌" : "✅";
+
+                // Check if aggregate is involved in a cycle
+                boolean hasCycle = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of())
+                        .stream()
+                        .anyMatch(v -> v.message().contains(agg));
+                String status = hasCycle ? "⚠️" : "✅";
+
+                md.append("| `").append(agg).append("` | ")
+                        .append(repoStatus).append(" | ")
+                        .append(status).append(" |\n");
+            }
+
+            // Show if there are more aggregates not listed
+            if (inventory.aggregateRoots() > inventory.aggregateExamples().size()) {
+                md.append("| *... and ")
+                        .append(inventory.aggregateRoots() - inventory.aggregateExamples().size())
+                        .append(" more* | | |\n");
             }
             md.append("\n");
+
+            // Show Bounded Context breakdown as a separate sub-section
+            if (!inventory.boundedContexts().isEmpty()) {
+                md.append("**Bounded Context Distribution:**\n\n");
+                md.append("| Bounded Context | Aggregates | Entities | VOs | Ports |\n");
+                md.append("|-----------------|:----------:|:--------:|:---:|:-----:|\n");
+                for (var bc : inventory.boundedContexts()) {
+                    md.append("| ").append(bc.name()).append(" | ")
+                            .append(bc.aggregates()).append(" | ")
+                            .append(bc.entities()).append(" | ")
+                            .append(bc.valueObjects()).append(" | ")
+                            .append(bc.ports()).append(" |\n");
+                }
+                md.append("\n");
+            }
         }
+
+        // 4.3 Detected DDD Violations
+        if (!dddViolations.isEmpty()) {
+            md.append(numbering.h3("Detected DDD Violations")).append("\n\n");
+
+            // Aggregate Cycles - with ASCII diagram
+            var cycleViolationsList = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of());
+            if (!cycleViolationsList.isEmpty()) {
+                md.append("#### CRITICAL: Aggregate Dependency Cycles\n\n");
+
+                for (var violation : cycleViolationsList) {
+                    // Extract cycle information from message
+                    String message = violation.message();
+                    String cycleInfo = message.contains(":") ? message.substring(message.lastIndexOf(":") + 1).trim() : message;
+
+                    md.append("```\n");
+                    md.append("┌─────────────────────────────────────────────────────────────┐\n");
+                    md.append("│                    CYCLE DETECTED                           │\n");
+                    md.append("│                                                             │\n");
+                    md.append("│  ").append(String.format("%-58s", cycleInfo)).append(" │\n");
+                    md.append("│                                                             │\n");
+                    md.append("│  Impact: Aggregates are coupled, violating DDD boundaries   │\n");
+                    md.append("│  Risk: Potential cascade updates and transactional issues   │\n");
+                    md.append("│                                                             │\n");
+                    md.append("│  Recommendation: Use Domain Events to decouple              │\n");
+                    md.append("└─────────────────────────────────────────────────────────────┘\n");
+                    md.append("```\n\n");
+                }
+            }
+
+            // Domain Purity Violations
+            var purityViolationsList = byConstraint.getOrDefault("ddd:domain-purity", List.of());
+            if (!purityViolationsList.isEmpty()) {
+                md.append("#### MAJOR: Domain Purity Violations\n\n");
+                md.append("| Domain Type | Issue | Location |\n");
+                md.append("|-------------|-------|----------|\n");
+                for (var violation : purityViolationsList) {
+                    md.append("| `").append(violation.affectedType()).append("` | ")
+                            .append(escapeMarkdown(violation.message())).append(" | `")
+                            .append(violation.location()).append("` |\n");
+                }
+                md.append("\n");
+            }
+
+            // Event Naming Violations
+            var eventViolationsList = byConstraint.getOrDefault("ddd:event-naming", List.of());
+            if (!eventViolationsList.isEmpty()) {
+                md.append("#### MINOR: Event Naming Violations\n\n");
+                md.append("| Event | Issue | Suggestion |\n");
+                md.append("|-------|-------|------------|\n");
+                for (var violation : eventViolationsList) {
+                    String eventName = extractSimpleName(violation.location());
+                    String suggestion = eventName.replace("Event", "edEvent")
+                            .replace("PlaceEvent", "PlacedEvent")
+                            .replace("CancelEvent", "CancelledEvent")
+                            .replace("AddEvent", "AddedEvent");
+                    md.append("| `").append(eventName).append("` | ")
+                            .append("Should be named in past tense | `")
+                            .append(suggestion).append("` |\n");
+                }
+                md.append("\n");
+            }
+
+            // Other DDD violations
+            var otherViolations = dddViolations.stream()
+                    .filter(v -> !v.constraintId().equals("ddd:aggregate-cycle")
+                            && !v.constraintId().equals("ddd:domain-purity")
+                            && !v.constraintId().equals("ddd:event-naming"))
+                    .toList();
+
+            if (!otherViolations.isEmpty()) {
+                md.append("#### Other DDD Violations\n\n");
+                md.append("| Constraint | Affected Type | Message |\n");
+                md.append("|------------|---------------|---------|");
+                md.append("\n");
+                for (var violation : otherViolations) {
+                    md.append("| `").append(violation.constraintId()).append("` | `")
+                            .append(violation.affectedType()).append("` | ")
+                            .append(escapeMarkdown(violation.message())).append(" |\n");
+                }
+                md.append("\n");
+            }
+        } else {
+            md.append("✅ **No DDD violations detected.** The domain model follows DDD tactical patterns correctly.\n\n");
+        }
+    }
+
+    /**
+     * Extracts the simple class name from a location string like "com.example.Order:1:1".
+     */
+    private String extractSimpleName(String location) {
+        if (location == null || location.isEmpty()) {
+            return "Unknown";
+        }
+        String qualifiedName = location.contains(":") ? location.substring(0, location.indexOf(':')) : location;
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
     }
 
     /**

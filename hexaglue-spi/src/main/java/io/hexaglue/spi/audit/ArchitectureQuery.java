@@ -14,6 +14,7 @@
 package io.hexaglue.spi.audit;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -68,6 +69,37 @@ public interface ArchitectureQuery {
      * @return list of bounded context cycles
      */
     List<DependencyCycle> findBoundedContextCycles();
+
+    /**
+     * Finds all bounded contexts in the analyzed codebase.
+     *
+     * <p>A bounded context is identified by analyzing the package structure.
+     * The detection algorithm extracts the context name from the third segment
+     * of package names (e.g., "order" from "com.example.order.domain").
+     *
+     * <p><strong>Detection rules:</strong>
+     * <ul>
+     *   <li>Packages with fewer than 3 segments are not assigned to a bounded context</li>
+     *   <li>Each unique third segment defines a separate bounded context</li>
+     *   <li>All types within a context's package hierarchy belong to that context</li>
+     * </ul>
+     *
+     * <p><strong>Example:</strong>
+     * <pre>{@code
+     * // Given packages:
+     * // - com.example.order.domain
+     * // - com.example.order.application
+     * // - com.example.inventory.domain
+     *
+     * // Returns:
+     * // - BoundedContextInfo("order", "com.example.order", [...])
+     * // - BoundedContextInfo("inventory", "com.example.inventory", [...])
+     * }</pre>
+     *
+     * @return list of detected bounded contexts, or empty list if none found
+     * @since 3.0.0
+     */
+    List<BoundedContextInfo> findBoundedContexts();
 
     // === Lakos metrics ===
 
@@ -215,4 +247,55 @@ public interface ArchitectureQuery {
      * @return list of coupling metrics for all packages
      */
     List<CouplingMetrics> analyzeAllPackageCoupling();
+
+    // === Port analysis ===
+
+    /**
+     * Finds the direction (DRIVING or DRIVEN) of a port.
+     *
+     * <p>This method allows plugins to retrieve the port direction as determined
+     * by the core's classification analysis, rather than inferring it from naming
+     * conventions.
+     *
+     * <p><strong>Usage example:</strong>
+     * <pre>{@code
+     * Optional<PortDirection> direction = query.findPortDirection("com.example.OrderRepository");
+     * if (direction.isPresent() && direction.get() == PortDirection.DRIVEN) {
+     *     // Validate driven port usage
+     * }
+     * }</pre>
+     *
+     * @param portQualifiedName the fully-qualified name of the port interface
+     * @return the port direction, or empty if the type is not a recognized port
+     * @since 3.0.0
+     */
+    Optional<io.hexaglue.spi.ir.PortDirection> findPortDirection(String portQualifiedName);
+
+    // === Aggregate membership ===
+
+    /**
+     * Returns the complete aggregate membership map.
+     *
+     * <p>This method provides the mapping of aggregate roots to their member entities,
+     * as determined by the core's classification and relationship analysis. This is
+     * more accurate than package-based inference as it uses actual type relationships.
+     *
+     * <p>An entity belongs to an aggregate if:
+     * <ul>
+     *   <li>It is directly referenced by the aggregate root (field or method signature)</li>
+     *   <li>It is classified as an ENTITY and has a structural relationship to the root</li>
+     * </ul>
+     *
+     * <p><strong>Usage example:</strong>
+     * <pre>{@code
+     * Map<String, List<String>> membership = query.findAggregateMembership();
+     * List<String> orderEntities = membership.get("com.example.domain.Order");
+     * // Returns ["com.example.domain.OrderLine", "com.example.domain.OrderItem"]
+     * }</pre>
+     *
+     * @return map of aggregate root qualified names to lists of member entity qualified names;
+     *         empty map if no aggregates are found
+     * @since 3.0.0
+     */
+    Map<String, List<String>> findAggregateMembership();
 }

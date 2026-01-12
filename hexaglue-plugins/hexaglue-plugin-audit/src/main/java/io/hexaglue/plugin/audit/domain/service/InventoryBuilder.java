@@ -16,6 +16,8 @@ package io.hexaglue.plugin.audit.domain.service;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
 import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
+import io.hexaglue.spi.audit.ArchitectureQuery;
+import io.hexaglue.spi.audit.BoundedContextInfo;
 import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
@@ -24,8 +26,6 @@ import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.SourceRef;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -38,6 +38,10 @@ import java.util.stream.Collectors;
  * <p>This service analyzes the IrSnapshot to count and categorize all domain
  * types and ports, producing a ComponentInventory for reporting.
  *
+ * <p>Bounded contexts are obtained from the core's {@link ArchitectureQuery#findBoundedContexts()},
+ * ensuring consistent detection across the entire HexaGlue pipeline. This follows the architectural
+ * principle: "the core generates data, plugins consume it".
+ *
  * @since 1.0.0
  */
 public class InventoryBuilder {
@@ -45,13 +49,19 @@ public class InventoryBuilder {
     private static final int MAX_EXAMPLES = 3;
 
     /**
-     * Builds a component inventory from the IR snapshot.
+     * Builds a component inventory from the IR snapshot using the architecture query.
      *
-     * @param ir the IR snapshot to analyze
+     * <p>Bounded contexts are obtained from {@link ArchitectureQuery#findBoundedContexts()},
+     * ensuring consistency with the core's analysis.
+     *
+     * @param ir                the IR snapshot to analyze
+     * @param architectureQuery the architecture query for bounded context detection
      * @return a ComponentInventory with counts by type
+     * @throws NullPointerException if ir or architectureQuery is null
      */
-    public ComponentInventory build(IrSnapshot ir) {
+    public ComponentInventory build(IrSnapshot ir, ArchitectureQuery architectureQuery) {
         Objects.requireNonNull(ir, "ir required");
+        Objects.requireNonNull(architectureQuery, "architectureQuery required");
 
         // Group domain types by kind
         Map<DomainKind, List<DomainType>> typesByKind = ir.domain().types().stream()
@@ -70,8 +80,8 @@ public class InventoryBuilder {
         List<String> drivingExamples = extractPortExamples(portsByDirection.get(PortDirection.DRIVING));
         List<String> drivenExamples = extractPortExamples(portsByDirection.get(PortDirection.DRIVEN));
 
-        // Build bounded context statistics
-        List<BoundedContextStats> bcStats = buildBoundedContextStats(ir);
+        // Build bounded context statistics from architecture query
+        List<BoundedContextStats> bcStats = buildBoundedContextStats(ir, architectureQuery);
 
         return ComponentInventory.builder()
                 .aggregateRoots(countTypes(typesByKind, DomainKind.AGGREGATE_ROOT))
@@ -142,34 +152,35 @@ public class InventoryBuilder {
     }
 
     /**
-     * Builds bounded context statistics by inferring BC names from package structure.
+     * Builds bounded context statistics using the core's ArchitectureQuery.
      *
-     * <p>The bounded context is inferred from the package structure,
-     * assuming patterns like: com.example.{bc}.domain.model.Entity
+     * <p>This method obtains bounded contexts from {@link ArchitectureQuery#findBoundedContexts()}
+     * and correlates them with domain types and ports from the IR snapshot.
+     *
+     * @param ir                the IR snapshot
+     * @param architectureQuery the architecture query
+     * @return list of bounded context statistics
      */
-    private List<BoundedContextStats> buildBoundedContextStats(IrSnapshot ir) {
-        // Group types by inferred bounded context
-        Map<String, List<DomainType>> typesByBc = new HashMap<>();
-        for (DomainType type : ir.domain().types()) {
-            String bc = inferBoundedContext(type.packageName());
-            typesByBc.computeIfAbsent(bc, k -> new ArrayList<>()).add(type);
-        }
+    private List<BoundedContextStats> buildBoundedContextStats(IrSnapshot ir, ArchitectureQuery architectureQuery) {
+        List<BoundedContextInfo> boundedContexts = architectureQuery.findBoundedContexts();
 
-        // Group ports by inferred bounded context
-        Map<String, List<Port>> portsByBc = new HashMap<>();
-        for (Port port : ir.ports().ports()) {
-            String bc = inferBoundedContext(port.packageName());
-            portsByBc.computeIfAbsent(bc, k -> new ArrayList<>()).add(port);
-        }
+        // Create a lookup map: qualified type name -> DomainType
+        Map<String, DomainType> typeByName = ir.domain().types().stream()
+                .collect(Collectors.toMap(DomainType::qualifiedName, t -> t, (a, b) -> a));
 
-        // Build stats for each bounded context
         List<BoundedContextStats> stats = new ArrayList<>();
-        Set<String> allBcs = new HashSet<>(typesByBc.keySet());
-        allBcs.addAll(portsByBc.keySet());
 
-        for (String bc : allBcs) {
-            List<DomainType> bcTypes = typesByBc.getOrDefault(bc, List.of());
-            List<Port> bcPorts = portsByBc.getOrDefault(bc, List.of());
+        for (BoundedContextInfo bcInfo : boundedContexts) {
+            // Collect domain types that belong to this bounded context
+            List<DomainType> bcTypes = bcInfo.typeNames().stream()
+                    .map(typeByName::get)
+                    .filter(Objects::nonNull)
+                    .toList();
+
+            // Collect ports that belong to this bounded context (by package)
+            List<Port> bcPorts = ir.ports().ports().stream()
+                    .filter(port -> bcInfo.containsPackage(port.packageName()))
+                    .toList();
 
             int aggregates = (int) bcTypes.stream().filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT).count();
             int entities = (int) bcTypes.stream().filter(t -> t.kind() == DomainKind.ENTITY).count();
@@ -181,10 +192,12 @@ public class InventoryBuilder {
             int portsLoc = bcPorts.stream().mapToInt(this::calculatePortLoc).sum();
             int totalLoc = typesLoc + portsLoc;
 
-            stats.add(new BoundedContextStats(bc, aggregates, entities, vos, ports, totalLoc));
+            // Capitalize the context name for display
+            String displayName = capitalize(bcInfo.name());
+            stats.add(new BoundedContextStats(displayName, aggregates, entities, vos, ports, totalLoc));
         }
 
-        // Sort by name
+        // Sort by name for deterministic output
         stats.sort(Comparator.comparing(BoundedContextStats::name));
         return stats;
     }
@@ -209,40 +222,6 @@ public class InventoryBuilder {
             return 0;
         }
         return Math.max(0, ref.lineEnd() - ref.lineStart() + 1);
-    }
-
-    /**
-     * Infers the bounded context name from a package name.
-     *
-     * <p>Heuristic: looks for a segment before "domain", "model", "application", or "port".
-     * Examples:
-     * <ul>
-     *   <li>com.example.order.domain.model → Order</li>
-     *   <li>com.example.order.domain → Order</li>
-     *   <li>com.example.catalog.model → Catalog</li>
-     * </ul>
-     */
-    private String inferBoundedContext(String packageName) {
-        if (packageName == null || packageName.isEmpty()) {
-            return "Unknown";
-        }
-
-        String[] parts = packageName.split("\\.");
-        if (parts.length < 2) {
-            return capitalize(packageName);
-        }
-
-        // Look for pattern: *.{bc}.domain.* or *.{bc}.model.* or *.{bc}.application.*
-        for (int i = 0; i < parts.length - 1; i++) {
-            String next = parts[i + 1];
-            if ("domain".equals(next) || "model".equals(next) || "application".equals(next)
-                    || "port".equals(next) || "ports".equals(next)) {
-                return capitalize(parts[i]);
-            }
-        }
-
-        // Fallback: use second-to-last segment (before domain layer package)
-        return capitalize(parts[Math.max(0, parts.length - 2)]);
     }
 
     /**
