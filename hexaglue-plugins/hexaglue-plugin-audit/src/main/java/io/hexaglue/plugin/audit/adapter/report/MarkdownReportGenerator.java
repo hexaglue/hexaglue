@@ -1004,21 +1004,42 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 .append(purityDetails).append(" |\n\n");
 
         // 4.2 Aggregate Analysis
-        if (!inventory.aggregateExamples().isEmpty()) {
+        if (!report.aggregateDetails().isEmpty()) {
+            md.append(numbering.h3("Aggregate Analysis")).append("\n\n");
+
+            md.append("| Aggregate Root | Entities | VOs | Repository | Cohesion | Status |\n");
+            md.append("|----------------|:--------:|:---:|:----------:|:--------:|:------:|\n");
+
+            for (var agg : report.aggregateDetails()) {
+                String repoStatus = agg.hasRepository() ? "✅" : "❌";
+                String cohesionStr = agg.cohesion() >= 0 ? String.format("%.2f", agg.cohesion()) : "–";
+                String status = switch (agg.status()) {
+                    case OK -> "✅";
+                    case WARNING -> "⚠️";
+                    case PROBLEM -> "❌";
+                };
+
+                md.append("| `").append(agg.rootName()).append("` | ")
+                        .append(agg.entityCount()).append(" | ")
+                        .append(agg.valueObjectCount()).append(" | ")
+                        .append(repoStatus).append(" | ")
+                        .append(cohesionStr).append(" | ")
+                        .append(status).append(" |\n");
+            }
+            md.append("\n");
+        } else if (!inventory.aggregateExamples().isEmpty()) {
+            // Fallback to old display if aggregateDetails not available
             md.append(numbering.h3("Aggregate Analysis")).append("\n\n");
 
             md.append("| Aggregate Root | Repository | Status |\n");
             md.append("|----------------|:----------:|:------:|\n");
 
-            // Use aggregateExamples which contains actual aggregate root names
             for (String agg : inventory.aggregateExamples()) {
-                // Check if there's a repository violation for this aggregate
                 boolean hasRepoViolation = byConstraint.getOrDefault("ddd:aggregate-repository", List.of())
                         .stream()
                         .anyMatch(v -> v.message().contains(agg) || v.affectedType().contains(agg));
                 String repoStatus = hasRepoViolation ? "❌" : "✅";
 
-                // Check if aggregate is involved in a cycle
                 boolean hasCycle = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of())
                         .stream()
                         .anyMatch(v -> v.message().contains(agg));
@@ -1029,7 +1050,6 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                         .append(status).append(" |\n");
             }
 
-            // Show if there are more aggregates not listed
             if (inventory.aggregateRoots() > inventory.aggregateExamples().size()) {
                 md.append("| *... and ")
                         .append(inventory.aggregateRoots() - inventory.aggregateExamples().size())

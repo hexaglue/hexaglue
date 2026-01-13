@@ -14,10 +14,14 @@
 package io.hexaglue.core.audit;
 
 import io.hexaglue.core.graph.ApplicationGraph;
+import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.spi.audit.*;
+import io.hexaglue.spi.ir.DomainKind;
+import io.hexaglue.spi.ir.DomainModel;
+import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortModel;
@@ -34,16 +38,18 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     private final ApplicationGraph graph;
     private final Map<String, PortDirection> portDirections;
+    private final List<Port> ports;
+    private final DomainModel domainModel;
 
     /**
-     * Creates a new architecture query with graph only (no port information).
+     * Creates a new architecture query with graph only (no port or domain information).
      *
      * @param graph the application graph
-     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel)} for full port support
+     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel, DomainModel)} for full support
      */
     @Deprecated(since = "3.0.0", forRemoval = false)
     public DefaultArchitectureQuery(ApplicationGraph graph) {
-        this(graph, (PortModel) null);
+        this(graph, null, null);
     }
 
     /**
@@ -51,10 +57,27 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
      *
      * @param graph the application graph
      * @param portModel the port model containing classified ports (may be null)
+     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel, DomainModel)} for full support
      */
+    @Deprecated(since = "3.0.0", forRemoval = false)
     public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel) {
+        this(graph, portModel, null);
+    }
+
+    /**
+     * Creates a new architecture query with graph, port model, and domain model.
+     *
+     * @param graph the application graph
+     * @param portModel the port model containing classified ports (may be null)
+     * @param domainModel the domain model containing classified domain types (may be null)
+     */
+    public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel, DomainModel domainModel) {
         this.graph = Objects.requireNonNull(graph, "graph cannot be null");
         this.portDirections = buildPortDirectionMap(portModel);
+        this.ports = portModel != null && portModel.ports() != null
+                ? List.copyOf(portModel.ports())
+                : List.of();
+        this.domainModel = domainModel;
     }
 
     private static Map<String, PortDirection> buildPortDirectionMap(PortModel portModel) {
@@ -549,8 +572,96 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     @Override
     public List<AggregateInfo> findAggregates() {
-        // Aggregate roots are typically identified by having repository interfaces
-        // This is a simplified heuristic
+        // If we have a domain model, use the classified types
+        if (domainModel != null) {
+            return findAggregatesFromDomainModel();
+        }
+
+        // Fallback: use heuristic (deprecated path)
+        return findAggregatesFromHeuristic();
+    }
+
+    /**
+     * Finds aggregates using the classified domain model.
+     * This is the preferred method as it uses proper DDD classification.
+     */
+    private List<AggregateInfo> findAggregatesFromDomainModel() {
+        List<AggregateInfo> aggregates = new ArrayList<>();
+
+        // Get all aggregate roots from the domain model
+        List<DomainType> aggregateRoots = domainModel.aggregateRoots();
+
+        // Build a map of all domain types for quick lookup
+        Map<String, DomainType> typeByName = new HashMap<>();
+        for (DomainType type : domainModel.types()) {
+            typeByName.put(type.qualifiedName(), type);
+        }
+
+        for (DomainType root : aggregateRoots) {
+            List<String> entities = new ArrayList<>();
+            List<String> valueObjects = new ArrayList<>();
+
+            // Find members of this aggregate by analyzing relationships
+            Set<String> members = findAggregateMembersFromRoot(root.qualifiedName(), typeByName);
+
+            for (String memberName : members) {
+                DomainType member = typeByName.get(memberName);
+                if (member != null) {
+                    if (member.kind() == DomainKind.ENTITY) {
+                        entities.add(memberName);
+                    } else if (member.kind() == DomainKind.VALUE_OBJECT
+                            || member.kind() == DomainKind.IDENTIFIER) {
+                        valueObjects.add(memberName);
+                    }
+                }
+            }
+
+            aggregates.add(new AggregateInfo(root.qualifiedName(), entities, valueObjects));
+        }
+
+        return aggregates;
+    }
+
+    /**
+     * Finds members of an aggregate by analyzing structural relationships from the root.
+     */
+    private Set<String> findAggregateMembersFromRoot(String rootQualifiedName, Map<String, DomainType> typeByName) {
+        Set<String> members = new HashSet<>();
+        Optional<TypeNode> rootNode = graph.typeNode(rootQualifiedName);
+
+        if (rootNode.isEmpty()) {
+            return members;
+        }
+
+        // Find types directly referenced by the aggregate root
+        Set<NodeId> directRefs = graph.edgesFrom(rootNode.get().id()).stream()
+                .filter(e -> isStructuralEdge(e.kind()))
+                .map(Edge::to)
+                .filter(NodeId::isType)
+                .collect(Collectors.toSet());
+
+        for (NodeId refId : directRefs) {
+            String refName = extractQualifiedNameFromNodeId(refId);
+            DomainType refType = typeByName.get(refName);
+
+            // Only include entities and value objects (not other aggregate roots)
+            if (refType != null) {
+                if (refType.kind() == DomainKind.ENTITY
+                        || refType.kind() == DomainKind.VALUE_OBJECT
+                        || refType.kind() == DomainKind.IDENTIFIER) {
+                    members.add(refName);
+                }
+            }
+        }
+
+        return members;
+    }
+
+    /**
+     * Fallback: finds aggregates using naming heuristics.
+     * This is less accurate than using the domain model.
+     */
+    private List<AggregateInfo> findAggregatesFromHeuristic() {
         List<AggregateInfo> aggregates = new ArrayList<>();
 
         for (TypeNode type : graph.typeNodes()) {
@@ -789,5 +900,122 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
         }
 
         return Map.copyOf(membership);
+    }
+
+    @Override
+    public Optional<Double> calculateAggregateCohesion(String aggregateRootType) {
+        if (aggregateRootType == null) {
+            return Optional.empty();
+        }
+
+        // Find the aggregate
+        Optional<AggregateInfo> aggregateOpt = findAggregates().stream()
+                .filter(a -> a.rootType().equals(aggregateRootType))
+                .findFirst();
+
+        if (aggregateOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        AggregateInfo aggregate = aggregateOpt.get();
+
+        // Collect all members (root + entities + value objects)
+        Set<String> allMembers = new HashSet<>();
+        allMembers.add(aggregate.rootType());
+        allMembers.addAll(aggregate.entities());
+        allMembers.addAll(aggregate.valueObjects());
+
+        int memberCount = allMembers.size();
+        if (memberCount <= 1) {
+            // Single member aggregate has perfect cohesion
+            return Optional.of(1.0);
+        }
+
+        // Count internal edges between aggregate members
+        int internalEdges = 0;
+        for (String member : allMembers) {
+            NodeId memberId = NodeId.type(member);
+            if (!graph.containsNode(memberId)) {
+                continue;
+            }
+
+            // Count edges to other members
+            for (Edge edge : graph.edgesFrom(memberId)) {
+                NodeId targetId = edge.to();
+                // Only consider type edges and extract qualified name
+                if (targetId.isType()) {
+                    String targetType = extractQualifiedNameFromNodeId(targetId);
+                    // Only count structural edges (FIELD_TYPE, TYPE_ARGUMENT, RETURN_TYPE, PARAMETER_TYPE)
+                    if (allMembers.contains(targetType) && isStructuralEdge(edge.kind())) {
+                        internalEdges++;
+                    }
+                }
+            }
+        }
+
+        // Calculate cohesion: ratio of actual connections to maximum possible
+        // Maximum possible edges in a connected graph = n * (n-1) for directed graph
+        // But for aggregates, a reasonable expectation is root connects to all, so minimum = n-1
+        // We use a more generous formula: actual / expected where expected = n-1
+        int expectedMinimumEdges = memberCount - 1;
+        double cohesion = Math.min(1.0, (double) internalEdges / expectedMinimumEdges);
+
+        return Optional.of(Math.round(cohesion * 100.0) / 100.0); // Round to 2 decimals
+    }
+
+    private boolean isStructuralEdge(EdgeKind kind) {
+        return kind == EdgeKind.FIELD_TYPE
+                || kind == EdgeKind.TYPE_ARGUMENT
+                || kind == EdgeKind.RETURN_TYPE
+                || kind == EdgeKind.PARAMETER_TYPE
+                || kind == EdgeKind.USES_AS_COLLECTION_ELEMENT;
+    }
+
+    @Override
+    public Optional<String> findRepositoryForAggregate(String aggregateRootType) {
+        if (aggregateRootType == null) {
+            return Optional.empty();
+        }
+
+        // Find a repository port that manages this aggregate
+        for (Port port : ports) {
+            if (port.isRepository()) {
+                // Check if this repository manages the aggregate
+                if (aggregateRootType.equals(port.primaryManagedType())) {
+                    return Optional.of(port.qualifiedName());
+                }
+                // Also check managed types list
+                if (port.managedTypes() != null && port.managedTypes().contains(aggregateRootType)) {
+                    return Optional.of(port.qualifiedName());
+                }
+            }
+        }
+
+        // Fallback: try to match by naming convention
+        String simpleAggregateName = extractSimpleName(aggregateRootType);
+        for (Port port : ports) {
+            if (port.isRepository()) {
+                String simplePortName = port.simpleName();
+                // Check if repository name contains aggregate name (e.g., OrderRepository for Order)
+                if (simplePortName.startsWith(simpleAggregateName)
+                        || simplePortName.contains(simpleAggregateName)) {
+                    return Optional.of(port.qualifiedName());
+                }
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private String extractSimpleName(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
+    }
+
+    private String extractQualifiedNameFromNodeId(NodeId nodeId) {
+        // NodeId format is "type:qualified.name", extract the part after ":"
+        String value = nodeId.value();
+        int colonIndex = value.indexOf(':');
+        return colonIndex >= 0 ? value.substring(colonIndex + 1) : value;
     }
 }
