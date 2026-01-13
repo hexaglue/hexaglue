@@ -331,9 +331,9 @@ public final class AuditReportGenerator {
                 .append("  \n");
         md.append("**Status:** ");
         if (snapshot.passed()) {
-            md.append(":white_check_mark: PASSED\n\n");
+            md.append("✅ PASSED\n\n");
         } else {
-            md.append(":x: FAILED\n\n");
+            md.append("❌ FAILED\n\n");
         }
 
         // Summary
@@ -373,7 +373,7 @@ public final class AuditReportGenerator {
                 if (!violations.isEmpty()) {
                     String icon =
                             switch (severity) {
-                                case ERROR -> ":x:";
+                                case ERROR -> "❌";
                                 case WARNING -> ":warning:";
                                 case INFO -> ":information_source:";
                             };

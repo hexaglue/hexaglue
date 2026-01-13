@@ -55,6 +55,8 @@ import java.util.Objects;
  * @param hexCompliancePercent hexagonal architecture compliance percentage (0-100)
  * @param detectedStyle        the detected architectural style
  * @param aggregateDetails     detailed information about each aggregate
+ * @param irSnapshot           the IR snapshot for diagram generation (may be null)
+ * @param architectureQuery    the architecture query for diagram generation (may be null)
  * @since 1.0.0
  */
 public record AuditReport(
@@ -73,7 +75,9 @@ public record AuditReport(
         int dddCompliancePercent,
         int hexCompliancePercent,
         DetectedArchitectureStyle detectedStyle,
-        List<AggregateDetails> aggregateDetails) {
+        List<AggregateDetails> aggregateDetails,
+        IrSnapshot irSnapshot,
+        ArchitectureQuery architectureQuery) {
 
     public AuditReport {
         Objects.requireNonNull(metadata, "metadata required");
@@ -110,6 +114,7 @@ public record AuditReport(
             detectedStyle = DetectedArchitectureStyle.UNKNOWN;
         }
         aggregateDetails = aggregateDetails != null ? List.copyOf(aggregateDetails) : List.of();
+        // irSnapshot and architectureQuery are intentionally nullable for diagram generation
     }
 
     /**
@@ -137,6 +142,8 @@ public record AuditReport(
                 100,
                 100,
                 DetectedArchitectureStyle.UNKNOWN,
+                null,
+                null,
                 null);
     }
 
@@ -166,6 +173,8 @@ public record AuditReport(
                 100,
                 100,
                 DetectedArchitectureStyle.UNKNOWN,
+                null,
+                null,
                 null);
     }
 
@@ -484,7 +493,9 @@ public record AuditReport(
                 dddCompliance,
                 hexCompliance,
                 snapshot.style(),
-                aggregateDetails);
+                aggregateDetails,
+                ir,
+                architectureQuery);
     }
 
     private static ViolationEntry convertViolation(RuleViolation violation) {

@@ -143,8 +143,8 @@ class ClassificationIntegrationTest {
         }
 
         @Test
-        @DisplayName("Order conflicts should include ENTITY from has-identity")
-        void orderShouldHaveEntityConflict() throws IOException {
+        @DisplayName("Order with repository should be AGGREGATE_ROOT without conflicts")
+        void orderShouldBeAggregateRootWithoutConflicts() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
@@ -164,13 +164,11 @@ class ClassificationIntegrationTest {
             TypeNode order = graph.typeNode("com.example.Order").orElseThrow();
             ClassificationResult result = domainClassifier.classify(order, query);
 
-            // AGGREGATE_ROOT wins but ENTITY is also matched via has-identity
+            // AGGREGATE_ROOT via repository-dominant - no conflicts expected
+            // (has-identity criteria was removed as weak heuristic)
             assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(DomainKind.ENTITY.name());
-            assertThat(result.conflicts())
-                    .extracting(Conflict::competingCriteria)
-                    .contains("has-identity");
+            assertThat(result.hasConflicts()).isFalse();
+            assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
     }
 
@@ -185,10 +183,12 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("Complete coffee shop domain should be classified correctly")
         void coffeeShopDomainClassification() throws IOException {
-            // Order aggregate root
+            // Order aggregate root - explicit annotation
             writeSource("com/coffeeshop/order/Order.java", """
                     package com.coffeeshop.order;
                     import java.util.List;
+                    import org.jmolecules.ddd.annotation.AggregateRoot;
+                    @AggregateRoot
                     public class Order {
                         private OrderId id;
                         private List<LineItem> items;
@@ -196,15 +196,17 @@ class ClassificationIntegrationTest {
                     }
                     """);
 
-            // OrderId - should be IDENTIFIER
+            // OrderId - should be IDENTIFIER (record-single-id criteria retained)
             writeSource("com/coffeeshop/order/OrderId.java", """
                     package com.coffeeshop.order;
                     public record OrderId(String value) {}
                     """);
 
-            // LineItem - should be ENTITY (has id)
+            // LineItem - explicit @Entity annotation (collection-element-entity removed)
             writeSource("com/coffeeshop/order/LineItem.java", """
                     package com.coffeeshop.order;
+                    import org.jmolecules.ddd.annotation.Entity;
+                    @Entity
                     public class LineItem {
                         private String id;
                         private String productName;
@@ -212,15 +214,19 @@ class ClassificationIntegrationTest {
                     }
                     """);
 
-            // Location - should be VALUE_OBJECT (record without id pattern)
+            // Location - explicit @ValueObject annotation (embedded-value-object removed)
             writeSource("com/coffeeshop/order/Location.java", """
                     package com.coffeeshop.order;
+                    import org.jmolecules.ddd.annotation.ValueObject;
+                    @ValueObject
                     public record Location(String store, String table) {}
                     """);
 
-            // Orders repository - use "Repository" suffix for naming criteria
+            // Orders repository - explicit @Repository annotation
             writeSource("com/coffeeshop/order/OrderRepository.java", """
                     package com.coffeeshop.order;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface OrderRepository {
                         Order findById(OrderId id);
                         void save(Order order);
@@ -230,11 +236,12 @@ class ClassificationIntegrationTest {
             ApplicationGraph graph = buildGraph("com.coffeeshop");
             GraphQuery query = graph.query();
 
-            // Classify Order - should be AGGREGATE_ROOT (used in repository)
+            // Classify Order - should be AGGREGATE_ROOT (explicit annotation)
             TypeNode order = graph.typeNode("com.coffeeshop.order.Order").orElseThrow();
             ClassificationResult orderResult = domainClassifier.classify(order, query);
             assertThat(orderResult.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
-            assertThat(orderResult.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+            assertThat(orderResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
+            assertThat(orderResult.matchedCriteria()).isEqualTo("explicit-aggregate-root");
 
             // Classify OrderId - should be IDENTIFIER (record with *Id name)
             TypeNode orderId = graph.typeNode("com.coffeeshop.order.OrderId").orElseThrow();
@@ -242,23 +249,26 @@ class ClassificationIntegrationTest {
             assertThat(orderIdResult.kind()).isEqualTo(DomainKind.IDENTIFIER.name());
             assertThat(orderIdResult.matchedCriteria()).isEqualTo("record-single-id");
 
-            // Classify LineItem - should be ENTITY (collection element in Order aggregate)
+            // Classify LineItem - should be ENTITY (explicit annotation)
             TypeNode lineItem = graph.typeNode("com.coffeeshop.order.LineItem").orElseThrow();
             ClassificationResult lineItemResult = domainClassifier.classify(lineItem, query);
             assertThat(lineItemResult.kind()).isEqualTo(DomainKind.ENTITY.name());
-            assertThat(lineItemResult.matchedCriteria()).isEqualTo("collection-element-entity");
+            assertThat(lineItemResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
+            assertThat(lineItemResult.matchedCriteria()).isEqualTo("explicit-entity");
 
-            // Classify Location - should be VALUE_OBJECT (immutable record embedded in Order)
+            // Classify Location - should be VALUE_OBJECT (explicit annotation)
             TypeNode location = graph.typeNode("com.coffeeshop.order.Location").orElseThrow();
             ClassificationResult locationResult = domainClassifier.classify(location, query);
             assertThat(locationResult.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
-            assertThat(locationResult.matchedCriteria()).isEqualTo("embedded-value-object");
+            assertThat(locationResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
+            assertThat(locationResult.matchedCriteria()).isEqualTo("explicit-value-object");
 
-            // Classify OrderRepository - should be REPOSITORY port
+            // Classify OrderRepository - should be REPOSITORY port (explicit annotation)
             TypeNode orderRepo =
                     graph.typeNode("com.coffeeshop.order.OrderRepository").orElseThrow();
             ClassificationResult orderRepoResult = portClassifier.classify(orderRepo, query);
             assertThat(orderRepoResult.kind()).isEqualTo(PortKind.REPOSITORY.name());
+            assertThat(orderRepoResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(orderRepoResult.portDirection()).isEqualTo(PortDirection.DRIVEN);
         }
     }
@@ -282,27 +292,32 @@ class ClassificationIntegrationTest {
                     }
                     """);
 
-            // Driving port (in)
-            // Use method name that doesn't match COMMAND pattern to test USE_CASE naming
+            // Driving port (in) - explicit @PrimaryPort annotation (naming criteria removed)
             writeSource("com/example/ports/in/PlaceOrderUseCase.java", """
                     package com.example.ports.in;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface PlaceOrderUseCase {
                         void forOrder(Object order);
                     }
                     """);
 
-            // Driven port (out)
+            // Driven port (out) - explicit @Repository annotation
             writeSource("com/example/ports/out/OrderRepository.java", """
                     package com.example.ports.out;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface OrderRepository {
                         Object findById(String id);
                         void save(Object order);
                     }
                     """);
 
-            // Gateway - use infrastructure package to test naming-based classification
+            // Gateway - explicit @SecondaryPort annotation (naming criteria removed)
             writeSource("com/example/infrastructure/PaymentGateway.java", """
                     package com.example.infrastructure;
+                    import org.jmolecules.architecture.hexagonal.SecondaryPort;
+                    @SecondaryPort
                     public interface PaymentGateway {
                         void charge(Object payment);
                     }
@@ -311,25 +326,28 @@ class ClassificationIntegrationTest {
             ApplicationGraph graph = buildGraph();
             GraphQuery query = graph.query();
 
-            // PlaceOrderUseCase - DRIVING
+            // PlaceOrderUseCase - DRIVING (explicit annotation)
             TypeNode useCase =
                     graph.typeNode("com.example.ports.in.PlaceOrderUseCase").orElseThrow();
             ClassificationResult useCaseResult = portClassifier.classify(useCase, query);
             assertThat(useCaseResult.kind()).isEqualTo(PortKind.USE_CASE.name());
+            assertThat(useCaseResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(useCaseResult.portDirection()).isEqualTo(PortDirection.DRIVING);
 
-            // OrderRepository - DRIVEN
+            // OrderRepository - DRIVEN (explicit annotation)
             TypeNode repo =
                     graph.typeNode("com.example.ports.out.OrderRepository").orElseThrow();
             ClassificationResult repoResult = portClassifier.classify(repo, query);
             assertThat(repoResult.kind()).isEqualTo(PortKind.REPOSITORY.name());
+            assertThat(repoResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(repoResult.portDirection()).isEqualTo(PortDirection.DRIVEN);
 
-            // PaymentGateway - DRIVEN
+            // PaymentGateway - DRIVEN (explicit annotation)
             TypeNode gateway =
                     graph.typeNode("com.example.infrastructure.PaymentGateway").orElseThrow();
             ClassificationResult gatewayResult = portClassifier.classify(gateway, query);
             assertThat(gatewayResult.kind()).isEqualTo(PortKind.GATEWAY.name());
+            assertThat(gatewayResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(gatewayResult.portDirection()).isEqualTo(PortDirection.DRIVEN);
         }
     }
@@ -343,7 +361,7 @@ class ClassificationIntegrationTest {
     class ExplicitAnnotationsTest {
 
         @Test
-        @DisplayName("Explicit annotations should override heuristics")
+        @DisplayName("Explicit annotations should win over heuristics")
         void explicitAnnotationsOverrideHeuristics() throws IOException {
             // Entity with @ValueObject annotation - annotation should win
             writeSource("com/example/Money.java", """
@@ -351,7 +369,7 @@ class ClassificationIntegrationTest {
                     import org.jmolecules.ddd.annotation.ValueObject;
                     @ValueObject
                     public class Money {
-                        private String id;  // Would match has-identity
+                        private String id;  // Doesn't trigger any criteria (has-identity removed)
                         private int amount;
                         private String currency;
                     }
@@ -363,14 +381,14 @@ class ClassificationIntegrationTest {
             TypeNode money = graph.typeNode("com.example.Money").orElseThrow();
             ClassificationResult result = domainClassifier.classify(money, query);
 
-            // @ValueObject (EXPLICIT, priority 100) should win over has-identity (MEDIUM, priority 70)
+            // @ValueObject (EXPLICIT, priority 100) is the only match
+            // has-identity criteria was removed as weak heuristic
             assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.matchedCriteria()).isEqualTo("explicit-value-object");
 
-            // Should have conflict with ENTITY
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(DomainKind.ENTITY.name());
+            // No conflicts expected (has-identity removed)
+            assertThat(result.hasConflicts()).isFalse();
         }
 
         @Test
@@ -434,9 +452,8 @@ class ClassificationIntegrationTest {
                     result.evidence().stream().anyMatch(e -> e.type() == EvidenceType.RELATIONSHIP);
             assertThat(hasRelationshipEvidence).isTrue();
 
-            // Should have evidence mentioning the identity structure
-            boolean hasStructureEvidence = result.evidence().stream().anyMatch(e -> e.type() == EvidenceType.STRUCTURE);
-            assertThat(hasStructureEvidence).isTrue();
+            // Note: STRUCTURE evidence was provided by has-identity criteria (now removed)
+            // Only RELATIONSHIP evidence expected from repository-dominant
         }
 
         @Test

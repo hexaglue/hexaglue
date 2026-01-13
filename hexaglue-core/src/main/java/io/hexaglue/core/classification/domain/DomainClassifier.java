@@ -19,7 +19,6 @@ import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.Conflict;
 import io.hexaglue.core.classification.ConflictSeverity;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.criteria.CollectionElementEntityCriteria;
 import io.hexaglue.core.classification.domain.criteria.EmbeddedValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitAggregateRootCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitDomainEventCriteria;
@@ -27,20 +26,13 @@ import io.hexaglue.core.classification.domain.criteria.ExplicitEntityCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitExternalizedEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitIdentifierCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitValueObjectCriteria;
-import io.hexaglue.core.classification.domain.criteria.HasIdentityCriteria;
-import io.hexaglue.core.classification.domain.criteria.HasPortDependenciesCriteria;
-import io.hexaglue.core.classification.domain.criteria.ImmutableNoIdCriteria;
 import io.hexaglue.core.classification.domain.criteria.ImplementsJMoleculesInterfaceCriteria;
 import io.hexaglue.core.classification.domain.criteria.InheritedClassificationCriteria;
-import io.hexaglue.core.classification.domain.criteria.NamingDomainEventCriteria;
 import io.hexaglue.core.classification.domain.criteria.RecordSingleIdCriteria;
 import io.hexaglue.core.classification.domain.criteria.RepositoryDominantCriteria;
-import io.hexaglue.core.classification.domain.criteria.StatelessNoDependenciesCriteria;
-import io.hexaglue.core.classification.domain.criteria.UnreferencedInPortsCriteria;
 import io.hexaglue.core.classification.engine.CompatibilityPolicy;
 import io.hexaglue.core.classification.engine.Contribution;
 import io.hexaglue.core.classification.engine.CriteriaEngine;
-import io.hexaglue.core.classification.engine.CriteriaProfile;
 import io.hexaglue.core.classification.engine.DecisionPolicy;
 import io.hexaglue.core.classification.engine.DefaultDecisionPolicy;
 import io.hexaglue.core.graph.model.NodeId;
@@ -76,31 +68,26 @@ public final class DomainClassifier {
      * Creates a classifier with the default set of criteria.
      */
     public DomainClassifier() {
-        this(defaultCriteria(), CriteriaProfile.legacy());
+        this(defaultCriteria());
     }
 
     /**
      * Creates a classifier with custom criteria (for testing).
-     */
-    public DomainClassifier(List<ClassificationCriteria<DomainKind>> criteria) {
-        this(criteria, CriteriaProfile.legacy());
-    }
-
-    /**
-     * Creates a classifier with custom criteria and profile.
      *
      * @param criteria the classification criteria to use
-     * @param profile the profile for priority overrides
      */
-    public DomainClassifier(List<ClassificationCriteria<DomainKind>> criteria, CriteriaProfile profile) {
+    public DomainClassifier(List<ClassificationCriteria<DomainKind>> criteria) {
         this.decisionPolicy = new DefaultDecisionPolicy<>();
         this.compatibilityPolicy = CompatibilityPolicy.domainDefault();
         this.engine = new CriteriaEngine<>(
-                criteria, profile, decisionPolicy, compatibilityPolicy, DomainClassifier::buildContribution);
+                criteria, decisionPolicy, compatibilityPolicy, DomainClassifier::buildContribution);
     }
 
     /**
      * Returns the default set of domain classification criteria.
+     *
+     * <p>Only high-confidence criteria (priority >= 70) are included.
+     * Types that don't match any criteria will be marked as UNCLASSIFIED.
      */
     public static List<ClassificationCriteria<DomainKind>> defaultCriteria() {
         return List.of(
@@ -119,18 +106,7 @@ public final class DomainClassifier {
                 // Inherited classification (priority 75)
                 new InheritedClassificationCriteria(),
                 // Medium heuristics (priority 70)
-                new EmbeddedValueObjectCriteria(),
-                // Relationship-based heuristics (priority 65)
-                new HasPortDependenciesCriteria(),
-                // Medium heuristics (priority 60)
-                new HasIdentityCriteria(),
-                new CollectionElementEntityCriteria(),
-                new ImmutableNoIdCriteria(),
-                // Naming heuristics (priority 55)
-                new NamingDomainEventCriteria(),
-                new StatelessNoDependenciesCriteria(),
-                // Lower heuristics (priority 50)
-                new UnreferencedInPortsCriteria());
+                new EmbeddedValueObjectCriteria());
     }
 
     /**
@@ -145,7 +121,7 @@ public final class DomainClassifier {
         List<Contribution<DomainKind>> contributions = engine.evaluate(node, query);
 
         if (contributions.isEmpty()) {
-            return ClassificationResult.unclassified(node.id());
+            return ClassificationResult.unclassifiedDomain(node.id(), null);
         }
 
         // Delegate to decision policy
@@ -161,7 +137,7 @@ public final class DomainClassifier {
             NodeId nodeId, DecisionPolicy.Decision<DomainKind> decision, List<Contribution<DomainKind>> contributions) {
 
         if (decision.isEmpty()) {
-            return ClassificationResult.unclassified(nodeId);
+            return ClassificationResult.unclassifiedDomain(nodeId, null);
         }
 
         if (decision.hasIncompatibleConflict()) {

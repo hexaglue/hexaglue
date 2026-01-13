@@ -19,7 +19,6 @@ import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
-import io.hexaglue.core.classification.Conflict;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -194,29 +193,6 @@ class DomainClassifierTest {
         }
 
         @Test
-        @DisplayName("Should classify class with id field as ENTITY")
-        void shouldClassifyClassWithIdAsEntity() throws IOException {
-            writeSource("com/example/Customer.java", """
-                    package com.example;
-                    public class Customer {
-                        private String id;
-                        private String name;
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode customer = graph.typeNode("com.example.Customer").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(customer, query);
-
-            assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo("ENTITY");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
-            assertThat(result.matchedCriteria()).isEqualTo("has-identity");
-        }
-
-        @Test
         @DisplayName("Should classify record with *Id name as IDENTIFIER")
         void shouldClassifyRecordIdAsIdentifier() throws IOException {
             writeSource("com/example/OrderId.java", """
@@ -234,26 +210,6 @@ class DomainClassifierTest {
             assertThat(result.kind()).isEqualTo("IDENTIFIER");
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(result.matchedCriteria()).isEqualTo("record-single-id");
-        }
-
-        @Test
-        @DisplayName("Should classify immutable record without id as VALUE_OBJECT")
-        void shouldClassifyImmutableRecordAsValueObject() throws IOException {
-            writeSource("com/example/Address.java", """
-                    package com.example;
-                    public record Address(String street, String city, String zip) {}
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode address = graph.typeNode("com.example.Address").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(address, query);
-
-            assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo("VALUE_OBJECT");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
-            assertThat(result.matchedCriteria()).isEqualTo("immutable-no-id");
         }
     }
 
@@ -352,10 +308,8 @@ class DomainClassifierTest {
     class ConflictDetectionTest {
 
         @Test
-        @DisplayName("Should detect conflicts but classify with winner")
-        void shouldDetectConflictsButClassifyWithWinner() throws IOException {
-            // Order used in repository (AGGREGATE_ROOT) but also has id field (ENTITY)
-            // AGGREGATE_ROOT and ENTITY are compatible, so should classify
+        @DisplayName("Should classify with winner when no conflicts")
+        void shouldClassifyWithWinner() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
@@ -377,15 +331,12 @@ class DomainClassifierTest {
 
             assertThat(result.isClassified()).isTrue();
             assertThat(result.kind()).isEqualTo("AGGREGATE_ROOT");
-            // Should have conflict with ENTITY from has-identity
-            assertThat(result.conflicts()).isNotEmpty();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains("ENTITY");
+            assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
 
         @Test
-        @DisplayName("Should report conflicts without failing for compatible kinds")
-        void shouldReportConflictsForCompatibleKinds() throws IOException {
-            // @AggregateRoot + id field -> AGGREGATE_ROOT wins, but ENTITY is compatible
+        @DisplayName("Explicit annotation classifies without conflict")
+        void explicitAnnotationClassifiesWithoutConflict() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;

@@ -76,11 +76,8 @@ class ConflictDetectionTest {
     class DomainConflictsTest {
 
         @Test
-        @DisplayName("AGGREGATE_ROOT should have conflict with ENTITY (compatible kinds)")
-        void aggregateRootShouldHaveCompatibleConflictWithEntity() throws IOException {
-            // Order used in repository -> AGGREGATE_ROOT (priority 80)
-            // Order has id field -> ENTITY (priority 70)
-            // AGGREGATE_ROOT wins, but ENTITY conflict should be recorded
+        @DisplayName("Repository-dominant should classify as AGGREGATE_ROOT")
+        void repositoryDominantShouldClassifyAsAggregateRoot() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
@@ -101,27 +98,15 @@ class ConflictDetectionTest {
             TypeNode order = graph.typeNode("com.example.Order").orElseThrow();
             ClassificationResult result = domainClassifier.classify(order, query);
 
-            // Should be classified (not CONFLICT status)
             assertThat(result.isClassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
             assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
-
-            // Should have recorded the ENTITY conflict
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(DomainKind.ENTITY.name());
-
-            // ENTITY conflict should show lower priority
-            Conflict entityConflict = result.conflicts().stream()
-                    .filter(c -> c.competingKind().equals(DomainKind.ENTITY.name()))
-                    .findFirst()
-                    .orElseThrow();
-            assertThat(entityConflict.competingPriority()).isLessThan(result.matchedPriority());
+            assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
 
         @Test
-        @DisplayName("Explicit annotation should win over all heuristics without CONFLICT status")
-        void explicitAnnotationShouldWinWithoutConflict() throws IOException {
-            // @AggregateRoot (priority 100) vs repository-dominant (80) vs has-identity (70)
+        @DisplayName("Explicit annotation should win with high confidence")
+        void explicitAnnotationShouldWinWithHighConfidence() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
@@ -143,27 +128,16 @@ class ConflictDetectionTest {
             TypeNode order = graph.typeNode("com.example.Order").orElseThrow();
             ClassificationResult result = domainClassifier.classify(order, query);
 
-            // Should be classified (explicit wins)
             assertThat(result.isClassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
             assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.matchedPriority()).isEqualTo(100);
-
-            // Conflicts from lower priority heuristics should be recorded but not cause CONFLICT status
-            assertThat(result.hasConflicts()).isTrue();
-            // All conflicts should have lower priority than winner
-            result.conflicts().forEach(conflict -> assertThat(conflict.competingPriority())
-                    .isLessThan(100));
         }
 
         @Test
-        @DisplayName("Record with *Id name should be IDENTIFIER (higher priority than VALUE_OBJECT)")
-        void recordIdShouldBeIdentifierNotValueObject() throws IOException {
-            // ProductId matches:
-            // - record-single-id (priority 80) -> IDENTIFIER
-            // - immutable-no-id (priority 60) -> VALUE_OBJECT
-            // IDENTIFIER should win
+        @DisplayName("Record with *Id name should be IDENTIFIER")
+        void recordIdShouldBeIdentifier() throws IOException {
             writeSource("com/example/ProductId.java", """
                     package com.example;
                     public record ProductId(String value) {}
@@ -179,10 +153,6 @@ class ConflictDetectionTest {
             assertThat(result.kind()).isEqualTo(DomainKind.IDENTIFIER.name());
             assertThat(result.matchedCriteria()).isEqualTo("record-single-id");
             assertThat(result.matchedPriority()).isEqualTo(80);
-
-            // Should have VALUE_OBJECT as conflict (lower priority)
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(DomainKind.VALUE_OBJECT.name());
         }
 
         @Test
@@ -230,9 +200,8 @@ class ConflictDetectionTest {
     class PortConflictsTest {
 
         @Test
-        @DisplayName("Explicit annotation should win over naming for ports")
-        void explicitAnnotationWinsForPorts() throws IOException {
-            // Interface with @Repository but name ends with Gateway
+        @DisplayName("Explicit @Repository should classify port correctly")
+        void explicitRepositoryShouldClassifyPortCorrectly() throws IOException {
             writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
@@ -252,16 +221,11 @@ class ConflictDetectionTest {
             assertThat(result.kind()).isEqualTo(PortKind.REPOSITORY.name());
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVEN);
-
-            // Should have GATEWAY conflict from naming
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(PortKind.GATEWAY.name());
         }
 
         @Test
-        @DisplayName("Package should win over naming for ports after priority demotion")
-        void packageWinsOverNamingForPortsAfterDemotion() throws IOException {
-            // After priority demotion: package-in (60) > naming-repository (50)
+        @DisplayName("Interface without explicit markers should be unclassified")
+        void interfaceWithoutMarkersIsUnclassified() throws IOException {
             writeSource("com/example/ports/in/CustomerRepository.java", """
                     package com.example.ports.in;
                     public interface CustomerRepository {
@@ -277,14 +241,8 @@ class ConflictDetectionTest {
                     graph.typeNode("com.example.ports.in.CustomerRepository").orElseThrow();
             ClassificationResult result = portClassifier.classify(repo, query);
 
-            assertThat(result.isClassified()).isTrue();
-            // package-in (priority 60) now wins over naming-repository (priority 50)
-            assertThat(result.kind()).isEqualTo(PortKind.USE_CASE.name());
-            assertThat(result.matchedPriority()).isEqualTo(60);
-
-            // Should have REPOSITORY conflict from naming
-            assertThat(result.hasConflicts()).isTrue();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains(PortKind.REPOSITORY.name());
+            // Without explicit annotations or strong heuristics, it should be unclassified
+            assertThat(result.isUnclassified()).isTrue();
         }
     }
 
@@ -316,7 +274,7 @@ class ConflictDetectionTest {
 
             assertThat(result.isUnclassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
-            assertThat(result.kind()).isNull();
+            assertThat(result.kind()).isEqualTo("UNCLASSIFIED");
             assertThat(result.confidence()).isNull();
             assertThat(result.hasConflicts()).isFalse();
         }
@@ -389,8 +347,8 @@ class ConflictDetectionTest {
     class ConflictDetailsTest {
 
         @Test
-        @DisplayName("Conflict should contain correct competing information")
-        void conflictShouldContainCorrectCompetingInfo() throws IOException {
+        @DisplayName("Repository-dominant classification should succeed")
+        void repositoryDominantClassificationShouldSucceed() throws IOException {
             writeSource("com/example/Order.java", """
                     package com.example;
                     public class Order {
@@ -410,26 +368,14 @@ class ConflictDetectionTest {
             TypeNode order = graph.typeNode("com.example.Order").orElseThrow();
             ClassificationResult result = domainClassifier.classify(order, query);
 
-            assertThat(result.hasConflicts()).isTrue();
-
-            Conflict entityConflict = result.conflicts().stream()
-                    .filter(c -> c.competingKind().equals(DomainKind.ENTITY.name()))
-                    .findFirst()
-                    .orElseThrow();
-
-            assertThat(entityConflict.competingKind()).isEqualTo("ENTITY");
-            assertThat(entityConflict.competingCriteria()).isEqualTo("has-identity");
-            assertThat(entityConflict.competingConfidence()).isEqualTo(ConfidenceLevel.MEDIUM);
-            assertThat(entityConflict.competingPriority()).isEqualTo(60); // has-identity has priority 60
-            assertThat(entityConflict.rationale()).isNotBlank();
+            assertThat(result.isClassified()).isTrue();
+            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
 
         @Test
-        @DisplayName("Multiple conflicts should all be recorded")
-        void multipleConflictsShouldAllBeRecorded() throws IOException {
-            // @AggregateRoot triggers: explicit-aggregate-root
-            // id field triggers: has-identity (ENTITY)
-            // Used in repository also triggers: repository-dominant (AGGREGATE_ROOT - same kind, no conflict)
+        @DisplayName("Explicit annotation wins when repository-dominant also matches")
+        void explicitAnnotationWinsWhenRepositoryDominantAlsoMatches() throws IOException {
             writeSource("com/example/Customer.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.AggregateRoot;
@@ -453,13 +399,7 @@ class ConflictDetectionTest {
 
             assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
             assertThat(result.matchedCriteria()).isEqualTo("explicit-aggregate-root");
-
-            // Should have ENTITY conflict (different kind)
-            // Should NOT have AGGREGATE_ROOT from repository-dominant as conflict (same kind)
-            assertThat(result.conflicts())
-                    .extracting(Conflict::competingKind)
-                    .contains(DomainKind.ENTITY.name())
-                    .doesNotContain(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
         }
     }
 

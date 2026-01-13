@@ -19,7 +19,6 @@ import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
-import io.hexaglue.core.classification.Conflict;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -182,114 +181,6 @@ class PortClassifierTest {
     }
 
     // =========================================================================
-    // Heuristic Classification
-    // =========================================================================
-
-    @Nested
-    @DisplayName("Heuristic Classification")
-    class HeuristicClassificationTest {
-
-        @Test
-        @DisplayName("Should classify interface with *Repository name as REPOSITORY")
-        void shouldClassifyRepositoryByNaming() throws IOException {
-            writeSource("com/example/CustomerRepository.java", """
-                    package com.example;
-                    public interface CustomerRepository {
-                        Object findById(String id);
-                        void save(Object entity);
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode repo = graph.typeNode("com.example.CustomerRepository").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(repo, query);
-
-            assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo("REPOSITORY");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
-            assertThat(result.matchedCriteria()).isEqualTo("naming-repository");
-            assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVEN);
-        }
-
-        @Test
-        @DisplayName("Should classify interface with *UseCase name as USE_CASE")
-        void shouldClassifyUseCaseByNaming() throws IOException {
-            // Use method name that doesn't match COMMAND pattern (create*, process*, execute*, etc.)
-            // to test naming specifically
-            writeSource("com/example/CreateOrderUseCase.java", """
-                    package com.example;
-                    public interface CreateOrderUseCase {
-                        void newOrder(Object order);
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode useCase = graph.typeNode("com.example.CreateOrderUseCase").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(useCase, query);
-
-            assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo("USE_CASE");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
-            assertThat(result.matchedCriteria()).isEqualTo("naming-use-case");
-            assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVING);
-        }
-
-        @Test
-        @DisplayName("Should classify interface with *Gateway name as GATEWAY")
-        void shouldClassifyGatewayByNaming() throws IOException {
-            writeSource("com/example/NotificationGateway.java", """
-                    package com.example;
-                    public interface NotificationGateway {
-                        void send(Object notification);
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode gateway = graph.typeNode("com.example.NotificationGateway").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(gateway, query);
-
-            assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo("GATEWAY");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
-            assertThat(result.matchedCriteria()).isEqualTo("naming-gateway");
-            assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVEN);
-        }
-
-        @Test
-        @DisplayName("Should classify interface in .in package as USE_CASE")
-        void shouldClassifyByPackageIn() throws IOException {
-            // Use a name that doesn't match other patterns to test package-in
-            writeSource("com/example/ports/in/PlaceOrderCommand.java", """
-                    package com.example.ports.in;
-                    public interface PlaceOrderCommand {
-                        void process();
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode command =
-                    graph.typeNode("com.example.ports.in.PlaceOrderCommand").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(command, query);
-
-            assertThat(result.isClassified()).isTrue();
-            // CommandPatternCriteria (priority 75) wins over PackageInCriteria (priority 60)
-            // because method "process()" matches command pattern
-            assertThat(result.kind()).isEqualTo("COMMAND");
-            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
-            assertThat(result.matchedCriteria()).isEqualTo("command-pattern");
-            assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVING);
-        }
-    }
-
-    // =========================================================================
     // Tie-Break and Priority
     // =========================================================================
 
@@ -298,9 +189,8 @@ class PortClassifierTest {
     class TieBreakTest {
 
         @Test
-        @DisplayName("Explicit annotation should win over naming heuristic")
-        void explicitAnnotationShouldWinOverNaming() throws IOException {
-            // Interface has @Repository but also ends with Gateway
+        @DisplayName("Explicit annotation takes priority")
+        void explicitAnnotationTakesPriority() throws IOException {
             writeSource("com/example/PaymentGateway.java", """
                     package com.example;
                     import org.jmolecules.ddd.annotation.Repository;
@@ -321,33 +211,6 @@ class PortClassifierTest {
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.matchedCriteria()).isEqualTo("explicit-repository");
             assertThat(result.matchedPriority()).isEqualTo(100);
-            // Should have conflict with GATEWAY from naming
-            assertThat(result.conflicts()).isNotEmpty();
-            assertThat(result.conflicts()).extracting(Conflict::competingKind).contains("GATEWAY");
-        }
-
-        @Test
-        @DisplayName("Package should win over naming after priority demotion")
-        void packageShouldWinOverNamingAfterPriorityDemotion() throws IOException {
-            // Interface in .in package but ends with Repository
-            // After priority demotion: package-in (60) > naming-repository (50)
-            writeSource("com/example/ports/in/OrderRepository.java", """
-                    package com.example.ports.in;
-                    public interface OrderRepository {
-                        Object findById(String id);
-                    }
-                    """);
-
-            ApplicationGraph graph = buildGraph();
-            TypeNode repo =
-                    graph.typeNode("com.example.ports.in.OrderRepository").orElseThrow();
-            GraphQuery query = graph.query();
-
-            ClassificationResult result = classifier.classify(repo, query);
-
-            // package-in (priority 60) should now win over naming-repository (priority 50)
-            assertThat(result.kind()).isEqualTo("USE_CASE");
-            assertThat(result.matchedPriority()).isEqualTo(60);
         }
 
         @Test
@@ -355,6 +218,8 @@ class PortClassifierTest {
         void classificationShouldBeDeterministic() throws IOException {
             writeSource("com/example/CustomerRepository.java", """
                     package com.example;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface CustomerRepository {
                         Object findById(String id);
                     }
@@ -369,7 +234,7 @@ class PortClassifierTest {
                 ClassificationResult result = classifier.classify(repo, query);
 
                 assertThat(result.kind()).isEqualTo("REPOSITORY");
-                assertThat(result.matchedCriteria()).isEqualTo("naming-repository");
+                assertThat(result.matchedCriteria()).isEqualTo("explicit-repository");
             }
         }
     }
@@ -387,6 +252,8 @@ class PortClassifierTest {
         void repositoryShouldBeDriven() throws IOException {
             writeSource("com/example/OrderRepository.java", """
                     package com.example;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface OrderRepository {
                         Object findById(String id);
                     }
@@ -407,6 +274,8 @@ class PortClassifierTest {
         void useCaseShouldBeDriving() throws IOException {
             writeSource("com/example/PlaceOrderUseCase.java", """
                     package com.example;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface PlaceOrderUseCase {
                         void execute();
                     }
@@ -426,6 +295,8 @@ class PortClassifierTest {
         void gatewayShouldBeDriven() throws IOException {
             writeSource("com/example/PaymentGateway.java", """
                     package com.example;
+                    import org.jmolecules.architecture.hexagonal.SecondaryPort;
+                    @SecondaryPort
                     public interface PaymentGateway {
                         void process();
                     }

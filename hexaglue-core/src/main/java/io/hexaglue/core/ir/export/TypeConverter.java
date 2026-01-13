@@ -155,7 +155,8 @@ final class TypeConverter {
                     APPLICATION_SERVICE,
                     INBOUND_ONLY,
                     OUTBOUND_ONLY,
-                    SAGA -> false;
+                    SAGA,
+                    UNCLASSIFIED -> false;
         };
     }
 

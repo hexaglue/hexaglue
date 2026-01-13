@@ -83,6 +83,7 @@ public final class TypeDisplayUtil {
             case INBOUND_ONLY -> "Inbound Only";
             case OUTBOUND_ONLY -> "Outbound Only";
             case SAGA -> "Saga";
+            case UNCLASSIFIED -> "Unclassified";
         };
     }
 
@@ -233,6 +234,7 @@ public final class TypeDisplayUtil {
             case INBOUND_ONLY -> "Inbound Only";
             case OUTBOUND_ONLY -> "Outbound Only";
             case SAGA -> "Saga";
+            case UNCLASSIFIED -> "Unclassified";
         };
     }
 

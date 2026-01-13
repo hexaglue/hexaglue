@@ -20,7 +20,6 @@ import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.domain.criteria.FlexibleInboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleOutboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleSagaCriteria;
-import io.hexaglue.core.classification.engine.CriteriaProfile;
 import io.hexaglue.core.classification.port.PortClassificationCriteria;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.classification.port.PortDirection;
@@ -37,11 +36,13 @@ import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
+import io.hexaglue.spi.core.ClassificationConfig;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -85,39 +86,40 @@ public final class SinglePassClassifier {
 
     private DomainClassifier domainClassifier;
     private PortClassifier portClassifier;
-    private CriteriaProfile portProfile;
 
     /**
-     * Creates a classifier with default domain and port classifiers (legacy behavior).
+     * Creates a classifier with default domain and port classifiers.
      */
     public SinglePassClassifier() {
         this.domainClassifier = null;
         this.portClassifier = null;
-        this.portProfile = CriteriaProfile.legacy();
-    }
-
-    /**
-     * Creates a classifier with a specific criteria profile for port classification.
-     *
-     * @param portProfile the profile to use for port classification priorities
-     */
-    public SinglePassClassifier(CriteriaProfile portProfile) {
-        this.domainClassifier = null;
-        this.portClassifier = null;
-        this.portProfile = portProfile != null ? portProfile : CriteriaProfile.legacy();
     }
 
     /**
      * Creates a classifier with custom classifiers (for testing).
+     *
+     * @param domainClassifier the domain classifier to use
+     * @param portClassifier the port classifier to use
      */
     public SinglePassClassifier(DomainClassifier domainClassifier, PortClassifier portClassifier) {
         this.domainClassifier = domainClassifier;
         this.portClassifier = portClassifier;
-        this.portProfile = CriteriaProfile.legacy();
     }
 
     /**
      * Classifies all types in the graph using single-pass classification.
+     *
+     * <p>Uses default classification configuration.
+     *
+     * @param graph the application graph
+     * @return the classification results
+     */
+    public ClassificationResults classify(ApplicationGraph graph) {
+        return classify(graph, ClassificationConfig.defaults());
+    }
+
+    /**
+     * Classifies all types in the graph using single-pass classification with configuration.
      *
      * <p>The classification order:
      * <ol>
@@ -126,10 +128,18 @@ public final class SinglePassClassifier {
      *   <li><b>Domain:</b> Classify types with full port context</li>
      * </ol>
      *
+     * <p>Configuration features:
+     * <ul>
+     *   <li><b>Exclusions:</b> Types matching exclude patterns are skipped</li>
+     *   <li><b>Explicit:</b> Types with explicit classifications bypass criteria evaluation</li>
+     * </ul>
+     *
      * @param graph the application graph
+     * @param config the classification configuration
      * @return the classification results
+     * @since 3.0.0
      */
-    public ClassificationResults classify(ApplicationGraph graph) {
+    public ClassificationResults classify(ApplicationGraph graph, ClassificationConfig config) {
         GraphQuery query = graph.query();
 
         // Phase 1-3: Build semantic indexes
@@ -143,7 +153,8 @@ public final class SinglePassClassifier {
                 portClassifier != null ? portClassifier : createPortClassifierWithSemanticCriteria(indexes);
 
         // Phase 4a: Classify PORTS FIRST
-        Map<NodeId, ClassificationResult> portResults = classifyPorts(graph, query, indexes, effectivePortClassifier);
+        Map<NodeId, ClassificationResult> portResults =
+                classifyPorts(graph, query, indexes, effectivePortClassifier, config);
 
         // Extract classified port sets for domain classification context
         Set<NodeId> drivingPorts = extractPortsByDirection(portResults, PortDirection.DRIVING);
@@ -154,7 +165,7 @@ public final class SinglePassClassifier {
 
         // Phase 4b: Classify domain types with port context
         Map<NodeId, ClassificationResult> domainResults =
-                classifyDomainTypes(graph, query, context, indexes, effectiveDomainClassifier);
+                classifyDomainTypes(graph, query, context, indexes, effectiveDomainClassifier, config);
 
         // Merge all results
         Map<NodeId, ClassificationResult> allResults = new HashMap<>();
@@ -195,7 +206,7 @@ public final class SinglePassClassifier {
     }
 
     /**
-     * Creates a PortClassifier with semantic criteria added and the configured profile.
+     * Creates a PortClassifier with semantic criteria added.
      */
     private PortClassifier createPortClassifierWithSemanticCriteria(SemanticIndexes indexes) {
         List<PortClassificationCriteria> criteria = new ArrayList<>(PortClassifier.defaultCriteria());
@@ -204,7 +215,7 @@ public final class SinglePassClassifier {
         criteria.add(new SemanticDrivingPortCriteria(indexes.interfaceFactsIndex()));
         criteria.add(new SemanticDrivenPortCriteria(indexes.interfaceFactsIndex()));
 
-        return new PortClassifier(criteria, portProfile);
+        return new PortClassifier(criteria);
     }
 
     /**
@@ -220,14 +231,35 @@ public final class SinglePassClassifier {
      *
      * <p>This is the key difference from TwoPassClassifier: ports are classified
      * before domain types, enabling domain classification to use port context.
+     *
+     * <p>Respects ClassificationConfig for exclusions and explicit classifications.
      */
     private Map<NodeId, ClassificationResult> classifyPorts(
-            ApplicationGraph graph, GraphQuery query, SemanticIndexes indexes, PortClassifier classifier) {
+            ApplicationGraph graph,
+            GraphQuery query,
+            SemanticIndexes indexes,
+            PortClassifier classifier,
+            ClassificationConfig config) {
         Map<NodeId, ClassificationResult> results = new HashMap<>();
 
         for (TypeNode type : graph.typeNodes()) {
             // Only classify interfaces as ports
             if (type.form() != JavaForm.INTERFACE) {
+                continue;
+            }
+
+            String qualifiedName = type.qualifiedName();
+
+            // Check if type should be excluded
+            if (config.shouldExclude(qualifiedName)) {
+                // Skip excluded types entirely
+                continue;
+            }
+
+            // Check for explicit classification
+            Optional<String> explicitKind = config.getExplicitKind(qualifiedName);
+            if (explicitKind.isPresent()) {
+                results.put(type.id(), createExplicitClassificationResult(type, explicitKind.get()));
                 continue;
             }
 
@@ -356,18 +388,36 @@ public final class SinglePassClassifier {
      * Classify all non-interface types as domain types.
      *
      * <p>Domain classification now has access to port classifications via context.
+     *
+     * <p>Respects ClassificationConfig for exclusions and explicit classifications.
      */
     private Map<NodeId, ClassificationResult> classifyDomainTypes(
             ApplicationGraph graph,
             GraphQuery query,
             ClassificationContext context,
             SemanticIndexes indexes,
-            DomainClassifier classifier) {
+            DomainClassifier classifier,
+            ClassificationConfig config) {
         Map<NodeId, ClassificationResult> results = new HashMap<>();
 
         for (TypeNode type : graph.typeNodes()) {
             // Skip interfaces - they are classified as ports
             if (type.form() == JavaForm.INTERFACE) {
+                continue;
+            }
+
+            String qualifiedName = type.qualifiedName();
+
+            // Check if type should be excluded
+            if (config.shouldExclude(qualifiedName)) {
+                // Skip excluded types entirely
+                continue;
+            }
+
+            // Check for explicit classification
+            Optional<String> explicitKind = config.getExplicitKind(qualifiedName);
+            if (explicitKind.isPresent()) {
+                results.put(type.id(), createExplicitClassificationResult(type, explicitKind.get()));
                 continue;
             }
 
@@ -390,5 +440,42 @@ public final class SinglePassClassifier {
      */
     public PortClassifier portClassifier() {
         return portClassifier;
+    }
+
+    /**
+     * Creates a classification result from explicit user configuration.
+     *
+     * <p>Explicit classifications have the highest priority (100) and HIGH confidence,
+     * as they represent deliberate user decisions that should override all other criteria.
+     *
+     * @param type the type to classify
+     * @param explicitKind the explicit kind from configuration (e.g., "ENTITY", "VALUE_OBJECT")
+     * @return the classification result
+     */
+    private ClassificationResult createExplicitClassificationResult(TypeNode type, String explicitKind) {
+        ClassificationTarget target =
+                type.form() == JavaForm.INTERFACE ? ClassificationTarget.PORT : ClassificationTarget.DOMAIN;
+
+        ReasonTrace trace = ReasonTrace.builder()
+                .addEvaluatedCriteria(ReasonTrace.EvaluatedCriteria.matched(
+                        "ExplicitConfiguration",
+                        100,
+                        explicitKind,
+                        ConfidenceLevel.HIGH,
+                        "User-configured explicit classification in hexaglue.yaml"))
+                .anchorKind("EXPLICIT_CONFIG")
+                .build();
+
+        return ClassificationResult.classified(
+                type.id(),
+                target,
+                explicitKind,
+                ConfidenceLevel.HIGH,
+                "ExplicitConfiguration",
+                100, // Highest priority - user decision overrides all
+                "Explicitly configured as " + explicitKind + " in hexaglue.yaml",
+                List.of(Evidence.fromStructure("explicit: " + explicitKind, List.of())),
+                List.of(),
+                trace);
     }
 }

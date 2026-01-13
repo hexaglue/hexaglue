@@ -14,6 +14,7 @@
 package io.hexaglue.core.engine;
 
 import io.hexaglue.core.plugin.PluginExecutionResult;
+import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.ir.IrSnapshot;
 import java.nio.file.Path;
 import java.util.List;
@@ -25,15 +26,24 @@ import java.util.List;
  * @param diagnostics any warnings or errors encountered during analysis
  * @param metrics analysis metrics
  * @param pluginResult results from plugin execution (null if plugins not enabled)
+ * @param primaryClassifications the primary classification results for validation (since 3.0.0)
  */
 public record EngineResult(
-        IrSnapshot ir, List<Diagnostic> diagnostics, EngineMetrics metrics, PluginExecutionResult pluginResult) {
+        IrSnapshot ir,
+        List<Diagnostic> diagnostics,
+        EngineMetrics metrics,
+        PluginExecutionResult pluginResult,
+        List<PrimaryClassificationResult> primaryClassifications) {
 
     /**
      * Creates a result without plugin execution.
      */
-    public static EngineResult withoutPlugins(IrSnapshot ir, List<Diagnostic> diagnostics, EngineMetrics metrics) {
-        return new EngineResult(ir, diagnostics, metrics, null);
+    public static EngineResult withoutPlugins(
+            IrSnapshot ir,
+            List<Diagnostic> diagnostics,
+            EngineMetrics metrics,
+            List<PrimaryClassificationResult> primaryClassifications) {
+        return new EngineResult(ir, diagnostics, metrics, null, primaryClassifications);
     }
 
     /**
@@ -75,5 +85,41 @@ public record EngineResult(
      */
     public int generatedFileCount() {
         return pluginResult != null ? pluginResult.totalGeneratedFiles() : 0;
+    }
+
+    /**
+     * Returns the count of unclassified types.
+     *
+     * @return number of types that could not be classified
+     * @since 3.0.0
+     */
+    public int unclassifiedCount() {
+        if (primaryClassifications == null) {
+            return 0;
+        }
+        return (int) primaryClassifications.stream().filter(r -> !r.isClassified()).count();
+    }
+
+    /**
+     * Returns the list of unclassified type results.
+     *
+     * @return unclassified types
+     * @since 3.0.0
+     */
+    public List<PrimaryClassificationResult> unclassifiedTypes() {
+        if (primaryClassifications == null) {
+            return List.of();
+        }
+        return primaryClassifications.stream().filter(r -> !r.isClassified()).toList();
+    }
+
+    /**
+     * Returns true if there are no unclassified types.
+     *
+     * @return true if validation passes (no unclassified types)
+     * @since 3.0.0
+     */
+    public boolean validationPassed() {
+        return unclassifiedCount() == 0;
     }
 }

@@ -237,6 +237,7 @@ public interface AuditPlugin extends HexaGluePlugin {
             case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE ->
                 LayerClassification.DOMAIN;
             case APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> LayerClassification.APPLICATION;
+            case UNCLASSIFIED -> LayerClassification.UNKNOWN;
         };
     }
 
@@ -253,6 +254,7 @@ public interface AuditPlugin extends HexaGluePlugin {
             case DOMAIN_SERVICE -> RoleClassification.SERVICE;
             case APPLICATION_SERVICE -> RoleClassification.USE_CASE;
             case INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> RoleClassification.SERVICE;
+            case UNCLASSIFIED -> RoleClassification.UNKNOWN;
         };
     }
 

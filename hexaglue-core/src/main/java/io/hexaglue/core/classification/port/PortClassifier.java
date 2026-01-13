@@ -20,7 +20,6 @@ import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.engine.CompatibilityPolicy;
 import io.hexaglue.core.classification.engine.Contribution;
 import io.hexaglue.core.classification.engine.CriteriaEngine;
-import io.hexaglue.core.classification.engine.CriteriaProfile;
 import io.hexaglue.core.classification.engine.DecisionPolicy;
 import io.hexaglue.core.classification.engine.DefaultDecisionPolicy;
 import io.hexaglue.core.classification.port.criteria.CommandPatternCriteria;
@@ -28,11 +27,6 @@ import io.hexaglue.core.classification.port.criteria.ExplicitPrimaryPortCriteria
 import io.hexaglue.core.classification.port.criteria.ExplicitRepositoryCriteria;
 import io.hexaglue.core.classification.port.criteria.ExplicitSecondaryPortCriteria;
 import io.hexaglue.core.classification.port.criteria.InjectedAsDependencyCriteria;
-import io.hexaglue.core.classification.port.criteria.NamingGatewayCriteria;
-import io.hexaglue.core.classification.port.criteria.NamingRepositoryCriteria;
-import io.hexaglue.core.classification.port.criteria.NamingUseCaseCriteria;
-import io.hexaglue.core.classification.port.criteria.PackageInCriteria;
-import io.hexaglue.core.classification.port.criteria.PackageOutCriteria;
 import io.hexaglue.core.classification.port.criteria.QueryPatternCriteria;
 import io.hexaglue.core.classification.port.criteria.SignatureBasedDrivenPortCriteria;
 import io.hexaglue.core.classification.port.criteria.SignatureBasedGatewayCriteria;
@@ -75,31 +69,26 @@ public final class PortClassifier {
      * Creates a classifier with the default set of criteria.
      */
     public PortClassifier() {
-        this(defaultCriteria(), CriteriaProfile.legacy());
+        this(defaultCriteria());
     }
 
     /**
      * Creates a classifier with custom criteria (for testing).
-     */
-    public PortClassifier(List<PortClassificationCriteria> criteria) {
-        this(criteria, CriteriaProfile.legacy());
-    }
-
-    /**
-     * Creates a classifier with custom criteria and profile.
      *
      * @param criteria the classification criteria to use
-     * @param profile the profile for priority overrides
      */
-    public PortClassifier(List<PortClassificationCriteria> criteria, CriteriaProfile profile) {
+    public PortClassifier(List<PortClassificationCriteria> criteria) {
         this.decisionPolicy = new DefaultDecisionPolicy<>();
         this.compatibilityPolicy = CompatibilityPolicy.portDefault();
         this.engine = new CriteriaEngine<>(
-                criteria, profile, decisionPolicy, compatibilityPolicy, PortClassifier::buildContribution);
+                criteria, decisionPolicy, compatibilityPolicy, PortClassifier::buildContribution);
     }
 
     /**
      * Returns the default set of port classification criteria.
+     *
+     * <p>Only high-confidence criteria (priority >= 70) are included.
+     * Interfaces that don't match any criteria will remain unclassified as ports.
      */
     public static List<PortClassificationCriteria> defaultCriteria() {
         return List.of(
@@ -107,10 +96,6 @@ public final class PortClassifier {
                 new ExplicitRepositoryCriteria(),
                 new ExplicitPrimaryPortCriteria(),
                 new ExplicitSecondaryPortCriteria(),
-                // Strong heuristics (priority 80)
-                new NamingRepositoryCriteria(),
-                new NamingUseCaseCriteria(),
-                new NamingGatewayCriteria(),
                 // CQRS pattern heuristics (priority 75)
                 new CommandPatternCriteria(),
                 new QueryPatternCriteria(),
@@ -118,11 +103,8 @@ public final class PortClassifier {
                 new InjectedAsDependencyCriteria(),
                 // Multi-aggregate gateway detection (priority 72)
                 new SignatureBasedGatewayCriteria(),
-                // Graph-based heuristics (priority 70)
-                new SignatureBasedDrivenPortCriteria(),
-                // Medium heuristics (priority 60)
-                new PackageInCriteria(),
-                new PackageOutCriteria());
+                // Signature-based heuristics (priority 70)
+                new SignatureBasedDrivenPortCriteria());
     }
 
     /**
@@ -138,14 +120,14 @@ public final class PortClassifier {
     public ClassificationResult classify(TypeNode node, GraphQuery query) {
         // Only interfaces can be ports
         if (!node.isInterface()) {
-            return ClassificationResult.unclassified(node.id());
+            return ClassificationResult.unclassifiedPort(node.id(), null);
         }
 
         // Evaluate criteria and collect contributions
         List<Contribution<PortKind>> contributions = engine.evaluate(node, query);
 
         if (contributions.isEmpty()) {
-            return ClassificationResult.unclassified(node.id());
+            return ClassificationResult.unclassifiedPort(node.id(), null);
         }
 
         // Delegate to decision policy
@@ -161,7 +143,7 @@ public final class PortClassifier {
             NodeId nodeId, DecisionPolicy.Decision<PortKind> decision, List<Contribution<PortKind>> contributions) {
 
         if (decision.isEmpty()) {
-            return ClassificationResult.unclassified(nodeId);
+            return ClassificationResult.unclassifiedPort(nodeId, null);
         }
 
         if (decision.hasIncompatibleConflict()) {

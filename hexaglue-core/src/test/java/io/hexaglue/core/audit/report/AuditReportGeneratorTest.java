@@ -171,7 +171,7 @@ class AuditReportGeneratorTest {
         String markdownReport = generator.generateMarkdown(passedSnapshot);
 
         assertThat(consoleReport).contains("Status: PASSED");
-        assertThat(markdownReport).contains(":white_check_mark: PASSED");
+        assertThat(markdownReport).contains("✅ PASSED");
     }
 
     // Helper methods

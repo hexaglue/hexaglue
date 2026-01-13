@@ -153,15 +153,20 @@ class StyleDetectionIntegrationTest {
         @Test
         @DisplayName("should classify ports.out interfaces as DRIVEN ports")
         void shouldClassifyPortsOutAsDriven() throws IOException {
-            writeSource("com/example/ports/in/UseCase.java", """
+            // Explicit annotations required (package-based criteria removed)
+            writeSource("com/example/ports/in/MyUseCase.java", """
                     package com.example.ports.in;
-                    public interface UseCase {
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
+                    public interface MyUseCase {
                         void execute();
                     }
                     """);
-            writeSource("com/example/ports/out/Repository.java", """
+            writeSource("com/example/ports/out/OrderRepository.java", """
                     package com.example.ports.out;
-                    public interface Repository {
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
+                    public interface OrderRepository {
                         void save(Object entity);
                     }
                     """);
@@ -170,12 +175,12 @@ class StyleDetectionIntegrationTest {
             GraphQuery query = graph.query();
 
             TypeNode repository =
-                    graph.typeNode("com.example.ports.out.Repository").orElseThrow();
+                    graph.typeNode("com.example.ports.out.OrderRepository").orElseThrow();
             ClassificationResult result = portClassifier.classify(repository, query);
 
             assertThat(result.isClassified()).isTrue();
             assertThat(result.portDirection()).isEqualTo(PortDirection.DRIVEN);
-            assertThat(result.kind()).isIn("REPOSITORY", "GATEWAY");
+            assertThat(result.kind()).isEqualTo("REPOSITORY");
         }
     }
 

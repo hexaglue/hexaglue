@@ -555,8 +555,11 @@ class IrExporterIdentityEdgeCasesTest {
         @Test
         @DisplayName("VALUE_OBJECT should have no identity")
         void valueObjectShouldHaveNoIdentity() throws IOException {
+            // Explicit @ValueObject annotation required (implicit heuristics removed)
             writeSource("com/example/Money.java", """
                     package com.example;
+                    import org.jmolecules.ddd.annotation.ValueObject;
+                    @ValueObject
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
 

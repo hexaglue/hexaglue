@@ -25,7 +25,6 @@
  *   <li>{@link io.hexaglue.core.classification.engine.DecisionPolicy} - Policy for selecting winners</li>
  *   <li>{@link io.hexaglue.core.classification.engine.DefaultDecisionPolicy} - Standard tie-breaking</li>
  *   <li>{@link io.hexaglue.core.classification.engine.CompatibilityPolicy} - Kind compatibility</li>
- *   <li>{@link io.hexaglue.core.classification.engine.CriteriaProfile} - Priority configuration</li>
  * </ul>
  *
  * <h2>Tie-Breaking Algorithm</h2>
