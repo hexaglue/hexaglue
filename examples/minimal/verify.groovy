@@ -20,14 +20,14 @@ assert logContent.contains("Classification complete:") :
     "Should contain 'Classification complete:'"
 
 // Check generated sources directory
-def generatedSources = new File(basedir, "target/generated-sources/hexaglue")
+def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
 assert generatedSources.exists() :
     "Generated sources directory should exist"
 
 // Check audit reports directory
-def auditDir = new File(basedir, "target/hexaglue-reports/audit")
+def auditDir = new File(basedir, "target/hexaglue/reports/audit")
 assert auditDir.exists() :
-    "Audit reports directory should exist at target/hexaglue-reports/audit"
+    "Audit reports directory should exist at target/hexaglue/reports/audit"
 
 // Check for audit report files
 def htmlReport = new File(auditDir, "audit-report.html")

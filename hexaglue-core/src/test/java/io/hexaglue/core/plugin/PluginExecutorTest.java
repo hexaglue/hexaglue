@@ -127,7 +127,7 @@ class PluginExecutorTest {
         writer.writeResource("config/test.json", "{\"key\": \"value\"}");
 
         // Then
-        Path expectedFile = outputDir.getParent().resolve("generated-resources/hexaglue/config/test.json");
+        Path expectedFile = outputDir.getParent().resolve("generated-resources/config/test.json");
         assertThat(expectedFile).exists();
         assertThat(Files.readString(expectedFile)).contains("\"key\"");
     }
@@ -158,7 +158,7 @@ class PluginExecutorTest {
         writer.writeDoc("architecture/domain.md", "# Domain Model\n\nDescription...");
 
         // Then
-        Path expectedFile = outputDir.getParent().resolve("generated-docs/architecture/domain.md");
+        Path expectedFile = outputDir.getParent().resolve("reports/architecture/domain.md");
         assertThat(expectedFile).exists();
         assertThat(Files.readString(expectedFile)).contains("# Domain Model");
         assertThat(writer.docExists("architecture/domain.md")).isTrue();
@@ -173,7 +173,7 @@ class PluginExecutorTest {
         writer.writeMarkdown("api/ports", "# Ports\n\n...");
 
         // Then - .md extension added automatically
-        Path expectedFile = outputDir.getParent().resolve("generated-docs/api/ports.md");
+        Path expectedFile = outputDir.getParent().resolve("reports/api/ports.md");
         assertThat(expectedFile).exists();
     }
 
@@ -185,7 +185,7 @@ class PluginExecutorTest {
         // Then
         assertThat(writer.getOutputDirectory()).isEqualTo(outputDir);
         assertThat(writer.getDocsOutputDirectory())
-                .isEqualTo(outputDir.getParent().resolve("generated-docs"));
+                .isEqualTo(outputDir.getParent().resolve("reports"));
     }
 
     @Test

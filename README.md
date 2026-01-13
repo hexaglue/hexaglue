@@ -1,9 +1,8 @@
 # HexaGlue
 
-***Design, Audit, and Generate Hexagonal Architecture***
+***Compile your architecture, not just your code.***
 
 <div align="center">
-
   <img src="docs/assets/logo-hexaglue.png" alt="HexaGlue" width="400">
 
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
@@ -12,329 +11,166 @@
 
 </div>
 
-**HexaGlue is an architectural design tool for Java applications. It audits your architecture for clean architecture compliance, validates quality metrics, and generates infrastructure code automatically.**
+---
+
+## Why HexaGlue Exists
+
+Hexagonal architecture promises clean separation, long-term maintainability, and freedom of choice.
+
+In reality, teams pay a constant tax:
+
+* Rewriting the same adapters again and again
+* Manually keeping domain, ports, and infrastructure aligned
+* Reviewing boilerplate instead of business logic
+* Being afraid to change infrastructure because everything is wired by hand
+
+This is not business complexity.
+It is **architectural friction**.
+
+HexaGlue exists to remove that friction.
 
 ---
 
-## What is HexaGlue?
+## A Different Perspective
 
-HexaGlue is a compile-time tool that analyzes and validates your application architecture. It provides two distinct capabilities through dedicated Maven goals:
+What if your architecture was not just documentation or conventions, but **data**?
 
-```text
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              HexaGlue                                        │
-│                    Architectural Design Tool                                 │
-├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│   hexaglue:audit                         hexaglue:generate                  │
-│   ─────────────────                      ──────────────────                 │
-│                                                                              │
-│   • Validate clean architecture          • Generate JPA entities & repos    │
-│   • Detect layering violations           • Generate REST controllers        │
-│   • Check dependency cycles              • Generate message handlers        │
-│   • Enforce naming conventions           • Generate living documentation    │
-│   • Measure quality metrics              • Swap technologies via plugins    │
-│   • Fail build on violations             • Extensible plugin system         │
-│                                                                              │
-│   Reports: HTML, JSON, Markdown          Output: Generated source code      │
-│                                                                              │
-└─────────────────────────────────────────────────────────────────────────────┘
-```
+Your source code already contains everything needed to understand:
 
-### Architecture Audit
+* Your domain concepts
+* Your architectural boundaries
+* Your dependencies and invariants
 
-HexaGlue provides a dedicated `audit` goal that validates your architecture against clean architecture principles. It supports multiple architectural styles: **Hexagonal**, **Clean**, **Onion**, and **Layered** architectures.
-
-**Layering Rules** (Dependency Inversion Principle):
-- Domain purity - Domain must not depend on infrastructure
-- Presentation isolation - Presentation must not bypass application services
-- Application boundaries - Application must not depend on presentation
-
-**Dependency Rules**:
-- Stable dependencies - Dependencies should flow toward stable components
-- No cycles - Detect and report dependency cycles
-
-**Quality Rules**:
-- Naming conventions - Validate Repository, DTO, Controller suffixes
-- Documentation coverage - Public API and complex methods
-- Complexity limits - Cyclomatic complexity, method length
-
-**Output**: Reports in HTML, JSON, Markdown, and Console formats with pass/fail status.
-
-### Code Generation
-
-Based on the analysis, plugins generate production-ready infrastructure code:
-
-- **JPA Plugin**: Entities, Spring Data repositories, MapStruct mappers, port adapters
-- **Living Documentation Plugin**: Markdown architecture documentation with Mermaid diagrams
-- **More plugins planned**: REST controllers, GraphQL, Kafka, OpenAPI...
+What’s missing is a tool that can **read architecture**, not just syntax.
 
 ---
 
-## How It Works
+## What HexaGlue Really Does
 
-```text
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│    Analysis     │────▶│   Classification │────▶│   Audit or      │
-│                 │     │   & Validation   │     │   Generation    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-        │                       │                       │
-   Parse source            Classify types          Run audit rules
-   Build graph             Detect patterns         OR generate code
-   Index relationships     Compute confidence      via plugins
-```
+HexaGlue is an **architecture compiler** for Java applications.
 
-Three Maven goals are available:
+At compile time, it turns your codebase into a **semantic graph** of **architectural intent**.
 
-| Goal | Phase | Purpose |
-|------|-------|---------|
-| `hexaglue:audit` | `verify` | Architecture audit only |
-| `hexaglue:generate` | `generate-sources` | Code generation only |
-| `hexaglue:generate-and-audit` | `generate-sources` | Both combined |
+By **modelizing** an Abstract Syntax Tree (AST), HexaGlue **classifies**:
 
----
+* **Domain concepts**  
+  Aggregates, entities, value objects, identifiers
 
-## Quick Start
+* **Architectural boundaries**  
+  Ports, their direction (driving / driven), and their relationships
 
-### Option A: Architecture Audit Only
+* **Structural relationships**  
+  How domain types connect, reference, and depend on each other
 
-Validate your architecture without generating code:
+From this model, HexaGlue can **validate** and **generate**, always respecting your architecture, never making blind assumptions.
 
-```xml
-<plugin>
-    <groupId>io.hexaglue</groupId>
-    <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>audit</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <basePackage>com.example</basePackage>
-        <failOnError>true</failOnError>
-        <htmlReport>true</htmlReport>
-    </configuration>
-</plugin>
-```
+```mermaid
+flowchart LR
+  %% ------------------------------------------------------------
+  %% WHY: Architectural friction -> HexaGlue pipeline -> Outcomes
+  %% ------------------------------------------------------------
+  subgraph HEXA["🚀 HexaGlue: compile-time architecture"]
+    A["🧠 MODELIZE<br>Semantic graph"]:::step
+    C["🏷️ CLASSIFY<br>Concepts"]:::step
+    V["🚦 VALIDATE<br>No ambiguities"]:::step
+    G["⚙️ GENERATE<br>Plugins design"]:::step
 
-Run `mvn verify` and check the generated report:
+    A e1@--> C
+    C e2@--> V
+    V e3@--> G
+  end
 
-```
-target/hexaglue-reports/
-├── hexaglue-audit.html    # Rich HTML report
-├── hexaglue-audit.json    # Machine-readable (optional)
-└── hexaglue-audit.md      # Markdown (optional)
-```
+  subgraph OUT["🎯 What you get"]
+    O1["📘 Living Documentation"]:::out
+    O2["🛡️ Architecture Audit"]:::out
+    O3["🔁 Infrastructure Code<br>(JPA / REST / Messaging…)"]:::out
+  end
 
-**Sample Console Output:**
-```
-================================================================================
-HEXAGLUE AUDIT REPORT
-================================================================================
-Project: my-application
-HexaGlue Version: 3.0.0
+  G f1@==> O1
+  G f2@==> O2
+  G f3@==> O3
 
-SUMMARY
---------------------------------------------------------------------------------
-Total Violations: 3
-  Errors:   1
-  Warnings: 2
-  Info:     0
-Status: FAILED
+  %% ------------------------------------------------------------
+  %% Animated links
+  %% ------------------------------------------------------------
+  e1@{ animate: true }
+  e2@{ animate: true }
+  e3@{ animate: true }
 
-QUALITY METRICS
---------------------------------------------------------------------------------
-Test Coverage:          85.2%
-Documentation Coverage: 72.1%
-Technical Debt:         120 minutes
-Maintainability Rating: 4.2/5.0
+  classDef animate stroke-dasharray: 9,5,stroke-dashoffset: 900,animation: dash 25s linear infinite;
+  class f1 animate
+  class f2 animate
+  class f3 animate
 
-VIOLATIONS
---------------------------------------------------------------------------------
-ERROR (1)
-  [layering.domain-purity]
-  Location: com/example/domain/Order.java:45
-  Domain class 'Order' depends on infrastructure class 'JpaRepository'
-================================================================================
-```
-
-### Option B: Code Generation Only
-
-Generate infrastructure code from your domain:
-
-```xml
-<plugin>
-    <groupId>io.hexaglue</groupId>
-    <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <basePackage>com.example</basePackage>
-    </configuration>
-    <dependencies>
-        <dependency>
-            <groupId>io.hexaglue.plugins</groupId>
-            <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>${hexaglue.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>io.hexaglue.plugins</groupId>
-            <artifactId>hexaglue-plugin-living-doc</artifactId>
-            <version>${hexaglue.version}</version>
-        </dependency>
-    </dependencies>
-</plugin>
-```
-
-Run `mvn compile`:
-
-```
-target/generated-sources/
-├── hexaglue/                              # Generated infrastructure
-│   ├── OrderEntity.java
-│   ├── OrderJpaRepository.java
-│   ├── OrderMapper.java
-│   └── OrderAdapter.java
-└── generated-docs/docs/architecture/      # Living documentation
-    ├── README.md
-    ├── domain.md
-    ├── ports.md
-    └── diagrams.md
-```
-
-### Option C: Audit + Generation Combined
-
-For CI/CD pipelines, combine both in a single execution:
-
-```xml
-<plugin>
-    <groupId>io.hexaglue</groupId>
-    <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>generate-and-audit</goal>
-            </goals>
-        </execution>
-    </executions>
-    <configuration>
-        <basePackage>com.example</basePackage>
-        <failOnError>true</failOnError>
-        <htmlReport>true</htmlReport>
-    </configuration>
-    <dependencies>
-        <dependency>
-            <groupId>io.hexaglue.plugins</groupId>
-            <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>${hexaglue.version}</version>
-        </dependency>
-    </dependencies>
-</plugin>
+  %% ------------------------------------------------------------
+  %% Node styles
+  %% ------------------------------------------------------------
+  classDef step fill:#f8fafc,stroke:#64748b,stroke-width:1px,color:#0f172a;
+  classDef out fill:#ecfdf5,stroke:#34d399,stroke-width:1px,color:#0f172a;
 ```
 
 ---
 
-## Why Use HexaGlue?
+## From Source Code to Architectural Intelligence
 
-### For Architecture Audit
+HexaGlue runs as part of your build and executes a deterministic, architecture-aware pipeline:
 
-- **Validate conformance** - Ensure your code follows clean architecture principles (DIP, layer separation)
-- **Detect violations early** - Layering violations, dependency cycles, naming issues
-- **Enforce quality gates** - Fail builds when thresholds are exceeded
-- **Track metrics** - Technical debt, documentation coverage, maintainability
-- **CI/CD integration** - JSON output for tooling, pass/fail status for pipelines
+1. **Analyze - Turn source code into architectural intelligence**  
+HexaGlue parses your Java code at compile time and builds a **complete semantic graph** of your application - types, relationships, and boundaries - capturing *architectural intent*, not just syntax.
 
-### For Code Generation
+2. **Classify - Understand your domain, automatically**  
+Using robust structural heuristics, HexaGlue **recognizes DDD and hexagonal concepts** (aggregates, ports, adapters…) without forcing annotations.
+Your domain stays **pure**, expressive, and framework-agnostic.
 
-- **Pure domain code** - Your business logic stays clean with zero infrastructure dependencies
-- **No boilerplate** - Write a port interface once, get production-ready adapters in seconds
-- **Type-safe** - Generation happens at compile time with full type checking
-- **Flexible infrastructure** - Swap technologies (REST to GraphQL, MySQL to MongoDB) by changing plugins, not code
-- **Extensible** - Add support for any technology through the plugin system
+3. **Validate - Make architecture explicit, not assumed**  
+HexaGlue actively **detects ambiguities, edge cases, and architectural conflicts**.
+When something cannot be inferred safely, it **asks for explicit clarification instead of guessing** - ensuring trustable outputs.
 
----
+1. **Generate - Produce infrastructure that respects your architecture**  
+From this validated model, HexaGlue generates **architecture-aware artifacts** through dedicated plugins:
+   * **Audits** to assess architectural consistency
+   * **Living documentation** that stays in sync with your code
+   * **Infrastructure adapters** generated exactly from your domain intent
 
-## Audit Configuration
-
-### Quality Thresholds
-
-Configure thresholds for quality metrics:
-
-```xml
-<configuration>
-    <basePackage>com.example</basePackage>
-    <failOnError>true</failOnError>
-    <failOnWarning>false</failOnWarning>
-    <auditConfig>
-        <thresholds>
-            <maxCyclomaticComplexity>10</maxCyclomaticComplexity>
-            <maxMethodLength>50</maxMethodLength>
-            <maxClassLength>500</maxClassLength>
-            <maxMethodParameters>7</maxMethodParameters>
-            <minTestCoverage>80.0</minTestCoverage>
-            <minDocumentationCoverage>70.0</minDocumentationCoverage>
-            <maxTechnicalDebtMinutes>480</maxTechnicalDebtMinutes>
-        </thresholds>
-    </auditConfig>
-</configuration>
-```
-
-### Enable/Disable Rules
-
-```xml
-<auditConfig>
-    <enabledRules>
-        <rule>layering.domain-purity</rule>
-        <rule>dependency.no-cycles</rule>
-    </enabledRules>
-    <disabledRules>
-        <rule>complexity.cyclomatic</rule>
-    </disabledRules>
-</auditConfig>
-```
-
-### Report Formats
-
-```xml
-<configuration>
-    <consoleReport>true</consoleReport>   <!-- Output to logs -->
-    <htmlReport>true</htmlReport>          <!-- Rich HTML report -->
-    <jsonReport>true</jsonReport>          <!-- Machine-readable -->
-    <markdownReport>true</markdownReport>  <!-- Documentation -->
-    <reportDirectory>${project.build.directory}/hexaglue-reports</reportDirectory>
-</configuration>
-```
+HexaGlue does not transform source code. 
+It transforms **architecture into a programmable model**.
 
 ---
 
-## Plugins
+## Who HexaGlue Is For
 
-### Official Plugins
+### **CIOs & Transformation Teams**
 
-| Plugin | Description | Status |
-|--------|-------------|--------|
-| **JPA Repository** | Spring Data JPA entities, repositories, mappers, adapters | Available |
-| **Living Documentation** | Markdown architecture documentation with Mermaid diagrams | Available |
-| **REST API** | Spring MVC controllers from driving ports | Planned |
-| **OpenAPI** | OpenAPI specification from ports | Planned |
-| **Kafka** | Kafka producers and consumers | Planned |
-| **GraphQL** | GraphQL schema and resolvers | Planned |
+HexaGlue analyzes **the architectural core of the application - the domain and application layers** - to reveal the actual architecture and generate **trustable, up-to-date documentation** for modernization initiatives.
+
+### **Architects & Tech Leads**
+
+HexaGlue continuously validates **the architectural core of the application**: boundaries, ports, and dependencies. Ambiguities and violations are detected **at build time**, with actionable architectural feedback.
+
+### **Development Teams**
+
+Focus on business logic. Define your **domain and application layers** once - HexaGlue generates infrastructure adapters that **respect your architectural intent**, without polluting the core.
 
 ---
 
-## Optional jMolecules Integration
+## When Intent Must Be Explicit
 
-HexaGlue can leverage **jMolecules annotations** to make your domain intent explicit:
+HexaGlue follows a simple rule:
+
+> **What is ambiguous must be clarified.**
+
+When a type cannot be classified with certainty, HexaGlue does not guess.
+It **stops**, surfaces the ambiguity, and asks for an explicit architectural decision.
+This guarantees that every generated artifact is grounded in **intentional design**, never assumptions.
+
+---
+
+## Making Architectural Intent Explicit
+
+HexaGlue relies primarily on **structural analysis** of the architectural core of the application.  
+However, when available, annotations can be used to **make intent explicit rather than inferred**.
+
+HexaGlue can leverage **jMolecules annotations** to enrich its understanding of your domain model:
 
 ```java
 import org.jmolecules.ddd.annotation.AggregateRoot;
@@ -348,78 +184,173 @@ public class Order {
 }
 ```
 
-**jMolecules is not required**: HexaGlue discovers domain concepts automatically through smart heuristics. When present, annotations provide EXPLICIT confidence and remove classification ambiguity.
+When present, these annotations do not change behavior. 
+They simply **state architectural intent clearly and unambiguously**.
+
+---
+
+## Supported Architectural Concepts
+
+Annotations may express intent across three complementary dimensions.
 
 ### DDD Tactical Patterns
 
-| Annotation | Purpose |
-|------------|---------|
+| Annotation       | Purpose                 |
+| ---------------- | ----------------------- |
 | `@AggregateRoot` | Marks an aggregate root |
-| `@Entity` | Marks a domain entity |
-| `@ValueObject` | Marks a value object |
-| `@Identity` | Marks an identity field |
-| `@Repository` | Marks a repository port |
+| `@Entity`        | Marks a domain entity   |
+| `@ValueObject`   | Marks a value object    |
+| `@Identity`      | Marks an identity field |
+| `@Repository`    | Marks a repository port |
 
 ### Hexagonal Architecture
 
-| Annotation | Purpose |
-|------------|---------|
-| `@PrimaryPort` | Marks a driving (inbound) port |
+| Annotation       | Purpose                        |
+| ---------------- | ------------------------------ |
+| `@PrimaryPort`   | Marks a driving (inbound) port |
 | `@SecondaryPort` | Marks a driven (outbound) port |
 
 ### Domain Events
 
-| Annotation | Purpose |
-|------------|---------|
-| `@DomainEvent` | Marks a domain event |
-| `@Externalized` | Marks an event for external publication |
+| Annotation      | Purpose                                          |
+| --------------- | ------------------------------------------------ |
+| `@DomainEvent`  | Marks a domain event                             |
+| `@Externalized` | Marks an event intended for external publication |
 
 ---
 
-## Documentation
+## Compile-Time Only, Zero Runtime Impact
 
-| Document | Description |
-|----------|-------------|
-| [Getting Started](docs/GETTING_STARTED.md) | Progressive tutorial from audit to generation |
-| [Architecture Audit Guide](docs/ARCHITECTURE_AUDIT.md) | Complete audit configuration and rules reference |
-| [User Guide](docs/USER_GUIDE.md) | Complete concepts and features reference |
-| [Configuration](docs/CONFIGURATION.md) | Maven plugin and `hexaglue.yaml` reference |
-| [SPI Reference](docs/SPI_REFERENCE.md) | Plugin development API |
-| [Plugin Development](docs/PLUGIN_DEVELOPMENT.md) | Create your own plugins |
+Annotations exist **only to support compile-time analysis**:
 
----
-
-## Project Structure
-
-```
-hexaglue/
-├── hexaglue-maven-plugin/ # Maven plugin (generate, audit, generate-and-audit)
-├── hexaglue-core/         # Analysis, classification, and audit engine
-├── hexaglue-spi/          # Stable API for plugins (JDK-only)
-├── hexaglue-testing/      # Test utilities
-├── hexaglue-plugins/      # Official plugins
-│   ├── hexaglue-plugin-jpa/        # JPA generation
-│   └── hexaglue-plugin-living-doc/ # Architecture documentation
-├── examples/              # Working examples
-└── docs/                  # Documentation
+```xml
+<dependency>
+  <groupId>org.jmolecules</groupId>
+  <artifactId>jmolecules-ddd</artifactId>
+  <scope>provided</scope>
+</dependency>
 ```
 
+They are used to:
+
+1. Document architectural intent
+2. Guide classification when structure alone is ambiguous
+3. Feed validation, documentation, and generation
+
+> Nothing leaks into runtime. Nothing pollutes the domain.
+
 ---
 
-## Example Applications
+## Rich Domain, Not Anemic Models
 
-| Example | Description |
-|---------|-------------|
-| [minimal](examples/minimal/) | Simple example with basic domain |
-| [coffeeshop](examples/coffeeshop/) | Coffee ordering application |
-| [ecommerce](examples/ecommerce/) | Rich domain with relationships |
+HexaGlue naturally favors **rich, expressive domain models** over anemic ones:
+
+| Anemic Model      | Rich Model           |
+| ----------------- | -------------------- |
+| Data holders      | Behavior + data      |
+| Logic in services | Logic encapsulated   |
+| Weak invariants   | Invariants protected |
+| Technical noise   | Intent-driven design |
+
+> Your domain remains **readable, expressive, and architecture-first**, free from infrastructure concerns.
+
+---
+
+## Validation as a First-Class Feature
+
+When ambiguities remain, HexaGlue makes them **explicit and visible**:
+
+```
+[INFO] CLASSIFICATION SUMMARY
+[INFO] --------------------------------------------------------------
+[INFO] EXPLICIT:                8 ( 66,7%)
+[INFO] INFERRED:                4 ( 33,3%)
+[INFO] UNCLASSIFIED:            0 (  0,0%)
+[INFO] TOTAL:                  12
+[INFO] 
+[INFO] Status: PASSED
+```
+
+Each unclassified type becomes a **deliberate architectural decision** to address.
+
+> No hidden assumptions. No silent drift. No accidental architecture.
+
+## Plugins
+
+HexaGlue is pluggable by design.
+
+### Official Plugins
+
+| Plugin | Description | Status |
+|--------|-------------|--------|
+| **Audit** | Architectural conformance reports and metrics  | Available |
+| **Living Documentation** | Generates documentation of your architecture | Available |
+| **JPA Repository** | Spring Data JPA entities, repositories, mappers, adapters | Available |
+| **REST API** | Spring MVC controllers from driving ports | Planned |
+| **OpenAPI** | OpenAPI specification from ports | Planned |
+| **Kafka** | Kafka producers and consumers | Planned |
+| **GraphQL** | GraphQL schema and resolvers | Planned |
+
+---
+
+## Quick Start
+
+1. (Optional) Make intent explicit
+
+2. Configure the Maven plugin
+
+   ```xml
+   <plugin>
+       <groupId>io.hexaglue</groupId>
+       <artifactId>hexaglue-maven-plugin</artifactId>
+       <version>${hexaglue.version}</version>
+       <executions>
+           <execution>
+               <id>validate</id>
+               <goals>
+                   <goal>validate</goal>
+               </goals>
+           </execution>
+           <execution>
+               <id>generate</id>
+               <goals>
+                   <goal>generate</goal>
+               </goals>
+           </execution>
+       </executions>
+       <configuration>
+           <basePackage>com.example.myapp</basePackage>
+           <failOnUnclassified>true</failOnUnclassified>
+       </configuration>
+   </plugin>
+   ```
+
+3. Run `mvn compile`
+
+HexaGlue integrates directly into your build.
+
+---
+
+## Configuration without Annotations
+
+When annotations are not possible:
+
+```yaml
+classification:
+  explicit:
+    com.example.OrderDetails: ENTITY
+  validation:
+    failOnUnclassified: true
+```
+
+Your architecture remains explicit even without annotations.
 
 ---
 
 ## Prerequisites
 
-- **Java**: 17 or later
-- **Maven**: 3.8 or later
+* Java 17+
+* Maven 3.8+
 
 ---
 
@@ -427,25 +358,18 @@ hexaglue/
 
 HexaGlue is distributed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 
-- May be used in commercial and proprietary products
-- Your application code remains your own
-- Generated code belongs to you without restriction
-- Modifications to HexaGlue source files must be shared under MPL-2.0
+- ✅ May be used in commercial and proprietary products
+- ✅ Your application code remains your own
+- ✅ Generated code belongs to you without restriction
+- ⚠️ Modifications to HexaGlue source files must be shared under MPL-2.0
 
 [Learn more about MPL-2.0](https://www.mozilla.org/MPL/2.0/)
 
 ---
 
-## Support
-
-- [GitHub Issues](https://github.com/hexaglue/hexaglue/issues): Report bugs or request features
-- [GitHub Discussions](https://github.com/hexaglue/hexaglue/discussions): Ask questions and share ideas
-
----
-
 <div align="center">
 
-**HexaGlue - Design, Audit, and Generate Hexagonal Architecture**
+**HexaGlue - Compile your architecture, not just your code**
 
 Made with ❤️ by Scalastic<br>
 Copyright 2026 Scalastic - Released under MPL-2.0

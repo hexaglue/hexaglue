@@ -80,7 +80,7 @@ import org.yaml.snakeyaml.Yaml;
  */
 @Mojo(
         name = "validate",
-        defaultPhase = LifecyclePhase.COMPILE,
+        defaultPhase = LifecyclePhase.VALIDATE,
         requiresDependencyResolution = ResolutionScope.COMPILE,
         threadSafe = true)
 public class ValidateMojo extends AbstractMojo {
@@ -118,7 +118,7 @@ public class ValidateMojo extends AbstractMojo {
      * <p>If specified, a Markdown report will be written to this location
      * in addition to the console output.
      */
-    @Parameter(property = "hexaglue.validationReportPath", defaultValue = "${project.build.directory}/hexaglue/validation-report.md")
+    @Parameter(property = "hexaglue.validationReportPath", defaultValue = "${project.build.directory}/hexaglue/reports/validation/validation-report.md")
     private File validationReportPath;
 
     @Override

@@ -25,9 +25,9 @@ import java.util.List;
  *
  * <p>Directory structure:
  * <ul>
- *   <li>Java sources: {@code target/generated-sources/hexaglue/}</li>
- *   <li>Resources: {@code target/generated-resources/hexaglue/}</li>
- *   <li>Documentation: {@code target/generated-docs/}</li>
+ *   <li>Java sources: {@code target/hexaglue/generated-sources/}</li>
+ *   <li>Resources: {@code target/hexaglue/generated-resources/}</li>
+ *   <li>Reports/Documentation: {@code target/hexaglue/reports/}</li>
  * </ul>
  */
 final class FileSystemCodeWriter implements CodeWriter {
@@ -39,9 +39,11 @@ final class FileSystemCodeWriter implements CodeWriter {
 
     FileSystemCodeWriter(Path outputDirectory) {
         this.outputDirectory = outputDirectory;
-        this.resourcesDirectory =
-                outputDirectory.getParent().resolve("generated-resources").resolve("hexaglue");
-        this.docsDirectory = outputDirectory.getParent().resolve("generated-docs");
+        // outputDirectory = target/hexaglue/generated-sources (or target/hexaglue/reports for audit)
+        // hexaglueBase = target/hexaglue
+        Path hexaglueBase = outputDirectory.getParent();
+        this.resourcesDirectory = hexaglueBase.resolve("generated-resources");
+        this.docsDirectory = hexaglueBase.resolve("reports");
     }
 
     // =========================================================================

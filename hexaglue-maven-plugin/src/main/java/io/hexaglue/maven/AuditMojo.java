@@ -106,7 +106,7 @@ public class AuditMojo extends AbstractMojo {
      * {@code audit/} subdirectory. This parameter is passed to the plugin
      * via the engine configuration.
      */
-    @Parameter(property = "hexaglue.reportDirectory", defaultValue = "${project.build.directory}/hexaglue-reports")
+    @Parameter(property = "hexaglue.reportDirectory", defaultValue = "${project.build.directory}/hexaglue/reports")
     private File reportDirectory;
 
     /**

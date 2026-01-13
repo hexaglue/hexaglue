@@ -21,7 +21,7 @@ assert logContent =~ /\d+ ports/ :
     "Should detect ports"
 
 // Check generated sources directory
-def generatedSources = new File(basedir, "target/generated-sources/hexaglue")
+def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
 assert generatedSources.exists() :
     "Generated sources directory should exist"
 

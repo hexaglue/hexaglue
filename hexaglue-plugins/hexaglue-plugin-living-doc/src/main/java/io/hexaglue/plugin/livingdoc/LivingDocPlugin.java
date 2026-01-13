@@ -37,7 +37,7 @@ import io.hexaglue.spi.plugin.PluginConfig;
  *
  * <p>Configuration options:
  * <ul>
- *   <li>{@code outputDir} - output directory for documentation (default: "docs/architecture")</li>
+ *   <li>{@code outputDir} - output directory for documentation (default: "living-doc")</li>
  *   <li>{@code generateDiagrams} - whether to generate Mermaid diagrams (default: true)</li>
  * </ul>
  */
@@ -64,7 +64,7 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         }
 
         // Configuration
-        String outputDir = config.getString("outputDir", "docs/architecture");
+        String outputDir = config.getString("outputDir", "living-doc");
         boolean generateDiagrams = config.getBoolean("generateDiagrams", true);
 
         diagnostics.info("Generating living documentation in: " + outputDir);
