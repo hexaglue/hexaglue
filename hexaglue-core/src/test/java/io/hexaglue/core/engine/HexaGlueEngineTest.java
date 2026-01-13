@@ -119,9 +119,11 @@ class HexaGlueEngineTest {
         @Test
         @DisplayName("should analyze hexagonal architecture")
         void analyzeHexagonalArchitecture() throws IOException {
-            // Domain
+            // Domain - explicit annotations for deterministic classification
             writeSource("com/example/domain/Product.java", """
                     package com.example.domain;
+                    import org.jmolecules.ddd.annotation.AggregateRoot;
+                    @AggregateRoot
                     public class Product {
                         private String id;
                         private String name;
@@ -132,10 +134,12 @@ class HexaGlueEngineTest {
                     public record ProductId(java.util.UUID value) {}
                     """);
 
-            // Ports - Use method name that doesn't match COMMAND pattern
+            // Ports - explicit annotations (naming criteria removed)
             writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface CreateProductUseCase {
                         Product newProduct(String name);
                     }
@@ -143,6 +147,8 @@ class HexaGlueEngineTest {
             writeSource("com/example/port/out/ProductRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Product;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface ProductRepository {
                         void save(Product product);
                     }

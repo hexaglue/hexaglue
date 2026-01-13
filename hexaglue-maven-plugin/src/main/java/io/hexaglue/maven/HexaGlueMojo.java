@@ -19,6 +19,7 @@ import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
+import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;
 import java.io.IOException;
@@ -33,6 +34,7 @@ import java.util.Set;
 import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.MojoFailureException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
@@ -93,28 +95,30 @@ public class HexaGlueMojo extends AbstractMojo {
     private File outputDirectory;
 
     /**
-     * Classification profile to use.
+     * Whether to fail the build if unclassified types remain.
      *
-     * <p>Available profiles:
-     * <ul>
-     *   <li>{@code default} - Standard priorities for all criteria</li>
-     *   <li>{@code strict} - Favors explicit annotations over heuristics</li>
-     *   <li>{@code annotation-only} - Only trusts explicit annotations</li>
-     *   <li>{@code repository-aware} - Better detection of repository ports with plural names</li>
-     * </ul>
+     * <p>When enabled, the build will fail if any domain types cannot be
+     * classified with sufficient confidence. This encourages explicit
+     * jMolecules annotations for ambiguous types.
      *
-     * <p>Example:
-     * <pre>{@code
-     * <configuration>
-     *     <classificationProfile>repository-aware</classificationProfile>
-     * </configuration>
-     * }</pre>
+     * @since 3.0.0
      */
-    @Parameter(property = "hexaglue.classificationProfile")
-    private String classificationProfile;
+    @Parameter(property = "hexaglue.failOnUnclassified", defaultValue = "false")
+    private boolean failOnUnclassified;
+
+    /**
+     * Skip validation step before generation.
+     *
+     * <p>When true, generation will proceed even if there are unclassified types.
+     * This is not recommended for production builds.
+     *
+     * @since 3.0.0
+     */
+    @Parameter(property = "hexaglue.skipValidation", defaultValue = "false")
+    private boolean skipValidation;
 
     @Override
-    public void execute() throws MojoExecutionException {
+    public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
             getLog().info("HexaGlue generation skipped");
             return;
@@ -155,6 +159,20 @@ public class HexaGlueMojo extends AbstractMojo {
             throw new MojoExecutionException("HexaGlue analysis failed with errors");
         }
 
+        // Validation check: fail if unclassified types exist and failOnUnclassified is true
+        if (!skipValidation && failOnUnclassified && result.unclassifiedCount() > 0) {
+            getLog().error("Validation failed: " + result.unclassifiedCount() + " unclassified types");
+            for (var unclassified : result.unclassifiedTypes()) {
+                getLog().error("  - " + unclassified.typeName() + ": " + unclassified.reasoning());
+            }
+            throw new MojoFailureException(
+                    "Generation blocked: " + result.unclassifiedCount() + " unclassified types. "
+                            + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml. "
+                            + "Use -Dhexaglue.skipValidation=true to bypass (not recommended).");
+        } else if (result.unclassifiedCount() > 0) {
+            getLog().warn("Warning: " + result.unclassifiedCount() + " unclassified types detected");
+        }
+
         // Log plugin results (plugins are executed by the engine when outputDirectory is set)
         if (result.generatedFileCount() > 0) {
             getLog().info("Generated " + result.generatedFileCount() + " files");
@@ -184,6 +202,7 @@ public class HexaGlueMojo extends AbstractMojo {
         }
 
         Map<String, Map<String, Object>> pluginConfigs = loadPluginConfigs();
+        ClassificationConfig classificationConfig = loadClassificationConfig();
 
         return new EngineConfig(
                 sourceRoots,
@@ -195,7 +214,7 @@ public class HexaGlueMojo extends AbstractMojo {
                 outputDirectory.toPath(),
                 pluginConfigs,
                 Map.of(), // options
-                classificationProfile,
+                classificationConfig,
                 Set.of(PluginCategory.GENERATOR)); // Only run generator plugins
     }
 
@@ -278,6 +297,137 @@ public class HexaGlueMojo extends AbstractMojo {
         } catch (Exception e) {
             getLog().warn("Failed to parse configuration file: " + configPath, e);
             return Map.of();
+        }
+    }
+
+    /**
+     * Loads classification configuration from hexaglue.yaml or hexaglue.yml.
+     *
+     * <p>Expected YAML structure:
+     * <pre>{@code
+     * classification:
+     *   exclude:
+     *     - "*.shared.DomainEvent"
+     *     - "**.*Exception"
+     *   explicit:
+     *     com.example.order.domain.OrderDetails: ENTITY
+     *     com.example.payment.domain.PaymentStatus: VALUE_OBJECT
+     *   validation:
+     *     failOnUnclassified: true
+     *     allowInferred: true
+     * }</pre>
+     *
+     * <p>The Maven parameter {@code failOnUnclassified} can also be used to override
+     * the YAML configuration.
+     *
+     * @return the classification configuration, or defaults if not configured
+     * @since 3.0.0
+     */
+    @SuppressWarnings("unchecked")
+    private ClassificationConfig loadClassificationConfig() {
+        Path baseDir = project.getBasedir().toPath();
+
+        // Try hexaglue.yaml first, then hexaglue.yml
+        Path configPath = baseDir.resolve("hexaglue.yaml");
+        if (!Files.exists(configPath)) {
+            configPath = baseDir.resolve("hexaglue.yml");
+        }
+
+        ClassificationConfig.Builder builder = ClassificationConfig.builder();
+
+        // Apply Maven parameter override
+        if (failOnUnclassified) {
+            builder.failOnUnclassified();
+        }
+
+        if (!Files.exists(configPath)) {
+            return builder.build();
+        }
+
+        try (Reader reader = Files.newBufferedReader(configPath)) {
+            Yaml yaml = new Yaml();
+            Map<String, Object> root = yaml.load(reader);
+
+            if (root == null || !root.containsKey("classification")) {
+                return builder.build();
+            }
+
+            Object classificationObj = root.get("classification");
+            if (!(classificationObj instanceof Map)) {
+                getLog().warn("Invalid configuration: 'classification' must be a map");
+                return builder.build();
+            }
+
+            Map<String, Object> classificationMap = (Map<String, Object>) classificationObj;
+
+            // Parse exclude patterns
+            if (classificationMap.containsKey("exclude")) {
+                Object excludeObj = classificationMap.get("exclude");
+                if (excludeObj instanceof List) {
+                    List<String> excludePatterns = ((List<?>) excludeObj).stream()
+                            .filter(String.class::isInstance)
+                            .map(String.class::cast)
+                            .toList();
+                    builder.excludePatterns(excludePatterns);
+                    getLog().debug("Loaded " + excludePatterns.size() + " exclude patterns");
+                }
+            }
+
+            // Parse explicit classifications
+            if (classificationMap.containsKey("explicit")) {
+                Object explicitObj = classificationMap.get("explicit");
+                if (explicitObj instanceof Map) {
+                    Map<String, String> explicitClassifications = new HashMap<>();
+                    Map<?, ?> explicitMap = (Map<?, ?>) explicitObj;
+                    for (Map.Entry<?, ?> entry : explicitMap.entrySet()) {
+                        if (entry.getKey() instanceof String && entry.getValue() instanceof String) {
+                            explicitClassifications.put((String) entry.getKey(), (String) entry.getValue());
+                        }
+                    }
+                    builder.explicitClassifications(explicitClassifications);
+                    getLog().debug("Loaded " + explicitClassifications.size() + " explicit classifications");
+                }
+            }
+
+            // Parse validation settings
+            if (classificationMap.containsKey("validation")) {
+                Object validationObj = classificationMap.get("validation");
+                if (validationObj instanceof Map) {
+                    Map<?, ?> validationMap = (Map<?, ?>) validationObj;
+
+                    boolean yamlFailOnUnclassified = failOnUnclassified; // Maven param takes precedence
+                    if (!failOnUnclassified && validationMap.containsKey("failOnUnclassified")) {
+                        Object val = validationMap.get("failOnUnclassified");
+                        if (val instanceof Boolean) {
+                            yamlFailOnUnclassified = (Boolean) val;
+                        }
+                    }
+
+                    boolean allowInferred = true;
+                    if (validationMap.containsKey("allowInferred")) {
+                        Object val = validationMap.get("allowInferred");
+                        if (val instanceof Boolean) {
+                            allowInferred = (Boolean) val;
+                        }
+                    }
+
+                    builder.validationConfig(new ClassificationConfig.ValidationConfig(
+                            yamlFailOnUnclassified, allowInferred));
+                }
+            }
+
+            ClassificationConfig config = builder.build();
+            if (config.hasExclusions() || config.hasExplicitClassifications()) {
+                getLog().info("Loaded classification configuration from: " + configPath.getFileName());
+            }
+            return config;
+
+        } catch (IOException e) {
+            getLog().warn("Failed to read configuration file: " + configPath, e);
+            return builder.build();
+        } catch (Exception e) {
+            getLog().warn("Failed to parse classification configuration: " + e.getMessage());
+            return builder.build();
         }
     }
 

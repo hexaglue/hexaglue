@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.engine;
 
+import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,8 +34,7 @@ import java.util.Set;
  * @param outputDirectory directory for generated sources (null to skip plugin execution)
  * @param pluginConfigs plugin configurations keyed by plugin ID
  * @param options additional options (key-value pairs)
- * @param classificationProfile the classification profile name (e.g., "default", "strict",
- *     "repository-aware") or null for legacy behavior
+ * @param classificationConfig configuration for classification (exclusions, explicit mappings, validation)
  * @param enabledCategories plugin categories to execute (null or empty for all categories)
  */
 public record EngineConfig(
@@ -47,7 +47,7 @@ public record EngineConfig(
         Path outputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options,
-        String classificationProfile,
+        ClassificationConfig classificationConfig,
         Set<PluginCategory> enabledCategories) {
 
     /**
@@ -88,6 +88,7 @@ public record EngineConfig(
         classpathEntries = List.copyOf(classpathEntries);
         pluginConfigs = Map.copyOf(pluginConfigs);
         options = Map.copyOf(options);
+        classificationConfig = classificationConfig != null ? classificationConfig : ClassificationConfig.defaults();
         enabledCategories = enabledCategories != null ? Set.copyOf(enabledCategories) : null;
     }
 
@@ -119,14 +120,16 @@ public record EngineConfig(
     }
 
     /**
-     * Creates a configuration with a specific classification profile.
+     * Creates a configuration with a specific classification config.
      *
      * @param sourceRoot the source root directory
      * @param basePackage the base package to analyze
-     * @param classificationProfile the profile name (e.g., "repository-aware", "strict")
+     * @param classificationConfig the classification configuration
      * @return the configuration
+     * @since 3.0.0
      */
-    public static EngineConfig withProfile(Path sourceRoot, String basePackage, String classificationProfile) {
+    public static EngineConfig withClassificationConfig(
+            Path sourceRoot, String basePackage, ClassificationConfig classificationConfig) {
         return new EngineConfig(
                 List.of(sourceRoot),
                 List.of(),
@@ -137,7 +140,7 @@ public record EngineConfig(
                 null,
                 Map.of(),
                 Map.of(),
-                classificationProfile,
+                classificationConfig,
                 null);
     }
 
@@ -157,7 +160,7 @@ public record EngineConfig(
                 outputDirectory,
                 pluginConfigs,
                 options,
-                classificationProfile,
+                classificationConfig,
                 Set.of(PluginCategory.GENERATOR));
     }
 
@@ -177,7 +180,7 @@ public record EngineConfig(
                 outputDirectory,
                 pluginConfigs,
                 options,
-                classificationProfile,
+                classificationConfig,
                 Set.of(PluginCategory.AUDIT));
     }
 
@@ -197,7 +200,7 @@ public record EngineConfig(
                 outputDirectory,
                 pluginConfigs,
                 options,
-                classificationProfile,
+                classificationConfig,
                 null);
     }
 

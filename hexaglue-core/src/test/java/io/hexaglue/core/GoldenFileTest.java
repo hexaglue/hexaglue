@@ -65,9 +65,12 @@ class GoldenFileTest {
                 public enum Location { IN_STORE, TAKE_AWAY }
                 """);
 
+        // Explicit @ValueObject annotation (implicit heuristics removed)
         writeSource("com/coffeeshop/domain/order/LineItem.java", """
                 package com.coffeeshop.domain.order;
                 import java.math.BigDecimal;
+                import org.jmolecules.ddd.annotation.ValueObject;
+                @ValueObject
                 public record LineItem(String productName, int quantity, BigDecimal unitPrice) {}
                 """);
 
@@ -92,21 +95,26 @@ class GoldenFileTest {
                 }
                 """);
 
+        // Explicit @PrimaryPort annotation (naming criteria removed)
         writeSource("com/coffeeshop/ports/in/OrderingCoffee.java", """
                 package com.coffeeshop.ports.in;
                 import com.coffeeshop.domain.order.*;
                 import java.util.Optional;
+                import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                @PrimaryPort
                 public interface OrderingCoffee {
                     Order createOrder(String customerName, Location location);
                     Optional<Order> findOrder(OrderId id);
                 }
                 """);
 
-        // Use "Repository" suffix so looksLikeDrivenPort() excludes from COMMAND pattern
+        // Explicit @Repository annotation
         writeSource("com/coffeeshop/ports/out/OrderRepository.java", """
                 package com.coffeeshop.ports.out;
                 import com.coffeeshop.domain.order.*;
                 import java.util.Optional;
+                import org.jmolecules.ddd.annotation.Repository;
+                @Repository
                 public interface OrderRepository {
                     Order save(Order order);
                     Optional<Order> findById(OrderId id);

@@ -195,8 +195,11 @@ class IrExporterTest {
         @Test
         @DisplayName("should export record as VALUE_OBJECT")
         void exportRecordValueObject() throws IOException {
+            // Explicit @ValueObject annotation required (implicit heuristics removed)
             writeSource("com/example/Money.java", """
                     package com.example;
+                    import org.jmolecules.ddd.annotation.ValueObject;
+                    @ValueObject
                     public record Money(java.math.BigDecimal amount, String currency) {}
                     """);
 
@@ -833,9 +836,11 @@ class IrExporterTest {
         @Test
         @DisplayName("should export use case port as DRIVING")
         void exportUseCaseAsDriving() throws IOException {
-            // Use method name that doesn't match COMMAND pattern to test USE_CASE naming
+            // Explicit @PrimaryPort annotation required (naming criteria removed)
             writeSource("com/example/port/in/CreateOrderUseCase.java", """
                     package com.example.port.in;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface CreateOrderUseCase {
                         void newOrder(String customerId);
                     }

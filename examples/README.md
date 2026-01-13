@@ -9,6 +9,7 @@ This directory contains example applications demonstrating HexaGlue's code gener
 | [minimal](./minimal/) | Beginner | Core concepts, basic entity generation |
 | [coffeeshop](./coffeeshop/) | Intermediate | Value objects, enums, embedded collections |
 | [ecommerce](./ecommerce/) | Advanced | Multiple aggregates, relationships, rich domain |
+| [validation-demo](./validation-demo/) | Intermediate | Validation phase, hexaglue.yaml config, exclude patterns |
 
 ## Quick Start
 
@@ -98,6 +99,34 @@ ecommerce/
 - Entity relationships (`@OneToMany`, `@ManyToOne`)
 - Non-repository driven ports (PaymentGateway)
 - Complex value object hierarchies
+
+### 4. Validation Demo - Classification Control
+
+**Perfect for**: Understanding the validation phase and classification configuration
+
+```
+validation-demo/
+├── hexaglue.yaml          # Classification configuration
+├── application/
+│   └── OrderApplicationService.java  # APPLICATION_SERVICE
+├── domain/
+│   ├── Order.java         # @AggregateRoot (EXPLICIT)
+│   ├── OrderId.java       # VALUE_OBJECT (via hexaglue.yaml)
+│   └── OrderLine.java     # @Entity (EXPLICIT)
+├── port/
+│   ├── OrderService.java  # DRIVING port
+│   └── OrderRepository.java # DRIVEN port
+└── util/
+    └── StringUtils.java   # EXCLUDED via pattern
+```
+
+**Key Concepts**:
+- `hexaglue:validate` goal for classification validation
+- `classification.exclude` patterns
+- `classification.explicit` mappings
+- `failOnUnclassified` for CI/CD
+
+---
 
 ## What Gets Generated
 

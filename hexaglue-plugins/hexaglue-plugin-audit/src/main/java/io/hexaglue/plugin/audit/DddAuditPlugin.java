@@ -21,6 +21,7 @@ import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.PortCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.report.ConsoleReportGenerator;
+import io.hexaglue.plugin.audit.adapter.report.DocumentationGenerator;
 import io.hexaglue.plugin.audit.adapter.report.ReportFormat;
 import io.hexaglue.plugin.audit.adapter.report.ReportGenerator;
 import io.hexaglue.plugin.audit.adapter.report.ReportGeneratorFactory;
@@ -55,6 +56,7 @@ import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.ir.Port;
+import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -462,9 +464,31 @@ public class DddAuditPlugin implements AuditPlugin {
                     }
                 }
             }
+
+            // Generate documentation files if enabled
+            if (isDocumentationEnabled(context.config())) {
+                Path baseDir = context.writer().getOutputDirectory();
+                Path docsDir = baseDir.resolve("docs");
+                DocumentationGenerator docGenerator = new DocumentationGenerator();
+                docGenerator.generateAll(report, docsDir);
+                context.diagnostics().info("Generated architecture documentation in: " + docsDir);
+            }
         } catch (IOException e) {
             context.diagnostics().warn("Failed to generate audit reports: " + e.getMessage());
         }
+    }
+
+    /**
+     * Checks if documentation generation is enabled.
+     *
+     * <p>Documentation generation is enabled by setting "generateDocs" to "true"
+     * in the plugin configuration.
+     *
+     * @param config the plugin configuration
+     * @return true if documentation generation is enabled
+     */
+    private boolean isDocumentationEnabled(PluginConfig config) {
+        return config.getBoolean("generateDocs", false);
     }
 
     /**
@@ -655,6 +679,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * <ul>
      *   <li>AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE → DOMAIN</li>
      *   <li>APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA → APPLICATION</li>
+     *   <li>UNCLASSIFIED → UNKNOWN (cannot determine layer)</li>
      * </ul>
      *
      * @param kind the domain kind
@@ -665,6 +690,7 @@ public class DddAuditPlugin implements AuditPlugin {
             case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE -> LayerClassification
                     .DOMAIN;
             case APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> LayerClassification.APPLICATION;
+            case UNCLASSIFIED -> LayerClassification.UNKNOWN;
         };
     }
 
@@ -678,7 +704,7 @@ public class DddAuditPlugin implements AuditPlugin {
      *   <li>VALUE_OBJECT, IDENTIFIER → VALUE_OBJECT</li>
      *   <li>DOMAIN_EVENT → VALUE_OBJECT (events are immutable facts, semantically value objects)</li>
      *   <li>DOMAIN_SERVICE, APPLICATION_SERVICE → SERVICE</li>
-     *   <li>Others → UNKNOWN</li>
+     *   <li>UNCLASSIFIED, INBOUND_ONLY, OUTBOUND_ONLY, SAGA → UNKNOWN</li>
      * </ul>
      */
     private RoleClassification roleFromDomainKind(DomainKind kind) {
@@ -688,7 +714,7 @@ public class DddAuditPlugin implements AuditPlugin {
             case VALUE_OBJECT, IDENTIFIER -> RoleClassification.VALUE_OBJECT;
             case DOMAIN_EVENT -> RoleClassification.VALUE_OBJECT; // Events are immutable facts
             case DOMAIN_SERVICE, APPLICATION_SERVICE -> RoleClassification.SERVICE;
-            case INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> RoleClassification.UNKNOWN;
+            case UNCLASSIFIED, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> RoleClassification.UNKNOWN;
         };
     }
 

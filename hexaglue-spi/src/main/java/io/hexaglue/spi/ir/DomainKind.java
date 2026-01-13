@@ -84,5 +84,22 @@ public enum DomainKind {
      * <p>A saga is an outbound-only actor that depends on 2+ driven ports
      * and maintains state fields for tracking progress.
      */
-    SAGA
+    SAGA,
+
+    /**
+     * Unclassified - a type that could not be classified with sufficient confidence.
+     *
+     * <p>Types are marked as UNCLASSIFIED when:
+     * <ul>
+     *   <li>No classification criteria matched with high enough confidence</li>
+     *   <li>The type requires explicit jMolecules annotations for classification</li>
+     *   <li>Multiple conflicting classifications exist with equal priority</li>
+     * </ul>
+     *
+     * <p>Users should resolve UNCLASSIFIED types by adding explicit jMolecules
+     * annotations or configuring classification hints in hexaglue.yaml.
+     *
+     * @since 3.0.0
+     */
+    UNCLASSIFIED
 }

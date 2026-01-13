@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.adapter.report;
 
+import io.hexaglue.plugin.audit.adapter.diagram.C4DiagramBuilder;
 import io.hexaglue.plugin.audit.adapter.report.model.ArchitectureAnalysis;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
@@ -101,8 +102,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         // Health Score
         appendHealthScore(md, report.healthScore(), numbering);
 
-        // Architecture Overview (Component Inventory + Bounded Contexts + Architecture Diagram)
-        appendComponentInventory(md, report.inventory(), report.detectedStyle(), numbering);
+        // Architecture Overview (Component Inventory + Bounded Contexts + Architecture Diagram + C4)
+        appendComponentInventory(md, report, numbering);
 
         // DDD Compliance
         appendDddCompliance(md, report.dddCompliancePercent(), report, numbering);
@@ -574,10 +575,12 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
     /**
      * Appends the architecture overview section with component inventory, bounded context breakdown,
-     * and architectural style diagram.
+     * architectural style diagram, and C4 model diagrams.
      */
-    private void appendComponentInventory(
-            StringBuilder md, ComponentInventory inventory, DetectedArchitectureStyle style, SectionNumbering numbering) {
+    private void appendComponentInventory(StringBuilder md, AuditReport report, SectionNumbering numbering) {
+        ComponentInventory inventory = report.inventory();
+        DetectedArchitectureStyle style = report.detectedStyle();
+
         md.append(numbering.h2("Architecture Overview")).append("\n\n");
 
         // 3.1 Component Inventory
@@ -652,6 +655,52 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         // 3.3 Detected Architectural Style
         md.append(numbering.h3("Detected Architectural Style")).append("\n\n");
         appendArchitectureDiagram(md, inventory, style, numbering);
+
+        // 3.4 C4 Model Diagrams (data-driven)
+        appendC4Diagrams(md, report, numbering);
+    }
+
+    /**
+     * Appends C4 model diagrams using data from IrSnapshot and ArchitectureQuery.
+     *
+     * <p>C4 diagrams provide standardized architectural views:
+     * <ul>
+     *   <li>System Context - Shows bounded contexts and external actors</li>
+     *   <li>Container - Shows driving/driven ports and domain core</li>
+     *   <li>Aggregate - Shows aggregate roots with their entities</li>
+     *   <li>Port Matrix - Shows port classification (driving vs driven)</li>
+     * </ul>
+     */
+    private void appendC4Diagrams(StringBuilder md, AuditReport report, SectionNumbering numbering) {
+        // Only generate if IR snapshot is available
+        if (report.irSnapshot() == null) {
+            return;
+        }
+
+        md.append(numbering.h3("C4 Model Views")).append("\n\n");
+
+        C4DiagramBuilder c4 = new C4DiagramBuilder();
+        String projectName = report.metadata().projectName();
+
+        // System Context Diagram
+        md.append(numbering.h4("System Context (C4 Level 1)")).append("\n\n");
+        md.append(c4.buildSystemContextDiagram(projectName, report.inventory().boundedContexts()));
+        md.append("\n");
+
+        // Container Diagram
+        md.append(numbering.h4("Container View (C4 Level 2)")).append("\n\n");
+        md.append(c4.buildContainerDiagram(projectName, report.irSnapshot(), report.architectureQuery()));
+        md.append("\n");
+
+        // Aggregate Diagram
+        md.append(numbering.h4("Aggregate Model")).append("\n\n");
+        md.append(c4.buildAggregateDiagram(report.irSnapshot()));
+        md.append("\n");
+
+        // Port Matrix Diagram
+        md.append(numbering.h4("Port Matrix")).append("\n\n");
+        md.append(c4.buildPortMatrixDiagram(report.irSnapshot()));
+        md.append("\n");
     }
 
     /**

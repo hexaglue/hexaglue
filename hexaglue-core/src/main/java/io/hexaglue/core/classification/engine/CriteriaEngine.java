@@ -38,13 +38,14 @@ import java.util.Objects;
  *   <li>{@code C} - the criteria type (must extend ClassificationCriteria)</li>
  * </ul>
  *
+ * <p>Priorities are taken directly from each criteria's {@code priority()} method.
+ *
  * @param <K> the kind enum type (must extend Enum)
  * @param <C> the criteria type
  */
 public final class CriteriaEngine<K extends Enum<K>, C extends ClassificationCriteria<K>> {
 
     private final List<C> criteria;
-    private final CriteriaProfile profile;
     private final DecisionPolicy<K> decisionPolicy;
     private final CompatibilityPolicy<K> compatibilityPolicy;
     private final ContributionBuilder<K, C> contributionBuilder;
@@ -53,19 +54,16 @@ public final class CriteriaEngine<K extends Enum<K>, C extends ClassificationCri
      * Creates a new criteria engine.
      *
      * @param criteria the list of criteria to evaluate
-     * @param profile the profile for priority configuration
      * @param decisionPolicy the policy for making decisions
      * @param compatibilityPolicy the policy for determining kind compatibility
      * @param contributionBuilder function to build contributions from match results
      */
     public CriteriaEngine(
             List<C> criteria,
-            CriteriaProfile profile,
             DecisionPolicy<K> decisionPolicy,
             CompatibilityPolicy<K> compatibilityPolicy,
             ContributionBuilder<K, C> contributionBuilder) {
         this.criteria = List.copyOf(Objects.requireNonNull(criteria, "criteria cannot be null"));
-        this.profile = Objects.requireNonNull(profile, "profile cannot be null");
         this.decisionPolicy = Objects.requireNonNull(decisionPolicy, "decisionPolicy cannot be null");
         this.compatibilityPolicy = Objects.requireNonNull(compatibilityPolicy, "compatibilityPolicy cannot be null");
         this.contributionBuilder = Objects.requireNonNull(contributionBuilder, "contributionBuilder cannot be null");
@@ -75,16 +73,14 @@ public final class CriteriaEngine<K extends Enum<K>, C extends ClassificationCri
      * Creates a new criteria engine with the default decision policy.
      *
      * @param criteria the list of criteria to evaluate
-     * @param profile the profile for priority configuration
      * @param compatibilityPolicy the policy for determining kind compatibility
      * @param contributionBuilder function to build contributions from match results
      */
     public CriteriaEngine(
             List<C> criteria,
-            CriteriaProfile profile,
             CompatibilityPolicy<K> compatibilityPolicy,
             ContributionBuilder<K, C> contributionBuilder) {
-        this(criteria, profile, new DefaultDecisionPolicy<>(), compatibilityPolicy, contributionBuilder);
+        this(criteria, new DefaultDecisionPolicy<>(), compatibilityPolicy, contributionBuilder);
     }
 
     /**
@@ -100,8 +96,7 @@ public final class CriteriaEngine<K extends Enum<K>, C extends ClassificationCri
         for (C criterion : criteria) {
             MatchResult result = criterion.evaluate(node, query);
             if (result.matched()) {
-                int effectivePriority = profile.resolvePriority(criterion);
-                Contribution<K> contribution = contributionBuilder.build(criterion, result, effectivePriority);
+                Contribution<K> contribution = contributionBuilder.build(criterion, result, criterion.priority());
                 contributions.add(contribution);
             }
         }
@@ -126,13 +121,6 @@ public final class CriteriaEngine<K extends Enum<K>, C extends ClassificationCri
      */
     public List<C> criteria() {
         return criteria;
-    }
-
-    /**
-     * Returns the profile used by this engine.
-     */
-    public CriteriaProfile profile() {
-        return profile;
     }
 
     /**

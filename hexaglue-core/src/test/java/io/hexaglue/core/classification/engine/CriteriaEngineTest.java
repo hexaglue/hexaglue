@@ -24,7 +24,6 @@ import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.Test;
  *   <li>Evaluate criteria against type nodes</li>
  *   <li>Collect contributions from matching criteria</li>
  *   <li>Delegate to decision policy for classification</li>
- *   <li>Respect profile priority overrides</li>
  * </ul>
  */
 @DisplayName("CriteriaEngine")
@@ -67,13 +65,8 @@ class CriteriaEngineTest {
 
     private CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> createEngine(
             List<ClassificationCriteria<DomainKind>> criteria) {
-        return createEngine(criteria, CriteriaProfile.legacy());
-    }
-
-    private CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> createEngine(
-            List<ClassificationCriteria<DomainKind>> criteria, CriteriaProfile profile) {
         return new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
-                criteria, profile, new DefaultDecisionPolicy<>(), compatibilityPolicy, this::buildContribution);
+                criteria, new DefaultDecisionPolicy<>(), compatibilityPolicy, this::buildContribution);
     }
 
     private Contribution<DomainKind> buildContribution(
@@ -131,7 +124,6 @@ class CriteriaEngineTest {
         void shouldRejectNullCriteria() {
             assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
                             null,
-                            CriteriaProfile.legacy(),
                             new DefaultDecisionPolicy<>(),
                             compatibilityPolicy,
                             CriteriaEngineTest.this::buildContribution))
@@ -140,24 +132,10 @@ class CriteriaEngineTest {
         }
 
         @Test
-        @DisplayName("should reject null profile")
-        void shouldRejectNullProfile() {
-            assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
-                            List.of(),
-                            null,
-                            new DefaultDecisionPolicy<>(),
-                            compatibilityPolicy,
-                            CriteriaEngineTest.this::buildContribution))
-                    .isInstanceOf(NullPointerException.class)
-                    .hasMessageContaining("profile");
-        }
-
-        @Test
         @DisplayName("should reject null compatibility policy")
         void shouldRejectNullCompatibilityPolicy() {
             assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
                             List.of(),
-                            CriteriaProfile.legacy(),
                             new DefaultDecisionPolicy<>(),
                             null,
                             CriteriaEngineTest.this::buildContribution))
@@ -170,7 +148,6 @@ class CriteriaEngineTest {
         void shouldRejectNullContributionBuilder() {
             assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
                             List.of(),
-                            CriteriaProfile.legacy(),
                             new DefaultDecisionPolicy<>(),
                             compatibilityPolicy,
                             null))
@@ -316,73 +293,6 @@ class CriteriaEngineTest {
     }
 
     // =========================================================================
-    // Profile Priority Override
-    // =========================================================================
-
-    @Nested
-    @DisplayName("Profile priority override")
-    class ProfilePriorityOverrideTest {
-
-        @Test
-        @DisplayName("should use profile priority instead of criteria default")
-        void shouldUseProfilePriority() {
-            ClassificationCriteria<DomainKind> criteria = createCriteria(
-                    "test-criteria", 50, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "Test"));
-
-            // Override priority from 50 to 100
-            CriteriaProfile profile = CriteriaProfile.withOverrides(Map.of("test-criteria", 100));
-
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
-                    createEngine(List.of(criteria), profile);
-
-            List<Contribution<DomainKind>> contributions = engine.evaluate(testNode, mockQuery);
-
-            assertThat(contributions).hasSize(1);
-            assertThat(contributions.get(0).priority()).isEqualTo(100);
-        }
-
-        @Test
-        @DisplayName("should use criteria priority when no override exists")
-        void shouldUseCriteriaPriorityWhenNoOverride() {
-            ClassificationCriteria<DomainKind> criteria = createCriteria(
-                    "test-criteria", 80, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "Test"));
-
-            // Override for different criteria
-            CriteriaProfile profile = CriteriaProfile.withOverrides(Map.of("other-criteria", 100));
-
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
-                    createEngine(List.of(criteria), profile);
-
-            List<Contribution<DomainKind>> contributions = engine.evaluate(testNode, mockQuery);
-
-            assertThat(contributions).hasSize(1);
-            assertThat(contributions.get(0).priority()).isEqualTo(80);
-        }
-
-        @Test
-        @DisplayName("profile override should affect classification result")
-        void profileOverrideShouldAffectClassification() {
-            // Criteria A has default priority 50, Criteria B has default priority 100
-            // But we override A to 120
-            ClassificationCriteria<DomainKind> criteriaA = createCriteria(
-                    "criteriaA", 50, DomainKind.VALUE_OBJECT, node -> MatchResult.match(ConfidenceLevel.HIGH, "A"));
-            ClassificationCriteria<DomainKind> criteriaB = createCriteria(
-                    "criteriaB", 100, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
-
-            CriteriaProfile profile = CriteriaProfile.withOverrides(Map.of("criteriaA", 120));
-
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
-                    createEngine(List.of(criteriaA, criteriaB), profile);
-
-            DecisionPolicy.Decision<DomainKind> decision = engine.classify(testNode, mockQuery);
-
-            // CriteriaA should win due to profile override
-            assertThat(decision.winner().get().kind()).isEqualTo(DomainKind.VALUE_OBJECT);
-            assertThat(decision.winner().get().priority()).isEqualTo(120);
-        }
-    }
-
-    // =========================================================================
     // Accessors
     // =========================================================================
 
@@ -399,16 +309,6 @@ class CriteriaEngineTest {
             CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of(criteria));
 
             assertThatThrownBy(() -> engine.criteria().add(criteria)).isInstanceOf(UnsupportedOperationException.class);
-        }
-
-        @Test
-        @DisplayName("profile() should return the configured profile")
-        void profileShouldReturnConfiguredProfile() {
-            CriteriaProfile profile = CriteriaProfile.withOverrides(Map.of("test", 100));
-
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of(), profile);
-
-            assertThat(engine.profile()).isSameAs(profile);
         }
     }
 

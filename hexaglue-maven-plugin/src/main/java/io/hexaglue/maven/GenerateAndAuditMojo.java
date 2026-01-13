@@ -20,6 +20,7 @@ import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.audit.AuditSnapshot;
+import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;
 import java.nio.file.Path;
@@ -96,10 +97,12 @@ public class GenerateAndAuditMojo extends AbstractMojo {
     private File outputDirectory;
 
     /**
-     * Classification profile to use.
+     * Whether to fail the build if unclassified types remain.
+     *
+     * @since 3.0.0
      */
-    @Parameter(property = "hexaglue.classificationProfile")
-    private String classificationProfile;
+    @Parameter(property = "hexaglue.failOnUnclassified", defaultValue = "false")
+    private boolean failOnUnclassified;
 
     // Audit-specific parameters
 
@@ -238,6 +241,11 @@ public class GenerateAndAuditMojo extends AbstractMojo {
             javaVersion = 21;
         }
 
+        // Build classification config
+        ClassificationConfig classificationConfig = failOnUnclassified
+                ? ClassificationConfig.builder().failOnUnclassified().build()
+                : ClassificationConfig.defaults();
+
         return new EngineConfig(
                 sourceRoots,
                 classpath,
@@ -248,7 +256,7 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 outputDirectory.toPath(),
                 Map.of(), // pluginConfigs loaded by ServiceLoader
                 Map.of(),
-                classificationProfile,
+                classificationConfig,
                 Set.of(PluginCategory.GENERATOR)); // Only run generator plugins
     }
 
@@ -272,6 +280,11 @@ public class GenerateAndAuditMojo extends AbstractMojo {
         // Build plugin configs from audit config
         Map<String, Map<String, Object>> pluginConfigs = auditConfig != null ? auditConfig.toPluginConfigs() : Map.of();
 
+        // Build classification config
+        ClassificationConfig classificationConfig = failOnUnclassified
+                ? ClassificationConfig.builder().failOnUnclassified().build()
+                : ClassificationConfig.defaults();
+
         return new EngineConfig(
                 sourceRoots,
                 classpath,
@@ -282,7 +295,7 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 reportDirectory.toPath(), // Audit plugins need output directory for reports
                 pluginConfigs,
                 Map.of(),
-                classificationProfile,
+                classificationConfig,
                 Set.of(PluginCategory.AUDIT)); // Only run audit plugins
     }
 

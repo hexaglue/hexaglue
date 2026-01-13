@@ -117,5 +117,22 @@ public enum DomainKind {
      *
      * <p>Classification: OUTBOUND_ONLY + ≥2 driven dependencies + state fields.
      */
-    SAGA
+    SAGA,
+
+    /**
+     * Unclassified - a type that could not be classified with sufficient confidence.
+     *
+     * <p>Types are marked as UNCLASSIFIED when:
+     * <ul>
+     *   <li>No classification criteria matched with high enough confidence</li>
+     *   <li>The type requires explicit jMolecules annotations for classification</li>
+     *   <li>Multiple conflicting classifications exist with equal priority</li>
+     * </ul>
+     *
+     * <p>Users should resolve UNCLASSIFIED types by adding explicit jMolecules
+     * annotations or configuring classification hints in hexaglue.yaml.
+     *
+     * @since 3.0.0
+     */
+    UNCLASSIFIED
 }

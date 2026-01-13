@@ -30,6 +30,7 @@ import java.util.Optional;
  * @param relations the relationships to other domain types
  * @param annotations the annotation qualified names present on this type
  * @param sourceRef source location for diagnostics
+ * @param unclassifiedReason reason for UNCLASSIFIED status, present only when kind is UNCLASSIFIED
  */
 public record DomainType(
         String qualifiedName,
@@ -42,10 +43,11 @@ public record DomainType(
         List<DomainProperty> properties,
         List<DomainRelation> relations,
         List<String> annotations,
-        SourceRef sourceRef) {
+        SourceRef sourceRef,
+        Optional<UnclassifiedReason> unclassifiedReason) {
 
     /**
-     * Backward-compatible constructor without relations.
+     * Backward-compatible constructor without relations and unclassifiedReason.
      *
      * @since 2.0.0
      */
@@ -71,7 +73,40 @@ public record DomainType(
                 properties,
                 List.of(),
                 annotations,
-                sourceRef);
+                sourceRef,
+                Optional.empty());
+    }
+
+    /**
+     * Backward-compatible constructor without unclassifiedReason.
+     *
+     * @since 3.0.0
+     */
+    public DomainType(
+            String qualifiedName,
+            String simpleName,
+            String packageName,
+            DomainKind kind,
+            ConfidenceLevel confidence,
+            JavaConstruct construct,
+            Optional<Identity> identity,
+            List<DomainProperty> properties,
+            List<DomainRelation> relations,
+            List<String> annotations,
+            SourceRef sourceRef) {
+        this(
+                qualifiedName,
+                simpleName,
+                packageName,
+                kind,
+                confidence,
+                construct,
+                identity,
+                properties,
+                relations,
+                annotations,
+                sourceRef,
+                Optional.empty());
     }
 
     /**
@@ -100,6 +135,15 @@ public record DomainType(
      */
     public boolean isValueObject() {
         return kind == DomainKind.VALUE_OBJECT;
+    }
+
+    /**
+     * Returns true if this type could not be classified.
+     *
+     * @since 3.0.0
+     */
+    public boolean isUnclassified() {
+        return kind == DomainKind.UNCLASSIFIED;
     }
 
     /**

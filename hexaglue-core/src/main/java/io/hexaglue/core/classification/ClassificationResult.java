@@ -171,14 +171,20 @@ public record ClassificationResult(
 
     /**
      * Creates an unclassified result (no criteria matched).
+     *
+     * @deprecated Use {@link #unclassifiedDomain} or {@link #unclassifiedPort} for explicit target.
      */
+    @Deprecated(since = "3.0.0")
     public static ClassificationResult unclassified(NodeId subjectId) {
         return unclassified(subjectId, null);
     }
 
     /**
      * Creates an unclassified result with reason trace.
+     *
+     * @deprecated Use {@link #unclassifiedDomain} or {@link #unclassifiedPort} for explicit target.
      */
+    @Deprecated(since = "3.0.0")
     public static ClassificationResult unclassified(NodeId subjectId, ReasonTrace reasonTrace) {
         return new ClassificationResult(
                 subjectId,
@@ -188,6 +194,61 @@ public record ClassificationResult(
                 null,
                 0,
                 null,
+                List.of(),
+                List.of(),
+                null,
+                ClassificationStatus.UNCLASSIFIED,
+                reasonTrace);
+    }
+
+    /**
+     * Creates an unclassified domain result.
+     *
+     * <p>This indicates that no classification criteria matched with sufficient
+     * confidence for this domain type. Users should add explicit jMolecules
+     * annotations to resolve the classification.
+     *
+     * @param subjectId the node that could not be classified
+     * @param reasonTrace detailed trace explaining why classification failed
+     * @return an UNCLASSIFIED result for the domain target
+     * @since 3.0.0
+     */
+    public static ClassificationResult unclassifiedDomain(NodeId subjectId, ReasonTrace reasonTrace) {
+        return new ClassificationResult(
+                subjectId,
+                ClassificationTarget.DOMAIN,
+                "UNCLASSIFIED",
+                null,
+                null,
+                0,
+                "No classification criteria matched with sufficient confidence",
+                List.of(),
+                List.of(),
+                null,
+                ClassificationStatus.UNCLASSIFIED,
+                reasonTrace);
+    }
+
+    /**
+     * Creates an unclassified port result.
+     *
+     * <p>This indicates that no classification criteria matched for this port.
+     * The interface may not be a port, or it needs explicit jMolecules annotations.
+     *
+     * @param subjectId the node that could not be classified
+     * @param reasonTrace detailed trace explaining why classification failed
+     * @return an UNCLASSIFIED result for the port target
+     * @since 3.0.0
+     */
+    public static ClassificationResult unclassifiedPort(NodeId subjectId, ReasonTrace reasonTrace) {
+        return new ClassificationResult(
+                subjectId,
+                ClassificationTarget.PORT,
+                null, // Ports don't use UNCLASSIFIED kind, they simply aren't ports
+                null,
+                null,
+                0,
+                "No port classification criteria matched",
                 List.of(),
                 List.of(),
                 null,

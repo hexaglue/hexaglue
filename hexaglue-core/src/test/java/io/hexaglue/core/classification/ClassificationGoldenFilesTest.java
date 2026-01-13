@@ -208,12 +208,12 @@ class ClassificationGoldenFilesTest {
          *
          * <p>Expected classifications:
          * <ul>
-         *   <li>Account.java → AGGREGATE_ROOT (repository-dominant + identity)</li>
+         *   <li>Account.java → AGGREGATE_ROOT (repository-dominant)</li>
          *   <li>AccountId.java → IDENTIFIER (record-single-id)</li>
-         *   <li>Money.java → VALUE_OBJECT (immutable-no-id)</li>
-         *   <li>Transaction.java → ENTITY (has-identity)</li>
-         *   <li>AccountRepository.java → REPOSITORY (naming-repository)</li>
-         *   <li>TransferService.java → USE_CASE (naming-use-case)</li>
+         *   <li>Money.java → VALUE_OBJECT (explicit-value-object)</li>
+         *   <li>Transaction.java → ENTITY (explicit-entity)</li>
+         *   <li>AccountRepository.java → REPOSITORY (explicit-repository)</li>
+         *   <li>TransferUseCase.java → USE_CASE (explicit-primary-port)</li>
          * </ul>
          */
         @Test
@@ -231,10 +231,11 @@ class ClassificationGoldenFilesTest {
                     .collect(Collectors.toMap(r -> extractFqn(r.subjectId()), r -> r, (a, b) -> a, LinkedHashMap::new));
 
             // Golden file assertions - Domain types
+            // Note: explicit annotations have priority 100
             assertClassification(resultsByType, "com.example.banking.domain.Account", "AGGREGATE_ROOT", 80);
             assertClassification(resultsByType, "com.example.banking.domain.AccountId", "IDENTIFIER", 80);
-            assertClassification(resultsByType, "com.example.banking.domain.Money", "VALUE_OBJECT", 60);
-            assertClassification(resultsByType, "com.example.banking.domain.Transaction", "ENTITY", 60);
+            assertClassification(resultsByType, "com.example.banking.domain.Money", "VALUE_OBJECT", 100);
+            assertClassification(resultsByType, "com.example.banking.domain.Transaction", "ENTITY", 100);
 
             // Golden file assertions - Ports
             assertPortClassification(
@@ -244,10 +245,12 @@ class ClassificationGoldenFilesTest {
         }
 
         private void createBankingExample() throws IOException {
-            // Value Objects
+            // Value Objects - explicit annotation (immutable-no-id removed)
             writeSource("com/example/banking/domain/Money.java", """
                     package com.example.banking.domain;
                     import java.math.BigDecimal;
+                    import org.jmolecules.ddd.annotation.ValueObject;
+                    @ValueObject
                     public record Money(BigDecimal amount, String currency) {
                         public Money add(Money other) {
                             if (!currency.equals(other.currency)) {
@@ -274,11 +277,13 @@ class ClassificationGoldenFilesTest {
                     }
                     """);
 
-            // Entity
+            // Entity - explicit annotation (has-identity removed)
             writeSource("com/example/banking/domain/Transaction.java", """
                     package com.example.banking.domain;
                     import java.time.Instant;
                     import java.util.UUID;
+                    import org.jmolecules.ddd.annotation.Entity;
+                    @Entity
                     public class Transaction {
                         private final UUID id;
                         private final Money amount;
@@ -336,12 +341,14 @@ class ClassificationGoldenFilesTest {
                     }
                     """);
 
-            // Ports
+            // Ports - explicit annotations (naming criteria removed)
             writeSource("com/example/banking/ports/out/AccountRepository.java", """
                     package com.example.banking.ports.out;
                     import com.example.banking.domain.Account;
                     import com.example.banking.domain.AccountId;
                     import java.util.Optional;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface AccountRepository {
                         Account save(Account account);
                         Optional<Account> findById(AccountId id);
@@ -353,6 +360,8 @@ class ClassificationGoldenFilesTest {
                     package com.example.banking.ports.in;
                     import com.example.banking.domain.AccountId;
                     import com.example.banking.domain.Money;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface TransferUseCase {
                         void transfer(AccountId from, AccountId to, Money amount);
                     }

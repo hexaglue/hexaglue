@@ -75,7 +75,7 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should classify and export complete CoffeeShop domain model")
         void exportCoffeeShopDomainModel() throws IOException {
-            // Setup: Complete CoffeeShop domain with Order, LineItem, Location
+            // Setup: Complete CoffeeShop domain with explicit jMolecules annotations
             writeSource("com/example/domain/OrderId.java", """
                     package com.example.domain;
                     public record OrderId(java.util.UUID value) {}
@@ -91,8 +91,11 @@ class IrExportIntegrationTest {
                         private java.math.BigDecimal total;
                     }
                     """);
+            // Explicit @Entity annotation (collection-element-entity removed)
             writeSource("com/example/domain/LineItem.java", """
                     package com.example.domain;
+                    import org.jmolecules.ddd.annotation.Entity;
+                    @Entity
                     public class LineItem {
                         private Long id;
                         private String productName;
@@ -100,15 +103,20 @@ class IrExportIntegrationTest {
                         private java.math.BigDecimal price;
                     }
                     """);
+            // Explicit @ValueObject annotation (embedded-value-object removed)
             writeSource("com/example/domain/Location.java", """
                     package com.example.domain;
+                    import org.jmolecules.ddd.annotation.ValueObject;
+                    @ValueObject
                     public record Location(String city, String street, String zipCode) {}
                     """);
-            // Use "Repository" suffix so naming criteria matches before command pattern
+            // Explicit @Repository annotation
             writeSource("com/example/domain/OrderRepository.java", """
                     package com.example.domain;
                     import java.util.List;
                     import java.util.Optional;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface OrderRepository {
                         Optional<Order> findById(OrderId id);
                         void save(Order order);
@@ -137,14 +145,16 @@ class IrExportIntegrationTest {
             assertThat(orderId.kind()).isEqualTo(DomainKind.IDENTIFIER);
             assertThat(orderId.construct()).isEqualTo(JavaConstruct.RECORD);
 
-            // LineItem should be ENTITY (has id field)
+            // LineItem should be ENTITY (explicit annotation)
             DomainType lineItem = findDomainType(snapshot, "LineItem");
             assertThat(lineItem.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(lineItem.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(lineItem.hasIdentity()).isTrue();
 
-            // Location should be VALUE_OBJECT (record without id)
+            // Location should be VALUE_OBJECT (explicit annotation)
             DomainType location = findDomainType(snapshot, "Location");
             assertThat(location.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(location.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(location.construct()).isEqualTo(JavaConstruct.RECORD);
             assertThat(location.hasIdentity()).isFalse();
 
@@ -195,9 +205,11 @@ class IrExportIntegrationTest {
         @Test
         @DisplayName("should export complete hexagonal architecture with ports in/out")
         void exportHexagonalArchitecture() throws IOException {
-            // Domain
+            // Domain - explicit @AggregateRoot annotation for deterministic classification
             writeSource("com/example/domain/Product.java", """
                     package com.example.domain;
+                    import org.jmolecules.ddd.annotation.AggregateRoot;
+                    @AggregateRoot
                     public class Product {
                         private String id;
                         private String name;
@@ -205,31 +217,36 @@ class IrExportIntegrationTest {
                     }
                     """);
 
-            // Driving port (in) - use naming pattern for reliable classification
-            // Use method name that doesn't match COMMAND pattern to test USE_CASE naming
+            // Driving port (in) - explicit @PrimaryPort annotation (naming criteria removed)
             writeSource("com/example/port/in/CreateProductUseCase.java", """
                     package com.example.port.in;
                     import com.example.domain.Product;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface CreateProductUseCase {
                         Product newProduct(String name, java.math.BigDecimal price);
                     }
                     """);
 
-            // Driven port (out) - repository with naming pattern
+            // Driven port (out) - explicit @Repository annotation
             writeSource("com/example/port/out/ProductRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Product;
                     import java.util.Optional;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface ProductRepository {
                         void save(Product product);
                         Optional<Product> findById(String id);
                     }
                     """);
 
-            // Driven port - gateway with naming pattern (in infrastructure package to test naming)
+            // Driven port - explicit @SecondaryPort annotation (naming criteria removed)
             writeSource("com/example/infrastructure/NotificationGateway.java", """
                     package com.example.infrastructure;
                     import com.example.domain.Product;
+                    import org.jmolecules.architecture.hexagonal.SecondaryPort;
+                    @SecondaryPort
                     public interface NotificationGateway {
                         void notifyProductCreated(Product product);
                     }
@@ -262,26 +279,29 @@ class IrExportIntegrationTest {
         }
 
         @Test
-        @DisplayName("should correctly identify port directions from package and naming")
+        @DisplayName("should correctly identify port directions from explicit annotations")
         void identifyPortDirections() throws IOException {
             writeSource("com/example/domain/Entity.java", """
                     package com.example.domain;
                     public class Entity { private String id; }
                     """);
 
-            // Package .port.in with UseCase naming = DRIVING
-            // Use method name that doesn't match COMMAND pattern
+            // Driving port - explicit @PrimaryPort annotation (naming criteria removed)
             writeSource("com/example/port/in/SomeUseCase.java", """
                     package com.example.port.in;
+                    import org.jmolecules.architecture.hexagonal.PrimaryPort;
+                    @PrimaryPort
                     public interface SomeUseCase {
                         void forEntity(String entityId);
                     }
                     """);
 
-            // Repository pattern = DRIVEN
+            // Repository - explicit @Repository annotation
             writeSource("com/example/port/out/EntityRepository.java", """
                     package com.example.port.out;
                     import com.example.domain.Entity;
+                    import org.jmolecules.ddd.annotation.Repository;
+                    @Repository
                     public interface EntityRepository {
                         Entity findById(String id);
                     }

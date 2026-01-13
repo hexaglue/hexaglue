@@ -15,6 +15,7 @@ package io.hexaglue.core.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.nio.file.Path;
 import java.util.Set;
@@ -49,12 +50,16 @@ class EngineConfigTest {
     }
 
     @Test
-    void withProfileConfig_hasNullCategories() {
+    void withClassificationConfig_hasNullCategories() {
         // Given
-        EngineConfig config = EngineConfig.withProfile(tempDir, "com.example", "default");
+        ClassificationConfig classificationConfig = ClassificationConfig.builder()
+                .failOnUnclassified()
+                .build();
+        EngineConfig config = EngineConfig.withClassificationConfig(tempDir, "com.example", classificationConfig);
 
-        // Then: withProfile config has no category filter
+        // Then: withClassificationConfig has no category filter
         assertThat(config.enabledCategories()).isNull();
+        assertThat(config.classificationConfig()).isEqualTo(classificationConfig);
     }
 
     @Test
@@ -125,8 +130,11 @@ class EngineConfigTest {
 
     @Test
     void onlyGenerators_chainingPreservesOtherProperties() {
-        // Given: config with specific profile and output directory
+        // Given: config with specific classification config and output directory
         Path outputDir = tempDir.resolve("output");
+        ClassificationConfig classificationConfig = ClassificationConfig.builder()
+                .failOnUnclassified()
+                .build();
         EngineConfig config = new EngineConfig(
                 java.util.List.of(tempDir),
                 java.util.List.of(),
@@ -137,7 +145,7 @@ class EngineConfigTest {
                 outputDir,
                 java.util.Map.of("plugin1", java.util.Map.of("key", "value")),
                 java.util.Map.of("option", "value"),
-                "strict",
+                classificationConfig,
                 null);
 
         // When: apply category filter
@@ -153,7 +161,7 @@ class EngineConfigTest {
         assertThat(filtered.outputDirectory()).isEqualTo(config.outputDirectory());
         assertThat(filtered.pluginConfigs()).isEqualTo(config.pluginConfigs());
         assertThat(filtered.options()).isEqualTo(config.options());
-        assertThat(filtered.classificationProfile()).isEqualTo(config.classificationProfile());
+        assertThat(filtered.classificationConfig()).isEqualTo(config.classificationConfig());
         assertThat(filtered.enabledCategories()).containsExactly(PluginCategory.GENERATOR);
     }
 }

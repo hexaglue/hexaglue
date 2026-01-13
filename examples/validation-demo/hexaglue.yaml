@@ -1,0 +1,77 @@
+# HexaGlue Configuration - Validation Demo
+#
+# This file demonstrates the classification configuration features
+# introduced in the HexaGlue Validation Phase.
+#
+# Place this file in the root of your Maven project (same directory as pom.xml).
+
+# =============================================================================
+# CLASSIFICATION CONFIGURATION
+# =============================================================================
+# Controls how HexaGlue classifies domain types before code generation.
+
+classification:
+
+  # ---------------------------------------------------------------------------
+  # EXCLUDE PATTERNS
+  # ---------------------------------------------------------------------------
+  # Types matching these glob patterns are excluded from analysis.
+  # Use this for utility classes, exceptions, and infrastructure code.
+  #
+  # Glob syntax:
+  #   - "*" matches any characters within a package segment
+  #   - "**" matches any characters across package segments
+  #
+  exclude:
+    - "*.util.*"           # Exclude utility packages (e.g., com.example.validation.util.*)
+    - "**.*Exception"      # Exclude all exception classes
+    - "**.*Config"         # Exclude Spring configuration classes
+
+  # ---------------------------------------------------------------------------
+  # EXPLICIT CLASSIFICATIONS
+  # ---------------------------------------------------------------------------
+  # Manually classify types that cannot be inferred automatically.
+  # Map fully qualified class names to DomainKind values.
+  #
+  # Supported DomainKind values:
+  #   - AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER
+  #   - DOMAIN_EVENT, DOMAIN_SERVICE
+  #   - APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA
+  #
+  explicit:
+    # OrderId is a value object used as identifier
+    com.example.validation.domain.OrderId: VALUE_OBJECT
+
+  # ---------------------------------------------------------------------------
+  # VALIDATION SETTINGS
+  # ---------------------------------------------------------------------------
+  # Control validation behavior during the validate/generate phases.
+  #
+  validation:
+    # Fail the build if UNCLASSIFIED types exist
+    # Set to true for strict mode (recommended for CI/CD)
+    failOnUnclassified: false
+
+    # Allow inferred (non-explicit) classifications
+    # Set to false to require all types to be explicitly annotated or configured
+    allowInferred: true
+
+# =============================================================================
+# PLUGIN CONFIGURATION
+# =============================================================================
+# Configure individual HexaGlue plugins.
+
+plugins:
+  # Living Documentation Plugin
+  living-doc:
+    enabled: true
+    outputFormat: "html"
+    includeMetrics: true
+
+  # DDD Audit Plugin
+  audit:
+    enabled: true
+    failOnBlocker: false
+    failOnCritical: false
+    # Generate separate documentation files (ARCHITECTURE-OVERVIEW.md, etc.)
+    generateDocs: true

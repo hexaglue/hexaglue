@@ -13,6 +13,7 @@ HexaGlue provides three Maven goals:
 | `hexaglue:generate` | `generate-sources` | Code generation via plugins |
 | `hexaglue:audit` | `verify` | Architecture audit only |
 | `hexaglue:generate-and-audit` | `generate-sources` | Both combined |
+| `hexaglue:validate` | `validate` | Classification validation only |
 
 ---
 
@@ -94,32 +95,34 @@ mvn compile -Dhexaglue.skip=true
 
 **Default**: `false`
 
-### `classificationProfile`
+### `failOnUnclassified`
 
-The classification profile controls how HexaGlue classifies ports and domain types. Profiles adjust the priority of different classification criteria.
+Fail the build if any types remain UNCLASSIFIED after analysis.
 
 ```xml
 <configuration>
-    <classificationProfile>repository-aware</classificationProfile>
+    <failOnUnclassified>true</failOnUnclassified>
 </configuration>
 ```
 
 Or via command line:
 ```bash
-mvn compile -Dhexaglue.classificationProfile=repository-aware
+mvn compile -Dhexaglue.failOnUnclassified=true
 ```
 
-**Available Profiles**:
+**Default**: `false`
 
-| Profile | Description | Use Case |
-|---------|-------------|----------|
-| *(none)* | Legacy behavior, default priorities | Standard projects |
-| `default` | Documented default priorities | Reference configuration |
-| `strict` | Favors explicit annotations over heuristics | Projects with consistent DDD annotations |
-| `annotation-only` | Only trusts explicit annotations | Gradual migration, maximum control |
-| `repository-aware` | Better detection of repository ports with plural names | Projects using `Orders`, `Customers` instead of `OrderRepository` |
+### `skipValidation`
 
-**Default**: *(none)* - uses legacy behavior
+Skip the pre-generation validation phase.
+
+```xml
+<configuration>
+    <skipValidation>true</skipValidation>
+</configuration>
+```
+
+**Default**: `false`
 
 ---
 
@@ -228,23 +231,57 @@ For complete audit rules reference, see the [Architecture Audit Guide](ARCHITECT
 
 ---
 
-## Classification Profile
+## Validation Goal
 
-**Example - Repository-Aware Profile**:
-
-If your driven ports use plural naming (e.g., `Orders`, `Products`) instead of the `Repository` suffix, the default classification may incorrectly identify them as driving/command ports. Use the `repository-aware` profile:
+The `validate` goal checks classification results before generation:
 
 ```xml
-<configuration>
-    <basePackage>com.example</basePackage>
-    <classificationProfile>repository-aware</classificationProfile>
-</configuration>
+<execution>
+    <goals>
+        <goal>validate</goal>
+    </goals>
+</execution>
 ```
 
-This profile:
-- Increases priority of signature-based driven port detection (70 → 78)
-- Increases priority of `ports.out` package detection (60 → 74)
-- Decreases priority of command/query pattern detection (75 → 72)
+### Validation Parameters
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `failOnUnclassified` | `false` | Fail if UNCLASSIFIED types exist |
+| `validationReportPath` | `target/hexaglue-reports/validation.md` | Path for validation report |
+
+### Classification States
+
+| State | Description | Action Required |
+|-------|-------------|-----------------|
+| **EXPLICIT** | Annotated with jMolecules annotations | None |
+| **INFERRED** | Classified via semantic analysis | Review recommended |
+| **UNCLASSIFIED** | Cannot be classified deterministically | User action required |
+
+### Resolving UNCLASSIFIED Types
+
+Types that cannot be classified deterministically become `UNCLASSIFIED`. To resolve:
+
+1. **Add jMolecules annotations** (recommended):
+   ```java
+   @AggregateRoot
+   public class Order { ... }
+   ```
+
+2. **Use explicit classification in hexaglue.yaml**:
+   ```yaml
+   classification:
+     explicit:
+       com.example.Order: AGGREGATE_ROOT
+   ```
+
+3. **Exclude from analysis**:
+   ```yaml
+   classification:
+     exclude:
+       - "*.util.*"
+       - "**.*Exception"
+   ```
 
 ---
 
@@ -306,6 +343,26 @@ If no file is found, an empty configuration is used (plugins use their defaults)
 ### Configuration Structure
 
 ```yaml
+# Classification configuration
+classification:
+  # Exclude patterns (glob syntax)
+  exclude:
+    - "*.shared.*"         # Exclude shared package
+    - "**.*Exception"      # Exclude exception classes
+    - "**.*Config"         # Exclude Spring config classes
+
+  # Explicit classifications (FQN -> DomainKind)
+  explicit:
+    com.example.Order: AGGREGATE_ROOT
+    com.example.OrderId: VALUE_OBJECT
+    com.example.OrderLine: ENTITY
+
+  # Validation settings
+  validation:
+    failOnUnclassified: false  # Fail build on UNCLASSIFIED
+    allowInferred: true        # Allow inferred classifications
+
+# Plugin-specific configuration
 plugins:
   jpa:
     enabled: true
@@ -318,7 +375,35 @@ plugins:
     enabled: true
     outputFormat: "html"
     includePrivateMethods: false
+
+  audit:
+    enabled: true
+    generateDocs: true        # Generate architecture documentation files
 ```
+
+### Classification Configuration
+
+| Key | Description | Example |
+|-----|-------------|---------|
+| `exclude` | Glob patterns for types to exclude from analysis | `"*.util.*"` |
+| `explicit` | Map of FQN to DomainKind for explicit classification | `com.example.Order: AGGREGATE_ROOT` |
+| `validation.failOnUnclassified` | Fail build if UNCLASSIFIED types exist | `true` |
+| `validation.allowInferred` | Allow inferred (non-explicit) classifications | `true` |
+
+### Supported DomainKind Values
+
+| DomainKind | Description |
+|------------|-------------|
+| `AGGREGATE_ROOT` | DDD Aggregate Root |
+| `ENTITY` | DDD Entity |
+| `VALUE_OBJECT` | DDD Value Object |
+| `IDENTIFIER` | Identity type (ID) |
+| `DOMAIN_EVENT` | Domain Event |
+| `DOMAIN_SERVICE` | Domain Service |
+| `APPLICATION_SERVICE` | Application Service |
+| `INBOUND_ONLY` | Inbound-only service |
+| `OUTBOUND_ONLY` | Outbound-only service |
+| `SAGA` | Saga/Process Manager |
 
 ### Plugin Configuration Keys
 
@@ -362,7 +447,7 @@ The Maven plugin automatically loads this configuration during the `generate` go
     </executions>
     <configuration>
         <basePackage>com.example.myapp</basePackage>
-        <classificationProfile>repository-aware</classificationProfile>
+        <failOnUnclassified>false</failOnUnclassified>
     </configuration>
     <dependencies>
         <dependency>
@@ -423,7 +508,7 @@ The Maven plugin automatically loads this configuration during the `generate` go
     </executions>
     <configuration>
         <basePackage>com.example.myapp</basePackage>
-        <classificationProfile>repository-aware</classificationProfile>
+        <failOnUnclassified>true</failOnUnclassified>
         <!-- Audit settings -->
         <failOnError>true</failOnError>
         <htmlReport>true</htmlReport>
@@ -437,6 +522,55 @@ The Maven plugin automatically loads this configuration during the `generate` go
         </dependency>
     </dependencies>
 </plugin>
+```
+
+### Validation + Generation (Strict Mode)
+
+For teams requiring explicit classification of all domain types:
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue.version}</version>
+    <executions>
+        <execution>
+            <id>validate</id>
+            <goals>
+                <goal>validate</goal>
+            </goals>
+            <configuration>
+                <failOnUnclassified>true</failOnUnclassified>
+            </configuration>
+        </execution>
+        <execution>
+            <id>generate</id>
+            <goals>
+                <goal>generate</goal>
+            </goals>
+        </execution>
+    </executions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-jpa</artifactId>
+            <version>${hexaglue.version}</version>
+        </dependency>
+    </dependencies>
+</plugin>
+```
+
+With `hexaglue.yaml`:
+```yaml
+classification:
+  exclude:
+    - "*.config.*"
+    - "**.*Exception"
+  validation:
+    failOnUnclassified: true
 ```
 
 ---

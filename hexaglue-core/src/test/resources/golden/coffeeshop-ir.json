@@ -5,7 +5,7 @@
         "qualifiedName": "com.coffeeshop.domain.order.LineItem",
         "simpleName": "LineItem",
         "kind": "VALUE_OBJECT",
-        "confidence": "MEDIUM",
+        "confidence": "EXPLICIT",
         "construct": "RECORD",
         "properties": [{"name": "productName", "typeName": "java.lang.String", "cardinality": "SINGLE"}, {"name": "quantity", "typeName": "int", "cardinality": "SINGLE"}, {"name": "unitPrice", "typeName": "java.math.BigDecimal", "cardinality": "SINGLE"}]
       },
@@ -33,9 +33,9 @@
       {
         "qualifiedName": "com.coffeeshop.ports.in.OrderingCoffee",
         "simpleName": "OrderingCoffee",
-        "kind": "COMMAND",
+        "kind": "USE_CASE",
         "direction": "DRIVING",
-        "confidence": "HIGH",
+        "confidence": "EXPLICIT",
         "methods": ["createOrder", "findOrder"]
       },
       {
@@ -43,7 +43,7 @@
         "simpleName": "OrderRepository",
         "kind": "REPOSITORY",
         "direction": "DRIVEN",
-        "confidence": "HIGH",
+        "confidence": "EXPLICIT",
         "methods": ["findById", "save"]
       }
     ]
