@@ -298,4 +298,44 @@ public interface ArchitectureQuery {
      * @since 3.0.0
      */
     Map<String, List<String>> findAggregateMembership();
+
+    /**
+     * Calculates the cohesion score for an aggregate.
+     *
+     * <p>Cohesion measures how strongly the members of an aggregate are related to each other.
+     * A high cohesion score (close to 1.0) indicates that aggregate members have strong
+     * internal relationships, which is desirable in DDD.
+     *
+     * <p>The calculation is based on:
+     * <ul>
+     *   <li>Internal dependencies between aggregate members (root, entities, VOs)</li>
+     *   <li>Ratio of actual connections to maximum possible connections</li>
+     * </ul>
+     *
+     * <p><strong>Interpretation:</strong>
+     * <ul>
+     *   <li>0.8 - 1.0: Excellent cohesion</li>
+     *   <li>0.6 - 0.8: Good cohesion</li>
+     *   <li>0.4 - 0.6: Moderate cohesion (review recommended)</li>
+     *   <li>Below 0.4: Low cohesion (aggregate may need restructuring)</li>
+     * </ul>
+     *
+     * @param aggregateRootType the fully-qualified name of the aggregate root
+     * @return the cohesion score (0.0 to 1.0), or empty if aggregate not found
+     * @since 3.0.0
+     */
+    Optional<Double> calculateAggregateCohesion(String aggregateRootType);
+
+    /**
+     * Finds the repository port associated with an aggregate.
+     *
+     * <p>In hexagonal architecture, each aggregate typically has a repository port
+     * that provides persistence operations. This method finds the repository
+     * that manages the specified aggregate.
+     *
+     * @param aggregateRootType the fully-qualified name of the aggregate root
+     * @return the repository port qualified name, or empty if no repository found
+     * @since 3.0.0
+     */
+    Optional<String> findRepositoryForAggregate(String aggregateRootType);
 }

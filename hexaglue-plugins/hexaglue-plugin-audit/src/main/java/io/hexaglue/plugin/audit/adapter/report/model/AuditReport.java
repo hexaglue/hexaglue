@@ -54,6 +54,7 @@ import java.util.Objects;
  * @param dddCompliancePercent DDD compliance percentage (0-100)
  * @param hexCompliancePercent hexagonal architecture compliance percentage (0-100)
  * @param detectedStyle        the detected architectural style
+ * @param aggregateDetails     detailed information about each aggregate
  * @since 1.0.0
  */
 public record AuditReport(
@@ -71,7 +72,8 @@ public record AuditReport(
         ExecutiveSummary executiveSummary,
         int dddCompliancePercent,
         int hexCompliancePercent,
-        DetectedArchitectureStyle detectedStyle) {
+        DetectedArchitectureStyle detectedStyle,
+        List<AggregateDetails> aggregateDetails) {
 
     public AuditReport {
         Objects.requireNonNull(metadata, "metadata required");
@@ -107,6 +109,7 @@ public record AuditReport(
         if (detectedStyle == null) {
             detectedStyle = DetectedArchitectureStyle.UNKNOWN;
         }
+        aggregateDetails = aggregateDetails != null ? List.copyOf(aggregateDetails) : List.of();
     }
 
     /**
@@ -133,7 +136,8 @@ public record AuditReport(
                 null,
                 100,
                 100,
-                DetectedArchitectureStyle.UNKNOWN);
+                DetectedArchitectureStyle.UNKNOWN,
+                null);
     }
 
     /**
@@ -161,7 +165,8 @@ public record AuditReport(
                 null,
                 100,
                 100,
-                DetectedArchitectureStyle.UNKNOWN);
+                DetectedArchitectureStyle.UNKNOWN,
+                null);
     }
 
     /**
@@ -460,6 +465,9 @@ public record AuditReport(
         ExecutiveSummary executiveSummary = summaryBuilder.build(
                 effectiveProjectName, healthScore, inventory, domainViolations, architectureAnalysis, domainMetrics, dddCompliance, hexCompliance);
 
+        // Build aggregate details
+        List<AggregateDetails> aggregateDetails = AggregateDetails.fromQuery(architectureQuery);
+
         return new AuditReport(
                 metadata,
                 summary,
@@ -475,7 +483,8 @@ public record AuditReport(
                 executiveSummary,
                 dddCompliance,
                 hexCompliance,
-                snapshot.style());
+                snapshot.style(),
+                aggregateDetails);
     }
 
     private static ViolationEntry convertViolation(RuleViolation violation) {

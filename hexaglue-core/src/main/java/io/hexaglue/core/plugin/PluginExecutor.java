@@ -263,9 +263,13 @@ public final class PluginExecutor {
         FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDirectory);
         MapPluginConfig config = new MapPluginConfig(pluginConfigs.getOrDefault(pluginId, Map.of()));
 
-        // Create ArchitectureQuery from graph if available, with port information for direction lookup
-        ArchitectureQuery architectureQuery =
-                graph != null ? new DefaultArchitectureQuery(graph, ir != null ? ir.ports() : null) : null;
+        // Create ArchitectureQuery from graph if available, with port and domain information
+        ArchitectureQuery architectureQuery = graph != null
+                ? new DefaultArchitectureQuery(
+                        graph,
+                        ir != null ? ir.ports() : null,
+                        ir != null ? ir.domain() : null)
+                : null;
 
         PluginContext context =
                 new DefaultPluginContext(pluginId, ir, config, writer, diagnostics, outputStore, architectureQuery);
