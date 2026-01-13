@@ -91,7 +91,7 @@ public class HexaGlueMojo extends AbstractMojo {
      */
     @Parameter(
             property = "hexaglue.outputDirectory",
-            defaultValue = "${project.build.directory}/generated-sources/hexaglue")
+            defaultValue = "${project.build.directory}/hexaglue/generated-sources")
     private File outputDirectory;
 
     /**

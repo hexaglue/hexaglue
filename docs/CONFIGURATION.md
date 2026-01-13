@@ -72,11 +72,11 @@ Output directory for generated source files.
 
 ```xml
 <configuration>
-    <outputDirectory>${project.build.directory}/generated-sources/hexaglue</outputDirectory>
+    <outputDirectory>${project.build.directory}/hexaglue/generated-sources</outputDirectory>
 </configuration>
 ```
 
-**Default**: `target/generated-sources/hexaglue`
+**Default**: `target/hexaglue/generated-sources`
 
 ### `skip`
 
@@ -173,11 +173,11 @@ Output directory for audit reports.
 
 ```xml
 <configuration>
-    <reportDirectory>${project.build.directory}/hexaglue-reports</reportDirectory>
+    <reportDirectory>${project.build.directory}/hexaglue/reports</reportDirectory>
 </configuration>
 ```
 
-**Default**: `target/hexaglue-reports`
+**Default**: `target/hexaglue/reports`
 
 ### `auditConfig`
 
@@ -248,7 +248,7 @@ The `validate` goal checks classification results before generation:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `failOnUnclassified` | `false` | Fail if UNCLASSIFIED types exist |
-| `validationReportPath` | `target/hexaglue-reports/validation.md` | Path for validation report |
+| `validationReportPath` | `target/hexaglue/reports/validation/validation-report.md` | Path for validation report |
 
 ### Classification States
 

@@ -10,11 +10,11 @@ assert !logText.contains("BUILD FAILURE") : "Build should not fail"
 assert logText.contains("generate-and-audit") : "Combined goal should execute"
 
 // Generated sources directory should exist
-def generatedDir = new File(basedir, "target/generated-sources/hexaglue")
+def generatedDir = new File(basedir, "target/hexaglue/generated-sources")
 assert generatedDir.exists() : "Generated sources directory should exist"
 
 // Report directory should exist
-def reportDir = new File(basedir, "target/hexaglue-reports")
+def reportDir = new File(basedir, "target/hexaglue/reports")
 // TODO: Re-enable when audit plugin is fully implemented
 // assert reportDir.exists() : "Report directory should exist"
 

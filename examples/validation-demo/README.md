@@ -62,6 +62,24 @@ HexaGlue only classifies types that are part of the **domain model**:
 **UNCLASSIFIED** occurs when a type IS detected as part of the domain model
 but cannot be classified deterministically. This is rare when using annotations.
 
+## Maven Lifecycle Integration
+
+HexaGlue goals are bound to specific Maven lifecycle phases:
+
+| Goal | Phase | Order | Description |
+|------|-------|-------|-------------|
+| `validate` | VALIDATE | 1 | Classification validation |
+| `generate` | GENERATE_SOURCES | 2 | Code generation |
+| `generate-and-audit` | GENERATE_SOURCES | 2 | Generation + audit |
+| `audit` | VERIFY | 4 | Architecture audit |
+
+When running `mvn compile`, the execution order is:
+```
+VALIDATE → GENERATE_SOURCES → COMPILE
+    ↓            ↓
+validate     generate
+```
+
 ## Running the Demo
 
 ### 1. Validation Only
@@ -86,18 +104,18 @@ Expected output:
 [INFO] Status: PASSED
 ```
 
-### 2. Generate with Validation
+### 2. Full Build (Validate → Generate)
 
-Run the standard compile to validate, generate, and audit:
+Run the standard compile to validate first, then generate:
 
 ```bash
 mvn clean compile
 ```
 
-This will:
-1. Run validation (report classification status)
-2. Generate code (living-doc, audit reports)
-3. Run architecture audit
+This will execute in order:
+1. **VALIDATE phase** → `hexaglue:validate` (classification report)
+2. **GENERATE_SOURCES phase** → `hexaglue:generate` (code generation)
+3. **COMPILE phase** → Java compilation
 
 ### 3. Strict Mode (Fail on UNCLASSIFIED)
 
@@ -172,4 +190,11 @@ This ensures all domain types are explicitly classified before deployment.
 
 ---
 
-**HexaGlue - Design, Audit, and Generate Hexagonal Architecture**
+<div align="center">
+
+**HexaGlue - Compile your architecture, not just your code**
+
+Made with ❤️ by Scalastic<br>
+Copyright 2026 Scalastic - Released under MPL-2.0
+
+</div>

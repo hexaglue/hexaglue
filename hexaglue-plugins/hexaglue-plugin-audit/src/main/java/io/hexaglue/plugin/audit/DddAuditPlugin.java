@@ -468,7 +468,7 @@ public class DddAuditPlugin implements AuditPlugin {
             // Generate documentation files if enabled
             if (isDocumentationEnabled(context.config())) {
                 Path baseDir = context.writer().getOutputDirectory();
-                Path docsDir = baseDir.resolve("docs");
+                Path docsDir = baseDir.resolve("audit").resolve("docs");
                 DocumentationGenerator docGenerator = new DocumentationGenerator();
                 docGenerator.generateAll(report, docsDir);
                 context.diagnostics().info("Generated architecture documentation in: " + docsDir);

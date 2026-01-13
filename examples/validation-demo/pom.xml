@@ -48,12 +48,12 @@
                 <version>${hexaglue.version}</version>
                 <executions>
                     <!--
-                        DEMO 1: Validation-only goal
+                        Phase: VALIDATE (1st phase in Maven lifecycle)
                         Run with: mvn hexaglue:validate
-                        This validates classification without generating code.
+                        Validates classification without generating code.
                     -->
                     <execution>
-                        <id>validate-classification</id>
+                        <id>validate</id>
                         <goals>
                             <goal>validate</goal>
                         </goals>
@@ -67,14 +67,14 @@
                     </execution>
 
                     <!--
-                        DEMO 2: Generate + Audit with validation
+                        Phase: GENERATE_SOURCES (after VALIDATE)
                         Run with: mvn compile
-                        This runs validation, then generates code and audits.
+                        Generates infrastructure code from domain model.
                     -->
                     <execution>
-                        <id>generate-and-audit</id>
+                        <id>generate</id>
                         <goals>
-                            <goal>generate-and-audit</goal>
+                            <goal>generate</goal>
                         </goals>
                     </execution>
                 </executions>
