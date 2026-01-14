@@ -1,0 +1,7 @@
+# HexaGlue configuration for tutorial-living-doc
+# This example uses default values - this file demonstrates available options
+
+plugins:
+  living-doc:
+    outputDir: "living-doc"      # Output directory (default)
+    generateDiagrams: true       # Generate Mermaid diagrams (default)

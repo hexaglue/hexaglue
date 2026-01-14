@@ -21,19 +21,13 @@ Add the plugin as a dependency to the HexaGlue Maven plugin:
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
     <version>${hexaglue.version}</version>
-    <executions>
-        <execution>
-            <goals>
-                <goal>generate</goal>
-            </goals>
-        </execution>
-    </executions>
+    <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
     </configuration>
     <dependencies>
         <dependency>
-            <groupId>io.hexaglue</groupId>
+            <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
             <version>${hexaglue.version}</version>
         </dependency>

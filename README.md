@@ -141,7 +141,7 @@ It transforms **architecture into a programmable model**.
 
 ### **CIOs & Transformation Teams**
 
-HexaGlue analyzes **the architectural core of the application - the domain and application layers** - to reveal the actual architecture and generate **trustable, up-to-date documentation** for modernization initiatives.
+HexaGlue analyzes **the architectural core of the application, the domain and application layers**, to reveal the actual architecture and generate **trustable, up-to-date documentation** for modernization initiatives.
 
 ### **Architects & Tech Leads**
 
@@ -149,7 +149,7 @@ HexaGlue continuously validates **the architectural core of the application**: b
 
 ### **Development Teams**
 
-Focus on business logic. Define your **domain and application layers** once - HexaGlue generates infrastructure adapters that **respect your architectural intent**, without polluting the core.
+Focus on business logic. Define your **domain and application layers** once. HexaGlue generates infrastructure adapters using **enterprise standards** that **respect your architectural intent**, without polluting the core.
 
 ---
 
@@ -167,10 +167,10 @@ This guarantees that every generated artifact is grounded in **intentional desig
 
 ## Making Architectural Intent Explicit
 
-HexaGlue relies primarily on **structural analysis** of the architectural core of the application.  
-However, when available, annotations can be used to **make intent explicit rather than inferred**.
+HexaGlue relies primarily on **structural analysis** of the architectural core of the application.
+However, when classification is ambiguous, annotations can be used to **make intent explicit rather than incorrect**.
 
-HexaGlue can leverage **jMolecules annotations** to enrich its understanding of your domain model:
+HexaGlue natively supports **jMolecules annotations** to express architectural intent:
 
 ```java
 import org.jmolecules.ddd.annotation.AggregateRoot;
@@ -195,6 +195,8 @@ Annotations may express intent across three complementary dimensions.
 
 ### DDD Tactical Patterns
 
+> From `jmolecules-ddd` artifact
+
 | Annotation       | Purpose                 |
 | ---------------- | ----------------------- |
 | `@AggregateRoot` | Marks an aggregate root |
@@ -205,12 +207,16 @@ Annotations may express intent across three complementary dimensions.
 
 ### Hexagonal Architecture
 
+> From `jmolecules-hexagonal-architecture` artifact
+
 | Annotation       | Purpose                        |
 | ---------------- | ------------------------------ |
 | `@PrimaryPort`   | Marks a driving (inbound) port |
 | `@SecondaryPort` | Marks a driven (outbound) port |
 
 ### Domain Events
+
+> From `jmolecules-events` artifact
 
 | Annotation      | Purpose                                          |
 | --------------- | ------------------------------------------------ |
@@ -226,8 +232,8 @@ Annotations exist **only to support compile-time analysis**:
 ```xml
 <dependency>
   <groupId>org.jmolecules</groupId>
-  <artifactId>jmolecules-ddd</artifactId>
-  <scope>provided</scope>
+  <artifactId>jmolecules-*</artifactId> <!-- ddd, hexagonal-architecture, events -->
+  <scope>provided</scope> <!-- Compile-time only, not included at runtime -->
 </dependency>
 ```
 
@@ -277,7 +283,7 @@ Each unclassified type becomes a **deliberate architectural decision** to addres
 
 ## Plugins
 
-HexaGlue is pluggable by design.
+HexaGlue is pluggable by design. Use the official plugins or develop your own to fit your specific needs.
 
 ### Official Plugins
 
@@ -293,41 +299,86 @@ HexaGlue is pluggable by design.
 
 ---
 
+## Documentation
+
+Explore the [full documentation](docs/README.md) with tutorials organized by audience.
+
+### Learning Paths
+
+**For Developers** - Generate infrastructure code:
+1. [Quick Start](docs/QUICK_START.md) (10 min)
+2. [JPA Generation](docs/JPA_GENERATION.md) (30 min)
+3. [Living Documentation](docs/LIVING_DOCUMENTATION.md) (15 min)
+
+**For Architects** - Validate architecture:
+1. [Classification](docs/CLASSIFICATION.md) (20 min)
+2. [Validation](docs/VALIDATION.md) (15 min)
+3. [Architecture Audit](docs/ARCHITECTURE_AUDIT.md) (30 min)
+4. [Configuration](docs/CONFIGURATION.md) (20 min)
+
+---
+
 ## Quick Start
 
-1. (Optional) Make intent explicit
+### 1. Add the HexaGlue Maven plugin to your project
 
-2. Configure the Maven plugin
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue-maven-plugin.version}</version>
+    <extensions>true</extensions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+    </configuration>
+</plugin>
+```
 
-   ```xml
-   <plugin>
-       <groupId>io.hexaglue</groupId>
-       <artifactId>hexaglue-maven-plugin</artifactId>
-       <version>${hexaglue.version}</version>
-       <executions>
-           <execution>
-               <id>validate</id>
-               <goals>
-                   <goal>validate</goal>
-               </goals>
-           </execution>
-           <execution>
-               <id>generate</id>
-               <goals>
-                   <goal>generate</goal>
-               </goals>
-           </execution>
-       </executions>
-       <configuration>
-           <basePackage>com.example.myapp</basePackage>
-           <failOnUnclassified>true</failOnUnclassified>
-       </configuration>
-   </plugin>
-   ```
+### 2. Run `mvn compile` 
 
-3. Run `mvn compile`
+HexaGlue analyzes and classifies your domain automatically.
 
-HexaGlue integrates directly into your build.
+### 3. Add plugins to generate code or documentation
+
+Add any combination of plugins as dependencies:
+
+```xml
+<plugin>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>${hexaglue-maven-plugin.version}</version>
+    <extensions>true</extensions>
+    <configuration>
+        <basePackage>com.example.myapp</basePackage>
+    </configuration>
+    <dependencies>
+        <!-- Living Doc: architecture documentation with Mermaid diagrams -->
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-living-doc</artifactId>
+            <version>${hexaglue-plugin-living-doc.version}</version>
+        </dependency>
+        <!-- Audit: DDD and hexagonal architecture compliance reports -->
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-audit</artifactId>
+            <version>${hexaglue-plugin-audit.version}</version>
+        </dependency>
+        <!-- JPA: entities, repositories, mappers for all repository ports -->
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-jpa</artifactId>
+            <version>${hexaglue-plugin-jpa.version}</version>
+        </dependency>
+    </dependencies>
+</plugin>
+```
+
+### 4. Run `mvn compile` again
+
+Each plugin generates its artifacts based on your classified domain.
+
+**[Complete Quick Start Tutorial](docs/QUICK_START.md)**
 
 ---
 
@@ -344,6 +395,8 @@ classification:
 ```
 
 Your architecture remains explicit even without annotations.
+
+> Valid values: `AGGREGATE_ROOT`, `ENTITY`, `VALUE_OBJECT`, `IDENTIFIER`, `DOMAIN_EVENT`, `DOMAIN_SERVICE`, `APPLICATION_SERVICE`. See [Classification](docs/CLASSIFICATION.md) for details.
 
 ---
 
@@ -363,7 +416,7 @@ HexaGlue is distributed under the **Mozilla Public License 2.0 (MPL-2.0)**.
 - ✅ Generated code belongs to you without restriction
 - ⚠️ Modifications to HexaGlue source files must be shared under MPL-2.0
 
-[Learn more about MPL-2.0](https://www.mozilla.org/MPL/2.0/)
+[Learn more about MPL-2.0](https://www.mozilla.org/MPL/2.0/) | [Third-Party Licenses](docs/THIRD-PARTY-LICENSES.md)
 
 ---
 

@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>validation-demo</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>HexaGlue Validation Demo</name>
+    <description>
+        Demonstrates the HexaGlue validation phase features:
+        - hexaglue:validate goal
+        - classification.exclude patterns
+        - classification.explicit mappings
+        - UNCLASSIFIED type handling
+    </description>
+
+    <properties>
+        <maven.compiler.release>17</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <hexaglue.version>3.0.0-SNAPSHOT</hexaglue.version>
+    </properties>
+
+    <dependencies>
+        <!-- jMolecules for DDD annotations -->
+        <dependency>
+            <groupId>org.jmolecules</groupId>
+            <artifactId>jmolecules-ddd</artifactId>
+            <version>1.9.0</version>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
+            </plugin>
+
+            <!-- HexaGlue Maven Plugin -->
+            <plugin>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-maven-plugin</artifactId>
+                <version>${hexaglue.version}</version>
+                <extensions>true</extensions>
+                <executions>
+                    <!--
+                        Phase: VALIDATE (1st phase in Maven lifecycle)
+                        Run with: mvn hexaglue:validate
+                        Validates classification without generating code.
+                    -->
+                    <execution>
+                        <id>validate</id>
+                        <goals>
+                            <goal>validate</goal>
+                        </goals>
+                        <configuration>
+                            <!--
+                                Set to true to fail build on UNCLASSIFIED types.
+                                For this demo, we keep it false to show the warning behavior.
+                            -->
+                            <failOnUnclassified>false</failOnUnclassified>
+                        </configuration>
+                    </execution>
+
+                    <!--
+                        Phase: GENERATE_SOURCES (after VALIDATE)
+                        Run with: mvn compile
+                        Generates infrastructure code from domain model.
+                    -->
+                    <execution>
+                        <id>generate</id>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <basePackage>com.example.validation</basePackage>
+                    <!-- Skip validation during generate (already done in validate goal) -->
+                    <skipValidation>false</skipValidation>
+                </configuration>
+                <dependencies>
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-living-doc</artifactId>
+                        <version>1.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-audit</artifactId>
+                        <version>1.0.0-SNAPSHOT</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+        </plugins>
+    </build>
+
+    <profiles>
+        <!--
+            DEMO 3: Strict validation profile
+            Run with: mvn compile -Pstrict
+            This fails the build if any UNCLASSIFIED types remain.
+        -->
+        <profile>
+            <id>strict</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>io.hexaglue</groupId>
+                        <artifactId>hexaglue-maven-plugin</artifactId>
+                        <configuration>
+                            <failOnUnclassified>true</failOnUnclassified>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+</project>
