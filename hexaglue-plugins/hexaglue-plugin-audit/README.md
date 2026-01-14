@@ -40,14 +40,17 @@ Add to your HexaGlue Maven plugin configuration:
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
     <version>3.0.0</version>
+    <extensions>true</extensions>
     <configuration>
-        <plugins>
-            <plugin>
-                <id>io.hexaglue.plugin.audit.ddd</id>
-                <enabled>true</enabled>
-            </plugin>
-        </plugins>
+        <basePackage>com.example</basePackage>
     </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-audit</artifactId>
+            <version>1.0.0-SNAPSHOT</version>
+        </dependency>
+    </dependencies>
 </plugin>
 ```
 

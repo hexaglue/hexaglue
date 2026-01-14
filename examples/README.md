@@ -1,189 +1,213 @@
 # HexaGlue Examples
 
-This directory contains example applications demonstrating HexaGlue's code generation capabilities. Each example builds on the previous one, progressively introducing more advanced concepts.
+This directory contains example applications demonstrating HexaGlue's capabilities.
 
-## Learning Path
+## Example Categories
 
-| Example | Complexity | What You'll Learn |
-|---------|------------|-------------------|
-| [minimal](./minimal/) | Beginner | Core concepts, basic entity generation |
-| [coffeeshop](./coffeeshop/) | Intermediate | Value objects, enums, embedded collections |
-| [ecommerce](./ecommerce/) | Advanced | Multiple aggregates, relationships, rich domain |
-| [validation-demo](./validation-demo/) | Intermediate | Validation phase, hexaglue.yaml config, exclude patterns |
+### Tutorial Examples (`tutorial-*`)
+
+Focused examples demonstrating specific features:
+
+| Example | Feature | Tutorial |
+|---------|---------|----------|
+| [tutorial-validation](./tutorial-validation/) | Classification validation | [VALIDATION.md](../docs/VALIDATION.md) |
+| [tutorial-living-doc](./tutorial-living-doc/) | Living Documentation | [LIVING_DOCUMENTATION.md](../docs/LIVING_DOCUMENTATION.md) |
+| [tutorial-audit](./tutorial-audit/) | Architecture Audit (clean) | [ARCHITECTURE_AUDIT.md](../docs/ARCHITECTURE_AUDIT.md) |
+
+### Sample Applications (`sample-*`)
+
+Complete applications showcasing various domain complexities:
+
+| Example | Complexity | What It Demonstrates |
+|---------|------------|---------------------|
+| [sample-basic](./sample-basic/) | Beginner | Single aggregate, basic entity generation |
+| [sample-value-objects](./sample-value-objects/) | Intermediate | Value objects, enums, embedded collections |
+| [sample-multi-aggregate](./sample-multi-aggregate/) | Advanced | Multiple aggregates, relationships, rich domain |
+| [sample-audit-violations](./sample-audit-violations/) | Advanced | Intentional violations for audit testing |
+| [sample-starwars](./sample-starwars/) | Intermediate | Complete hexagonal app with Star Wars theme |
+| [sample-pokedex](./sample-pokedex/) | Intermediate | Complete hexagonal app with Pokemon theme |
 
 ## Quick Start
 
 ```bash
-# Clone and build HexaGlue first
+# Build HexaGlue first
 cd hexaglue
-mvn clean install -DskipTests
+make install
 
-# Then try any example
-cd examples/minimal
-mvn clean compile
-mvn spring-boot:run
+# Run any example
+cd examples/sample-basic
+mvn compile
 ```
 
-## Example Overview
+## Learning Paths
 
-### 1. Minimal - Your First HexaGlue Project
+### For Java Developers
 
-**Perfect for**: Getting started, understanding the basics
+1. **Start here**: [sample-basic](./sample-basic/) - Basic aggregate with JPA generation
+2. **Next**: [sample-value-objects](./sample-value-objects/) - Value objects and collections
+3. **Then**: [tutorial-validation](./tutorial-validation/) - Classification control
+4. **Advanced**: [sample-multi-aggregate](./sample-multi-aggregate/) - Real-world patterns
+
+### For Architects
+
+1. **Start here**: [tutorial-validation](./tutorial-validation/) - Classification system
+2. **Next**: [tutorial-audit](./tutorial-audit/) - Architecture constraints
+3. **Then**: [tutorial-living-doc](./tutorial-living-doc/) - Architecture documentation
+4. **Study**: [sample-audit-violations](./sample-audit-violations/) - What violations look like
+
+## Example Details
+
+### sample-basic
+
+The simplest possible HexaGlue example. One aggregate, one repository.
 
 ```
-minimal/
+sample-basic/
 ├── domain/
 │   ├── Task.java          # Aggregate Root
 │   └── TaskId.java        # Identifier
 └── ports/
-    ├── in/TaskUseCases.java    # Driving Port
-    └── out/TaskRepository.java # Driven Port
+    ├── in/TaskUseCases.java
+    └── out/TaskRepository.java
 ```
 
-**Generated**: 4 files (Entity, Repository, Mapper, Adapter)
-
-**Key Concepts**:
-- Aggregate root with identity
-- Driving vs Driven ports
-- Basic JPA entity generation
+**Plugins**: Living Doc, Audit
 
 ---
 
-### 2. Coffeeshop - Value Objects & Collections
+### sample-value-objects
 
-**Perfect for**: Understanding value objects and embedded types
+Demonstrates value objects, enums, and embedded collections.
 
 ```
-coffeeshop/
-├── domain/order/
+sample-value-objects/
+├── domain/
 │   ├── Order.java         # Aggregate Root
-│   ├── OrderId.java       # Identifier
-│   ├── LineItem.java      # Value Object (embedded)
-│   ├── Location.java      # Enum
+│   ├── OrderLine.java     # Value Object (embedded)
 │   └── OrderStatus.java   # Enum
 └── ports/
     ├── in/OrderingCoffee.java
     └── out/Orders.java
 ```
 
-**Generated**: 6 files (Entity, Embeddable, Repository, 2 Mappers, Adapter)
-
-**Key Concepts**:
-- Value objects as `@Embeddable`
-- `@ElementCollection` for collections of value objects
-- `@Enumerated(EnumType.STRING)` for enums
-- MapStruct mappers with nested type support
+**Key Concepts**: `@Embeddable`, `@ElementCollection`, `@Enumerated`
 
 ---
 
-### 3. E-Commerce - Rich Domain Model
+### sample-multi-aggregate
 
-**Perfect for**: Real-world architecture patterns
+Rich domain model with multiple aggregates and inter-aggregate references.
 
 ```
-ecommerce/
+sample-multi-aggregate/
 ├── domain/
-│   ├── order/      # Order aggregate (Order, OrderLine, Money, Address...)
-│   ├── customer/   # Customer aggregate (Customer, Email...)
-│   └── product/    # Product aggregate (Product, Quantity...)
+│   ├── order/      # Order aggregate
+│   ├── customer/   # Customer aggregate
+│   └── product/    # Product aggregate
 └── ports/
-    ├── in/         # 3 driving ports (use cases)
-    └── out/        # 4 driven ports (repositories + gateway)
+    ├── in/         # 3 driving ports
+    └── out/        # 4 driven ports
 ```
 
-**Generated**: 25 files (4 Entities, 4 Embeddables, 4 Repositories, 8 Mappers, 5 Adapters)
-
-**Key Concepts**:
-- Multiple aggregates with separate identities
-- Inter-aggregate references by ID (not direct references)
-- Entity relationships (`@OneToMany`, `@ManyToOne`)
-- Non-repository driven ports (PaymentGateway)
-- Complex value object hierarchies
-
-### 4. Validation Demo - Classification Control
-
-**Perfect for**: Understanding the validation phase and classification configuration
-
-```
-validation-demo/
-├── hexaglue.yaml          # Classification configuration
-├── application/
-│   └── OrderApplicationService.java  # APPLICATION_SERVICE
-├── domain/
-│   ├── Order.java         # @AggregateRoot (EXPLICIT)
-│   ├── OrderId.java       # VALUE_OBJECT (via hexaglue.yaml)
-│   └── OrderLine.java     # @Entity (EXPLICIT)
-├── port/
-│   ├── OrderService.java  # DRIVING port
-│   └── OrderRepository.java # DRIVEN port
-└── util/
-    └── StringUtils.java   # EXCLUDED via pattern
-```
-
-**Key Concepts**:
-- `hexaglue:validate` goal for classification validation
-- `classification.exclude` patterns
-- `classification.explicit` mappings
-- `failOnUnclassified` for CI/CD
+**Key Concepts**: Multiple aggregates, references by ID, entity relationships
 
 ---
 
-## What Gets Generated
+### tutorial-validation
 
-For each example, HexaGlue generates:
-
-| Component | Description | Location |
-|-----------|-------------|----------|
-| JPA Entities | `@Entity` classes with proper mappings | `target/generated-sources/hexaglue/.../persistence/` |
-| Embeddables | `@Embeddable` for value objects | Same as above |
-| Repositories | Spring Data `JpaRepository` interfaces | Same as above |
-| Mappers | MapStruct interfaces (Domain ↔ Entity) | Same as above |
-| Adapters | `@Component` implementing driven ports | Same as above |
-| Documentation | Architecture docs with diagrams | `target/generated-sources/generated-docs/` |
-
-## Project Structure After Generation
+Demonstrates the classification validation phase.
 
 ```
-example-app/
-├── src/main/java/
-│   └── com/example/
-│       ├── domain/           # Your domain code (untouched)
-│       └── ports/            # Your port interfaces (untouched)
-├── target/generated-sources/
-│   ├── hexaglue/             # Generated JPA infrastructure
-│   │   └── com/example/infrastructure/persistence/
-│   │       ├── *Entity.java
-│   │       ├── *Embeddable.java
-│   │       ├── *JpaRepository.java
-│   │       ├── *Mapper.java
-│   │       └── *Adapter.java
-│   └── generated-docs/       # Generated documentation
-│       └── docs/architecture/
-│           ├── README.md
-│           ├── domain.md
-│           ├── ports.md
-│           └── diagrams.md
-└── pom.xml
+tutorial-validation/
+├── hexaglue.yaml           # Classification config
+├── domain/
+│   ├── Order.java          # @AggregateRoot
+│   └── OrderId.java        # Explicit in yaml
+└── util/
+    └── StringUtils.java    # EXCLUDED
 ```
 
-## Running the Examples
+**Key Concepts**: `classification.exclude`, `classification.explicit`, `failOnUnclassified`
 
-Each example is a standalone Spring Boot application:
+---
 
-```bash
-cd examples/<example-name>
-mvn clean compile    # Generate code
-mvn spring-boot:run  # Run application
+### tutorial-living-doc
+
+Focused demonstration of the Living Documentation plugin.
+
+```
+tutorial-living-doc/
+├── domain/
+│   ├── Order.java          # Aggregate Root
+│   ├── Product.java        # Aggregate Root
+│   └── ...                 # Value objects
+└── ports/
+    ├── in/                 # Driving ports
+    └── out/                # Driven ports
 ```
 
-> **Note**: Applications start and exit immediately (no web server). This confirms Spring context initializes correctly with generated infrastructure.
+**Generates**: README.md, domain.md, ports.md, diagrams.md
 
-## Next Steps
+---
 
-1. Start with [minimal](./minimal/) to understand the basics
-2. Progress to [coffeeshop](./coffeeshop/) for value objects
-3. Explore [ecommerce](./ecommerce/) for real-world patterns
-4. Create your own project using these examples as templates
+### tutorial-audit
+
+Clean architecture example that passes all audit constraints.
+
+```
+tutorial-audit/
+├── domain/
+│   ├── Customer.java       # Aggregate with identity
+│   ├── CustomerId.java     # Immutable record
+│   └── ...                 # Value objects
+└── ports/
+    ├── in/CustomerUseCases.java
+    └── out/CustomerRepository.java
+```
+
+**Demonstrates**: All DDD and hexagonal best practices
+
+---
+
+### sample-audit-violations
+
+Intentional architecture violations for testing the audit plugin.
+
+**Use for**: Understanding what violations look like, testing CI integration
+
+---
+
+## Generated Output Structure
+
+```
+target/hexaglue/
+├── generated-sources/      # Generated Java code
+│   └── com/example/infrastructure/
+│       ├── persistence/
+│       │   ├── *Entity.java
+│       │   ├── *JpaRepository.java
+│       │   └── *Mapper.java
+│       └── adapters/
+│           └── *Adapter.java
+├── living-doc/             # Living Documentation
+│   ├── README.md
+│   ├── domain.md
+│   ├── ports.md
+│   └── diagrams.md
+├── audit/                  # Audit reports
+│   ├── audit-report.json
+│   ├── audit-report.html
+│   └── audit-report.md
+└── reports/
+    └── validation/         # Classification report
+        └── validation-report.md
+```
+
+## Related Documentation
+
+- [Quick Start](../docs/QUICK_START.md) - Get started in 10 minutes
+- [Classification](../docs/CLASSIFICATION.md) - How types are classified
+- [Configuration](../docs/CONFIGURATION.md) - All configuration options
 
 ---
 
@@ -191,7 +215,7 @@ mvn spring-boot:run  # Run application
 
 **HexaGlue - Focus on business code, not infrastructure glue.**
 
-Made with ❤️ by Scalastic<br>
+Made with love by Scalastic<br>
 Copyright 2026 Scalastic - Released under MPL-2.0
 
 </div>

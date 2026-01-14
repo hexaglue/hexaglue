@@ -1,0 +1,9 @@
+# HexaGlue configuration for tutorial-audit
+# This example uses default values - shows a clean audit pass
+
+plugins:
+  audit:
+    # Default settings - strict mode
+    failOnBlocker: true
+    failOnCritical: true
+    reportFormats: "json,html,markdown"
