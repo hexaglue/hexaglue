@@ -97,7 +97,8 @@ public record EngineResult(
         if (primaryClassifications == null) {
             return 0;
         }
-        return (int) primaryClassifications.stream().filter(r -> !r.isClassified()).count();
+        return (int)
+                primaryClassifications.stream().filter(r -> !r.isClassified()).count();
     }
 
     /**

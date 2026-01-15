@@ -135,10 +135,7 @@ class CriteriaEngineTest {
         @DisplayName("should reject null compatibility policy")
         void shouldRejectNullCompatibilityPolicy() {
             assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
-                            List.of(),
-                            new DefaultDecisionPolicy<>(),
-                            null,
-                            CriteriaEngineTest.this::buildContribution))
+                            List.of(), new DefaultDecisionPolicy<>(), null, CriteriaEngineTest.this::buildContribution))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("compatibilityPolicy");
         }
@@ -147,10 +144,7 @@ class CriteriaEngineTest {
         @DisplayName("should reject null contribution builder")
         void shouldRejectNullContributionBuilder() {
             assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
-                            List.of(),
-                            new DefaultDecisionPolicy<>(),
-                            compatibilityPolicy,
-                            null))
+                            List.of(), new DefaultDecisionPolicy<>(), compatibilityPolicy, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("contributionBuilder");
         }

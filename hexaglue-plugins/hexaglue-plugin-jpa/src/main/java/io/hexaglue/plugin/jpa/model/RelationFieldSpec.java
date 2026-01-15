@@ -83,7 +83,29 @@ public record RelationFieldSpec(
      * @return a RelationFieldSpec ready for code generation
      */
     public static RelationFieldSpec from(DomainRelation relation) {
-        TypeName targetType = resolveTargetType(relation);
+        return from(relation, java.util.Map.of());
+    }
+
+    /**
+     * Creates a RelationFieldSpec from a SPI DomainRelation with embeddable type mapping.
+     *
+     * <p>This factory method performs the conversion from the SPI domain model
+     * to the JavaPoet-based generation model. For relationships targeting VALUE_OBJECTs,
+     * the embeddableMapping is used to replace domain types with JPA embeddable types.
+     *
+     * @param relation the domain relation from the SPI
+     * @param embeddableMapping map from domain type FQN to embeddable type FQN
+     * @return a RelationFieldSpec ready for code generation
+     */
+    public static RelationFieldSpec from(DomainRelation relation, java.util.Map<String, String> embeddableMapping) {
+        // For EMBEDDED and ELEMENT_COLLECTION, use embeddable type if available
+        String targetFqn = relation.targetTypeFqn();
+        if ((relation.kind() == RelationKind.EMBEDDED || relation.kind() == RelationKind.ELEMENT_COLLECTION)
+                && embeddableMapping.containsKey(targetFqn)) {
+            targetFqn = embeddableMapping.get(targetFqn);
+        }
+
+        TypeName targetType = resolveTargetType(relation.kind(), targetFqn);
 
         return new RelationFieldSpec(
                 relation.propertyName(),
@@ -175,13 +197,14 @@ public record RelationFieldSpec(
      *   <li>EMBEDDED: {@code Address}</li>
      * </ul>
      *
-     * @param relation the domain relation
+     * @param kind the relation kind
+     * @param targetTypeFqn the fully qualified target type name
      * @return the resolved JavaPoet TypeName (possibly wrapped in collection)
      */
-    private static TypeName resolveTargetType(DomainRelation relation) {
-        ClassName targetClass = ClassName.bestGuess(relation.targetTypeFqn());
+    private static TypeName resolveTargetType(RelationKind kind, String targetTypeFqn) {
+        ClassName targetClass = ClassName.bestGuess(targetTypeFqn);
 
-        return switch (relation.kind()) {
+        return switch (kind) {
             case ONE_TO_MANY, ELEMENT_COLLECTION -> ParameterizedTypeName.get(ClassName.get(List.class), targetClass);
             case MANY_TO_MANY -> ParameterizedTypeName.get(ClassName.get(Set.class), targetClass);
             case MANY_TO_ONE, ONE_TO_ONE, EMBEDDED -> targetClass;

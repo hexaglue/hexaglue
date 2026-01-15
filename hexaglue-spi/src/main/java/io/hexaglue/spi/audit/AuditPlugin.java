@@ -326,10 +326,13 @@ public interface AuditPlugin extends HexaGluePlugin {
         java.util.List<MethodDeclaration> methods = new java.util.ArrayList<>();
 
         for (io.hexaglue.spi.ir.PortMethod method : port.methods()) {
+            java.util.List<String> parameterTypes = method.parameters().stream()
+                    .map(p -> p.type().qualifiedName())
+                    .toList();
             methods.add(new MethodDeclaration(
                     method.name(),
-                    method.returnType(),
-                    method.parameters(),
+                    method.returnType().qualifiedName(),
+                    parameterTypes,
                     java.util.Set.of("public", "abstract"),
                     java.util.Set.of(),
                     1 // Interface methods have complexity 1

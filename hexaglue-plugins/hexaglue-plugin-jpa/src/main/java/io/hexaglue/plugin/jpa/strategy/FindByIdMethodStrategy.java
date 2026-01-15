@@ -16,20 +16,25 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import javax.lang.model.element.Modifier;
 
 /**
  * Strategy for generating FIND_BY_ID method implementations.
  *
  * <p>This strategy handles repository findById operations that retrieve a single
- * entity by its identifier. It generates code that:
- * <ol>
- *   <li>Calls repository.findById(id)</li>
- *   <li>Maps the Optional result using mapper::toDomain</li>
- * </ol>
+ * entity by its identifier. It uses the MethodKind classification from the SPI
+ * and properly handles wrapped vs unwrapped identity types.
  *
- * <h3>Generated Code Pattern:</h3>
+ * <h3>Generated Code Pattern (Wrapped ID):</h3>
+ * <pre>{@code
+ * @Override
+ * public Optional<Order> findById(OrderId orderId) {
+ *     return repository.findById(mapper.map(orderId)).map(mapper::toDomain);
+ * }
+ * }</pre>
+ *
+ * <h3>Generated Code Pattern (Unwrapped ID):</h3>
  * <pre>{@code
  * @Override
  * public Optional<Order> findById(UUID id) {
@@ -37,27 +42,27 @@ import javax.lang.model.element.Modifier;
  * }
  * }</pre>
  *
- * <h3>Supported Method Names:</h3>
+ * <h3>Generated Code Pattern (Direct Return - nullable):</h3>
+ * <pre>{@code
+ * @Override
+ * public Order getById(UUID id) {
+ *     return repository.findById(id).map(mapper::toDomain).orElse(null);
+ * }
+ * }</pre>
+ *
+ * <h3>Supported MethodKinds:</h3>
  * <ul>
- *   <li>findById(id)</li>
- *   <li>getById(id)</li>
- *   <li>loadById(id)</li>
- *   <li>findOne(id)</li>
- *   <li>getOne(id)</li>
+ *   <li>{@link MethodKind#FIND_BY_ID} - findById(id), getById(id), loadById(id)</li>
  * </ul>
  *
- * <h3>Return Type Requirements:</h3>
- * <p>This strategy expects the method to return {@code Optional<DomainType>}.
- * If the return type is not Optional, it will generate the code anyway but may
- * produce a compilation error in the generated class.
- *
- * @since 2.0.0
+ * @since 3.0.0
  */
 public final class FindByIdMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public boolean supports(AdapterMethodSpec method) {
-        return method.pattern() == MethodPattern.FIND_BY_ID;
+        // Use MethodKind from SPI instead of local pattern inference
+        return method.kind() == MethodKind.FIND_BY_ID;
     }
 
     @Override
@@ -80,15 +85,25 @@ public final class FindByIdMethodStrategy implements MethodBodyStrategy {
                     ParameterSpec.builder(param.type(), param.name()).build());
         }
 
-        // Generate method body
-        // Convert wrapped ID if necessary: mapper.map(taskId)
-        // return repository.findById(mapper.map(taskId)).map(mapper::toDomain);
+        // Generate method body with correct ID handling
         String idExpression = generateIdExpression(idParam, context);
-        builder.addStatement(
-                "return $L.findById($L).map($L::toDomain)",
-                context.repositoryFieldName(),
-                idExpression,
-                context.mapperFieldName());
+
+        // Check if return type is Optional or direct
+        if (method.returnsOptional()) {
+            // Optional return: use .map(mapper::toDomain)
+            builder.addStatement(
+                    "return $L.findById($L).map($L::toDomain)",
+                    context.repositoryFieldName(),
+                    idExpression,
+                    context.mapperFieldName());
+        } else {
+            // Direct return: use .map(mapper::toDomain).orElse(null)
+            builder.addStatement(
+                    "return $L.findById($L).map($L::toDomain).orElse(null)",
+                    context.repositoryFieldName(),
+                    idExpression,
+                    context.mapperFieldName());
+        }
 
         return builder.build();
     }
@@ -96,20 +111,27 @@ public final class FindByIdMethodStrategy implements MethodBodyStrategy {
     /**
      * Generates the expression to obtain the unwrapped ID value for repository operations.
      *
-     * <p>This method handles wrapped ID types by using the mapper's conversion method:
+     * <p>This method uses information from both the parameter (isIdentity) and the context
+     * (IdInfo) to determine whether to use mapper conversion:
      * <ul>
-     *   <li>Wrapped ID parameter (e.g., TaskId) - converts: {@code mapper.map(taskId)}</li>
-     *   <li>Primitive ID parameter (e.g., UUID) - uses directly: {@code id}</li>
+     *   <li>Wrapped ID parameter (e.g., TaskId) with isIdentity=true and context.hasWrappedId()
+     *       - converts: {@code mapper.map(taskId)}</li>
+     *   <li>Primitive ID parameter (e.g., UUID) with isIdentity=true and !context.hasWrappedId()
+     *       - uses directly: {@code id}</li>
+     *   <li>Non-identity parameter - uses directly: {@code param}</li>
      * </ul>
      *
      * @param param the ID parameter
-     * @param context the adapter context
+     * @param context the adapter context with IdInfo
      * @return the expression to get the unwrapped ID
      */
     private String generateIdExpression(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
-        // Convert ID using mapper - it will handle wrapped types
-        // For primitive types, the mapper won't have a conversion method, but we need
-        // to detect this. For now, always use the mapper.
-        return String.format("%s.map(%s)", context.mapperFieldName(), param.name());
+        // If the parameter is marked as identity AND the context indicates a wrapped ID,
+        // we need to use mapper.map() to unwrap
+        if (param.isIdentity() && context.hasWrappedId()) {
+            return String.format("%s.map(%s)", context.mapperFieldName(), param.name());
+        }
+        // Otherwise, use the parameter directly (unwrapped ID or non-identity parameter)
+        return param.name();
     }
 }

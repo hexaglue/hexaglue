@@ -85,15 +85,20 @@ public final class ValidationReportGenerator {
         report.append("HEXAGLUE VALIDATION REPORT\n");
         report.append("=".repeat(80)).append("\n");
         report.append("Generated: ").append(timestamp).append("\n");
-        report.append("Project: ").append(projectName != null ? projectName : "Unknown").append("\n");
+        report.append("Project: ")
+                .append(projectName != null ? projectName : "Unknown")
+                .append("\n");
         report.append("\n");
 
         // Summary
         report.append("CLASSIFICATION SUMMARY\n");
         report.append("-".repeat(80)).append("\n");
-        report.append(String.format("%-20s %5d (%5.1f%%)\n", "EXPLICIT:", explicit.size(), percentage(explicit.size(), total)));
-        report.append(String.format("%-20s %5d (%5.1f%%)\n", "INFERRED:", inferred.size(), percentage(inferred.size(), total)));
-        report.append(String.format("%-20s %5d (%5.1f%%)\n", "UNCLASSIFIED:", unclassified.size(), percentage(unclassified.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)\n", "EXPLICIT:", explicit.size(), percentage(explicit.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)\n", "INFERRED:", inferred.size(), percentage(inferred.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)\n", "UNCLASSIFIED:", unclassified.size(), percentage(unclassified.size(), total)));
         report.append(String.format("%-20s %5d\n", "TOTAL:", total));
         report.append("\n");
         report.append("Status: ").append(passed ? "PASSED" : "FAILED").append("\n");
@@ -130,7 +135,9 @@ public final class ValidationReportGenerator {
             for (ClassificationResult r : unclassified) {
                 String typeName = extractQualifiedName(r.subjectId());
                 report.append("\n  ").append(typeName).append("\n");
-                report.append("    Reason: ").append(r.justification() != null ? r.justification() : "No matching criteria").append("\n");
+                report.append("    Reason: ")
+                        .append(r.justification() != null ? r.justification() : "No matching criteria")
+                        .append("\n");
                 report.append("    Suggested Actions:\n");
                 for (String action : suggestActions(r)) {
                     report.append("      - ").append(action).append("\n");
@@ -170,7 +177,9 @@ public final class ValidationReportGenerator {
         // Header
         md.append("# HexaGlue Validation Report\n\n");
         md.append("**Generated:** ").append(timestamp).append("  \n");
-        md.append("**Project:** ").append(projectName != null ? projectName : "Unknown").append("  \n");
+        md.append("**Project:** ")
+                .append(projectName != null ? projectName : "Unknown")
+                .append("  \n");
         md.append("**Status:** ");
         if (passed) {
             md.append("✅ PASSED\n\n");
@@ -184,7 +193,8 @@ public final class ValidationReportGenerator {
         md.append("|----------|-------|------------|\n");
         md.append(String.format("| EXPLICIT | %d | %.1f%% |\n", explicit.size(), percentage(explicit.size(), total)));
         md.append(String.format("| INFERRED | %d | %.1f%% |\n", inferred.size(), percentage(inferred.size(), total)));
-        md.append(String.format("| UNCLASSIFIED | %d | %.1f%% |\n", unclassified.size(), percentage(unclassified.size(), total)));
+        md.append(String.format(
+                "| UNCLASSIFIED | %d | %.1f%% |\n", unclassified.size(), percentage(unclassified.size(), total)));
         md.append(String.format("| **Total** | **%d** | 100%% |\n\n", total));
 
         // Explicit Classifications
@@ -221,7 +231,9 @@ public final class ValidationReportGenerator {
             for (ClassificationResult r : unclassified) {
                 String typeName = extractQualifiedName(r.subjectId());
                 md.append("### ").append(index++).append(". `").append(typeName).append("`\n\n");
-                md.append("**Reason:** ").append(r.justification() != null ? r.justification() : "No matching criteria").append("\n\n");
+                md.append("**Reason:** ")
+                        .append(r.justification() != null ? r.justification() : "No matching criteria")
+                        .append("\n\n");
                 md.append("**Suggested Actions:**\n");
                 for (String action : suggestActions(r)) {
                     md.append("- ").append(action).append("\n");
@@ -247,8 +259,7 @@ public final class ValidationReportGenerator {
      * Categorizes classification results into EXPLICIT, INFERRED, and UNCLASSIFIED.
      */
     private Map<Category, List<ClassificationResult>> categorizeResults(ClassificationResults results) {
-        return results.stream()
-                .collect(Collectors.groupingBy(this::categorize));
+        return results.stream().collect(Collectors.groupingBy(this::categorize));
     }
 
     /**
@@ -265,8 +276,8 @@ public final class ValidationReportGenerator {
         }
 
         // Check for annotation-based evidence
-        if (result.evidence() != null && result.evidence().stream()
-                .anyMatch(e -> e.type() == EvidenceType.ANNOTATION)) {
+        if (result.evidence() != null
+                && result.evidence().stream().anyMatch(e -> e.type() == EvidenceType.ANNOTATION)) {
             return Category.EXPLICIT;
         }
 
@@ -314,9 +325,11 @@ public final class ValidationReportGenerator {
                 .filter(e -> e.type() == EvidenceType.ANNOTATION)
                 .map(Evidence::description)
                 .findFirst()
-                .orElse(result.matchedCriteria() != null && result.matchedCriteria().equals("ExplicitConfiguration")
-                        ? "hexaglue.yaml"
-                        : "-");
+                .orElse(
+                        result.matchedCriteria() != null
+                                        && result.matchedCriteria().equals("ExplicitConfiguration")
+                                ? "hexaglue.yaml"
+                                : "-");
     }
 
     /**

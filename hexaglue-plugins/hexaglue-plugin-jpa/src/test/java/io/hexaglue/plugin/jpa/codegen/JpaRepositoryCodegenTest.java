@@ -20,6 +20,7 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -42,7 +43,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldCreateRepositoryInterface() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -56,7 +57,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldHaveGeneratedAnnotation() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -71,7 +72,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldHaveRepositoryAnnotation() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -84,7 +85,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldExtendJpaRepository() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -100,7 +101,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldBePublicInterface() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -113,7 +114,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generate_shouldIncludeJavadoc() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
@@ -137,7 +138,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generateFile_shouldCreateJavaFile() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         JavaFile javaFile = JpaRepositoryCodegen.generateFile(spec);
@@ -151,7 +152,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generateFile_shouldHaveCorrectPackage() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         JavaFile javaFile = JpaRepositoryCodegen.generateFile(spec);
@@ -164,7 +165,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generateFile_shouldIncludeNecessaryImports() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         JavaFile javaFile = JpaRepositoryCodegen.generateFile(spec);
@@ -189,7 +190,7 @@ class JpaRepositoryCodegenTest {
     @Test
     void generateFile_shouldProduceValidCode() {
         // Given
-        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME);
+        RepositorySpec spec = new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
 
         // When
         JavaFile javaFile = JpaRepositoryCodegen.generateFile(spec);

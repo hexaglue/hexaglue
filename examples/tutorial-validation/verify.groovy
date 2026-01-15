@@ -1,6 +1,6 @@
 /*
- * Verify script for validation-demo integration test.
- * Validates that the validation and generation goals executed correctly.
+ * Verify script for tutorial-validation integration test.
+ * Validates that HexaGlue classification and validation features work correctly.
  */
 
 def buildLog = new File(basedir, "build.log")
@@ -11,9 +11,9 @@ def logContent = buildLog.text
 // Verify build success
 assert !logContent.contains("BUILD FAILURE") : "Build should not fail"
 
-// Verify HexaGlue validation executed
-assert logContent.contains("HexaGlue validating:") || logContent.contains("HexaGlue generate-and-audit:") :
-    "Should contain HexaGlue validation or generate-and-audit output"
+// Verify HexaGlue plugin executed
+assert logContent.contains("HexaGlue analyzing:") :
+    "Should contain HexaGlue analyzing output"
 
 // Verify classification completed
 assert logContent.contains("Classification complete:") :
@@ -24,10 +24,18 @@ def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
 assert generatedSources.exists() :
     "Generated sources directory should exist"
 
-// Check validation report
-def validationReport = new File(basedir, "target/hexaglue/reports/validation/validation-report.md")
-assert validationReport.exists() :
-    "Validation report should exist at target/hexaglue/reports/validation/validation-report.md"
+// Check living-doc directory
+def livingDocDir = new File(basedir, "target/hexaglue/reports/living-doc")
+assert livingDocDir.exists() :
+    "Living documentation directory should exist"
 
-println "SUCCESS: validation-demo integration test passed"
+// Verify Living Documentation plugin ran
+assert logContent.contains("io.hexaglue.plugin.livingdoc") :
+    "Build log should contain Living Documentation plugin execution"
+
+// Verify Living Documentation generation completed
+assert logContent.contains("Living documentation complete:") :
+    "Build log should contain Living Documentation completion message"
+
+println 'SUCCESS: tutorial-validation integration test passed - classification and validation features work correctly'
 return true

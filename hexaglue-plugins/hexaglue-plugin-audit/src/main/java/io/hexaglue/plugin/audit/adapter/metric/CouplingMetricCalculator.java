@@ -105,17 +105,21 @@ public class CouplingMetricCalculator implements MetricCalculator {
         }
 
         // Calculate average instability (judgment)
-        double averageCoupling =
-                allMetrics.stream().mapToDouble(CouplingMetrics::instability).average().orElse(0.0);
+        double averageCoupling = allMetrics.stream()
+                .mapToDouble(CouplingMetrics::instability)
+                .average()
+                .orElse(0.0);
 
         // Count problematic packages (judgment)
-        long problematicCount = allMetrics.stream().filter(CouplingMetrics::isProblematic).count();
+        long problematicCount =
+                allMetrics.stream().filter(CouplingMetrics::isProblematic).count();
 
         String description = String.format(
                 "Average package instability: %.2f (%d of %d packages are problematic)",
                 averageCoupling, problematicCount, allMetrics.size());
 
-        return Metric.of(METRIC_NAME, averageCoupling, "ratio", description, MetricThreshold.lessThan(WARNING_THRESHOLD));
+        return Metric.of(
+                METRIC_NAME, averageCoupling, "ratio", description, MetricThreshold.lessThan(WARNING_THRESHOLD));
     }
 
     /**

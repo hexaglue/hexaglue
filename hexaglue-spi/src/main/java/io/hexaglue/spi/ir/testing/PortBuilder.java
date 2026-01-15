@@ -171,7 +171,7 @@ public final class PortBuilder {
      * @param parameterTypes the parameter types
      */
     public PortBuilder withMethod(String name, String returnType, String... parameterTypes) {
-        methods.add(new PortMethod(name, returnType, List.of(parameterTypes)));
+        methods.add(PortMethod.legacy(name, returnType, List.of(parameterTypes)));
         return this;
     }
 
@@ -187,7 +187,7 @@ public final class PortBuilder {
      */
     public PortBuilder withFindByIdMethod(String entityType, String idType) {
         String returnType = "java.util.Optional<" + entityType + ">";
-        methods.add(new PortMethod("findById", returnType, List.of(idType)));
+        methods.add(PortMethod.legacy("findById", returnType, List.of(idType)));
         return this;
     }
 
@@ -196,7 +196,7 @@ public final class PortBuilder {
      */
     public PortBuilder withFindAllMethod(String entityType) {
         String returnType = "java.util.List<" + entityType + ">";
-        methods.add(new PortMethod("findAll", returnType, List.of()));
+        methods.add(PortMethod.legacy("findAll", returnType, List.of()));
         return this;
     }
 
@@ -204,7 +204,7 @@ public final class PortBuilder {
      * Adds a save method.
      */
     public PortBuilder withSaveMethod(String entityType) {
-        methods.add(new PortMethod("save", entityType, List.of(entityType)));
+        methods.add(PortMethod.legacy("save", entityType, List.of(entityType)));
         return this;
     }
 
@@ -212,7 +212,7 @@ public final class PortBuilder {
      * Adds a delete method.
      */
     public PortBuilder withDeleteMethod(String idType) {
-        methods.add(new PortMethod("delete", "void", List.of(idType)));
+        methods.add(PortMethod.legacy("delete", "void", List.of(idType)));
         return this;
     }
 

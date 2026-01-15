@@ -80,8 +80,8 @@ public final class PortClassifier {
     public PortClassifier(List<PortClassificationCriteria> criteria) {
         this.decisionPolicy = new DefaultDecisionPolicy<>();
         this.compatibilityPolicy = CompatibilityPolicy.portDefault();
-        this.engine = new CriteriaEngine<>(
-                criteria, decisionPolicy, compatibilityPolicy, PortClassifier::buildContribution);
+        this.engine =
+                new CriteriaEngine<>(criteria, decisionPolicy, compatibilityPolicy, PortClassifier::buildContribution);
     }
 
     /**

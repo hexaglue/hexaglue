@@ -90,7 +90,10 @@ public record HealthScore(
      * @return a new HealthScore with calculated overall and grade
      */
     public static HealthScore compute(int ddd, int hex, int dep, int coup, int coh) {
-        int overall = (int) (ddd * DDD_WEIGHT + hex * HEX_WEIGHT + dep * DEP_WEIGHT + coup * COUPLING_WEIGHT
+        int overall = (int) (ddd * DDD_WEIGHT
+                + hex * HEX_WEIGHT
+                + dep * DEP_WEIGHT
+                + coup * COUPLING_WEIGHT
                 + coh * COHESION_WEIGHT);
         String grade = computeGrade(overall);
         return new HealthScore(overall, ddd, hex, dep, coup, coh, grade);

@@ -31,12 +31,13 @@ class IdentityTest {
         @Test
         @DisplayName("should return true for RECORD wrapper")
         void returnsTrueForRecordWrapper() {
-            Identity identity = new Identity(
+            Identity identity = Identity.wrapped(
                     "id",
                     TypeRef.of("com.example.OrderId"),
                     TypeRef.of("java.util.UUID"),
                     IdentityStrategy.UUID,
-                    IdentityWrapperKind.RECORD);
+                    IdentityWrapperKind.RECORD,
+                    "value");
 
             assertThat(identity.isWrapped()).isTrue();
         }
@@ -44,12 +45,13 @@ class IdentityTest {
         @Test
         @DisplayName("should return true for CLASS wrapper")
         void returnsTrueForClassWrapper() {
-            Identity identity = new Identity(
+            Identity identity = Identity.wrapped(
                     "id",
                     TypeRef.of("com.example.CustomerId"),
                     TypeRef.of("java.util.UUID"),
                     IdentityStrategy.UUID,
-                    IdentityWrapperKind.CLASS);
+                    IdentityWrapperKind.CLASS,
+                    "getValue");
 
             assertThat(identity.isWrapped()).isTrue();
         }
@@ -57,12 +59,7 @@ class IdentityTest {
         @Test
         @DisplayName("should return false for NONE wrapper")
         void returnsFalseForNoneWrapper() {
-            Identity identity = new Identity(
-                    "id",
-                    TypeRef.of("java.util.UUID"),
-                    TypeRef.of("java.util.UUID"),
-                    IdentityStrategy.UUID,
-                    IdentityWrapperKind.NONE);
+            Identity identity = Identity.unwrapped("id", TypeRef.of("java.util.UUID"), IdentityStrategy.UUID);
 
             assertThat(identity.isWrapped()).isFalse();
         }
@@ -103,12 +100,13 @@ class IdentityTest {
         @Test
         @DisplayName("should return type with full information")
         void typeHasFullInformation() {
-            Identity identity = new Identity(
+            Identity identity = Identity.wrapped(
                     "id",
                     TypeRef.of("com.example.OrderId"),
                     TypeRef.of("java.util.UUID"),
                     IdentityStrategy.UUID,
-                    IdentityWrapperKind.RECORD);
+                    IdentityWrapperKind.RECORD,
+                    "value");
 
             assertThat(identity.type().qualifiedName()).isEqualTo("com.example.OrderId");
             assertThat(identity.type().simpleName()).isEqualTo("OrderId");
@@ -117,12 +115,13 @@ class IdentityTest {
         @Test
         @DisplayName("should return unwrappedType with full information")
         void unwrappedTypeHasFullInformation() {
-            Identity identity = new Identity(
+            Identity identity = Identity.wrapped(
                     "id",
                     TypeRef.of("com.example.OrderId"),
                     TypeRef.of("java.util.UUID"),
                     IdentityStrategy.UUID,
-                    IdentityWrapperKind.RECORD);
+                    IdentityWrapperKind.RECORD,
+                    "value");
 
             assertThat(identity.unwrappedType().qualifiedName()).isEqualTo("java.util.UUID");
             assertThat(identity.unwrappedType().simpleName()).isEqualTo("UUID");

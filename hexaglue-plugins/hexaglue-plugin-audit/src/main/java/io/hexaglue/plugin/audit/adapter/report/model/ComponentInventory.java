@@ -96,8 +96,9 @@ public record ComponentInventory(
      * @return a ComponentInventory with all values set to 0
      */
     public static ComponentInventory empty() {
-        return new ComponentInventory(0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-                List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
+        return new ComponentInventory(
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), List.of(), List.of(), List.of(), List.of(), List.of(),
+                List.of(), List.of());
     }
 
     /**
@@ -138,12 +139,7 @@ public record ComponentInventory(
      * @param estimatedLoc estimated lines of code
      */
     public record BoundedContextStats(
-            String name,
-            int aggregates,
-            int entities,
-            int valueObjects,
-            int ports,
-            int estimatedLoc) {
+            String name, int aggregates, int entities, int valueObjects, int ports, int estimatedLoc) {
 
         public BoundedContextStats {
             Objects.requireNonNull(name, "name required");
@@ -257,8 +253,8 @@ public record ComponentInventory(
          * @return a new ComponentInventory
          */
         public ComponentInventory build() {
-            int totalDomain = aggregateRoots + entities + valueObjects + domainEvents + domainServices
-                    + applicationServices;
+            int totalDomain =
+                    aggregateRoots + entities + valueObjects + domainEvents + domainServices + applicationServices;
             int totalP = drivingPorts + drivenPorts;
             return new ComponentInventory(
                     aggregateRoots,

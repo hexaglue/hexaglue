@@ -84,10 +84,12 @@ public record AggregateDetails(
             // Get repository
             Optional<String> repoOpt = architectureQuery.findRepositoryForAggregate(rootQualifiedName);
             boolean hasRepository = repoOpt.isPresent();
-            String repositoryName = repoOpt.map(AggregateDetails::extractSimpleName).orElse("");
+            String repositoryName =
+                    repoOpt.map(AggregateDetails::extractSimpleName).orElse("");
 
             // Get cohesion
-            double cohesion = architectureQuery.calculateAggregateCohesion(rootQualifiedName)
+            double cohesion = architectureQuery
+                    .calculateAggregateCohesion(rootQualifiedName)
                     .orElse(-1.0);
 
             // Determine status

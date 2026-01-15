@@ -40,6 +40,7 @@ import io.hexaglue.spi.plugin.PluginConfig;
  * </pre>
  *
  * @param entitySuffix suffix for generated JPA entity classes (default: "Entity")
+ * @param embeddableSuffix suffix for generated JPA embeddable classes (default: "Embeddable")
  * @param repositorySuffix suffix for Spring Data repository interfaces (default: "JpaRepository")
  * @param adapterSuffix suffix for port adapter classes (default: "Adapter")
  * @param mapperSuffix suffix for MapStruct mapper interfaces (default: "Mapper")
@@ -49,10 +50,12 @@ import io.hexaglue.spi.plugin.PluginConfig;
  * @param generateRepositories true to generate Spring Data JPA repository interfaces
  * @param generateMappers true to generate MapStruct mapper interfaces
  * @param generateAdapters true to generate port adapter implementations
+ * @param generateEmbeddables true to generate JPA embeddable classes for value objects
  * @since 2.0.0
  */
 public record JpaConfig(
         String entitySuffix,
+        String embeddableSuffix,
         String repositorySuffix,
         String adapterSuffix,
         String mapperSuffix,
@@ -61,7 +64,8 @@ public record JpaConfig(
         boolean enableOptimisticLocking,
         boolean generateRepositories,
         boolean generateMappers,
-        boolean generateAdapters) {
+        boolean generateAdapters,
+        boolean generateEmbeddables) {
 
     /**
      * Creates configuration from plugin config.
@@ -69,6 +73,7 @@ public record JpaConfig(
     static JpaConfig from(PluginConfig config) {
         return new JpaConfig(
                 config.getString("entitySuffix", "Entity"),
+                config.getString("embeddableSuffix", "Embeddable"),
                 config.getString("repositorySuffix", "JpaRepository"),
                 config.getString("adapterSuffix", "Adapter"),
                 config.getString("mapperSuffix", "Mapper"),
@@ -77,13 +82,15 @@ public record JpaConfig(
                 config.getBoolean("enableOptimisticLocking", false),
                 config.getBoolean("generateRepositories", true),
                 config.getBoolean("generateMappers", true),
-                config.getBoolean("generateAdapters", true));
+                config.getBoolean("generateAdapters", true),
+                config.getBoolean("generateEmbeddables", true));
     }
 
     /**
      * Creates default configuration.
      */
     static JpaConfig defaults() {
-        return new JpaConfig("Entity", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true);
+        return new JpaConfig("Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "",
+                false, false, true, true, true, true);
     }
 }

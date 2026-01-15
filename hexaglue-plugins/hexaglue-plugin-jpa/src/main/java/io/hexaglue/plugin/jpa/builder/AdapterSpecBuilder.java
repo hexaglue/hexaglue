@@ -18,10 +18,13 @@ import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
+import io.hexaglue.plugin.jpa.strategy.AdapterContext;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Port;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +37,7 @@ import java.util.stream.Collectors;
  *   <li>Single port implementation (one port → one adapter)</li>
  *   <li>Multiple port implementation (merged adapter pattern)</li>
  *   <li>Port method transformation to adapter method specifications</li>
+ *   <li>Method deduplication (important for merged ports)</li>
  *   <li>Dependency resolution (repository, mapper references)</li>
  *   <li>Type mapping between domain and infrastructure layers</li>
  * </ul>
@@ -41,8 +45,12 @@ import java.util.stream.Collectors;
  * <p>Design decision: Adapters bridge the domain and infrastructure layers.
  * They implement port interfaces defined in the domain layer and delegate to
  * infrastructure components (JPA repositories, MapStruct mappers) to perform
- * actual persistence operations. This keeps the domain layer independent of
- * infrastructure concerns while providing a clean integration point.
+ * actual persistence operations.
+ *
+ * <h3>Method Deduplication:</h3>
+ * <p>When multiple ports are merged into a single adapter, they may declare the
+ * same methods (e.g., both ports have {@code findById}). This builder deduplicates
+ * methods by their signature to avoid generating duplicate implementations.
  *
  * <h3>Generated Adapter Example:</h3>
  * <pre>{@code
@@ -58,8 +66,8 @@ import java.util.stream.Collectors;
  *
  *     @Override
  *     public Order save(Order order) {
- *         OrderEntity entity = mapper.toEntity(order);
- *         OrderEntity saved = repository.save(entity);
+ *         var entity = mapper.toEntity(order);
+ *         var saved = repository.save(entity);
  *         return mapper.toDomain(saved);
  *     }
  *
@@ -70,17 +78,7 @@ import java.util.stream.Collectors;
  * }
  * }</pre>
  *
- * <h3>Usage Example:</h3>
- * <pre>{@code
- * AdapterSpec spec = AdapterSpecBuilder.builder()
- *     .ports(List.of(orderRepositoryPort))
- *     .domainType(orderType)
- *     .config(jpaConfig)
- *     .infrastructurePackage("com.example.infrastructure.jpa")
- *     .build();
- * }</pre>
- *
- * @since 2.0.0
+ * @since 3.0.0
  */
 public final class AdapterSpecBuilder {
 
@@ -161,12 +159,14 @@ public final class AdapterSpecBuilder {
      *
      * <p>This method performs the transformation from SPI Port(s) and DomainType
      * to the AdapterSpec model. It resolves all type references, generates method
-     * specifications, and prepares the complete adapter specification for code
-     * generation.
+     * specifications with deduplication, and prepares the complete adapter
+     * specification for code generation.
      *
-     * <p>For merged adapters (multiple ports), the class name is derived from the
-     * domain type rather than the port name. For single port adapters, the class
-     * name can be derived from either the port or domain type based on preference.
+     * <p>Adapter naming strategy:
+     * <ul>
+     *   <li>Single port: Use port name + adapter suffix (e.g., OrderRepositoryAdapter)</li>
+     *   <li>Multiple ports: Use domain type name + adapter suffix (e.g., OrderAdapter)</li>
+     * </ul>
      *
      * @return an immutable AdapterSpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -179,8 +179,15 @@ public final class AdapterSpecBuilder {
             throw new IllegalArgumentException("At least one port is required to generate an adapter");
         }
 
-        // Derive class name from domain type for consistency
-        String className = domainType.simpleName() + config.adapterSuffix();
+        // Derive class name based on number of ports
+        // Single port: use port name (e.g., PokemonRepositoryFetcherAdapter)
+        // Multiple ports: use domain type name for backward compatibility
+        String className;
+        if (ports.size() == 1) {
+            className = ports.get(0).simpleName() + config.adapterSuffix();
+        } else {
+            className = domainType.simpleName() + config.adapterSuffix();
+        }
 
         // Convert all ports to TypeNames for implements clause
         List<TypeName> implementedPorts = ports.stream()
@@ -195,8 +202,12 @@ public final class AdapterSpecBuilder {
                 ClassName.get(infrastructurePackage, domainType.simpleName() + config.repositorySuffix());
         TypeName mapperClass = ClassName.get(infrastructurePackage, domainType.simpleName() + config.mapperSuffix());
 
-        // Collect all methods from all ports
+        // Collect all methods from all ports with deduplication
         List<AdapterMethodSpec> methods = buildAdapterMethodSpecs();
+
+        // Build IdInfo from domain type's identity
+        AdapterContext.IdInfo idInfo =
+                domainType.identity().map(AdapterContext.IdInfo::from).orElse(null);
 
         return new AdapterSpec(
                 infrastructurePackage,
@@ -206,32 +217,74 @@ public final class AdapterSpecBuilder {
                 entityClass,
                 repositoryClass,
                 mapperClass,
-                methods);
+                methods,
+                idInfo);
     }
 
     /**
-     * Builds adapter method specifications from all port methods.
+     * Builds the AdapterContext for method generation.
+     *
+     * <p>The AdapterContext provides type information and field names needed
+     * by method generation strategies. It includes IdInfo from the domain type's
+     * identity for proper ID handling.
+     *
+     * @return the adapter context
+     */
+    public AdapterContext buildContext() {
+        validateRequiredFields();
+
+        TypeName domainClass = ClassName.bestGuess(domainType.qualifiedName());
+        String entityClassName = domainType.simpleName() + config.entitySuffix();
+        TypeName entityClass = ClassName.get(infrastructurePackage, entityClassName);
+
+        // Build IdInfo from domain type's identity
+        AdapterContext.IdInfo idInfo =
+                domainType.identity().map(AdapterContext.IdInfo::from).orElse(null);
+
+        return new AdapterContext(domainClass, entityClass, "repository", "mapper", idInfo);
+    }
+
+    /**
+     * Builds adapter method specifications from all port methods with deduplication.
      *
      * <p>This method collects all methods from all provided ports and transforms
-     * them into AdapterMethodSpec instances. Each method spec contains the
-     * signature information and inferred pattern needed for implementation
-     * generation.
+     * them into AdapterMethodSpec instances. Methods with identical signatures
+     * are deduplicated to prevent generating duplicate implementations.
      *
-     * <p>Method patterns are inferred from the method name (save, findById, etc.)
-     * to determine the appropriate implementation strategy in the code generator.
+     * <p>Deduplication is essential for merged adapters where multiple ports may
+     * declare the same standard repository methods (findById, save, etc.).
      *
-     * @return list of adapter method specifications
+     * @return list of deduplicated adapter method specifications
      */
     private List<AdapterMethodSpec> buildAdapterMethodSpecs() {
-        List<AdapterMethodSpec> methods = new ArrayList<>();
+        Map<String, AdapterMethodSpec> methodsBySignature = new LinkedHashMap<>();
 
         for (Port port : ports) {
-            List<AdapterMethodSpec> portMethods =
-                    port.methods().stream().map(AdapterMethodSpec::from).collect(Collectors.toList());
-            methods.addAll(portMethods);
+            for (var method : port.methods()) {
+                AdapterMethodSpec spec = AdapterMethodSpec.from(method);
+                String signature = computeSignature(spec);
+
+                // Keep the first occurrence only (deduplication)
+                methodsBySignature.putIfAbsent(signature, spec);
+            }
         }
 
-        return methods;
+        return new ArrayList<>(methodsBySignature.values());
+    }
+
+    /**
+     * Computes a unique signature for a method based on name and parameter types.
+     *
+     * <p>This signature is used for deduplication. Two methods with the same name
+     * and parameter types are considered duplicates, even if they come from
+     * different port interfaces.
+     *
+     * @param spec the method specification
+     * @return a signature string like "findById(java.util.UUID)"
+     */
+    private String computeSignature(AdapterMethodSpec spec) {
+        String params = spec.parameters().stream().map(p -> p.type().toString()).collect(Collectors.joining(","));
+        return spec.name() + "(" + params + ")";
     }
 
     /**

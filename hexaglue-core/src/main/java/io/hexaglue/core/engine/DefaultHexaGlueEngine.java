@@ -180,8 +180,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 4: Export to IR
             log.info("Exporting to IR");
-            IrSnapshot ir =
-                    irExporter.export(graph, classifications, config.projectName(), config.projectVersion());
+            IrSnapshot ir = irExporter.export(graph, classifications, config.projectName(), config.projectVersion());
 
             // Step 4.5: Export primary classifications for enrichment and secondary classifiers
             // These classifications are made available to plugins via the PluginOutputStore
@@ -230,14 +229,12 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
     private List<ClassificationResult> classifyAll(ApplicationGraph graph, EngineConfig config) {
         // Determine which classifier to use
-        SinglePassClassifier effectiveClassifier =
-                classifier != null ? classifier : new SinglePassClassifier();
+        SinglePassClassifier effectiveClassifier = classifier != null ? classifier : new SinglePassClassifier();
 
         // Use SinglePassClassifier for unified classification
         // This ensures ports are classified FIRST, then domain types with port context
         // Pass the classification config for user-defined exclusions and explicit classifications
-        ClassificationResults results =
-                effectiveClassifier.classify(graph, config.classificationConfig());
+        ClassificationResults results = effectiveClassifier.classify(graph, config.classificationConfig());
 
         // Filter to only return classified or conflicting types
         return results.stream()

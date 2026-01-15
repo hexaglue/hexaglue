@@ -85,12 +85,21 @@ public class ExecutiveSummaryBuilder {
      * </ul>
      */
     private String createVerdict(
-            String projectName, HealthScore healthScore, List<Violation> violations, int dddCompliance, int hexCompliance) {
+            String projectName,
+            HealthScore healthScore,
+            List<Violation> violations,
+            int dddCompliance,
+            int hexCompliance) {
         int score = healthScore.overall();
         String grade = healthScore.grade();
-        long blockers = violations.stream().filter(v -> v.severity() == Severity.BLOCKER).count();
-        long criticals = violations.stream().filter(v -> v.severity() == Severity.CRITICAL).count();
-        long majors = violations.stream().filter(v -> v.severity() == Severity.MAJOR).count();
+        long blockers = violations.stream()
+                .filter(v -> v.severity() == Severity.BLOCKER)
+                .count();
+        long criticals = violations.stream()
+                .filter(v -> v.severity() == Severity.CRITICAL)
+                .count();
+        long majors =
+                violations.stream().filter(v -> v.severity() == Severity.MAJOR).count();
 
         StringBuilder verdict = new StringBuilder();
 
@@ -172,7 +181,8 @@ public class ExecutiveSummaryBuilder {
     /**
      * Appends compliance assessment text based on DDD and Hexagonal compliance levels.
      */
-    private void appendComplianceAssessment(StringBuilder sb, int dddCompliance, int hexCompliance, String conjunction) {
+    private void appendComplianceAssessment(
+            StringBuilder sb, int dddCompliance, int hexCompliance, String conjunction) {
         String dddLevel = getComplianceLevel(dddCompliance);
         String hexLevel = getComplianceLevel(hexCompliance);
 
@@ -181,14 +191,27 @@ public class ExecutiveSummaryBuilder {
                     .append(dddLevel.equals(hexLevel) ? dddLevel : dddLevel + "/" + hexLevel)
                     .append(" applied across the codebase");
         } else if (dddCompliance >= 80) {
-            sb.append("DDD patterns are ").append(dddLevel).append(" applied, ").append(conjunction)
-                    .append(" Hexagonal Architecture compliance needs attention (").append(hexCompliance).append("%)");
+            sb.append("DDD patterns are ")
+                    .append(dddLevel)
+                    .append(" applied, ")
+                    .append(conjunction)
+                    .append(" Hexagonal Architecture compliance needs attention (")
+                    .append(hexCompliance)
+                    .append("%)");
         } else if (hexCompliance >= 80) {
-            sb.append("Hexagonal Architecture is ").append(hexLevel).append(" implemented, ").append(conjunction)
-                    .append(" DDD pattern compliance needs attention (").append(dddCompliance).append("%)");
+            sb.append("Hexagonal Architecture is ")
+                    .append(hexLevel)
+                    .append(" implemented, ")
+                    .append(conjunction)
+                    .append(" DDD pattern compliance needs attention (")
+                    .append(dddCompliance)
+                    .append("%)");
         } else {
-            sb.append("both DDD (").append(dddCompliance).append("%) and Hexagonal Architecture (")
-                    .append(hexCompliance).append("%) compliance need improvement");
+            sb.append("both DDD (")
+                    .append(dddCompliance)
+                    .append("%) and Hexagonal Architecture (")
+                    .append(hexCompliance)
+                    .append("%) compliance need improvement");
         }
     }
 
@@ -269,18 +292,20 @@ public class ExecutiveSummaryBuilder {
         List<ConcernEntry> concerns = new ArrayList<>();
 
         // Group violations by severity
-        Map<Severity, Long> bySeverity = violations.stream()
-                .collect(Collectors.groupingBy(Violation::severity, Collectors.counting()));
+        Map<Severity, Long> bySeverity =
+                violations.stream().collect(Collectors.groupingBy(Violation::severity, Collectors.counting()));
 
         // Add concerns for each severity level
         long blockers = bySeverity.getOrDefault(Severity.BLOCKER, 0L);
         if (blockers > 0) {
-            concerns.add(new ConcernEntry("BLOCKER", "Critical architectural violations requiring immediate action", (int) blockers));
+            concerns.add(new ConcernEntry(
+                    "BLOCKER", "Critical architectural violations requiring immediate action", (int) blockers));
         }
 
         long criticals = bySeverity.getOrDefault(Severity.CRITICAL, 0L);
         if (criticals > 0) {
-            concerns.add(new ConcernEntry("CRITICAL", "Serious violations affecting architecture integrity", (int) criticals));
+            concerns.add(new ConcernEntry(
+                    "CRITICAL", "Serious violations affecting architecture integrity", (int) criticals));
         }
 
         long majors = bySeverity.getOrDefault(Severity.MAJOR, 0L);
@@ -296,7 +321,10 @@ public class ExecutiveSummaryBuilder {
             }
 
             if (!analysis.layerViolations().isEmpty()) {
-                concerns.add(new ConcernEntry("LAYER", "Layer boundary violations", analysis.layerViolations().size()));
+                concerns.add(new ConcernEntry(
+                        "LAYER",
+                        "Layer boundary violations",
+                        analysis.layerViolations().size()));
             }
         }
 
@@ -311,7 +339,8 @@ public class ExecutiveSummaryBuilder {
         List<KpiEntry> kpis = new ArrayList<>();
 
         // Overall health score
-        kpis.add(new KpiEntry("Health Score", healthScore.overall() + "/100", ">=80", scoreStatus(healthScore.overall(), 80)));
+        kpis.add(new KpiEntry(
+                "Health Score", healthScore.overall() + "/100", ">=80", scoreStatus(healthScore.overall(), 80)));
 
         // DDD compliance
         kpis.add(new KpiEntry("DDD Compliance", dddCompliance + "%", ">=90%", scoreStatus(dddCompliance, 90)));
@@ -327,10 +356,12 @@ public class ExecutiveSummaryBuilder {
                 scoreStatus(healthScore.dependencyQuality(), 80)));
 
         // Coupling
-        kpis.add(new KpiEntry("Coupling Quality", healthScore.coupling() + "%", ">=70%", scoreStatus(healthScore.coupling(), 70)));
+        kpis.add(new KpiEntry(
+                "Coupling Quality", healthScore.coupling() + "%", ">=70%", scoreStatus(healthScore.coupling(), 70)));
 
         // Cohesion
-        kpis.add(new KpiEntry("Cohesion Quality", healthScore.cohesion() + "%", ">=70%", scoreStatus(healthScore.cohesion(), 70)));
+        kpis.add(new KpiEntry(
+                "Cohesion Quality", healthScore.cohesion() + "%", ">=70%", scoreStatus(healthScore.cohesion(), 70)));
 
         return kpis;
     }
@@ -342,13 +373,17 @@ public class ExecutiveSummaryBuilder {
         List<String> actions = new ArrayList<>();
 
         // Count blockers
-        long blockers = violations.stream().filter(v -> v.severity() == Severity.BLOCKER).count();
+        long blockers = violations.stream()
+                .filter(v -> v.severity() == Severity.BLOCKER)
+                .count();
         if (blockers > 0) {
             actions.add("Resolve " + blockers + " blocker violation(s) immediately");
         }
 
         // Count criticals
-        long criticals = violations.stream().filter(v -> v.severity() == Severity.CRITICAL).count();
+        long criticals = violations.stream()
+                .filter(v -> v.severity() == Severity.CRITICAL)
+                .count();
         if (criticals > 0) {
             actions.add("Address " + criticals + " critical violation(s) as priority");
         }
@@ -360,7 +395,8 @@ public class ExecutiveSummaryBuilder {
 
         // Layer violations
         if (analysis != null && !analysis.layerViolations().isEmpty()) {
-            actions.add("Fix " + analysis.layerViolations().size() + " layer violation(s) to restore architectural boundaries");
+            actions.add("Fix " + analysis.layerViolations().size()
+                    + " layer violation(s) to restore architectural boundaries");
         }
 
         // If no immediate actions, provide general guidance

@@ -19,8 +19,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -28,18 +29,18 @@ import org.junit.jupiter.api.Test;
  * Unit tests for {@link MethodStrategyFactory}.
  *
  * <p>These tests validate that the factory correctly selects the appropriate
- * strategy based on the method pattern using the Chain of Responsibility pattern.
+ * strategy based on the method kind using the Chain of Responsibility pattern.
  *
- * @since 2.0.0
+ * @since 3.0.0
  */
 class MethodStrategyFactoryTest {
 
     private final MethodStrategyFactory factory = new MethodStrategyFactory();
 
     @Test
-    void strategyFor_shouldReturnSaveStrategyForSavePattern() {
+    void strategyFor_shouldReturnSaveStrategyForSaveKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("save", MethodPattern.SAVE);
+        AdapterMethodSpec method = createMethodSpec("save", MethodKind.SAVE);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -50,9 +51,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnFindByIdStrategyForFindByIdPattern() {
+    void strategyFor_shouldReturnFindByIdStrategyForFindByIdKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("findById", MethodPattern.FIND_BY_ID);
+        AdapterMethodSpec method = createMethodSpec("findById", MethodKind.FIND_BY_ID);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -63,9 +64,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnFindAllStrategyForFindAllPattern() {
+    void strategyFor_shouldReturnFindAllStrategyForFindAllKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("findAll", MethodPattern.FIND_ALL);
+        AdapterMethodSpec method = createMethodSpec("findAll", MethodKind.FIND_ALL);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -76,9 +77,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnDeleteStrategyForDeletePattern() {
+    void strategyFor_shouldReturnDeleteStrategyForDeleteByIdKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("delete", MethodPattern.DELETE);
+        AdapterMethodSpec method = createMethodSpec("deleteById", MethodKind.DELETE_BY_ID);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -89,9 +90,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnExistsStrategyForExistsPattern() {
+    void strategyFor_shouldReturnExistsStrategyForExistsByIdKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("existsById", MethodPattern.EXISTS);
+        AdapterMethodSpec method = createMethodSpec("existsById", MethodKind.EXISTS_BY_ID);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -102,9 +103,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnCountStrategyForCountPattern() {
+    void strategyFor_shouldReturnCountStrategyForCountAllKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("count", MethodPattern.COUNT);
+        AdapterMethodSpec method = createMethodSpec("count", MethodKind.COUNT_ALL);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -115,9 +116,35 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldReturnFallbackStrategyForCustomPattern() {
+    void strategyFor_shouldReturnFindByPropertyStrategyForFindByPropertyKind() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("findByStatus", MethodPattern.CUSTOM);
+        AdapterMethodSpec method = createMethodSpec("findByEmail", MethodKind.FIND_BY_PROPERTY, "email");
+
+        // When
+        MethodBodyStrategy strategy = factory.strategyFor(method);
+
+        // Then
+        assertThat(strategy).isInstanceOf(FindByPropertyMethodStrategy.class);
+        assertThat(strategy.supports(method)).isTrue();
+    }
+
+    @Test
+    void strategyFor_shouldReturnExistsByPropertyStrategyForExistsByPropertyKind() {
+        // Given
+        AdapterMethodSpec method = createMethodSpec("existsByEmail", MethodKind.EXISTS_BY_PROPERTY, "email");
+
+        // When
+        MethodBodyStrategy strategy = factory.strategyFor(method);
+
+        // Then
+        assertThat(strategy).isInstanceOf(ExistsByPropertyMethodStrategy.class);
+        assertThat(strategy.supports(method)).isTrue();
+    }
+
+    @Test
+    void strategyFor_shouldReturnFallbackStrategyForCustomKind() {
+        // Given
+        AdapterMethodSpec method = createMethodSpec("findByCustomQuery", MethodKind.CUSTOM);
 
         // When
         MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -136,31 +163,9 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void strategyFor_shouldAlwaysReturnNonNullStrategy() {
-        // Given: Test all method patterns
-        MethodPattern[] allPatterns = MethodPattern.values();
-
-        for (MethodPattern pattern : allPatterns) {
-            // Given
-            AdapterMethodSpec method = createMethodSpec("method", pattern);
-
-            // When
-            MethodBodyStrategy strategy = factory.strategyFor(method);
-
-            // Then
-            assertThat(strategy)
-                    .as("Strategy for pattern %s should not be null", pattern)
-                    .isNotNull();
-            assertThat(strategy.supports(method))
-                    .as("Strategy for pattern %s should support the method", pattern)
-                    .isTrue();
-        }
-    }
-
-    @Test
     void strategyFor_shouldReturnConsistentStrategy() {
         // Given
-        AdapterMethodSpec method = createMethodSpec("save", MethodPattern.SAVE);
+        AdapterMethodSpec method = createMethodSpec("save", MethodKind.SAVE);
 
         // When: Call multiple times
         MethodBodyStrategy strategy1 = factory.strategyFor(method);
@@ -173,10 +178,10 @@ class MethodStrategyFactoryTest {
 
     @Test
     void strategyFor_shouldRespectStrategyChainOrder() {
-        // Given: Multiple patterns
-        AdapterMethodSpec saveMethod = createMethodSpec("save", MethodPattern.SAVE);
-        AdapterMethodSpec findMethod = createMethodSpec("findById", MethodPattern.FIND_BY_ID);
-        AdapterMethodSpec customMethod = createMethodSpec("custom", MethodPattern.CUSTOM);
+        // Given: Multiple kinds
+        AdapterMethodSpec saveMethod = createMethodSpec("save", MethodKind.SAVE);
+        AdapterMethodSpec findMethod = createMethodSpec("findById", MethodKind.FIND_BY_ID);
+        AdapterMethodSpec customMethod = createMethodSpec("custom", MethodKind.CUSTOM);
 
         // When
         MethodBodyStrategy saveStrategy = factory.strategyFor(saveMethod);
@@ -190,22 +195,22 @@ class MethodStrategyFactoryTest {
     }
 
     @Test
-    void getStrategyCount_shouldReturn7Strategies() {
+    void getStrategyCount_shouldReturn9Strategies() {
         // When
         int count = factory.getStrategyCount();
 
-        // Then: 6 specific strategies + 1 fallback
-        assertThat(count).isEqualTo(7);
+        // Then: 8 specific strategies + 1 fallback
+        assertThat(count).isEqualTo(9);
     }
 
     @Test
     void strategyFor_shouldHandleSaveVariants() {
-        // Given: Different SAVE pattern methods
+        // Given: Different SAVE kind methods
         String[] saveVariants = {"save", "create", "persist", "update"};
 
         for (String methodName : saveVariants) {
             // Given
-            AdapterMethodSpec method = createMethodSpec(methodName, MethodPattern.SAVE);
+            AdapterMethodSpec method = createMethodSpec(methodName, MethodKind.SAVE);
 
             // When
             MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -219,12 +224,12 @@ class MethodStrategyFactoryTest {
 
     @Test
     void strategyFor_shouldHandleFindByIdVariants() {
-        // Given: Different FIND_BY_ID pattern methods
+        // Given: Different FIND_BY_ID kind methods
         String[] findByIdVariants = {"findById", "getById", "loadById"};
 
         for (String methodName : findByIdVariants) {
             // Given
-            AdapterMethodSpec method = createMethodSpec(methodName, MethodPattern.FIND_BY_ID);
+            AdapterMethodSpec method = createMethodSpec(methodName, MethodKind.FIND_BY_ID);
 
             // When
             MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -238,12 +243,12 @@ class MethodStrategyFactoryTest {
 
     @Test
     void strategyFor_shouldHandleDeleteVariants() {
-        // Given: Different DELETE pattern methods
-        String[] deleteVariants = {"delete", "deleteById", "remove", "removeById"};
+        // Given: Different DELETE kind methods
+        String[] deleteVariants = {"deleteById", "removeById"};
 
         for (String methodName : deleteVariants) {
             // Given
-            AdapterMethodSpec method = createMethodSpec(methodName, MethodPattern.DELETE);
+            AdapterMethodSpec method = createMethodSpec(methodName, MethodKind.DELETE_BY_ID);
 
             // When
             MethodBodyStrategy strategy = factory.strategyFor(method);
@@ -258,30 +263,41 @@ class MethodStrategyFactoryTest {
     /**
      * Helper method to create a method spec for testing.
      */
-    private AdapterMethodSpec createMethodSpec(String methodName, MethodPattern pattern) {
+    private AdapterMethodSpec createMethodSpec(String methodName, MethodKind kind) {
+        return createMethodSpec(methodName, kind, null);
+    }
+
+    /**
+     * Helper method to create a method spec for testing with target property.
+     */
+    private AdapterMethodSpec createMethodSpec(String methodName, MethodKind kind, String targetProperty) {
         TypeName returnType =
-                switch (pattern) {
-                    case SAVE -> ClassName.get("com.example", "Order");
-                    case FIND_BY_ID -> ClassName.get("java.util", "Optional");
-                    case FIND_ALL -> ClassName.get("java.util", "List");
-                    case DELETE -> TypeName.VOID;
-                    case EXISTS -> TypeName.BOOLEAN;
-                    case COUNT -> TypeName.LONG;
-                    case CUSTOM -> ClassName.get("com.example", "Order");
+                switch (kind) {
+                    case SAVE, SAVE_ALL -> ClassName.get("com.example", "Order");
+                    case FIND_BY_ID, FIND_BY_PROPERTY -> ClassName.get("java.util", "Optional");
+                    case FIND_ALL, FIND_ALL_BY_ID, FIND_ALL_BY_PROPERTY -> ClassName.get("java.util", "List");
+                    case DELETE_BY_ID, DELETE_ALL, DELETE_BY_PROPERTY -> TypeName.VOID;
+                    case EXISTS_BY_ID, EXISTS_BY_PROPERTY -> TypeName.BOOLEAN;
+                    case COUNT_ALL, COUNT_BY_PROPERTY -> TypeName.LONG;
+                    default -> ClassName.get("com.example", "Order");
                 };
 
         List<AdapterMethodSpec.ParameterInfo> parameters =
-                switch (pattern) {
-                    case SAVE ->
-                        List.of(new AdapterMethodSpec.ParameterInfo("order", ClassName.get("com.example", "Order")));
-                    case FIND_BY_ID, EXISTS ->
-                        List.of(new AdapterMethodSpec.ParameterInfo("id", TypeName.get(UUID.class)));
-                    case DELETE -> List.of(new AdapterMethodSpec.ParameterInfo("id", TypeName.get(UUID.class)));
-                    case FIND_ALL, COUNT -> List.of();
-                    case CUSTOM ->
-                        List.of(new AdapterMethodSpec.ParameterInfo("status", ClassName.get("java.lang", "String")));
+                switch (kind) {
+                    case SAVE, SAVE_ALL ->
+                        List.of(new AdapterMethodSpec.ParameterInfo(
+                                "order", ClassName.get("com.example", "Order"), false));
+                    case FIND_BY_ID, EXISTS_BY_ID, DELETE_BY_ID ->
+                        List.of(new AdapterMethodSpec.ParameterInfo("id", TypeName.get(UUID.class), true));
+                    case FIND_BY_PROPERTY, EXISTS_BY_PROPERTY, COUNT_BY_PROPERTY, DELETE_BY_PROPERTY ->
+                        List.of(new AdapterMethodSpec.ParameterInfo(
+                                "value", ClassName.get("java.lang", "String"), false));
+                    case FIND_ALL, FIND_ALL_BY_ID, FIND_ALL_BY_PROPERTY, COUNT_ALL, DELETE_ALL -> List.of();
+                    default ->
+                        List.of(new AdapterMethodSpec.ParameterInfo(
+                                "status", ClassName.get("java.lang", "String"), false));
                 };
 
-        return new AdapterMethodSpec(methodName, returnType, parameters, pattern);
+        return AdapterMethodSpec.of(methodName, returnType, parameters, kind, Optional.ofNullable(targetProperty));
     }
 }

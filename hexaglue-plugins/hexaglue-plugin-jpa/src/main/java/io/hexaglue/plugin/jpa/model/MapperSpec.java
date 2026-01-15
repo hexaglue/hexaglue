@@ -54,6 +54,8 @@ import java.util.List;
  * @param toEntityMappings the mappings for domain → entity conversion
  * @param toDomainMappings the mappings for entity → domain conversion
  * @param wrappedIdentity information about wrapped identity type, if present
+ * @param valueObjectMappings information about Value Objects that need conversion methods
+ * @param embeddableMappings information about VALUE_OBJECTs that map to JPA embeddables
  * @since 2.0.0
  */
 public record MapperSpec(
@@ -63,7 +65,28 @@ public record MapperSpec(
         TypeName entityType,
         List<MappingSpec> toEntityMappings,
         List<MappingSpec> toDomainMappings,
-        WrappedIdentitySpec wrappedIdentity) {
+        WrappedIdentitySpec wrappedIdentity,
+        List<ValueObjectMappingSpec> valueObjectMappings,
+        List<EmbeddableMappingSpec> embeddableMappings) {
+
+    /**
+     * Specification for a VALUE_OBJECT that maps to a JPA embeddable class.
+     *
+     * <p>This is used for complex VALUE_OBJECTs (multiple properties) that need
+     * generated @Embeddable classes. MapStruct will generate the conversion methods
+     * automatically based on matching property names.
+     *
+     * @param domainTypeFqn the fully qualified name of the domain VALUE_OBJECT
+     * @param embeddableFqn the fully qualified name of the generated embeddable
+     * @param domainSimpleName the simple name of the domain type
+     * @param embeddableSimpleName the simple name of the embeddable class
+     * @since 3.0.0
+     */
+    public record EmbeddableMappingSpec(
+            String domainTypeFqn,
+            String embeddableFqn,
+            String domainSimpleName,
+            String embeddableSimpleName) {}
 
     /**
      * Specification for a wrapped identity type that needs conversion methods.
@@ -73,6 +96,84 @@ public record MapperSpec(
      * @param accessorMethod the method to access the unwrapped value (e.g., "value")
      */
     public record WrappedIdentitySpec(String wrapperType, String unwrappedType, String accessorMethod) {}
+
+    /**
+     * Specification for a Value Object type that needs conversion methods in the mapper.
+     *
+     * <p>Value Objects are immutable types without identity. In JPA mapping, they are
+     * typically embedded as components of an entity. MapStruct needs explicit conversion
+     * methods to handle the mapping between Value Objects and their primitive representations.
+     *
+     * <p>For example, an {@code Email} value object record with a single {@code value} field
+     * would generate:
+     * <pre>{@code
+     * default String map(Email email) {
+     *     return email != null ? email.value() : null;
+     * }
+     *
+     * default Email mapToEmail(String value) {
+     *     return value != null ? new Email(value) : null;
+     * }
+     * }</pre>
+     *
+     * @param valueObjectType the fully qualified name of the Value Object type (e.g., "com.example.Email")
+     * @param simpleName the simple name of the Value Object (e.g., "Email")
+     * @param primitiveType the fully qualified name of the underlying primitive type (e.g., "java.lang.String")
+     * @param accessorMethod the method to access the underlying value (e.g., "value" for records)
+     * @param isRecord true if the Value Object is a Java record
+     * @since 3.0.0
+     */
+    public record ValueObjectMappingSpec(
+            String valueObjectType,
+            String simpleName,
+            String primitiveType,
+            String accessorMethod,
+            boolean isRecord) {
+
+        /**
+         * Creates a ValueObjectMappingSpec from a DomainType representing a Value Object or Identifier.
+         *
+         * <p>Both VALUE_OBJECT and IDENTIFIER types are supported because they use the same
+         * single-property wrapper pattern and need similar conversion methods. IDENTIFIER types
+         * are commonly used for inter-aggregate references (foreign keys like CustomerId).
+         *
+         * @param domainType the domain type representing the Value Object or Identifier
+         * @return a ValueObjectMappingSpec if the type is a simple wrapper, null otherwise
+         */
+        public static ValueObjectMappingSpec from(DomainType domainType) {
+            // Accept both VALUE_OBJECT and IDENTIFIER types
+            boolean isWrapperType = domainType.isValueObject()
+                    || domainType.kind() == io.hexaglue.spi.ir.DomainKind.IDENTIFIER;
+            if (!isWrapperType) {
+                return null;
+            }
+
+            // Only support types with a single property (simple wrappers)
+            if (domainType.properties().size() != 1) {
+                return null;
+            }
+
+            var property = domainType.properties().get(0);
+            String primitiveType = property.type().qualifiedName();
+
+            // Determine accessor method based on whether it's a record
+            String accessorMethod = domainType.isRecord() ? property.name() : "get" + capitalize(property.name());
+
+            return new ValueObjectMappingSpec(
+                    domainType.qualifiedName(),
+                    domainType.simpleName(),
+                    primitiveType,
+                    accessorMethod,
+                    domainType.isRecord());
+        }
+
+        private static String capitalize(String str) {
+            if (str == null || str.isEmpty()) {
+                return str;
+            }
+            return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+        }
+    }
 
     /**
      * A single field mapping specification for MapStruct.
@@ -149,6 +250,10 @@ public record MapperSpec(
      *   <li>Package: {entityPackage} (same as entity)</li>
      * </ul>
      *
+     * <p>Note: This method cannot detect Value Objects since it doesn't have
+     * access to all domain types. Use {@link MapperSpecBuilder} for full
+     * Value Object support.
+     *
      * @param domainType the domain aggregate root
      * @param config the JPA plugin configuration
      * @return a MapperSpec ready for code generation
@@ -168,7 +273,15 @@ public record MapperSpec(
         List<MappingSpec> toDomainMappings = inferToDomainMappings(domainType);
 
         return new MapperSpec(
-                entityPackage, interfaceName, domainTypeName, entityType, toEntityMappings, toDomainMappings, null);
+                entityPackage,
+                interfaceName,
+                domainTypeName,
+                entityType,
+                toEntityMappings,
+                toDomainMappings,
+                null,
+                List.of(),
+                List.of());
     }
 
     /**

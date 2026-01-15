@@ -74,9 +74,7 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
     public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel, DomainModel domainModel) {
         this.graph = Objects.requireNonNull(graph, "graph cannot be null");
         this.portDirections = buildPortDirectionMap(portModel);
-        this.ports = portModel != null && portModel.ports() != null
-                ? List.copyOf(portModel.ports())
-                : List.of();
+        this.ports = portModel != null && portModel.ports() != null ? List.copyOf(portModel.ports()) : List.of();
         this.domainModel = domainModel;
     }
 
@@ -609,8 +607,7 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
                 if (member != null) {
                     if (member.kind() == DomainKind.ENTITY) {
                         entities.add(memberName);
-                    } else if (member.kind() == DomainKind.VALUE_OBJECT
-                            || member.kind() == DomainKind.IDENTIFIER) {
+                    } else if (member.kind() == DomainKind.VALUE_OBJECT || member.kind() == DomainKind.IDENTIFIER) {
                         valueObjects.add(memberName);
                     }
                 }
@@ -997,8 +994,7 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
             if (port.isRepository()) {
                 String simplePortName = port.simpleName();
                 // Check if repository name contains aggregate name (e.g., OrderRepository for Order)
-                if (simplePortName.startsWith(simpleAggregateName)
-                        || simplePortName.contains(simpleAggregateName)) {
+                if (simplePortName.startsWith(simpleAggregateName) || simplePortName.contains(simpleAggregateName)) {
                     return Optional.of(port.qualifiedName());
                 }
             }

@@ -16,14 +16,15 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import javax.lang.model.element.Modifier;
 
 /**
  * Strategy for generating SAVE method implementations.
  *
  * <p>This strategy handles repository save operations that persist domain
- * objects to the database. It generates the three-step pattern:
+ * objects to the database. It uses the MethodKind classification from the SPI
+ * and generates the three-step pattern:
  * <ol>
  *   <li>Convert domain object to entity using mapper</li>
  *   <li>Save entity using repository</li>
@@ -40,22 +41,20 @@ import javax.lang.model.element.Modifier;
  * }
  * }</pre>
  *
- * <h3>Supported Method Names:</h3>
+ * <h3>Supported MethodKinds:</h3>
  * <ul>
- *   <li>save(domain)</li>
- *   <li>create(domain)</li>
- *   <li>persist(domain)</li>
- *   <li>store(domain)</li>
- *   <li>update(domain)</li>
+ *   <li>{@link MethodKind#SAVE} - save(domain), create(domain), etc.</li>
+ *   <li>{@link MethodKind#SAVE_ALL} - saveAll(domains)</li>
  * </ul>
  *
- * @since 2.0.0
+ * @since 3.0.0
  */
 public final class SaveMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public boolean supports(AdapterMethodSpec method) {
-        return method.pattern() == MethodPattern.SAVE;
+        // Use MethodKind from SPI instead of local pattern inference
+        return method.kind() == MethodKind.SAVE || method.kind() == MethodKind.SAVE_ALL;
     }
 
     @Override

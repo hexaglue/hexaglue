@@ -50,9 +50,7 @@ import java.util.regex.Pattern;
  * @since 3.0.0
  */
 public record ClassificationConfig(
-        List<String> excludePatterns,
-        Map<String, String> explicitClassifications,
-        ValidationConfig validationConfig) {
+        List<String> excludePatterns, Map<String, String> explicitClassifications, ValidationConfig validationConfig) {
 
     /**
      * Creates a classification config with validation.
@@ -150,8 +148,7 @@ public record ClassificationConfig(
         // Convert glob to regex
         // ** matches anything (including dots)
         // * matches anything except dots
-        String regex = glob
-                .replace(".", "\\.")
+        String regex = glob.replace(".", "\\.")
                 .replace("**", "<<<DOUBLESTAR>>>")
                 .replace("*", "[^.]*")
                 .replace("<<<DOUBLESTAR>>>", ".*");

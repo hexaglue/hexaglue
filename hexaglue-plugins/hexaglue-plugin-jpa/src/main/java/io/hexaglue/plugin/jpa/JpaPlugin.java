@@ -16,14 +16,17 @@ package io.hexaglue.plugin.jpa;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
+import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EntitySpecBuilder;
 import io.hexaglue.plugin.jpa.builder.MapperSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.RepositorySpecBuilder;
 import io.hexaglue.plugin.jpa.codegen.JpaAdapterCodegen;
+import io.hexaglue.plugin.jpa.codegen.JpaEmbeddableCodegen;
 import io.hexaglue.plugin.jpa.codegen.JpaEntityCodegen;
 import io.hexaglue.plugin.jpa.codegen.JpaMapperCodegen;
 import io.hexaglue.plugin.jpa.codegen.JpaRepositoryCodegen;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
+import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
@@ -39,6 +42,7 @@ import io.hexaglue.spi.plugin.PluginConfig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -121,6 +125,28 @@ public final class JpaPlugin implements GeneratorPlugin {
         // Collect all domain types for mapper and entity references
         List<DomainType> allTypes = new ArrayList<>(ir.domain().types());
 
+        // Collect repository ports with their managed types (used for repository and adapter generation)
+        // Each port will generate its own adapter to avoid method signature conflicts
+        Map<Port, DomainType> portToManagedType = new LinkedHashMap<>();
+        for (Port port : ir.ports().ports()) {
+            if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
+                Optional<DomainType> managedType = findManagedType(port, ir.domain().types());
+                if (managedType.isPresent() && managedType.get().isEntity()) {
+                    portToManagedType.put(port, managedType.get());
+                } else if (managedType.isEmpty()) {
+                    diagnostics.warn("Could not determine managed type for port: " + port.simpleName());
+                }
+            }
+        }
+
+        // Group ports by managed type for repository generation (repositories are shared)
+        Map<DomainType, List<Port>> portsByManagedType = new HashMap<>();
+        for (Map.Entry<Port, DomainType> entry : portToManagedType.entrySet()) {
+            portsByManagedType
+                    .computeIfAbsent(entry.getValue(), k -> new ArrayList<>())
+                    .add(entry.getKey());
+        }
+
         // Counters for summary
         int entityCount = 0;
         int embeddableCount = 0;
@@ -128,16 +154,61 @@ public final class JpaPlugin implements GeneratorPlugin {
         int mapperCount = 0;
         int adapterCount = 0;
 
-        // Generate entities and embeddables
+        // Build embeddable mapping: domain VALUE_OBJECT FQN -> generated embeddable FQN
+        // Only non-enum VALUE_OBJECTs need embeddable classes (enums use @Enumerated)
+        // FIRST PASS: Build the complete mapping before generating any embeddable
+        // This allows nested VALUE_OBJECTs (like Money in OrderLine) to be substituted
+        Map<String, String> embeddableMapping = new HashMap<>();
+
+        if (config.generateEmbeddables()) {
+            // First pass: compute all embeddable mappings
+            for (DomainType type : ir.domain().types()) {
+                if (type.isValueObject() && !isEnumType(type)) {
+                    String embeddableClassName = type.simpleName() + config.embeddableSuffix();
+                    String embeddableFqn = infraPackage + "." + embeddableClassName;
+                    embeddableMapping.put(type.qualifiedName(), embeddableFqn);
+                }
+            }
+
+            // Second pass: generate embeddables with the complete mapping
+            for (DomainType type : ir.domain().types()) {
+                if (type.isValueObject() && !isEnumType(type)) {
+                    try {
+                        EmbeddableSpec embeddableSpec = EmbeddableSpecBuilder.builder()
+                                .domainType(type)
+                                .config(config)
+                                .infrastructurePackage(infraPackage)
+                                .allTypes(allTypes)
+                                .embeddableMapping(embeddableMapping)
+                                .build();
+
+                        // Generate and write JPA embeddable
+                        TypeSpec embeddableTypeSpec = JpaEmbeddableCodegen.generate(embeddableSpec);
+                        String embeddableSource = toJavaSource(infraPackage, embeddableTypeSpec);
+                        writer.writeJavaSource(infraPackage, embeddableSpec.className(), embeddableSource);
+                        embeddableCount++;
+                        diagnostics.info("Generated embeddable: " + embeddableSpec.className());
+
+                    } catch (IOException e) {
+                        diagnostics.error("Failed to generate embeddable for " + type.simpleName(), e);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        diagnostics.warn("Skipping embeddable " + type.simpleName() + ": " + e.getMessage());
+                    }
+                }
+            }
+        }
+
+        // Generate entities (using embeddable mapping for VALUE_OBJECT relations)
         for (DomainType type : ir.domain().types()) {
             try {
                 if (type.isEntity() && type.hasIdentity()) {
-                    // Build entity specification
+                    // Build entity specification with embeddable mapping
                     EntitySpec entitySpec = EntitySpecBuilder.builder()
                             .domainType(type)
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .allTypes(allTypes)
+                            .embeddableMapping(embeddableMapping)
                             .build();
 
                     // Generate and write JPA entity
@@ -149,10 +220,14 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     // Generate repository if enabled
                     if (config.generateRepositories()) {
+                        // Get ports associated with this domain type for derived method extraction
+                        List<Port> portsForType = portsByManagedType.getOrDefault(type, List.of());
+
                         RepositorySpec repoSpec = RepositorySpecBuilder.builder()
                                 .domainType(type)
                                 .config(config)
                                 .infrastructurePackage(infraPackage)
+                                .ports(portsForType)
                                 .build();
 
                         TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
@@ -169,6 +244,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                                 .config(config)
                                 .infrastructurePackage(infraPackage)
                                 .allTypes(allTypes)
+                                .embeddableMapping(embeddableMapping)
                                 .build();
 
                         TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
@@ -178,11 +254,9 @@ public final class JpaPlugin implements GeneratorPlugin {
                         diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
                     }
 
-                } else if (type.isValueObject()) {
-                    // Value objects (embeddables) are handled implicitly through entity relations
-                    // Skip explicit generation for now - they are embedded
-                    embeddableCount++;
-                    diagnostics.info("Detected embeddable value object: " + type.simpleName());
+                } else if (type.isValueObject() && isEnumType(type)) {
+                    // Enums don't need embeddables - they use @Enumerated
+                    diagnostics.info("Detected enum value object (no embeddable needed): " + type.simpleName());
                 }
 
             } catch (IOException e) {
@@ -193,33 +267,15 @@ public final class JpaPlugin implements GeneratorPlugin {
         }
 
         // Generate adapters for repository ports
-        // Group ports by managed type to merge multiple ports for the same type into one adapter
+        // Generate ONE adapter PER PORT to avoid method signature conflicts
         if (config.generateAdapters()) {
-            // Group ports by managed domain type
-            Map<DomainType, List<Port>> portsByManagedType = new HashMap<>();
-
-            for (Port port : ir.ports().ports()) {
-                if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
-                    Optional<DomainType> managedType =
-                            findManagedType(port, ir.domain().types());
-                    if (managedType.isPresent() && managedType.get().isEntity()) {
-                        portsByManagedType
-                                .computeIfAbsent(managedType.get(), k -> new ArrayList<>())
-                                .add(port);
-                    } else if (managedType.isEmpty()) {
-                        diagnostics.warn("Could not determine managed type for port: " + port.simpleName());
-                    }
-                }
-            }
-
-            // Generate one adapter per managed type, implementing ALL ports for that type
-            for (Map.Entry<DomainType, List<Port>> entry : portsByManagedType.entrySet()) {
-                DomainType managedType = entry.getKey();
-                List<Port> ports = entry.getValue();
+            for (Map.Entry<Port, DomainType> entry : portToManagedType.entrySet()) {
+                Port port = entry.getKey();
+                DomainType managedType = entry.getValue();
 
                 try {
                     AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
-                            .ports(ports)
+                            .ports(List.of(port))  // Single port per adapter
                             .domainType(managedType)
                             .config(config)
                             .infrastructurePackage(infraPackage)
@@ -230,15 +286,11 @@ public final class JpaPlugin implements GeneratorPlugin {
                     writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
                     adapterCount++;
 
-                    String portNames = ports.stream()
-                            .map(Port::simpleName)
-                            .reduce((a, b) -> a + ", " + b)
-                            .orElse("");
-                    diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing " + portNames);
+                    diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing " + port.simpleName());
                 } catch (IOException e) {
-                    diagnostics.error("Failed to generate adapter for " + managedType.simpleName(), e);
+                    diagnostics.error("Failed to generate adapter for port " + port.simpleName(), e);
                 } catch (IllegalArgumentException | IllegalStateException e) {
-                    diagnostics.warn("Skipping adapter for " + managedType.simpleName() + ": " + e.getMessage());
+                    diagnostics.warn("Skipping adapter for port " + port.simpleName() + ": " + e.getMessage());
                 }
             }
         }
@@ -276,6 +328,18 @@ public final class JpaPlugin implements GeneratorPlugin {
         diagnostics.info("  generateRepositories: " + config.generateRepositories());
         diagnostics.info("  generateMappers: " + config.generateMappers());
         diagnostics.info("  generateAdapters: " + config.generateAdapters());
+    }
+
+    /**
+     * Determines if a VALUE_OBJECT is an enum type.
+     *
+     * <p>Enums don't need embeddable classes - they are handled via @Enumerated.
+     *
+     * @param type the domain type
+     * @return true if the type is an enum
+     */
+    private boolean isEnumType(DomainType type) {
+        return type.construct() == io.hexaglue.spi.ir.JavaConstruct.ENUM;
     }
 
     /**

@@ -137,9 +137,7 @@ class ValidationReportGeneratorTest {
 
             String report = generator.generateConsole(results, "Test");
 
-            assertThat(report)
-                    .contains("Suggested Actions:")
-                    .contains("exclude:");
+            assertThat(report).contains("Suggested Actions:").contains("exclude:");
         }
     }
 
@@ -190,9 +188,7 @@ class ValidationReportGeneratorTest {
 
             String report = generator.generateMarkdown(results, "Test");
 
-            assertThat(report)
-                    .contains("| Category | Count | Percentage |")
-                    .contains("| Type | Kind | Annotation |");
+            assertThat(report).contains("| Category | Count | Percentage |").contains("| Type | Kind | Annotation |");
         }
 
         @Test
@@ -306,9 +302,7 @@ class ValidationReportGeneratorTest {
 
             String report = generator.generateConsole(results, "Test");
 
-            assertThat(report)
-                    .contains("UNCLASSIFIED TYPES (1 types)")
-                    .contains("ACTION REQUIRED");
+            assertThat(report).contains("UNCLASSIFIED TYPES (1 types)").contains("ACTION REQUIRED");
         }
     }
 
@@ -324,13 +318,8 @@ class ValidationReportGeneratorTest {
             String consoleReport = generator.generateConsole(results, "Test");
             String markdownReport = generator.generateMarkdown(results, "Test");
 
-            assertThat(consoleReport)
-                    .contains("TOTAL:")
-                    .contains("0")
-                    .contains("Status: PASSED");
-            assertThat(markdownReport)
-                    .contains("**Total** | **0**")
-                    .contains("✅ PASSED");
+            assertThat(consoleReport).contains("TOTAL:").contains("0").contains("Status: PASSED");
+            assertThat(markdownReport).contains("**Total** | **0**").contains("✅ PASSED");
         }
 
         @Test

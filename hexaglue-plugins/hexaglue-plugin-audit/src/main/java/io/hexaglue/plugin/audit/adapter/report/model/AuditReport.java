@@ -397,9 +397,8 @@ public record AuditReport(
         // Build metadata - use IR metadata for project name and version
         Duration duration = snapshot.metadata().analysisDuration();
         String durationStr = formatDuration(duration);
-        String effectiveProjectName = ir.metadata().projectName() != null
-                ? ir.metadata().projectName()
-                : projectName;
+        String effectiveProjectName =
+                ir.metadata().projectName() != null ? ir.metadata().projectName() : projectName;
         String projectVersion = ir.metadata().projectVersion();
         ReportMetadata metadata = new ReportMetadata(
                 effectiveProjectName,
@@ -462,17 +461,27 @@ public record AuditReport(
 
         // Generate recommendations
         RecommendationGenerator recGenerator = new RecommendationGenerator();
-        List<Recommendation> recommendations = recGenerator.generate(domainViolations, architectureAnalysis, domainMetrics);
+        List<Recommendation> recommendations =
+                recGenerator.generate(domainViolations, architectureAnalysis, domainMetrics);
 
         // Calculate technical debt
         TechnicalDebtSummary technicalDebt = TechnicalDebtSummary.fromDays(
-                recommendations.stream().mapToDouble(Recommendation::estimatedEffort).sum(),
+                recommendations.stream()
+                        .mapToDouble(Recommendation::estimatedEffort)
+                        .sum(),
                 List.of());
 
         // Build executive summary
         ExecutiveSummaryBuilder summaryBuilder = new ExecutiveSummaryBuilder();
         ExecutiveSummary executiveSummary = summaryBuilder.build(
-                effectiveProjectName, healthScore, inventory, domainViolations, architectureAnalysis, domainMetrics, dddCompliance, hexCompliance);
+                effectiveProjectName,
+                healthScore,
+                inventory,
+                domainViolations,
+                architectureAnalysis,
+                domainMetrics,
+                dddCompliance,
+                hexCompliance);
 
         // Build aggregate details
         List<AggregateDetails> aggregateDetails = AggregateDetails.fromQuery(architectureQuery);

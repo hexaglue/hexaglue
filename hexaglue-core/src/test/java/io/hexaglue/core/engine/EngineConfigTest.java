@@ -52,9 +52,8 @@ class EngineConfigTest {
     @Test
     void withClassificationConfig_hasNullCategories() {
         // Given
-        ClassificationConfig classificationConfig = ClassificationConfig.builder()
-                .failOnUnclassified()
-                .build();
+        ClassificationConfig classificationConfig =
+                ClassificationConfig.builder().failOnUnclassified().build();
         EngineConfig config = EngineConfig.withClassificationConfig(tempDir, "com.example", classificationConfig);
 
         // Then: withClassificationConfig has no category filter
@@ -132,16 +131,15 @@ class EngineConfigTest {
     void onlyGenerators_chainingPreservesOtherProperties() {
         // Given: config with specific classification config and output directory
         Path outputDir = tempDir.resolve("output");
-        ClassificationConfig classificationConfig = ClassificationConfig.builder()
-                .failOnUnclassified()
-                .build();
+        ClassificationConfig classificationConfig =
+                ClassificationConfig.builder().failOnUnclassified().build();
         EngineConfig config = new EngineConfig(
                 java.util.List.of(tempDir),
                 java.util.List.of(),
                 21,
                 "com.example",
                 "Test Project", // projectName
-                "1.0.0",        // projectVersion
+                "1.0.0", // projectVersion
                 outputDir,
                 java.util.Map.of("plugin1", java.util.Map.of("key", "value")),
                 java.util.Map.of("option", "value"),

@@ -52,8 +52,7 @@ class DocumentationGeneratorTest {
     }
 
     private AuditReport createMinimalReport() {
-        ReportMetadata metadata = new ReportMetadata(
-                "TestProject", "1.0.0", Instant.now(), "100ms", "3.0.0");
+        ReportMetadata metadata = new ReportMetadata("TestProject", "1.0.0", Instant.now(), "100ms", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         ConstraintsSummary constraints = new ConstraintsSummary(0, List.of());
 
@@ -61,15 +60,17 @@ class DocumentationGeneratorTest {
     }
 
     private AuditReport createReportWithIr() {
-        ReportMetadata metadata = new ReportMetadata(
-                "TestProject", "1.0.0", Instant.now(), "100ms", "3.0.0");
+        ReportMetadata metadata = new ReportMetadata("TestProject", "1.0.0", Instant.now(), "100ms", "3.0.0");
         AuditSummary summary = new AuditSummary(true, 0, 0, 0, 0, 0, 0);
         ConstraintsSummary constraints = new ConstraintsSummary(0, List.of());
 
         IrSnapshot ir = IrSnapshotBuilder.create("com.test")
-                .withDomainType(DomainTypeBuilder.aggregateRoot("com.test.order.Order").build())
-                .withDomainType(DomainTypeBuilder.entity("com.test.order.OrderLine").build())
-                .withDomainType(DomainTypeBuilder.valueObject("com.test.order.OrderId").build())
+                .withDomainType(
+                        DomainTypeBuilder.aggregateRoot("com.test.order.Order").build())
+                .withDomainType(
+                        DomainTypeBuilder.entity("com.test.order.OrderLine").build())
+                .withDomainType(
+                        DomainTypeBuilder.valueObject("com.test.order.OrderId").build())
                 .withPort(PortBuilder.useCase("com.test.OrderService").build())
                 .withPort(PortBuilder.repository("com.test.OrderRepository").build())
                 .build();
@@ -79,20 +80,47 @@ class DocumentationGeneratorTest {
         //   aggregateExamples, entityExamples, valueObjectExamples, domainEventExamples,
         //   domainServiceExamples, drivingPortExamples, drivenPortExamples, boundedContexts)
         ComponentInventory inventory = new ComponentInventory(
-                1, 1, 1, 0, 0,  // aggregates, entities, valueObjects, domainEvents, domainServices
-                0, 1, 1, 3, 2,  // applicationServices, drivingPorts, drivenPorts, totalDomainTypes, totalPorts
-                List.of("Order"), List.of("OrderLine"), List.of("OrderId"),
-                List.of(), List.of(), List.of("OrderService"), List.of("OrderRepository"),
+                1,
+                1,
+                1,
+                0,
+                0, // aggregates, entities, valueObjects, domainEvents, domainServices
+                0,
+                1,
+                1,
+                3,
+                2, // applicationServices, drivingPorts, drivenPorts, totalDomainTypes, totalPorts
+                List.of("Order"),
+                List.of("OrderLine"),
+                List.of("OrderId"),
+                List.of(),
+                List.of(),
+                List.of("OrderService"),
+                List.of("OrderRepository"),
                 List.of(new BoundedContextStats("order", 1, 1, 1, 2, 500)));
 
         // HealthScore(overall, dddCompliance, hexCompliance, dependencyQuality, coupling, cohesion, grade)
         HealthScore healthScore = new HealthScore(85, 90, 80, 85, 80, 85, "B");
 
         return new AuditReport(
-                metadata, summary, List.of(), List.of(), constraints,
-                null, healthScore, inventory, List.of(), null, List.of(), null,
-                90, 80, DetectedArchitectureStyle.HEXAGONAL, List.of(),
-                ir, null);
+                metadata,
+                summary,
+                List.of(),
+                List.of(),
+                constraints,
+                null,
+                healthScore,
+                inventory,
+                List.of(),
+                null,
+                List.of(),
+                null,
+                90,
+                80,
+                DetectedArchitectureStyle.HEXAGONAL,
+                List.of(),
+                ir,
+                null);
     }
 
     @Nested

@@ -65,8 +65,9 @@ class RelationInfoTest {
 
         @Test
         @DisplayName("mappedByOpt should return Optional with value when set")
+        @SuppressWarnings("deprecation")
         void mappedByOptWithValue() {
-            RelationInfo info = new RelationInfo(RelationKind.ONE_TO_MANY, "com.example.Item", "parent", false);
+            RelationInfo info = RelationInfo.inverse(RelationKind.ONE_TO_MANY, "com.example.Item", "parent");
 
             assertThat(info.mappedByOpt()).isPresent().contains("parent");
         }

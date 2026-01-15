@@ -118,7 +118,9 @@ public class ValidateMojo extends AbstractMojo {
      * <p>If specified, a Markdown report will be written to this location
      * in addition to the console output.
      */
-    @Parameter(property = "hexaglue.validationReportPath", defaultValue = "${project.build.directory}/hexaglue/reports/validation/validation-report.md")
+    @Parameter(
+            property = "hexaglue.validationReportPath",
+            defaultValue = "${project.build.directory}/hexaglue/reports/validation/validation-report.md")
     private File validationReportPath;
 
     @Override
@@ -170,9 +172,8 @@ public class ValidateMojo extends AbstractMojo {
 
         // Check failure condition
         if (failOnUnclassified && result.unclassifiedCount() > 0) {
-            throw new MojoFailureException(
-                    "Validation failed: " + result.unclassifiedCount() + " unclassified types. "
-                            + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml");
+            throw new MojoFailureException("Validation failed: " + result.unclassifiedCount() + " unclassified types. "
+                    + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml");
         }
 
         if (result.validationPassed()) {
@@ -252,10 +253,11 @@ public class ValidateMojo extends AbstractMojo {
             if (classificationMap.containsKey("exclude")) {
                 Object excludeObj = classificationMap.get("exclude");
                 if (excludeObj instanceof List) {
-                    List<String> excludePatterns = ((List<?>) excludeObj).stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .toList();
+                    List<String> excludePatterns = ((List<?>) excludeObj)
+                            .stream()
+                                    .filter(String.class::isInstance)
+                                    .map(String.class::cast)
+                                    .toList();
                     builder.excludePatterns(excludePatterns);
                 }
             }
@@ -295,9 +297,8 @@ public class ValidateMojo extends AbstractMojo {
         List<PrimaryClassificationResult> inferred = classifications.stream()
                 .filter(r -> r.isClassified() && r.certainty() != CertaintyLevel.EXPLICIT)
                 .toList();
-        List<PrimaryClassificationResult> unclassified = classifications.stream()
-                .filter(r -> !r.isClassified())
-                .toList();
+        List<PrimaryClassificationResult> unclassified =
+                classifications.stream().filter(r -> !r.isClassified()).toList();
 
         int total = explicit.size() + inferred.size() + unclassified.size();
         boolean passed = unclassified.isEmpty();
@@ -313,9 +314,12 @@ public class ValidateMojo extends AbstractMojo {
         // Summary
         report.append("CLASSIFICATION SUMMARY\n");
         report.append("-".repeat(80)).append("\n");
-        report.append(String.format("%-20s %5d (%5.1f%%)%n", "EXPLICIT:", explicit.size(), percentage(explicit.size(), total)));
-        report.append(String.format("%-20s %5d (%5.1f%%)%n", "INFERRED:", inferred.size(), percentage(inferred.size(), total)));
-        report.append(String.format("%-20s %5d (%5.1f%%)%n", "UNCLASSIFIED:", unclassified.size(), percentage(unclassified.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)%n", "EXPLICIT:", explicit.size(), percentage(explicit.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)%n", "INFERRED:", inferred.size(), percentage(inferred.size(), total)));
+        report.append(String.format(
+                "%-20s %5d (%5.1f%%)%n", "UNCLASSIFIED:", unclassified.size(), percentage(unclassified.size(), total)));
         report.append(String.format("%-20s %5d%n", "TOTAL:", total));
         report.append("\n");
         report.append("Status: ").append(passed ? "PASSED" : "FAILED").append("\n");
@@ -329,8 +333,11 @@ public class ValidateMojo extends AbstractMojo {
                 report.append("\n  ").append(r.typeName()).append("\n");
                 report.append("    Reason: ").append(r.reasoning()).append("\n");
                 report.append("    Suggested Actions:\n");
-                report.append("      - Add appropriate jMolecules annotation (@AggregateRoot, @Entity, @ValueObject)\n");
-                report.append("      - Configure in hexaglue.yaml: explicit: { ").append(r.typeName()).append(": KIND }\n");
+                report.append(
+                        "      - Add appropriate jMolecules annotation (@AggregateRoot, @Entity, @ValueObject)\n");
+                report.append("      - Configure in hexaglue.yaml: explicit: { ")
+                        .append(r.typeName())
+                        .append(": KIND }\n");
                 report.append("      - Exclude from classification if not a domain type\n");
             }
             report.append("\n");
@@ -360,9 +367,8 @@ public class ValidateMojo extends AbstractMojo {
             List<PrimaryClassificationResult> inferred = classifications.stream()
                     .filter(r -> r.isClassified() && r.certainty() != CertaintyLevel.EXPLICIT)
                     .toList();
-            List<PrimaryClassificationResult> unclassified = classifications.stream()
-                    .filter(r -> !r.isClassified())
-                    .toList();
+            List<PrimaryClassificationResult> unclassified =
+                    classifications.stream().filter(r -> !r.isClassified()).toList();
 
             int total = explicit.size() + inferred.size() + unclassified.size();
             boolean passed = unclassified.isEmpty();
@@ -377,14 +383,19 @@ public class ValidateMojo extends AbstractMojo {
             md.append("## Classification Summary\n\n");
             md.append("| Category | Count | Percentage |\n");
             md.append("|----------|-------|------------|\n");
-            md.append(String.format("| EXPLICIT | %d | %.1f%% |%n", explicit.size(), percentage(explicit.size(), total)));
-            md.append(String.format("| INFERRED | %d | %.1f%% |%n", inferred.size(), percentage(inferred.size(), total)));
-            md.append(String.format("| UNCLASSIFIED | %d | %.1f%% |%n", unclassified.size(), percentage(unclassified.size(), total)));
+            md.append(
+                    String.format("| EXPLICIT | %d | %.1f%% |%n", explicit.size(), percentage(explicit.size(), total)));
+            md.append(
+                    String.format("| INFERRED | %d | %.1f%% |%n", inferred.size(), percentage(inferred.size(), total)));
+            md.append(String.format(
+                    "| UNCLASSIFIED | %d | %.1f%% |%n", unclassified.size(), percentage(unclassified.size(), total)));
             md.append(String.format("| **Total** | **%d** | 100%% |%n%n", total));
 
             // Explicit
             if (!explicit.isEmpty()) {
-                md.append("## Explicit Classifications (").append(explicit.size()).append(" types)\n\n");
+                md.append("## Explicit Classifications (")
+                        .append(explicit.size())
+                        .append(" types)\n\n");
                 md.append("| Type | Kind | Certainty |\n");
                 md.append("|------|------|----------|\n");
                 for (PrimaryClassificationResult r : explicit) {
@@ -396,26 +407,38 @@ public class ValidateMojo extends AbstractMojo {
 
             // Inferred
             if (!inferred.isEmpty()) {
-                md.append("## Inferred Classifications (").append(inferred.size()).append(" types)\n\n");
+                md.append("## Inferred Classifications (")
+                        .append(inferred.size())
+                        .append(" types)\n\n");
                 md.append("| Type | Kind | Certainty | Reasoning |\n");
                 md.append("|------|------|-----------|----------|\n");
                 for (PrimaryClassificationResult r : inferred) {
                     String simpleName = extractSimpleName(r.typeName());
-                    md.append(String.format("| `%s` | %s | %s | %s |%n", simpleName, r.kind(), r.certainty(), r.reasoning()));
+                    md.append(String.format(
+                            "| `%s` | %s | %s | %s |%n", simpleName, r.kind(), r.certainty(), r.reasoning()));
                 }
                 md.append("\n");
             }
 
             // Unclassified
             if (!unclassified.isEmpty()) {
-                md.append("## Unclassified Types (").append(unclassified.size()).append(" types) - ACTION REQUIRED\n\n");
+                md.append("## Unclassified Types (")
+                        .append(unclassified.size())
+                        .append(" types) - ACTION REQUIRED\n\n");
                 int index = 1;
                 for (PrimaryClassificationResult r : unclassified) {
-                    md.append("### ").append(index++).append(". `").append(r.typeName()).append("`\n\n");
+                    md.append("### ")
+                            .append(index++)
+                            .append(". `")
+                            .append(r.typeName())
+                            .append("`\n\n");
                     md.append("**Reason:** ").append(r.reasoning()).append("\n\n");
                     md.append("**Suggested Actions:**\n");
-                    md.append("- Add appropriate jMolecules annotation (`@AggregateRoot`, `@Entity`, `@ValueObject`)\n");
-                    md.append("- Configure in hexaglue.yaml: `explicit: { ").append(r.typeName()).append(": KIND }`\n");
+                    md.append(
+                            "- Add appropriate jMolecules annotation (`@AggregateRoot`, `@Entity`, `@ValueObject`)\n");
+                    md.append("- Configure in hexaglue.yaml: `explicit: { ")
+                            .append(r.typeName())
+                            .append(": KIND }`\n");
                     md.append("- Exclude from classification if not a domain type\n\n");
                 }
             }

@@ -104,14 +104,16 @@ class JpaEntityCodegenTest {
      * Creates a simple PropertyFieldSpec.
      */
     private PropertyFieldSpec createSimpleProperty(String fieldName, TypeName type, Nullability nullability) {
-        return new PropertyFieldSpec(fieldName, type, nullability, fieldName, false);
+        return new PropertyFieldSpec(fieldName, type, nullability, fieldName, false, false, false, type.toString(),
+                false, null, null);
     }
 
     /**
      * Creates an embedded PropertyFieldSpec.
      */
     private PropertyFieldSpec createEmbeddedProperty(String fieldName, TypeName type) {
-        return new PropertyFieldSpec(fieldName, type, Nullability.NON_NULL, fieldName, true);
+        return new PropertyFieldSpec(fieldName, type, Nullability.NON_NULL, fieldName, true, false, false, type.toString(),
+                false, null, null);
     }
 
     /**

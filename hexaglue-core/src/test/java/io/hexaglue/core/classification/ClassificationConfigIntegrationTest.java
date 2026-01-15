@@ -65,9 +65,7 @@ class ClassificationConfigIntegrationTest {
         @DisplayName("Types matching exclude patterns should be skipped")
         void typesMatchingExcludePatternsShouldBeSkipped() throws IOException {
             // Given: Source with an exception class
-            writeSource(
-                    "com/example/domain/Order.java",
-                    """
+            writeSource("com/example/domain/Order.java", """
                     package com.example.domain;
 
                     public class Order {
@@ -75,9 +73,7 @@ class ClassificationConfigIntegrationTest {
                     }
                     """);
 
-            writeSource(
-                    "com/example/domain/OrderException.java",
-                    """
+            writeSource("com/example/domain/OrderException.java", """
                     package com.example.domain;
 
                     public class OrderException extends RuntimeException {
@@ -106,25 +102,19 @@ class ClassificationConfigIntegrationTest {
         @DisplayName("Multiple exclusion patterns should all be applied")
         void multipleExclusionPatternsShouldAllBeApplied() throws IOException {
             // Given: Source with various types
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
 
                     public class Order {}
                     """);
 
-            writeSource(
-                    "com/example/OrderException.java",
-                    """
+            writeSource("com/example/OrderException.java", """
                     package com.example;
 
                     public class OrderException extends RuntimeException {}
                     """);
 
-            writeSource(
-                    "com/example/OrderCreatedEvent.java",
-                    """
+            writeSource("com/example/OrderCreatedEvent.java", """
                     package com.example;
 
                     public class OrderCreatedEvent {}
@@ -143,7 +133,8 @@ class ClassificationConfigIntegrationTest {
             // Then: Only Order should be classified
             assertThat(results.get(NodeId.type("com.example.Order"))).isPresent();
             assertThat(results.get(NodeId.type("com.example.OrderException"))).isEmpty();
-            assertThat(results.get(NodeId.type("com.example.OrderCreatedEvent"))).isEmpty();
+            assertThat(results.get(NodeId.type("com.example.OrderCreatedEvent")))
+                    .isEmpty();
         }
     }
 
@@ -155,9 +146,7 @@ class ClassificationConfigIntegrationTest {
         @DisplayName("Explicit classification should override criteria-based classification")
         void explicitClassificationShouldOverrideCriteriaBased() throws IOException {
             // Given: A class that would normally be classified as something else
-            writeSource(
-                    "com/example/OrderDetails.java",
-                    """
+            writeSource("com/example/OrderDetails.java", """
                     package com.example;
 
                     public class OrderDetails {
@@ -189,9 +178,7 @@ class ClassificationConfigIntegrationTest {
         @DisplayName("Explicit classification should have highest priority")
         void explicitClassificationShouldHaveHighestPriority() throws IOException {
             // Given: A class with jMolecules annotation (would be AGGREGATE_ROOT)
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
 
                     import org.jmolecules.ddd.annotation.AggregateRoot;
@@ -227,9 +214,7 @@ class ClassificationConfigIntegrationTest {
         @DisplayName("Exclusions and explicit classifications should work together")
         void exclusionsAndExplicitsShouldWorkTogether() throws IOException {
             // Given: Multiple types
-            writeSource(
-                    "com/example/Order.java",
-                    """
+            writeSource("com/example/Order.java", """
                     package com.example;
 
                     public class Order {
@@ -237,17 +222,13 @@ class ClassificationConfigIntegrationTest {
                     }
                     """);
 
-            writeSource(
-                    "com/example/OrderId.java",
-                    """
+            writeSource("com/example/OrderId.java", """
                     package com.example;
 
                     public record OrderId(String value) {}
                     """);
 
-            writeSource(
-                    "com/example/OrderCreatedException.java",
-                    """
+            writeSource("com/example/OrderCreatedException.java", """
                     package com.example;
 
                     public class OrderCreatedException extends RuntimeException {}
@@ -266,7 +247,8 @@ class ClassificationConfigIntegrationTest {
 
             // Then: Exception excluded, OrderId explicitly classified, Order normally classified
             assertThat(results.get(NodeId.type("com.example.Order"))).isPresent();
-            assertThat(results.get(NodeId.type("com.example.OrderCreatedException"))).isEmpty();
+            assertThat(results.get(NodeId.type("com.example.OrderCreatedException")))
+                    .isEmpty();
 
             var orderIdResult = results.get(NodeId.type("com.example.OrderId"));
             assertThat(orderIdResult).isPresent();

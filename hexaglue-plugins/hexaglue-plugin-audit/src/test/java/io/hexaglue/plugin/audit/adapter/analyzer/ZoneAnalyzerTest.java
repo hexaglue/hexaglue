@@ -283,11 +283,15 @@ class ZoneAnalyzerTest {
         // Then
         assertThat(result).hasSize(2);
 
-        PackageZoneMetrics domain =
-                result.stream().filter(m -> m.packageName().equals("com.example.domain")).findFirst().orElseThrow();
+        PackageZoneMetrics domain = result.stream()
+                .filter(m -> m.packageName().equals("com.example.domain"))
+                .findFirst()
+                .orElseThrow();
 
-        PackageZoneMetrics util =
-                result.stream().filter(m -> m.packageName().equals("com.example.util")).findFirst().orElseThrow();
+        PackageZoneMetrics util = result.stream()
+                .filter(m -> m.packageName().equals("com.example.util"))
+                .findFirst()
+                .orElseThrow();
 
         // Domain should be healthy (IDEAL)
         assertThat(domain.zone()).isEqualTo(ZoneCategory.IDEAL);

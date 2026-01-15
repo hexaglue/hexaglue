@@ -200,8 +200,12 @@ public final class JsonReportGenerator implements ReportGenerator {
         json.append(",\n");
 
         // Compliance percentages
-        json.append("  \"dddCompliancePercent\": ").append(report.dddCompliancePercent()).append(",\n");
-        json.append("  \"hexCompliancePercent\": ").append(report.hexCompliancePercent()).append("\n");
+        json.append("  \"dddCompliancePercent\": ")
+                .append(report.dddCompliancePercent())
+                .append(",\n");
+        json.append("  \"hexCompliancePercent\": ")
+                .append(report.hexCompliancePercent())
+                .append("\n");
 
         json.append("}\n");
 
@@ -391,7 +395,9 @@ public final class JsonReportGenerator implements ReportGenerator {
         json.append("    \"overall\": ").append(score.overall()).append(",\n");
         json.append("    \"dddCompliance\": ").append(score.dddCompliance()).append(",\n");
         json.append("    \"hexCompliance\": ").append(score.hexCompliance()).append(",\n");
-        json.append("    \"dependencyQuality\": ").append(score.dependencyQuality()).append(",\n");
+        json.append("    \"dependencyQuality\": ")
+                .append(score.dependencyQuality())
+                .append(",\n");
         json.append("    \"coupling\": ").append(score.coupling()).append(",\n");
         json.append("    \"cohesion\": ").append(score.cohesion()).append(",\n");
         json.append("    \"grade\": ").append(quote(score.grade())).append("\n");
@@ -408,7 +414,9 @@ public final class JsonReportGenerator implements ReportGenerator {
         json.append("    \"valueObjects\": ").append(inv.valueObjects()).append(",\n");
         json.append("    \"domainEvents\": ").append(inv.domainEvents()).append(",\n");
         json.append("    \"domainServices\": ").append(inv.domainServices()).append(",\n");
-        json.append("    \"applicationServices\": ").append(inv.applicationServices()).append(",\n");
+        json.append("    \"applicationServices\": ")
+                .append(inv.applicationServices())
+                .append(",\n");
         json.append("    \"drivingPorts\": ").append(inv.drivingPorts()).append(",\n");
         json.append("    \"drivenPorts\": ").append(inv.drivenPorts()).append(",\n");
         json.append("    \"totalDomainTypes\": ").append(inv.totalDomainTypes()).append(",\n");
@@ -429,9 +437,13 @@ public final class JsonReportGenerator implements ReportGenerator {
                 PortMatrixEntry p = portMatrix.get(i);
                 json.append("    {\n");
                 json.append("      \"portName\": ").append(quote(p.portName())).append(",\n");
-                json.append("      \"direction\": ").append(quote(p.direction())).append(",\n");
+                json.append("      \"direction\": ")
+                        .append(quote(p.direction()))
+                        .append(",\n");
                 json.append("      \"kind\": ").append(quote(p.kind())).append(",\n");
-                json.append("      \"managedType\": ").append(quote(p.managedType())).append(",\n");
+                json.append("      \"managedType\": ")
+                        .append(quote(p.managedType()))
+                        .append(",\n");
                 json.append("      \"methodCount\": ").append(p.methodCount()).append(",\n");
                 json.append("      \"hasAdapter\": ").append(p.hasAdapter()).append("\n");
                 json.append("    }");
@@ -447,9 +459,15 @@ public final class JsonReportGenerator implements ReportGenerator {
      */
     private void appendTechnicalDebt(StringBuilder json, TechnicalDebtSummary debt) {
         json.append("  \"technicalDebt\": {\n");
-        json.append("    \"totalDays\": ").append(String.format("%.2f", debt.totalDays())).append(",\n");
-        json.append("    \"totalCost\": ").append(String.format("%.2f", debt.totalCost())).append(",\n");
-        json.append("    \"monthlyInterest\": ").append(String.format("%.2f", debt.monthlyInterest())).append(",\n");
+        json.append("    \"totalDays\": ")
+                .append(String.format("%.2f", debt.totalDays()))
+                .append(",\n");
+        json.append("    \"totalCost\": ")
+                .append(String.format("%.2f", debt.totalCost()))
+                .append(",\n");
+        json.append("    \"monthlyInterest\": ")
+                .append(String.format("%.2f", debt.monthlyInterest()))
+                .append(",\n");
         json.append("    \"breakdown\": ");
         if (debt.breakdown() == null || debt.breakdown().isEmpty()) {
             json.append("[]\n");
@@ -458,10 +476,18 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < debt.breakdown().size(); i++) {
                 TechnicalDebtSummary.DebtCategory cat = debt.breakdown().get(i);
                 json.append("      {\n");
-                json.append("        \"category\": ").append(quote(cat.category())).append(",\n");
-                json.append("        \"days\": ").append(String.format("%.2f", cat.days())).append(",\n");
-                json.append("        \"cost\": ").append(String.format("%.2f", cat.cost())).append(",\n");
-                json.append("        \"description\": ").append(quote(cat.description())).append("\n");
+                json.append("        \"category\": ")
+                        .append(quote(cat.category()))
+                        .append(",\n");
+                json.append("        \"days\": ")
+                        .append(String.format("%.2f", cat.days()))
+                        .append(",\n");
+                json.append("        \"cost\": ")
+                        .append(String.format("%.2f", cat.cost()))
+                        .append(",\n");
+                json.append("        \"description\": ")
+                        .append(quote(cat.description()))
+                        .append("\n");
                 json.append("      }");
                 if (i < debt.breakdown().size() - 1) json.append(",");
                 json.append("\n");
@@ -483,17 +509,25 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < recommendations.size(); i++) {
                 Recommendation r = recommendations.get(i);
                 json.append("    {\n");
-                json.append("      \"priority\": ").append(quote(r.priority().name())).append(",\n");
+                json.append("      \"priority\": ")
+                        .append(quote(r.priority().name()))
+                        .append(",\n");
                 json.append("      \"title\": ").append(quote(r.title())).append(",\n");
-                json.append("      \"description\": ").append(quote(r.description())).append(",\n");
+                json.append("      \"description\": ")
+                        .append(quote(r.description()))
+                        .append(",\n");
                 json.append("      \"affectedTypes\": [");
                 for (int j = 0; j < r.affectedTypes().size(); j++) {
                     json.append(quote(r.affectedTypes().get(j)));
                     if (j < r.affectedTypes().size() - 1) json.append(", ");
                 }
                 json.append("],\n");
-                json.append("      \"estimatedEffort\": ").append(String.format("%.2f", r.estimatedEffort())).append(",\n");
-                json.append("      \"expectedImpact\": ").append(quote(r.expectedImpact())).append(",\n");
+                json.append("      \"estimatedEffort\": ")
+                        .append(String.format("%.2f", r.estimatedEffort()))
+                        .append(",\n");
+                json.append("      \"expectedImpact\": ")
+                        .append(quote(r.expectedImpact()))
+                        .append(",\n");
                 json.append("      \"relatedViolations\": [");
                 for (int j = 0; j < r.relatedViolations().size(); j++) {
                     json.append(quote(r.relatedViolations().get(j).value()));
@@ -537,8 +571,12 @@ public final class JsonReportGenerator implements ReportGenerator {
             for (int i = 0; i < summary.concerns().size(); i++) {
                 ExecutiveSummary.ConcernEntry c = summary.concerns().get(i);
                 json.append("      {\n");
-                json.append("        \"severity\": ").append(quote(c.severity())).append(",\n");
-                json.append("        \"description\": ").append(quote(c.description())).append(",\n");
+                json.append("        \"severity\": ")
+                        .append(quote(c.severity()))
+                        .append(",\n");
+                json.append("        \"description\": ")
+                        .append(quote(c.description()))
+                        .append(",\n");
                 json.append("        \"count\": ").append(c.count()).append("\n");
                 json.append("      }");
                 if (i < summary.concerns().size() - 1) json.append(",");
@@ -559,7 +597,9 @@ public final class JsonReportGenerator implements ReportGenerator {
                 json.append("      {\n");
                 json.append("        \"name\": ").append(quote(k.name())).append(",\n");
                 json.append("        \"value\": ").append(quote(k.value())).append(",\n");
-                json.append("        \"threshold\": ").append(quote(k.threshold())).append(",\n");
+                json.append("        \"threshold\": ")
+                        .append(quote(k.threshold()))
+                        .append(",\n");
                 json.append("        \"status\": ").append(quote(k.status())).append("\n");
                 json.append("      }");
                 if (i < summary.kpis().size() - 1) json.append(",");

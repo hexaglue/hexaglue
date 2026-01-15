@@ -127,7 +127,8 @@ public final class RelationAnalyzer {
             return Optional.empty();
         }
 
-        DomainKind targetKind = getDomainKind(elementId, context);
+        // Use heuristic detection with targetType for unclassified records/enums
+        DomainKind targetKind = getDomainKind(elementId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
@@ -218,14 +219,22 @@ public final class RelationAnalyzer {
             return Optional.empty();
         }
 
-        DomainKind targetKind = getDomainKind(typeId, context);
+        // Use heuristic detection with targetType for unclassified records/enums
+        DomainKind targetKind = getDomainKind(typeId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
 
-        // VALUE_OBJECT → EMBEDDED
+        // VALUE_OBJECT → EMBEDDED (but NOT for enums - they use @Enumerated)
         if (targetKind == DomainKind.VALUE_OBJECT) {
-            return Optional.of(DomainRelation.embedded(field.simpleName(), typeFqn));
+            // Check if the target type is an enum - enums should not be embedded
+            // They will be handled with @Enumerated(EnumType.STRING) in JPA
+            boolean isEnum = targetType.map(TypeNode::isEnum).orElse(false);
+            if (!isEnum) {
+                return Optional.of(DomainRelation.embedded(field.simpleName(), typeFqn));
+            }
+            // Enums are simple fields, no special relation needed
+            return Optional.empty();
         }
 
         // AGGREGATE_ROOT → MANY_TO_ONE (reference to another aggregate)
@@ -291,7 +300,8 @@ public final class RelationAnalyzer {
             return Optional.empty();
         }
 
-        DomainKind targetKind = getDomainKind(valueId, context);
+        // Use heuristic detection with targetType for unclassified records/enums
+        DomainKind targetKind = getDomainKind(valueId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
@@ -343,15 +353,79 @@ public final class RelationAnalyzer {
         return Optional.empty();
     }
 
-    private DomainKind getDomainKind(NodeId typeId, ClassificationContext context) {
+    /**
+     * Gets the domain kind for a type, with optional heuristic detection.
+     *
+     * <p>If the type is not in the classification context and a TypeNode is provided,
+     * applies heuristics:
+     * <ul>
+     *   <li>Records → VALUE_OBJECT (immutable data carriers)</li>
+     *   <li>Enums → VALUE_OBJECT (fixed set of values)</li>
+     *   <li>Classes without identity field → VALUE_OBJECT (data structures without own lifecycle)</li>
+     * </ul>
+     *
+     * @param typeId the type's node ID
+     * @param context the classification context
+     * @param targetType optional TypeNode for heuristic detection
+     * @param query the graph query for field access
+     * @return the domain kind, or null if unknown
+     */
+    private DomainKind getDomainKind(
+            NodeId typeId, ClassificationContext context, Optional<TypeNode> targetType, GraphQuery query) {
+        // First try classification context
         String kind = context.getKind(typeId);
-        if (kind == null) {
-            return null;
+        if (kind != null) {
+            try {
+                return DomainKind.valueOf(kind);
+            } catch (IllegalArgumentException e) {
+                // Fall through to heuristics
+            }
         }
-        try {
-            return DomainKind.valueOf(kind);
-        } catch (IllegalArgumentException e) {
-            return null;
+
+        // Heuristic: If type is not classified, infer from Java form
+        if (targetType.isPresent()) {
+            TypeNode node = targetType.get();
+
+            // Records and enums are VALUE_OBJECT by convention
+            if (node.isRecord() || node.isEnum()) {
+                return DomainKind.VALUE_OBJECT;
+            }
+
+            // Classes without identity fields are likely VALUE_OBJECTs
+            // This heuristic helps detect embedded collection elements like OrderLine
+            if (node.isClass() && !node.isInterface() && !hasIdentityField(node, query)) {
+                return DomainKind.VALUE_OBJECT;
+            }
         }
+
+        return null;
+    }
+
+    /**
+     * Checks if a type has its own identity field.
+     *
+     * <p>A field is considered an identity of the type if:
+     * <ul>
+     *   <li>It is named exactly "id"</li>
+     *   <li>Or it matches the pattern "{typeName}Id" (e.g., "orderId" in Order)</li>
+     * </ul>
+     *
+     * <p>This is more precise than just checking if any field ends with "Id",
+     * which would incorrectly flag foreign key references (like "productId" in OrderLine)
+     * as identity fields.
+     *
+     * @param node the type node to check
+     * @param query the graph query for field access
+     * @return true if the type has its own identity field
+     */
+    private boolean hasIdentityField(TypeNode node, GraphQuery query) {
+        String typeName = node.simpleName();
+        String expectedIdFieldName = Character.toLowerCase(typeName.charAt(0)) + typeName.substring(1) + "Id";
+
+        return query.fieldsOf(node).stream().anyMatch(field -> {
+            String fieldName = field.simpleName();
+            // Field is "id" or matches "{typeName}Id" pattern (e.g., "orderId" for Order)
+            return fieldName.equals("id") || fieldName.equals(expectedIdFieldName);
+        });
     }
 }

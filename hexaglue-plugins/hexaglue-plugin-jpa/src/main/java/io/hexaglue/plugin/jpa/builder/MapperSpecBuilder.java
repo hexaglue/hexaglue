@@ -18,10 +18,14 @@ import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
+import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builder for transforming SPI DomainType to MapperSpec model.
@@ -73,6 +77,7 @@ public final class MapperSpecBuilder {
     private JpaConfig config;
     private String infrastructurePackage;
     private List<DomainType> allTypes;
+    private java.util.Map<String, String> embeddableMapping = java.util.Map.of();
 
     private MapperSpecBuilder() {
         // Use static factory method
@@ -138,11 +143,30 @@ public final class MapperSpecBuilder {
     }
 
     /**
+     * Sets the mapping from domain VALUE_OBJECT types to JPA embeddable types.
+     *
+     * <p>This mapping is used to generate conversion methods for VALUE_OBJECTs
+     * used in the entity (via @Embedded or @ElementCollection).
+     *
+     * @param embeddableMapping map from domain FQN to embeddable FQN
+     * @return this builder
+     */
+    public MapperSpecBuilder embeddableMapping(java.util.Map<String, String> embeddableMapping) {
+        this.embeddableMapping = embeddableMapping != null ? embeddableMapping : java.util.Map.of();
+        return this;
+    }
+
+    /**
      * Builds the MapperSpec from the provided configuration.
      *
      * <p>This method performs the transformation from SPI DomainType to the
      * MapperSpec model. It analyzes the domain type structure to generate
      * appropriate mapping annotations for both toEntity and toDomain conversions.
+     *
+     * <p>Value Object detection: The builder scans all properties of the domain type
+     * and identifies any whose type is classified as VALUE_OBJECT in allTypes.
+     * For each such Value Object with a single property (simple wrapper pattern),
+     * conversion methods are generated.
      *
      * @return an immutable MapperSpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -160,6 +184,8 @@ public final class MapperSpecBuilder {
         List<MappingSpec> toDomainMappings = buildToDomainMappings();
 
         MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentity();
+        List<ValueObjectMappingSpec> valueObjectMappings = detectValueObjectMappings();
+        List<MapperSpec.EmbeddableMappingSpec> embeddableMappings = buildEmbeddableMappings();
 
         return new MapperSpec(
                 infrastructurePackage,
@@ -168,7 +194,35 @@ public final class MapperSpecBuilder {
                 entityType,
                 toEntityMappings,
                 toDomainMappings,
-                wrappedIdentity);
+                wrappedIdentity,
+                valueObjectMappings,
+                embeddableMappings);
+    }
+
+    /**
+     * Builds the embeddable mapping specifications from the embeddableMapping.
+     *
+     * <p>For each VALUE_OBJECT that has a corresponding JPA embeddable, this creates
+     * a specification that allows MapStruct to generate conversion methods.
+     *
+     * @return list of embeddable mapping specifications
+     */
+    private List<MapperSpec.EmbeddableMappingSpec> buildEmbeddableMappings() {
+        List<MapperSpec.EmbeddableMappingSpec> mappings = new ArrayList<>();
+
+        for (java.util.Map.Entry<String, String> entry : embeddableMapping.entrySet()) {
+            String domainFqn = entry.getKey();
+            String embeddableFqn = entry.getValue();
+
+            // Extract simple names
+            String domainSimpleName = domainFqn.substring(domainFqn.lastIndexOf('.') + 1);
+            String embeddableSimpleName = embeddableFqn.substring(embeddableFqn.lastIndexOf('.') + 1);
+
+            mappings.add(new MapperSpec.EmbeddableMappingSpec(
+                    domainFqn, embeddableFqn, domainSimpleName, embeddableSimpleName));
+        }
+
+        return mappings;
     }
 
     /**
@@ -301,6 +355,122 @@ public final class MapperSpecBuilder {
 
         // For classes, follow JavaBeans convention
         return "getValue";
+    }
+
+    /**
+     * Detects Value Objects and Identifier types used as properties in the domain type
+     * and its embedded VALUE_OBJECTs.
+     *
+     * <p>This method scans all properties of the domain type and identifies those
+     * whose type is classified as VALUE_OBJECT or IDENTIFIER in allTypes. For each simple
+     * wrapper type (single property pattern), a ValueObjectMappingSpec is created.
+     *
+     * <p>IDENTIFIER types are included because they are used for inter-aggregate references
+     * (foreign keys) and need the same conversion methods as Value Objects.
+     *
+     * <p>For embedded VALUE_OBJECTs (those in embeddableMapping), this method also scans
+     * their properties to detect wrapper types that need conversion methods.
+     *
+     * <p>Complex Value Objects (multiple properties) are not supported for automatic
+     * mapping generation - they require custom MapStruct mappings.
+     *
+     * @return list of Value Object mapping specifications
+     */
+    private List<ValueObjectMappingSpec> detectValueObjectMappings() {
+        Set<String> processedTypes = new HashSet<>();
+        List<ValueObjectMappingSpec> mappings = new ArrayList<>();
+
+        // Exclude the entity's own identity type (handled by detectWrappedIdentity)
+        String identityTypeName = domainType.identity()
+                .map(id -> id.type().qualifiedName())
+                .orElse(null);
+
+        // Scan all properties of the domain type
+        scanPropertiesForValueObjects(domainType.properties(), identityTypeName, processedTypes, mappings);
+
+        // Also scan properties of embedded VALUE_OBJECTs (those in embeddableMapping)
+        for (String embeddableDomainFqn : embeddableMapping.keySet()) {
+            DomainType embeddableDomainType = allTypes.stream()
+                    .filter(type -> type.qualifiedName().equals(embeddableDomainFqn))
+                    .findFirst()
+                    .orElse(null);
+
+            if (embeddableDomainType != null) {
+                scanPropertiesForValueObjects(embeddableDomainType.properties(), identityTypeName, processedTypes, mappings);
+            }
+        }
+
+        return mappings;
+    }
+
+    /**
+     * Scans a list of properties for Value Object and Identifier wrapper types.
+     *
+     * @param properties the properties to scan
+     * @param identityTypeName the entity's own identity type (to exclude)
+     * @param processedTypes set of already processed type names
+     * @param mappings the list to add new mappings to
+     */
+    private void scanPropertiesForValueObjects(
+            List<DomainProperty> properties,
+            String identityTypeName,
+            Set<String> processedTypes,
+            List<ValueObjectMappingSpec> mappings) {
+
+        for (DomainProperty property : properties) {
+            // Skip identity properties (handled separately by detectWrappedIdentity)
+            if (property.isIdentity()) {
+                continue;
+            }
+
+            String propertyTypeName = property.type().qualifiedName();
+
+            // Skip if already processed (avoid duplicate conversion methods)
+            if (processedTypes.contains(propertyTypeName)) {
+                continue;
+            }
+
+            // Skip the entity's own identity type (handled by detectWrappedIdentity)
+            if (propertyTypeName.equals(identityTypeName)) {
+                continue;
+            }
+
+            // Find the DomainType for this property's type
+            DomainType propertyDomainType = allTypes.stream()
+                    .filter(type -> type.qualifiedName().equals(propertyTypeName))
+                    .findFirst()
+                    .orElse(null);
+
+            // Accept both VALUE_OBJECT and IDENTIFIER types for mapping generation
+            // IDENTIFIER types are used for inter-aggregate references (foreign keys)
+            if (propertyDomainType != null && isSimpleWrapperType(propertyDomainType)) {
+                // Create a ValueObjectMappingSpec for this wrapper type
+                ValueObjectMappingSpec spec = ValueObjectMappingSpec.from(propertyDomainType);
+                if (spec != null) {
+                    mappings.add(spec);
+                    processedTypes.add(propertyTypeName);
+                }
+            }
+        }
+    }
+
+    /**
+     * Determines if a domain type is a simple wrapper type that needs conversion methods.
+     *
+     * <p>A simple wrapper type has exactly one property and is either:
+     * <ul>
+     *   <li>A VALUE_OBJECT - immutable wrapper around a primitive</li>
+     *   <li>An IDENTIFIER - typed identity wrapper (e.g., CustomerId)</li>
+     * </ul>
+     *
+     * @param type the domain type to check
+     * @return true if the type is a simple wrapper needing conversion methods
+     */
+    private boolean isSimpleWrapperType(DomainType type) {
+        if (type == null || type.properties().size() != 1) {
+            return false;
+        }
+        return type.isValueObject() || type.kind() == io.hexaglue.spi.ir.DomainKind.IDENTIFIER;
     }
 
     /**

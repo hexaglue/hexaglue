@@ -54,23 +54,25 @@ public final class TestFixtures {
     public static Identity wrappedIdentity(String fieldName, String typeName, String underlyingType) {
         TypeRef type = TypeRef.of("com.example.domain." + typeName);
         TypeRef underlying = TypeRef.of("java.util." + underlyingType);
-        return new Identity(fieldName, type, underlying, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD);
+        return Identity.wrapped(
+                fieldName, type, underlying, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD, "value");
     }
 
     public static Identity unwrappedIdentity(String fieldName, String typeName) {
         TypeRef type = TypeRef.of("java.lang." + typeName);
-        return new Identity(fieldName, type, type, IdentityStrategy.AUTO, IdentityWrapperKind.NONE);
+        return Identity.unwrapped(fieldName, type, IdentityStrategy.AUTO);
     }
 
     public static Identity generatedIdentity(String fieldName) {
         TypeRef longType = TypeRef.of("java.lang.Long");
-        return new Identity(fieldName, longType, longType, IdentityStrategy.AUTO, IdentityWrapperKind.NONE);
+        return Identity.unwrapped(fieldName, longType, IdentityStrategy.AUTO);
     }
 
     public static Identity uuidIdentity(String fieldName, String wrapperTypeName) {
         TypeRef wrapperType = TypeRef.of("com.example.domain." + wrapperTypeName);
         TypeRef uuidType = TypeRef.of("java.util.UUID");
-        return new Identity(fieldName, wrapperType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD);
+        return Identity.wrapped(
+                fieldName, wrapperType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD, "value");
     }
 
     // ============ Property Builders ============
@@ -98,7 +100,7 @@ public final class TestFixtures {
     }
 
     public static DomainProperty propertyWithRelation(String name, String type, RelationKind kind, String targetType) {
-        RelationInfo relationInfo = new RelationInfo(kind, targetType, null, true);
+        RelationInfo relationInfo = RelationInfo.unidirectional(kind, targetType);
         return new DomainProperty(
                 name, TypeRef.of(type), Cardinality.SINGLE, Nullability.NON_NULL, false, false, relationInfo);
     }
@@ -247,11 +249,11 @@ public final class TestFixtures {
     // ============ Port Method Builders ============
 
     public static PortMethod method(String name, String returnType, String... parameters) {
-        return new PortMethod(name, returnType, List.of(parameters));
+        return PortMethod.legacy(name, returnType, List.of(parameters));
     }
 
     public static PortMethod voidMethod(String name, String... parameters) {
-        return new PortMethod(name, "void", List.of(parameters));
+        return PortMethod.legacy(name, "void", List.of(parameters));
     }
 
     // ============ IrSnapshot Builders ============
