@@ -73,8 +73,7 @@ class DomainCriteriaTest {
         @DisplayName("should match @AggregateRoot annotation")
         void shouldMatchAggregateRootAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Order")
-                    .withAnnotation("io.hexaglue.ddd.AggregateRoot");
+            TypeSyntax type = new StubTypeSyntax("com.example.Order").withAnnotation("io.hexaglue.ddd.AggregateRoot");
 
             // when
             Optional<CriterionMatch> result = criterion.evaluate(type, context);
@@ -145,8 +144,7 @@ class DomainCriteriaTest {
         @DisplayName("should match DDD @Entity annotation")
         void shouldMatchDddEntityAnnotation() {
             // given
-            TypeSyntax type =
-                    new StubTypeSyntax("com.example.OrderLine").withAnnotation("io.hexaglue.ddd.Entity");
+            TypeSyntax type = new StubTypeSyntax("com.example.OrderLine").withAnnotation("io.hexaglue.ddd.Entity");
 
             // when
             Optional<CriterionMatch> result = criterion.evaluate(type, context);
@@ -159,8 +157,7 @@ class DomainCriteriaTest {
         @DisplayName("should NOT match JPA @Entity annotation")
         void shouldNotMatchJpaEntityAnnotation() {
             // given
-            TypeSyntax type =
-                    new StubTypeSyntax("com.example.OrderLine").withAnnotation("jakarta.persistence.Entity");
+            TypeSyntax type = new StubTypeSyntax("com.example.OrderLine").withAnnotation("jakarta.persistence.Entity");
 
             // when
             Optional<CriterionMatch> result = criterion.evaluate(type, context);

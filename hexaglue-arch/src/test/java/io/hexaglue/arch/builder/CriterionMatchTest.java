@@ -38,8 +38,8 @@ class CriterionMatchTest {
             Evidence evidence = Evidence.of(EvidenceType.ANNOTATION, "@AggregateRoot annotation found");
 
             // when
-            CriterionMatch match = new CriterionMatch(
-                    "Type has @AggregateRoot annotation", ConfidenceLevel.HIGH, List.of(evidence));
+            CriterionMatch match =
+                    new CriterionMatch("Type has @AggregateRoot annotation", ConfidenceLevel.HIGH, List.of(evidence));
 
             // then
             assertThat(match.justification()).isEqualTo("Type has @AggregateRoot annotation");
@@ -53,12 +53,10 @@ class CriterionMatchTest {
         void shouldMakeEvidenceImmutable() {
             // given
             Evidence evidence = Evidence.of(EvidenceType.ANNOTATION, "Test");
-            CriterionMatch match =
-                    new CriterionMatch("Justification", ConfidenceLevel.HIGH, List.of(evidence));
+            CriterionMatch match = new CriterionMatch("Justification", ConfidenceLevel.HIGH, List.of(evidence));
 
             // then
-            assertThatThrownBy(() -> match.evidence().add(evidence))
-                    .isInstanceOf(UnsupportedOperationException.class);
+            assertThatThrownBy(() -> match.evidence().add(evidence)).isInstanceOf(UnsupportedOperationException.class);
         }
 
         @Test

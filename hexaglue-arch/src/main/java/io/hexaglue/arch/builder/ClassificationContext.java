@@ -59,9 +59,7 @@ public final class ClassificationContext {
      * @param subtypeIndex map from supertype qualified name to set of subtype qualified names
      */
     public ClassificationContext(
-            SyntaxProvider syntaxProvider,
-            Set<String> repositoryDominantTypes,
-            Map<String, Set<String>> subtypeIndex) {
+            SyntaxProvider syntaxProvider, Set<String> repositoryDominantTypes, Map<String, Set<String>> subtypeIndex) {
         this.syntaxProvider = Objects.requireNonNull(syntaxProvider, "syntaxProvider must not be null");
         this.repositoryDominantTypes =
                 Set.copyOf(Objects.requireNonNull(repositoryDominantTypes, "repositoryDominantTypes must not be null"));

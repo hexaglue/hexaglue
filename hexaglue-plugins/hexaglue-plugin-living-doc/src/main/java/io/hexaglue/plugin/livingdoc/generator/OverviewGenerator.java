@@ -16,21 +16,43 @@ package io.hexaglue.plugin.livingdoc.generator;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.mermaid.GraphBuilder;
 import io.hexaglue.plugin.livingdoc.mermaid.MermaidBuilder;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocPort;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocType;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
 import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
 import java.util.List;
 
 /**
  * Generates the architecture overview documentation.
+ *
+ * <p>This generator supports both legacy {@code IrSnapshot} and v4 {@code DocumentationModel}.
+ *
+ * @since 4.0.0 - Migrated to DocumentationModel abstraction
  */
 public final class OverviewGenerator {
 
-    private final IrSnapshot ir;
+    private final DocumentationModel model;
 
+    /**
+     * Creates an OverviewGenerator from a DocumentationModel.
+     *
+     * @param model the documentation model
+     */
+    public OverviewGenerator(DocumentationModel model) {
+        this.model = model;
+    }
+
+    /**
+     * Creates an OverviewGenerator from an IrSnapshot (legacy).
+     *
+     * @param ir the IR snapshot
+     * @deprecated Use {@link #OverviewGenerator(DocumentationModel)} with
+     * {@link DocumentationModelFactory#fromIrSnapshot(IrSnapshot)}
+     */
+    @Deprecated(since = "4.0.0")
     public OverviewGenerator(IrSnapshot ir) {
-        this.ir = ir;
+        this(DocumentationModelFactory.fromIrSnapshot(ir));
     }
 
     public String generate(boolean includeDiagram) {
@@ -62,16 +84,11 @@ public final class OverviewGenerator {
     private void generateSummary(MarkdownBuilder md) {
         md.h2("Summary")
                 .table("Metric", "Count")
-                .row(
-                        "Aggregate Roots",
-                        String.valueOf(ir.domain().aggregateRoots().size()))
-                .row(
-                        "Entities",
-                        String.valueOf(
-                                ir.domain().typesOfKind(DomainKind.ENTITY).size()))
-                .row("Value Objects", String.valueOf(ir.domain().valueObjects().size()))
-                .row("Driving Ports", String.valueOf(ir.ports().drivingPorts().size()))
-                .row("Driven Ports", String.valueOf(ir.ports().drivenPorts().size()))
+                .row("Aggregate Roots", String.valueOf(model.aggregateRoots().size()))
+                .row("Entities", String.valueOf(model.entities().size()))
+                .row("Value Objects", String.valueOf(model.valueObjects().size()))
+                .row("Driving Ports", String.valueOf(model.drivingPorts().size()))
+                .row("Driven Ports", String.valueOf(model.drivenPorts().size()))
                 .end();
     }
 
@@ -100,11 +117,11 @@ public final class OverviewGenerator {
 
         // Driving Ports subgraph
         graph.startSubgraph("DrivingPorts", "Driving Ports");
-        List<Port> driving = ir.ports().drivingPorts();
+        List<DocPort> driving = model.drivingPorts();
         if (driving.isEmpty()) {
             graph.node("DP", "[\"(none)\"]");
         } else {
-            for (Port port : driving) {
+            for (DocPort port : driving) {
                 graph.node(MermaidBuilder.sanitizeId(port.simpleName()), "[\"" + port.simpleName() + "\"]");
             }
         }
@@ -112,11 +129,11 @@ public final class OverviewGenerator {
 
         // Domain subgraph
         graph.startSubgraph("Domain", "Domain");
-        List<DomainType> aggregates = ir.domain().aggregateRoots();
+        List<DocType> aggregates = model.aggregateRoots();
         if (aggregates.isEmpty()) {
             graph.node("D", "[\"(domain)\"]");
         } else {
-            for (DomainType agg : aggregates) {
+            for (DocType agg : aggregates) {
                 graph.node(MermaidBuilder.sanitizeId(agg.simpleName()), "[\"" + agg.simpleName() + "\"]");
             }
         }
@@ -124,11 +141,11 @@ public final class OverviewGenerator {
 
         // Driven Ports subgraph
         graph.startSubgraph("DrivenPorts", "Driven Ports");
-        List<Port> driven = ir.ports().drivenPorts();
+        List<DocPort> driven = model.drivenPorts();
         if (driven.isEmpty()) {
             graph.node("DPOUT", "[\"(none)\"]");
         } else {
-            for (Port port : driven) {
+            for (DocPort port : driven) {
                 graph.node(MermaidBuilder.sanitizeId(port.simpleName()), "[\"" + port.simpleName() + "\"]");
             }
         }
@@ -155,28 +172,25 @@ public final class OverviewGenerator {
     private void generateDomainSummary(MarkdownBuilder md) {
         md.h2("Domain Model");
 
-        List<DomainType> aggregates = ir.domain().aggregateRoots();
+        List<DocType> aggregates = model.aggregateRoots();
         if (!aggregates.isEmpty()) {
             md.h3("Aggregate Roots");
             var table = md.table("Name", "Package", "Properties");
-            for (DomainType agg : aggregates) {
+            for (DocType agg : aggregates) {
                 table.row(
                         "**" + agg.simpleName() + "**",
                         "`" + agg.packageName() + "`",
-                        String.valueOf(agg.properties().size()));
+                        String.valueOf(agg.propertyCount()));
             }
             table.end();
         }
 
-        List<DomainType> valueObjects = ir.domain().valueObjects();
+        List<DocType> valueObjects = model.valueObjects();
         if (!valueObjects.isEmpty()) {
             md.h3("Value Objects");
             var table = md.table("Name", "Package", "Type");
-            for (DomainType vo : valueObjects) {
-                table.row(
-                        vo.simpleName(),
-                        "`" + vo.packageName() + "`",
-                        vo.construct().toString());
+            for (DocType vo : valueObjects) {
+                table.row(vo.simpleName(), "`" + vo.packageName() + "`", vo.construct());
             }
             table.end();
         }
@@ -187,28 +201,22 @@ public final class OverviewGenerator {
     private void generatePortsSummary(MarkdownBuilder md) {
         md.h2("Ports");
 
-        List<Port> driving = ir.ports().drivingPorts();
+        List<DocPort> driving = model.drivingPorts();
         if (!driving.isEmpty()) {
             md.h3("Driving Ports (Primary)");
             var table = md.table("Port", "Kind", "Methods");
-            for (Port port : driving) {
-                table.row(
-                        "**" + port.simpleName() + "**",
-                        port.kind().toString(),
-                        String.valueOf(port.methods().size()));
+            for (DocPort port : driving) {
+                table.row("**" + port.simpleName() + "**", port.kind(), String.valueOf(port.methodCount()));
             }
             table.end();
         }
 
-        List<Port> driven = ir.ports().drivenPorts();
+        List<DocPort> driven = model.drivenPorts();
         if (!driven.isEmpty()) {
             md.h3("Driven Ports (Secondary)");
             var table = md.table("Port", "Kind", "Methods");
-            for (Port port : driven) {
-                table.row(
-                        "**" + port.simpleName() + "**",
-                        port.kind().toString(),
-                        String.valueOf(port.methods().size()));
+            for (DocPort port : driven) {
+                table.row("**" + port.simpleName() + "**", port.kind(), String.valueOf(port.methodCount()));
             }
             table.end();
         }

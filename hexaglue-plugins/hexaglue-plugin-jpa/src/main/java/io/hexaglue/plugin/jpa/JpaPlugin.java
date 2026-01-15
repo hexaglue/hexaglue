@@ -15,6 +15,7 @@ package io.hexaglue.plugin.jpa;
 
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EntitySpecBuilder;
@@ -30,7 +31,6 @@ import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
-import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
@@ -129,6 +129,8 @@ public final class JpaPlugin implements GeneratorPlugin {
         if (archModel != null) {
             diagnostics.info("Using v4 ArchitecturalModel (classification traces available)");
             logClassificationSummary(archModel, diagnostics);
+        } else {
+            diagnostics.info("Using legacy IrSnapshot (v4 ArchitecturalModel not available)");
         }
 
         if (ir.isEmpty()) {
@@ -408,7 +410,7 @@ public final class JpaPlugin implements GeneratorPlugin {
      * Logs a summary of the v4 ArchitecturalModel classification.
      *
      * <p>This provides visibility into the new classification system when available,
-     * including classification traces for debugging.
+     * including classification traces for debugging and warnings for unclassified types.
      *
      * @param model the architectural model
      * @param diagnostics the diagnostic reporter
@@ -416,9 +418,11 @@ public final class JpaPlugin implements GeneratorPlugin {
      */
     private void logClassificationSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
         long aggregateCount = model.aggregates().count();
-        long entityCount = model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
+        long entityCount =
+                model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
         long valueObjectCount = model.valueObjects().count();
         long drivenPortCount = model.drivenPorts().count();
+        long unclassifiedCount = model.unclassifiedCount();
 
         diagnostics.info(String.format(
                 "v4 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
@@ -426,7 +430,28 @@ public final class JpaPlugin implements GeneratorPlugin {
 
         // Log classification traces for aggregates (useful for debugging)
         model.aggregates().limit(3).forEach(agg -> {
-            diagnostics.info("  - " + agg.id().simpleName() + ": " + agg.classificationTrace().explain());
+            diagnostics.info("  - " + agg.id().simpleName() + ": "
+                    + agg.classificationTrace().explain());
         });
+
+        // Warn about unclassified types with remediation hints
+        if (unclassifiedCount > 0) {
+            diagnostics.warn(String.format(
+                    "Found %d unclassified types (no JPA code will be generated for these):", unclassifiedCount));
+            model.unclassifiedTypes().limit(5).forEach(unclassified -> {
+                String hint = unclassified.classificationTrace().remediationHints().stream()
+                        .findFirst()
+                        .map(h -> " - Hint: " + h.description())
+                        .orElse("");
+                diagnostics.warn(String.format(
+                        "  - %s: %s%s",
+                        unclassified.id().simpleName(),
+                        unclassified.classificationTrace().explain(),
+                        hint));
+            });
+            if (unclassifiedCount > 5) {
+                diagnostics.warn(String.format("  ... and %d more unclassified types", unclassifiedCount - 5));
+            }
+        }
     }
 }

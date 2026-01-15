@@ -71,8 +71,7 @@ class ArchitecturalModelBuilderTest {
         @DisplayName("should accept custom domain classifier")
         void shouldAcceptCustomDomainClassifier() {
             // given
-            SyntaxProvider provider =
-                    new StubSyntaxProvider(new StubTypeSyntax("com.example.Order", TypeForm.CLASS));
+            SyntaxProvider provider = new StubSyntaxProvider(new StubTypeSyntax("com.example.Order", TypeForm.CLASS));
             DomainClassifier customClassifier = DomainClassifiers.explicitOnly();
 
             // when
@@ -133,9 +132,8 @@ class ArchitecturalModelBuilderTest {
         @DisplayName("should route classes to domain classifier")
         void shouldRouteClassesToDomainClassifier() {
             // given
-            SyntaxProvider provider =
-                    new StubSyntaxProvider(new StubTypeSyntax("com.example.OrderPlaced", TypeForm.CLASS)
-                            .withAnnotation("DomainEvent"));
+            SyntaxProvider provider = new StubSyntaxProvider(
+                    new StubTypeSyntax("com.example.OrderPlaced", TypeForm.CLASS).withAnnotation("DomainEvent"));
 
             // when
             ArchitecturalModel model = ArchitecturalModelBuilder.builder(provider)
@@ -151,8 +149,7 @@ class ArchitecturalModelBuilderTest {
         @DisplayName("should route records to domain classifier")
         void shouldRouteRecordsToDomainClassifier() {
             // given
-            SyntaxProvider provider =
-                    new StubSyntaxProvider(new StubTypeSyntax("com.example.Money", TypeForm.RECORD));
+            SyntaxProvider provider = new StubSyntaxProvider(new StubTypeSyntax("com.example.Money", TypeForm.RECORD));
 
             // when
             ArchitecturalModel model = ArchitecturalModelBuilder.builder(provider)
@@ -264,8 +261,8 @@ class ArchitecturalModelBuilderTest {
         @DisplayName("should create DrivingPort for @DrivingPort")
         void shouldCreateDrivingPort() {
             // given
-            SyntaxProvider provider = new StubSyntaxProvider(
-                    new StubTypeSyntax("com.example.PlaceOrderUseCase", TypeForm.INTERFACE)
+            SyntaxProvider provider =
+                    new StubSyntaxProvider(new StubTypeSyntax("com.example.PlaceOrderUseCase", TypeForm.INTERFACE)
                             .withAnnotation("DrivingPort"));
 
             // when
@@ -343,7 +340,8 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.domainEntities().filter(e -> e.isAggregateRoot()).count()).isEqualTo(1);
+            assertThat(model.domainEntities().filter(e -> e.isAggregateRoot()).count())
+                    .isEqualTo(1);
             assertThat(model.identifiers().count()).isEqualTo(1);
             assertThat(model.drivenPorts().count()).isEqualTo(1); // *Repository
             assertThat(model.drivingPorts().count()).isEqualTo(1); // *UseCase

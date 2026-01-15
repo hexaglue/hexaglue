@@ -33,8 +33,8 @@ assert livingDocDir.exists() :
 assert logContent.contains("io.hexaglue.plugin.livingdoc") :
     "Build log should contain Living Documentation plugin execution"
 
-// Verify Living Documentation generation completed
-assert logContent.contains("Living documentation complete:") :
+// Verify Living Documentation generation completed (supports both legacy and v4 message formats)
+assert logContent.contains("Living documentation complete") :
     "Build log should contain Living Documentation completion message"
 
 println 'SUCCESS: tutorial-validation integration test passed - classification and validation features work correctly'

@@ -30,7 +30,6 @@ import io.hexaglue.arch.ports.PortClassification;
 import io.hexaglue.syntax.SyntaxProvider;
 import io.hexaglue.syntax.TypeForm;
 import io.hexaglue.syntax.TypeSyntax;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -117,7 +116,10 @@ public final class ArchitecturalModelBuilder {
 
             if (trace.classifiedAs() == ElementKind.UNCLASSIFIED) {
                 modelBuilder.add(new UnclassifiedType(
-                        ElementId.of(type.qualifiedName()), trace.winningCriterion().explanation(), type, trace));
+                        ElementId.of(type.qualifiedName()),
+                        trace.winningCriterion().explanation(),
+                        type,
+                        trace));
                 unclassifiedCount++;
             } else {
                 modelBuilder.add(createArchElement(type, trace));
@@ -127,8 +129,8 @@ public final class ArchitecturalModelBuilder {
 
         // Build metadata
         int totalTypes = classifiedCount + unclassifiedCount;
-        AnalysisMetadata metadata = AnalysisMetadata.now(
-                startTime, syntaxProvider.metadata().parserName(), totalTypes);
+        AnalysisMetadata metadata =
+                AnalysisMetadata.now(startTime, syntaxProvider.metadata().parserName(), totalTypes);
 
         return modelBuilder.build(metadata);
     }
@@ -164,18 +166,13 @@ public final class ArchitecturalModelBuilder {
     }
 
     private ValueObject createValueObject(TypeSyntax type, ClassificationTrace trace) {
-        List<String> fields = type.fields().stream()
-                .map(f -> f.name())
-                .toList();
+        List<String> fields = type.fields().stream().map(f -> f.name()).toList();
         return new ValueObject(ElementId.of(type.qualifiedName()), fields, type, trace);
     }
 
     private Identifier createIdentifier(TypeSyntax type, ClassificationTrace trace) {
         // Try to find the wrapped type from fields (e.g., UUID value)
-        var wrappedType = type.fields().stream()
-                .findFirst()
-                .map(f -> f.type())
-                .orElse(null);
+        var wrappedType = type.fields().stream().findFirst().map(f -> f.type()).orElse(null);
         // Identifier name usually ends with "Id" - try to infer what it identifies
         String identifiesType = inferIdentifiedType(type.simpleName());
         return new Identifier(ElementId.of(type.qualifiedName()), wrappedType, identifiesType, type, trace);
@@ -190,9 +187,7 @@ public final class ArchitecturalModelBuilder {
     }
 
     private DomainEvent createDomainEvent(TypeSyntax type, ClassificationTrace trace) {
-        List<String> eventFields = type.fields().stream()
-                .map(f -> f.name())
-                .toList();
+        List<String> eventFields = type.fields().stream().map(f -> f.name()).toList();
         return new DomainEvent(ElementId.of(type.qualifiedName()), null, eventFields, type, trace);
     }
 
@@ -200,8 +195,8 @@ public final class ArchitecturalModelBuilder {
         return new DrivingPort(
                 ElementId.of(type.qualifiedName()),
                 PortClassification.USE_CASE,
-                List.of(),  // operations - populated later
-                List.of(),  // implementedBy - populated later
+                List.of(), // operations - populated later
+                List.of(), // implementedBy - populated later
                 type,
                 trace);
     }
@@ -213,9 +208,9 @@ public final class ArchitecturalModelBuilder {
         return new DrivenPort(
                 ElementId.of(type.qualifiedName()),
                 classification,
-                List.of(),           // operations - populated later
-                Optional.empty(),    // primaryManagedType - populated later
-                List.of(),           // managedTypes - populated later
+                List.of(), // operations - populated later
+                Optional.empty(), // primaryManagedType - populated later
+                List.of(), // managedTypes - populated later
                 type,
                 trace);
     }
@@ -228,8 +223,7 @@ public final class ArchitecturalModelBuilder {
 
         syntaxProvider.types().forEach(type -> {
             if (type.form() == TypeForm.INTERFACE
-                    && (type.simpleName().endsWith("Repository")
-                            || hasRepositoryAnnotation(type))) {
+                    && (type.simpleName().endsWith("Repository") || hasRepositoryAnnotation(type))) {
                 // Extract the first type parameter as the dominant type
                 if (!type.typeParameters().isEmpty()) {
                     // For generic Repository<T, ID>, T is the dominant type
@@ -253,8 +247,7 @@ public final class ArchitecturalModelBuilder {
     }
 
     private boolean hasRepositoryAnnotation(TypeSyntax type) {
-        return type.annotations().stream()
-                .anyMatch(ann -> ann.simpleName().equals("Repository"));
+        return type.annotations().stream().anyMatch(ann -> ann.simpleName().equals("Repository"));
     }
 
     /**

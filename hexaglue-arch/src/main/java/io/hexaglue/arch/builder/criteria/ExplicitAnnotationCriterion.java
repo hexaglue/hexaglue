@@ -90,7 +90,9 @@ public class ExplicitAnnotationCriterion implements ClassificationCriterion {
                 .findFirst()
                 .map(ann -> {
                     Evidence evidence = Evidence.at(
-                            EvidenceType.ANNOTATION, "@" + ann.simpleName() + " annotation found", type.sourceLocation());
+                            EvidenceType.ANNOTATION,
+                            "@" + ann.simpleName() + " annotation found",
+                            type.sourceLocation());
                     return CriterionMatch.high(justification, evidence);
                 });
     }

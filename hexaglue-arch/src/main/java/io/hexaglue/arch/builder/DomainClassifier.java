@@ -102,7 +102,8 @@ public final class DomainClassifier {
 
         // Sort by priority (desc), confidence (desc), name (asc) for determinism
         List<EvaluatedCriterion> sorted = matched.stream()
-                .sorted(Comparator.<EvaluatedCriterion>comparingInt(e -> e.criterion().priority())
+                .sorted(Comparator.<EvaluatedCriterion>comparingInt(
+                                e -> e.criterion().priority())
                         .reversed()
                         .thenComparing(e -> e.match().orElseThrow().confidence())
                         .thenComparing(e -> e.criterion().name()))
