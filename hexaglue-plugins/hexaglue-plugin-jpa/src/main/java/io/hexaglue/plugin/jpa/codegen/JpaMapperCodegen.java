@@ -14,11 +14,14 @@
 package io.hexaglue.plugin.jpa.codegen;
 
 import com.palantir.javapoet.AnnotationSpec;
+import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
+import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import javax.lang.model.element.Modifier;
 
@@ -148,7 +151,85 @@ public final class JpaMapperCodegen {
             builder.addMethod(createMapToWrappedMethod(spec.wrappedIdentity()));
         }
 
+        // Add Value Object conversion methods
+        if (spec.valueObjectMappings() != null) {
+            for (ValueObjectMappingSpec voSpec : spec.valueObjectMappings()) {
+                builder.addMethod(createValueObjectToUnwrappedMethod(voSpec));
+                builder.addMethod(createValueObjectToWrappedMethod(voSpec));
+            }
+        }
+
+        // Add Embeddable conversion methods (for complex VALUE_OBJECTs)
+        if (spec.embeddableMappings() != null) {
+            for (MapperSpec.EmbeddableMappingSpec embSpec : spec.embeddableMappings()) {
+                builder.addMethod(createEmbeddableToEntityMethod(embSpec));
+                builder.addMethod(createEmbeddableToDomainMethod(embSpec));
+            }
+        }
+
         return builder.build();
+    }
+
+    /**
+     * Creates a method to convert domain VALUE_OBJECT to JPA embeddable.
+     *
+     * <p>This method allows MapStruct to automatically convert from domain types
+     * to their JPA embeddable equivalents. MapStruct will generate the implementation
+     * based on matching property names.
+     *
+     * <pre>{@code
+     * LineItemEmbeddable toEmbeddable(LineItem domain);
+     * }</pre>
+     *
+     * @param embSpec the embeddable mapping specification
+     * @return the method spec for domain to embeddable conversion
+     */
+    private static MethodSpec createEmbeddableToEntityMethod(MapperSpec.EmbeddableMappingSpec embSpec) {
+        ClassName domainClass = ClassName.bestGuess(embSpec.domainTypeFqn());
+        ClassName embeddableClass = ClassName.bestGuess(embSpec.embeddableFqn());
+
+        return MethodSpec.methodBuilder("toEmbeddable")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(embeddableClass)
+                .addParameter(domainClass, "domain")
+                .addJavadoc(
+                        "Converts {@link $L} domain object to {@link $L} JPA embeddable.\n\n",
+                        embSpec.domainSimpleName(),
+                        embSpec.embeddableSimpleName())
+                .addJavadoc("@param domain the domain VALUE_OBJECT to convert\n")
+                .addJavadoc("@return the corresponding JPA embeddable\n")
+                .build();
+    }
+
+    /**
+     * Creates a method to convert JPA embeddable to domain VALUE_OBJECT.
+     *
+     * <p>This method allows MapStruct to automatically convert from JPA embeddables
+     * to their domain equivalents. MapStruct will generate the implementation
+     * based on matching property names.
+     *
+     * <pre>{@code
+     * LineItem toDomain(LineItemEmbeddable embeddable);
+     * }</pre>
+     *
+     * @param embSpec the embeddable mapping specification
+     * @return the method spec for embeddable to domain conversion
+     */
+    private static MethodSpec createEmbeddableToDomainMethod(MapperSpec.EmbeddableMappingSpec embSpec) {
+        ClassName domainClass = ClassName.bestGuess(embSpec.domainTypeFqn());
+        ClassName embeddableClass = ClassName.bestGuess(embSpec.embeddableFqn());
+
+        return MethodSpec.methodBuilder("toDomain")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(domainClass)
+                .addParameter(embeddableClass, "embeddable")
+                .addJavadoc(
+                        "Converts {@link $L} JPA embeddable to {@link $L} domain object.\n\n",
+                        embSpec.embeddableSimpleName(),
+                        embSpec.domainSimpleName())
+                .addJavadoc("@param embeddable the JPA embeddable to convert\n")
+                .addJavadoc("@return the corresponding domain VALUE_OBJECT\n")
+                .build();
     }
 
     /**
@@ -327,6 +408,96 @@ public final class JpaMapperCodegen {
                 .addJavadoc("@param id the unwrapped value\n")
                 .addJavadoc("@return the wrapped identity, or null if input is null\n")
                 .build();
+    }
+
+    // =====================================================================
+    // Value Object conversion methods
+    // =====================================================================
+
+    /**
+     * Creates a method to unwrap Value Object values (e.g., Email → String).
+     *
+     * <p>This method allows MapStruct to automatically convert from Value Object types
+     * to their underlying primitive types. For example:
+     * <pre>{@code
+     * default String map(Email email) {
+     *     return email != null ? email.value() : null;
+     * }
+     * }</pre>
+     *
+     * @param voSpec the Value Object mapping specification
+     * @return the method spec for unwrapping
+     */
+    private static MethodSpec createValueObjectToUnwrappedMethod(ValueObjectMappingSpec voSpec) {
+        ClassName valueObjectClass = ClassName.bestGuess(voSpec.valueObjectType());
+        TypeName primitiveType = toTypeName(voSpec.primitiveType());
+
+        return MethodSpec.methodBuilder("map")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(primitiveType)
+                .addParameter(valueObjectClass, "vo")
+                .addStatement("return vo != null ? vo.$L() : null", voSpec.accessorMethod())
+                .addJavadoc(
+                        "Unwraps {@link $L} to {@link $L}.\n\n",
+                        voSpec.simpleName(),
+                        voSpec.primitiveType())
+                .addJavadoc("@param vo the Value Object to unwrap\n")
+                .addJavadoc("@return the underlying value, or null if input is null\n")
+                .build();
+    }
+
+    /**
+     * Creates a method to wrap primitive values into Value Objects (e.g., String → Email).
+     *
+     * <p>This method allows MapStruct to automatically convert from primitive types
+     * to their Value Object wrappers. For example:
+     * <pre>{@code
+     * default Email mapToEmail(String value) {
+     *     return value != null ? new Email(value) : null;
+     * }
+     * }</pre>
+     *
+     * @param voSpec the Value Object mapping specification
+     * @return the method spec for wrapping
+     */
+    private static MethodSpec createValueObjectToWrappedMethod(ValueObjectMappingSpec voSpec) {
+        ClassName valueObjectClass = ClassName.bestGuess(voSpec.valueObjectType());
+        TypeName primitiveType = toTypeName(voSpec.primitiveType());
+
+        return MethodSpec.methodBuilder("mapTo" + voSpec.simpleName())
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(valueObjectClass)
+                .addParameter(primitiveType, "value")
+                .addStatement("return value != null ? new $T(value) : null", valueObjectClass)
+                .addJavadoc(
+                        "Wraps {@link $L} into {@link $L}.\n\n", voSpec.primitiveType(), voSpec.simpleName())
+                .addJavadoc("@param value the primitive value to wrap\n")
+                .addJavadoc("@return the Value Object, or null if input is null\n")
+                .build();
+    }
+
+    /**
+     * Converts a type name string to a JavaPoet TypeName.
+     *
+     * <p>Handles primitive types by boxing them (e.g., "int" → Integer)
+     * to support null checks in generated code. For reference types,
+     * uses {@link ClassName#bestGuess(String)}.
+     *
+     * @param typeName the qualified type name
+     * @return the corresponding TypeName
+     */
+    private static TypeName toTypeName(String typeName) {
+        return switch (typeName) {
+            case "int" -> ClassName.get(Integer.class);
+            case "long" -> ClassName.get(Long.class);
+            case "short" -> ClassName.get(Short.class);
+            case "byte" -> ClassName.get(Byte.class);
+            case "float" -> ClassName.get(Float.class);
+            case "double" -> ClassName.get(Double.class);
+            case "boolean" -> ClassName.get(Boolean.class);
+            case "char" -> ClassName.get(Character.class);
+            default -> ClassName.bestGuess(typeName);
+        };
     }
 
     // =====================================================================

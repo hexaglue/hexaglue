@@ -268,6 +268,26 @@ public final class JpaAnnotations {
         return AnnotationSpec.builder(Embedded.class).build();
     }
 
+    /**
+     * Builds an {@code @Enumerated(EnumType.STRING)} annotation.
+     *
+     * <p>Used for enum fields to store them as their string name instead of ordinal.
+     * This provides more readable and maintainable persistence.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Enumerated(EnumType.STRING)
+     * private OrderStatus status;
+     * }</pre>
+     *
+     * @return the {@code @Enumerated} annotation spec with STRING enum type
+     */
+    public static AnnotationSpec enumerated() {
+        return AnnotationSpec.builder(jakarta.persistence.Enumerated.class)
+                .addMember("value", "$T.STRING", jakarta.persistence.EnumType.class)
+                .build();
+    }
+
     // =====================================================================
     // Relationship annotations
     // =====================================================================
@@ -435,6 +455,38 @@ public final class JpaAnnotations {
 
         return AnnotationSpec.builder(JoinColumn.class)
                 .addMember("name", "$S", name)
+                .build();
+    }
+
+    /**
+     * Builds a {@code @CollectionTable} annotation for element collections.
+     *
+     * <p>This annotation specifies the table used to store the elements of a
+     * collection mapped with {@code @ElementCollection}.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @ElementCollection
+     * @CollectionTable(name = "order_items", joinColumns = @JoinColumn(name = "order_id"))
+     * private List<LineItemEmbeddable> items;
+     * }</pre>
+     *
+     * @param tableName the name of the collection table
+     * @param joinColumnName the name of the foreign key column referencing the owning entity
+     * @return the {@code @CollectionTable} annotation spec
+     * @throws IllegalArgumentException if tableName or joinColumnName is null or empty
+     */
+    public static AnnotationSpec collectionTable(String tableName, String joinColumnName) {
+        if (tableName == null || tableName.isEmpty()) {
+            throw new IllegalArgumentException("Table name cannot be null or empty");
+        }
+        if (joinColumnName == null || joinColumnName.isEmpty()) {
+            throw new IllegalArgumentException("Join column name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(jakarta.persistence.CollectionTable.class)
+                .addMember("name", "$S", tableName)
+                .addMember("joinColumns", "$L", joinColumn(joinColumnName))
                 .build();
     }
 

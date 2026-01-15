@@ -1,6 +1,6 @@
 /*
- * Verify script for ecommerce integration test.
- * Validates that the audit plugin executed correctly.
+ * Verify script for sample-multi-aggregate integration test.
+ * Validates that the JPA plugin executed correctly with multiple aggregates.
  */
 
 def buildLog = new File(basedir, "build.log")
@@ -12,8 +12,8 @@ def logContent = buildLog.text
 assert !logContent.contains("BUILD FAILURE") : "Build should not fail"
 
 // Verify HexaGlue plugin executed
-assert logContent.contains("HexaGlue generate-and-audit") :
-    "Should contain HexaGlue generate-and-audit output"
+assert logContent.contains("HexaGlue analyzing:") :
+    "Should contain HexaGlue analyzing output"
 
 // Verify classification completed
 assert logContent.contains("Classification complete:") :
@@ -24,26 +24,18 @@ def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
 assert generatedSources.exists() :
     "Generated sources directory should exist"
 
-// Check audit reports directory
-def auditDir = new File(basedir, "target/hexaglue/reports/audit")
-assert auditDir.exists() :
-    "Audit reports directory should exist at target/hexaglue/reports/audit"
+// Check living-doc directory
+def livingDocDir = new File(basedir, "target/hexaglue/reports/living-doc")
+assert livingDocDir.exists() :
+    "Living documentation directory should exist"
 
-// Check for audit report files
-def htmlReport = new File(auditDir, "audit-report.html")
-def jsonReport = new File(auditDir, "audit-report.json")
-def mdReport = new File(auditDir, "AUDIT-REPORT.md")
+// Verify JPA plugin ran
+assert logContent.contains("io.hexaglue.plugin.jpa") :
+    "Build log should contain JPA plugin execution"
 
-assert htmlReport.exists() || jsonReport.exists() || mdReport.exists() :
-    "At least one audit report file should exist (HTML, JSON, or MD)"
+// Verify JPA generation completed
+assert logContent.contains("JPA generation complete:") :
+    "Build log should contain JPA generation completion message"
 
-// Verify audit plugin ran
-assert logContent.contains("io.hexaglue.plugin.audit.ddd") :
-    "Build log should contain audit plugin execution"
-
-// Verify audit completed
-assert logContent.contains("Audit complete:") || logContent.contains("Audit:") :
-    "Build log should contain audit completion message"
-
-println "SUCCESS: ecommerce integration test passed - audit plugin executed correctly"
+println 'SUCCESS: sample-multi-aggregate integration test passed - JPA plugin executed correctly'
 return true

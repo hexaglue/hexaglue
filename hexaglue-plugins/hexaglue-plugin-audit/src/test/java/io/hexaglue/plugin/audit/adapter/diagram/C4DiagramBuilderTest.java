@@ -57,8 +57,7 @@ class C4DiagramBuilderTest {
         @Test
         @DisplayName("should include bounded contexts")
         void shouldIncludeBoundedContexts() {
-            List<BoundedContextStats> contexts = List.of(
-                    new BoundedContextStats("Order", 2, 3, 5, 4, 1000));
+            List<BoundedContextStats> contexts = List.of(new BoundedContextStats("Order", 2, 3, 5, 4, 1000));
 
             String diagram = builder.buildSystemContextDiagram("MyApp", contexts);
 
@@ -129,7 +128,8 @@ class C4DiagramBuilderTest {
         @DisplayName("should generate aggregate diagram with relationships")
         void shouldGenerateAggregateDiagram() {
             IrSnapshot ir = IrSnapshotBuilder.create("com.test")
-                    .withDomainType(DomainTypeBuilder.aggregateRoot("com.test.order.Order").build())
+                    .withDomainType(DomainTypeBuilder.aggregateRoot("com.test.order.Order")
+                            .build())
                     .build();
 
             String diagram = builder.buildAggregateDiagram(ir);
@@ -154,8 +154,10 @@ class C4DiagramBuilderTest {
         @DisplayName("should group entities with their aggregate")
         void shouldGroupEntitiesWithAggregate() {
             IrSnapshot ir = IrSnapshotBuilder.create("com.test")
-                    .withDomainType(DomainTypeBuilder.aggregateRoot("com.test.order.Order").build())
-                    .withDomainType(DomainTypeBuilder.entity("com.test.order.OrderLine").build())
+                    .withDomainType(DomainTypeBuilder.aggregateRoot("com.test.order.Order")
+                            .build())
+                    .withDomainType(
+                            DomainTypeBuilder.entity("com.test.order.OrderLine").build())
                     .build();
 
             String diagram = builder.buildAggregateDiagram(ir);

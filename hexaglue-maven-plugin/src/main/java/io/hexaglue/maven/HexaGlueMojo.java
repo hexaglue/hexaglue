@@ -165,10 +165,9 @@ public class HexaGlueMojo extends AbstractMojo {
             for (var unclassified : result.unclassifiedTypes()) {
                 getLog().error("  - " + unclassified.typeName() + ": " + unclassified.reasoning());
             }
-            throw new MojoFailureException(
-                    "Generation blocked: " + result.unclassifiedCount() + " unclassified types. "
-                            + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml. "
-                            + "Use -Dhexaglue.skipValidation=true to bypass (not recommended).");
+            throw new MojoFailureException("Generation blocked: " + result.unclassifiedCount() + " unclassified types. "
+                    + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml. "
+                    + "Use -Dhexaglue.skipValidation=true to bypass (not recommended).");
         } else if (result.unclassifiedCount() > 0) {
             getLog().warn("Warning: " + result.unclassifiedCount() + " unclassified types detected");
         }
@@ -364,10 +363,11 @@ public class HexaGlueMojo extends AbstractMojo {
             if (classificationMap.containsKey("exclude")) {
                 Object excludeObj = classificationMap.get("exclude");
                 if (excludeObj instanceof List) {
-                    List<String> excludePatterns = ((List<?>) excludeObj).stream()
-                            .filter(String.class::isInstance)
-                            .map(String.class::cast)
-                            .toList();
+                    List<String> excludePatterns = ((List<?>) excludeObj)
+                            .stream()
+                                    .filter(String.class::isInstance)
+                                    .map(String.class::cast)
+                                    .toList();
                     builder.excludePatterns(excludePatterns);
                     getLog().debug("Loaded " + excludePatterns.size() + " exclude patterns");
                 }
@@ -411,8 +411,8 @@ public class HexaGlueMojo extends AbstractMojo {
                         }
                     }
 
-                    builder.validationConfig(new ClassificationConfig.ValidationConfig(
-                            yamlFailOnUnclassified, allowInferred));
+                    builder.validationConfig(
+                            new ClassificationConfig.ValidationConfig(yamlFailOnUnclassified, allowInferred));
                 }
             }
 

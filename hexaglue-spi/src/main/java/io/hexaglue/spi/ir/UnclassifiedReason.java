@@ -29,9 +29,7 @@ import java.util.List;
  * @param suggestedActions recommended actions to resolve the classification
  * @since 3.0.0
  */
-public record UnclassifiedReason(
-        List<String> attemptedCriteria,
-        List<String> suggestedActions) {
+public record UnclassifiedReason(List<String> attemptedCriteria, List<String> suggestedActions) {
 
     /**
      * Creates an UnclassifiedReason with the given criteria and default suggestions.

@@ -13,7 +13,9 @@
 
 package io.hexaglue.plugin.jpa.strategy;
 
+import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.spi.ir.Identity;
 
 /**
  * Context information for adapter method generation.
@@ -28,34 +30,78 @@ import com.palantir.javapoet.TypeName;
  *   <li>Context Object Pattern: Avoids passing many individual parameters</li>
  *   <li>Type Safety: Uses JavaPoet TypeName for compile-time correctness</li>
  *   <li>Naming: Field names match the adapter's actual field declarations</li>
+ *   <li>IdInfo: Provides identity information from SPI to avoid inference in strategies</li>
  * </ul>
  *
  * <h3>Usage in Generated Code:</h3>
- * <p>For an Order aggregate, this context would contain:
+ * <p>For an Order aggregate with wrapped ID (OrderId), this context would contain:
  * <pre>{@code
  * AdapterContext(
  *     domainClass = Order.class,
  *     entityClass = OrderEntity.class,
  *     repositoryFieldName = "repository",
- *     mapperFieldName = "mapper"
+ *     mapperFieldName = "mapper",
+ *     idInfo = IdInfo(wrappedType=OrderId, unwrappedType=UUID, isWrapped=true)
  * )
  * }</pre>
  *
- * <p>Which enables strategies to generate code like:
+ * <p>Which enables strategies to generate correct ID handling:
  * <pre>{@code
- * var entity = mapper.toEntity(domain);  // Uses mapperFieldName
- * var saved = repository.save(entity);   // Uses repositoryFieldName
- * return mapper.toDomain(saved);         // Uses mapperFieldName
+ * // For wrapped ID:
+ * return repository.findById(mapper.map(orderId)).map(mapper::toDomain);
+ * // For unwrapped ID:
+ * return repository.findById(id).map(mapper::toDomain);
  * }</pre>
  *
  * @param domainClass the JavaPoet type of the domain aggregate (e.g., Order)
  * @param entityClass the JavaPoet type of the JPA entity (e.g., OrderEntity)
  * @param repositoryFieldName the name of the repository field in the adapter (typically "repository")
  * @param mapperFieldName the name of the mapper field in the adapter (typically "mapper")
- * @since 2.0.0
+ * @param idInfo identity information for proper ID handling (may be null if no identity)
+ * @since 3.0.0
  */
 public record AdapterContext(
-        TypeName domainClass, TypeName entityClass, String repositoryFieldName, String mapperFieldName) {
+        TypeName domainClass, TypeName entityClass, String repositoryFieldName, String mapperFieldName, IdInfo idInfo) {
+
+    /**
+     * Identity information for adapter method generation.
+     *
+     * <p>This nested record provides all the information needed to correctly handle
+     * ID parameters in generated adapter methods. It distinguishes between wrapped
+     * and unwrapped identities to generate the appropriate code.
+     *
+     * @param wrappedType the wrapped type (e.g., OrderId), null if not wrapped
+     * @param unwrappedType the underlying primitive/wrapper type (e.g., UUID)
+     * @param isWrapped true if the identity uses a wrapper type
+     */
+    public record IdInfo(TypeName wrappedType, TypeName unwrappedType, boolean isWrapped) {
+
+        /**
+         * Creates IdInfo from an SPI Identity.
+         *
+         * @param identity the identity from SPI
+         * @return IdInfo for adapter generation
+         */
+        public static IdInfo from(Identity identity) {
+            if (identity == null) {
+                return null;
+            }
+            TypeName wrapped =
+                    identity.isWrapped() ? ClassName.bestGuess(identity.type().qualifiedName()) : null;
+            TypeName unwrapped = ClassName.bestGuess(identity.unwrappedType().qualifiedName());
+            return new IdInfo(wrapped, unwrapped, identity.isWrapped());
+        }
+
+        /**
+         * Creates IdInfo for an unwrapped (primitive/simple) identifier.
+         *
+         * @param unwrappedType the primitive type (e.g., UUID)
+         * @return IdInfo with isWrapped=false
+         */
+        public static IdInfo unwrapped(TypeName unwrappedType) {
+            return new IdInfo(null, unwrappedType, false);
+        }
+    }
 
     /**
      * Creates an AdapterContext with all required metadata.
@@ -64,7 +110,8 @@ public record AdapterContext(
      * @param entityClass the entity type
      * @param repositoryFieldName the repository field name
      * @param mapperFieldName the mapper field name
-     * @throws IllegalArgumentException if any parameter is null or if field names are empty
+     * @param idInfo the identity information (may be null)
+     * @throws IllegalArgumentException if any required parameter is null or if field names are empty
      */
     public AdapterContext {
         if (domainClass == null) {
@@ -79,5 +126,40 @@ public record AdapterContext(
         if (mapperFieldName == null || mapperFieldName.isEmpty()) {
             throw new IllegalArgumentException("Mapper field name cannot be null or empty");
         }
+        // idInfo can be null for types without identity (e.g., value objects)
+    }
+
+    /**
+     * Creates an AdapterContext without IdInfo (backward compatibility).
+     *
+     * @param domainClass the domain type
+     * @param entityClass the entity type
+     * @param repositoryFieldName the repository field name
+     * @param mapperFieldName the mapper field name
+     * @return an AdapterContext with null idInfo
+     * @deprecated Use the full constructor with idInfo parameter.
+     */
+    @Deprecated
+    public static AdapterContext withoutIdInfo(
+            TypeName domainClass, TypeName entityClass, String repositoryFieldName, String mapperFieldName) {
+        return new AdapterContext(domainClass, entityClass, repositoryFieldName, mapperFieldName, null);
+    }
+
+    /**
+     * Returns true if this context has identity information.
+     *
+     * @return true if idInfo is not null
+     */
+    public boolean hasIdInfo() {
+        return idInfo != null;
+    }
+
+    /**
+     * Returns true if the aggregate uses a wrapped identity.
+     *
+     * @return true if idInfo is present and isWrapped is true
+     */
+    public boolean hasWrappedId() {
+        return idInfo != null && idInfo.isWrapped();
     }
 }

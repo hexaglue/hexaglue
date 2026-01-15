@@ -105,7 +105,9 @@ public final class HtmlReportGenerator implements ReportGenerator {
         // Health Score card
         html.append("    <div class=\"card\">\n");
         html.append("      <h2>").append(report.healthScore().overall()).append("<small>/100</small></h2>\n");
-        html.append("      <p>Health Score (").append(report.healthScore().grade()).append(")</p>\n");
+        html.append("      <p>Health Score (")
+                .append(report.healthScore().grade())
+                .append(")</p>\n");
         html.append("    </div>\n");
         // DDD Compliance
         html.append("    <div class=\"card\">\n");
@@ -737,7 +739,9 @@ public final class HtmlReportGenerator implements ReportGenerator {
                         .append("\">")
                         .append(escape(concern.severity()))
                         .append("</span></td>\n");
-                html.append("          <td>").append(escape(concern.description())).append("</td>\n");
+                html.append("          <td>")
+                        .append(escape(concern.description()))
+                        .append("</td>\n");
                 html.append("          <td><strong>").append(concern.count()).append("</strong></td>\n");
                 html.append("        </tr>\n");
             }
@@ -761,7 +765,9 @@ public final class HtmlReportGenerator implements ReportGenerator {
             for (ExecutiveSummary.KpiEntry kpi : summary.kpis()) {
                 html.append("        <tr>\n");
                 html.append("          <td>").append(escape(kpi.name())).append("</td>\n");
-                html.append("          <td><strong>").append(escape(kpi.value())).append("</strong></td>\n");
+                html.append("          <td><strong>")
+                        .append(escape(kpi.value()))
+                        .append("</strong></td>\n");
                 html.append("          <td>").append(escape(kpi.threshold())).append("</td>\n");
                 html.append("          <td><span class=\"badge badge-")
                         .append(kpi.status().toLowerCase())
@@ -801,8 +807,12 @@ public final class HtmlReportGenerator implements ReportGenerator {
         // Overall score with progress bar
         html.append("    <div class=\"score-overview\">\n");
         html.append("      <div class=\"score-main\">\n");
-        html.append("        <span class=\"score-value\">").append(score.overall()).append("</span>\n");
-        html.append("        <span class=\"score-label\">/100 (Grade ").append(score.grade()).append(")</span>\n");
+        html.append("        <span class=\"score-value\">")
+                .append(score.overall())
+                .append("</span>\n");
+        html.append("        <span class=\"score-label\">/100 (Grade ")
+                .append(score.grade())
+                .append(")</span>\n");
         html.append("      </div>\n");
         html.append("      <div class=\"progress-bar\">\n");
         html.append("        <div class=\"progress-fill\" style=\"width: ")
@@ -843,7 +853,9 @@ public final class HtmlReportGenerator implements ReportGenerator {
         html.append("          <td>").append(name).append("</td>\n");
         html.append("          <td><strong>").append(score).append("%</strong></td>\n");
         html.append("          <td>").append(weight).append("</td>\n");
-        html.append("          <td><span class=\"badge badge-").append(status).append("\">")
+        html.append("          <td><span class=\"badge badge-")
+                .append(status)
+                .append("\">")
                 .append(score >= 80 ? "Good" : score >= 60 ? "Fair" : "Poor")
                 .append("</span></td>\n");
         html.append("        </tr>\n");
@@ -887,8 +899,12 @@ public final class HtmlReportGenerator implements ReportGenerator {
         html.append("    </div>\n");
 
         // Totals
-        html.append("    <p><strong>Total Domain Types:</strong> ").append(inventory.totalDomainTypes()).append("</p>\n");
-        html.append("    <p><strong>Total Ports:</strong> ").append(inventory.totalPorts()).append("</p>\n");
+        html.append("    <p><strong>Total Domain Types:</strong> ")
+                .append(inventory.totalDomainTypes())
+                .append("</p>\n");
+        html.append("    <p><strong>Total Ports:</strong> ")
+                .append(inventory.totalPorts())
+                .append("</p>\n");
 
         html.append("  </section>\n");
     }
@@ -968,15 +984,21 @@ public final class HtmlReportGenerator implements ReportGenerator {
         // Summary cards
         html.append("    <div class=\"summary-cards\" style=\"margin-bottom: 20px;\">\n");
         html.append("      <div class=\"card\">\n");
-        html.append("        <h2>").append(String.format("%.1f", debt.totalDays())).append("<small> days</small></h2>\n");
+        html.append("        <h2>")
+                .append(String.format("%.1f", debt.totalDays()))
+                .append("<small> days</small></h2>\n");
         html.append("        <p>Total Debt</p>\n");
         html.append("      </div>\n");
         html.append("      <div class=\"card\">\n");
-        html.append("        <h2>").append(String.format("%.0f", debt.totalCost())).append("<small> €</small></h2>\n");
+        html.append("        <h2>")
+                .append(String.format("%.0f", debt.totalCost()))
+                .append("<small> €</small></h2>\n");
         html.append("        <p>Estimated Cost</p>\n");
         html.append("      </div>\n");
         html.append("      <div class=\"card\">\n");
-        html.append("        <h2>").append(String.format("%.0f", debt.monthlyInterest())).append("<small> €/month</small></h2>\n");
+        html.append("        <h2>")
+                .append(String.format("%.0f", debt.monthlyInterest()))
+                .append("<small> €/month</small></h2>\n");
         html.append("        <p>Monthly Interest</p>\n");
         html.append("      </div>\n");
         html.append("    </div>\n");
@@ -998,8 +1020,12 @@ public final class HtmlReportGenerator implements ReportGenerator {
             for (TechnicalDebtSummary.DebtCategory cat : debt.breakdown()) {
                 html.append("        <tr>\n");
                 html.append("          <td>").append(escape(cat.category())).append("</td>\n");
-                html.append("          <td>").append(String.format("%.1f", cat.days())).append("</td>\n");
-                html.append("          <td>").append(String.format("%.0f €", cat.cost())).append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.1f", cat.days()))
+                        .append("</td>\n");
+                html.append("          <td>")
+                        .append(String.format("%.0f €", cat.cost()))
+                        .append("</td>\n");
                 html.append("          <td>").append(escape(cat.description())).append("</td>\n");
                 html.append("        </tr>\n");
             }
@@ -1035,9 +1061,11 @@ public final class HtmlReportGenerator implements ReportGenerator {
 
             if (!rec.affectedTypes().isEmpty()) {
                 html.append("      <p><strong>Affected Types:</strong> ");
-                html.append(String.join(", ", rec.affectedTypes().stream()
-                        .map(t -> "<code>" + escape(t) + "</code>")
-                        .toList()));
+                html.append(String.join(
+                        ", ",
+                        rec.affectedTypes().stream()
+                                .map(t -> "<code>" + escape(t) + "</code>")
+                                .toList()));
                 html.append("</p>\n");
             }
 

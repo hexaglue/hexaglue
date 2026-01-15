@@ -22,8 +22,9 @@ import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -33,7 +34,7 @@ import org.junit.jupiter.api.Test;
  * <p>These tests validate the JPA adapter generation logic using JavaPoet
  * and verify that the generated code matches Spring component conventions.
  *
- * @since 2.0.0
+ * @since 3.0.0
  */
 class JpaAdapterCodegenTest {
 
@@ -147,11 +148,12 @@ class JpaAdapterCodegenTest {
     @Test
     void generate_shouldGenerateMethodsWithOverride() {
         // Given
-        AdapterMethodSpec saveMethod = new AdapterMethodSpec(
+        AdapterMethodSpec saveMethod = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
         AdapterSpec spec = new AdapterSpec(
                 TEST_PACKAGE,
                 ADAPTER_NAME,
@@ -160,7 +162,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of(saveMethod));
+                List.of(saveMethod),
+                null);
 
         // When
         TypeSpec adapter = JpaAdapterCodegen.generate(spec);
@@ -175,16 +178,18 @@ class JpaAdapterCodegenTest {
     @Test
     void generate_shouldHandleMultipleMethods() {
         // Given
-        AdapterMethodSpec saveMethod = new AdapterMethodSpec(
+        AdapterMethodSpec saveMethod = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
-        AdapterMethodSpec findByIdMethod = new AdapterMethodSpec(
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
+        AdapterMethodSpec findByIdMethod = AdapterMethodSpec.of(
                 "findById",
                 ClassName.get("java.util", "Optional"),
-                List.of(new AdapterMethodSpec.ParameterInfo("uuid", TypeName.get(UUID.class))),
-                MethodPattern.FIND_BY_ID);
+                List.of(new AdapterMethodSpec.ParameterInfo("uuid", TypeName.get(UUID.class), true)),
+                MethodKind.FIND_BY_ID,
+                Optional.empty());
         AdapterSpec spec = new AdapterSpec(
                 TEST_PACKAGE,
                 ADAPTER_NAME,
@@ -193,7 +198,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of(saveMethod, findByIdMethod));
+                List.of(saveMethod, findByIdMethod),
+                null);
 
         // When
         TypeSpec adapter = JpaAdapterCodegen.generate(spec);
@@ -222,7 +228,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of());
+                List.of(),
+                null);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -241,7 +248,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of());
+                List.of(),
+                null);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -253,7 +261,7 @@ class JpaAdapterCodegenTest {
     void generate_shouldThrowForNullImplementedPorts() {
         // Given
         AdapterSpec spec = new AdapterSpec(
-                TEST_PACKAGE, ADAPTER_NAME, null, DOMAIN_TYPE, ENTITY_TYPE, REPOSITORY_TYPE, MAPPER_TYPE, List.of());
+                TEST_PACKAGE, ADAPTER_NAME, null, DOMAIN_TYPE, ENTITY_TYPE, REPOSITORY_TYPE, MAPPER_TYPE, List.of(), null);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -272,7 +280,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of());
+                List.of(),
+                null);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -310,11 +319,12 @@ class JpaAdapterCodegenTest {
     @Test
     void generateFile_shouldIncludeNecessaryImports() {
         // Given
-        AdapterMethodSpec saveMethod = new AdapterMethodSpec(
+        AdapterMethodSpec saveMethod = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
         AdapterSpec spec = new AdapterSpec(
                 TEST_PACKAGE,
                 ADAPTER_NAME,
@@ -323,7 +333,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of(saveMethod));
+                List.of(saveMethod),
+                null);
 
         // When
         JavaFile javaFile = JpaAdapterCodegen.generateFile(spec);
@@ -338,11 +349,12 @@ class JpaAdapterCodegenTest {
     @Test
     void generateFile_shouldProduceValidAdapterStructure() {
         // Given
-        AdapterMethodSpec saveMethod = new AdapterMethodSpec(
+        AdapterMethodSpec saveMethod = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
         AdapterSpec spec = new AdapterSpec(
                 TEST_PACKAGE,
                 ADAPTER_NAME,
@@ -351,7 +363,8 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of(saveMethod));
+                List.of(saveMethod),
+                null);
 
         // When
         JavaFile javaFile = JpaAdapterCodegen.generateFile(spec);
@@ -383,6 +396,7 @@ class JpaAdapterCodegenTest {
                 ENTITY_TYPE,
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
-                List.of());
+                List.of(),
+                null); // idInfo can be null for tests
     }
 }

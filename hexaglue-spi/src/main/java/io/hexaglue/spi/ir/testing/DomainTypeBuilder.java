@@ -168,12 +168,13 @@ public final class DomainTypeBuilder {
      * @param unwrappedType the underlying type (e.g., "java.util.UUID")
      */
     public DomainTypeBuilder withIdentity(String fieldName, String wrapperType, String unwrappedType) {
-        this.identity = new Identity(
+        this.identity = Identity.wrapped(
                 fieldName,
                 TypeRef.of(wrapperType),
                 TypeRef.of(unwrappedType),
                 IdentityStrategy.ASSIGNED,
-                IdentityWrapperKind.RECORD);
+                IdentityWrapperKind.RECORD,
+                "value");
         return this;
     }
 
@@ -184,8 +185,7 @@ public final class DomainTypeBuilder {
      * @param type the identity type (e.g., "java.util.UUID")
      */
     public DomainTypeBuilder withUnwrappedIdentity(String fieldName, String type) {
-        this.identity = new Identity(
-                fieldName, TypeRef.of(type), TypeRef.of(type), IdentityStrategy.ASSIGNED, IdentityWrapperKind.NONE);
+        this.identity = Identity.unwrapped(fieldName, TypeRef.of(type), IdentityStrategy.ASSIGNED);
         return this;
     }
 
@@ -193,12 +193,7 @@ public final class DomainTypeBuilder {
      * Adds identity with UUID type and specified generation strategy.
      */
     public DomainTypeBuilder withUuidIdentity(String fieldName, IdentityStrategy strategy) {
-        this.identity = new Identity(
-                fieldName,
-                TypeRef.of("java.util.UUID"),
-                TypeRef.of("java.util.UUID"),
-                strategy,
-                IdentityWrapperKind.NONE);
+        this.identity = Identity.unwrapped(fieldName, TypeRef.of("java.util.UUID"), strategy);
         return this;
     }
 
@@ -206,12 +201,7 @@ public final class DomainTypeBuilder {
      * Adds a Long identity field.
      */
     public DomainTypeBuilder withLongIdentity(String fieldName, IdentityStrategy strategy) {
-        this.identity = new Identity(
-                fieldName,
-                TypeRef.of("java.lang.Long"),
-                TypeRef.of("java.lang.Long"),
-                strategy,
-                IdentityWrapperKind.NONE);
+        this.identity = Identity.unwrapped(fieldName, TypeRef.of("java.lang.Long"), strategy);
         return this;
     }
 

@@ -15,8 +15,11 @@ package io.hexaglue.plugin.jpa.codegen;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
+import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
+import com.palantir.javapoet.ParameterSpec;
 import com.palantir.javapoet.TypeSpec;
+import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import javax.lang.model.element.Modifier;
@@ -90,7 +93,7 @@ public final class JpaRepositoryCodegen {
      *   <li>Is public and marked as an interface</li>
      *   <li>Extends {@code JpaRepository<EntityType, IdType>}</li>
      *   <li>Has {@code @Generated} and {@code @Repository} annotations</li>
-     *   <li>Contains no method declarations (Spring Data provides implementations)</li>
+     *   <li>Contains derived query methods (findByProperty, existsByProperty, etc.)</li>
      * </ul>
      *
      * @param spec the repository specification containing package, name, entity type, and ID type
@@ -106,8 +109,8 @@ public final class JpaRepositoryCodegen {
         ParameterizedTypeName superInterface =
                 ParameterizedTypeName.get(JPA_REPOSITORY, spec.entityType(), spec.idType());
 
-        // Generate the repository interface
-        return TypeSpec.interfaceBuilder(spec.interfaceName())
+        // Build the repository interface
+        TypeSpec.Builder builder = TypeSpec.interfaceBuilder(spec.interfaceName())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(JpaAnnotations.generated(GENERATOR_ID))
                 .addAnnotation(JpaAnnotations.repository())
@@ -122,8 +125,41 @@ public final class JpaRepositoryCodegen {
                 .addJavadoc("  <li>{@code delete(entity)}</li>\n")
                 .addJavadoc("  <li>{@code count()}</li>\n")
                 .addJavadoc("</ul>\n")
-                .addJavadoc("\n@since 1.0.0\n")
-                .build();
+                .addJavadoc("\n@since 1.0.0\n");
+
+        // Add derived query methods
+        for (DerivedMethodSpec derivedMethod : spec.derivedMethods()) {
+            builder.addMethod(generateDerivedMethod(derivedMethod));
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Generates a derived query method declaration for the repository interface.
+     *
+     * <p>Spring Data JPA will automatically derive the query from the method name.
+     * For example:
+     * <ul>
+     *   <li>{@code Optional<Entity> findByEmail(String email)} → find by email property</li>
+     *   <li>{@code boolean existsByEmail(String email)} → check existence by email</li>
+     *   <li>{@code List<Entity> findAllByStatus(String status)} → find all by status</li>
+     * </ul>
+     *
+     * @param method the derived method specification
+     * @return the generated MethodSpec for the derived query method
+     */
+    private static MethodSpec generateDerivedMethod(DerivedMethodSpec method) {
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(method.methodName())
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(method.returnType());
+
+        // Add parameters
+        for (DerivedMethodSpec.ParameterSpec param : method.parameters()) {
+            builder.addParameter(ParameterSpec.builder(param.type(), param.name()).build());
+        }
+
+        return builder.build();
     }
 
     /**

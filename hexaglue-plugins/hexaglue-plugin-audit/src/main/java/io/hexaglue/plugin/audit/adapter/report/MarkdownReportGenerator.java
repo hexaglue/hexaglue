@@ -66,7 +66,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Metadata
         md.append("**Application**: ").append(report.metadata().projectName()).append("  \n");
-        md.append("**Analyzed Version**: ").append(report.metadata().projectVersion()).append("  \n");
+        md.append("**Analyzed Version**: ")
+                .append(report.metadata().projectVersion())
+                .append("  \n");
         md.append("**Audit Date**: ")
                 .append(TIMESTAMP_FORMATTER.format(report.metadata().timestamp().atZone(ZoneId.systemDefault())))
                 .append("  \n");
@@ -83,7 +85,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("> ## 🛡️ Compliance Summary\n>\n");
         md.append("> | Global Status | Health Score | DDD Compliance | Hexagonal Compliance |\n");
         md.append("> |:-------------:|:------------:|:--------------:|:--------------------:|\n");
-        md.append("> | **").append(statusIcon).append("** | **")
+        md.append("> | **")
+                .append(statusIcon)
+                .append("** | **")
                 .append(report.healthScore().overall())
                 .append("/100 (")
                 .append(report.healthScore().grade())
@@ -230,7 +234,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends architecture analysis section to the Markdown output.
      */
-    private void appendArchitectureAnalysis(StringBuilder md, ArchitectureAnalysis analysis, SectionNumbering numbering) {
+    private void appendArchitectureAnalysis(
+            StringBuilder md, ArchitectureAnalysis analysis, SectionNumbering numbering) {
         if (analysis.isClean() && analysis.couplingMetrics().isEmpty()) {
             return; // Skip section if no interesting data
         }
@@ -457,8 +462,11 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             md.append("|----------|-------------|\n");
             for (String strength : summary.strengths()) {
                 String[] categoryAndObs = extractCategoryAndObservation(strength);
-                md.append("| **").append(categoryAndObs[0]).append("** | ")
-                        .append(categoryAndObs[1]).append(" |\n");
+                md.append("| **")
+                        .append(categoryAndObs[0])
+                        .append("** | ")
+                        .append(categoryAndObs[1])
+                        .append(" |\n");
             }
             md.append("\n");
         }
@@ -531,12 +539,17 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("radar-beta\n");
         md.append("    title Health Score Components\n");
         md.append("    max 100\n");
-        md.append("    axis ddd[\"DDD (25%)\"], hex[\"Hexagonal (25%)\"], dep[\"Dependencies (20%)\"], cpl[\"Coupling (15%)\"], coh[\"Cohesion (15%)\"]\n");
+        md.append(
+                "    axis ddd[\"DDD (25%)\"], hex[\"Hexagonal (25%)\"], dep[\"Dependencies (20%)\"], cpl[\"Coupling (15%)\"], coh[\"Cohesion (15%)\"]\n");
         md.append("    curve Score{")
-                .append(score.dddCompliance()).append(", ")
-                .append(score.hexCompliance()).append(", ")
-                .append(score.dependencyQuality()).append(", ")
-                .append(score.coupling()).append(", ")
+                .append(score.dddCompliance())
+                .append(", ")
+                .append(score.hexCompliance())
+                .append(", ")
+                .append(score.dependencyQuality())
+                .append(", ")
+                .append(score.coupling())
+                .append(", ")
                 .append(score.cohesion())
                 .append("}\n");
         md.append("```\n\n");
@@ -555,22 +568,33 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("| Dimension | Weight | Score | Contribution |\n");
         md.append("|-----------|:------:|:-----:|:------------:|\n");
         md.append("| **DDD Compliance** | 25% | ")
-                .append(score.dddCompliance()).append("/100 | ")
-                .append(String.format("%.2f", dddContrib)).append(" |\n");
+                .append(score.dddCompliance())
+                .append("/100 | ")
+                .append(String.format("%.2f", dddContrib))
+                .append(" |\n");
         md.append("| **Hexagonal Compliance** | 25% | ")
-                .append(score.hexCompliance()).append("/100 | ")
-                .append(String.format("%.2f", hexContrib)).append(" |\n");
+                .append(score.hexCompliance())
+                .append("/100 | ")
+                .append(String.format("%.2f", hexContrib))
+                .append(" |\n");
         md.append("| **Dependency Quality** | 20% | ")
-                .append(score.dependencyQuality()).append("/100 | ")
-                .append(String.format("%.2f", depContrib)).append(" |\n");
+                .append(score.dependencyQuality())
+                .append("/100 | ")
+                .append(String.format("%.2f", depContrib))
+                .append(" |\n");
         md.append("| **Coupling Metrics** | 15% | ")
-                .append(score.coupling()).append("/100 | ")
-                .append(String.format("%.2f", cplContrib)).append(" |\n");
+                .append(score.coupling())
+                .append("/100 | ")
+                .append(String.format("%.2f", cplContrib))
+                .append(" |\n");
         md.append("| **Domain Cohesion** | 15% | ")
-                .append(score.cohesion()).append("/100 | ")
-                .append(String.format("%.2f", cohContrib)).append(" |\n");
+                .append(score.cohesion())
+                .append("/100 | ")
+                .append(String.format("%.2f", cohContrib))
+                .append(" |\n");
         md.append("| **TOTAL** | 100% | – | **")
-                .append(String.format("%.2f", total)).append("** |\n\n");
+                .append(String.format("%.2f", total))
+                .append("** |\n\n");
     }
 
     /**
@@ -597,31 +621,49 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         if (bcCount > 4) {
             bcNames += ", ...";
         }
-        md.append("| **Bounded Contexts** | ").append(bcCount).append(" | ")
-                .append(bcNames.isEmpty() ? "–" : bcNames).append(" |\n");
+        md.append("| **Bounded Contexts** | ")
+                .append(bcCount)
+                .append(" | ")
+                .append(bcNames.isEmpty() ? "–" : bcNames)
+                .append(" |\n");
 
         // Domain types with examples
-        md.append("| **Aggregate Roots** | ").append(inventory.aggregateRoots()).append(" | ")
+        md.append("| **Aggregate Roots** | ")
+                .append(inventory.aggregateRoots())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.aggregateExamples(), inventory.aggregateRoots()))
                 .append(" |\n");
-        md.append("| **Entities** | ").append(inventory.entities()).append(" | ")
+        md.append("| **Entities** | ")
+                .append(inventory.entities())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.entityExamples(), inventory.entities()))
                 .append(" |\n");
-        md.append("| **Value Objects** | ").append(inventory.valueObjects()).append(" | ")
+        md.append("| **Value Objects** | ")
+                .append(inventory.valueObjects())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.valueObjectExamples(), inventory.valueObjects()))
                 .append(" |\n");
-        md.append("| **Domain Services** | ").append(inventory.domainServices()).append(" | ")
-                .append(ComponentInventory.formatExamples(inventory.domainServiceExamples(), inventory.domainServices()))
+        md.append("| **Domain Services** | ")
+                .append(inventory.domainServices())
+                .append(" | ")
+                .append(ComponentInventory.formatExamples(
+                        inventory.domainServiceExamples(), inventory.domainServices()))
                 .append(" |\n");
-        md.append("| **Domain Events** | ").append(inventory.domainEvents()).append(" | ")
+        md.append("| **Domain Events** | ")
+                .append(inventory.domainEvents())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.domainEventExamples(), inventory.domainEvents()))
                 .append(" |\n");
 
         // Ports with examples
-        md.append("| **Ports (Driving)** | ").append(inventory.drivingPorts()).append(" | ")
+        md.append("| **Ports (Driving)** | ")
+                .append(inventory.drivingPorts())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.drivingPortExamples(), inventory.drivingPorts()))
                 .append(" |\n");
-        md.append("| **Ports (Driven)** | ").append(inventory.drivenPorts()).append(" | ")
+        md.append("| **Ports (Driven)** | ")
+                .append(inventory.drivenPorts())
+                .append(" | ")
                 .append(ComponentInventory.formatExamples(inventory.drivenPortExamples(), inventory.drivenPorts()))
                 .append(" |\n\n");
 
@@ -633,23 +675,36 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
             int totalAgg = 0, totalEnt = 0, totalVo = 0, totalPorts = 0, totalLoc = 0;
             for (var bc : inventory.boundedContexts()) {
-                md.append("| **").append(bc.name()).append("** | ")
-                        .append(bc.aggregates()).append(" | ")
-                        .append(bc.entities()).append(" | ")
-                        .append(bc.valueObjects()).append(" | ")
-                        .append(bc.ports()).append(" | ")
-                        .append(formatLoc(bc.estimatedLoc())).append(" |\n");
+                md.append("| **")
+                        .append(bc.name())
+                        .append("** | ")
+                        .append(bc.aggregates())
+                        .append(" | ")
+                        .append(bc.entities())
+                        .append(" | ")
+                        .append(bc.valueObjects())
+                        .append(" | ")
+                        .append(bc.ports())
+                        .append(" | ")
+                        .append(formatLoc(bc.estimatedLoc()))
+                        .append(" |\n");
                 totalAgg += bc.aggregates();
                 totalEnt += bc.entities();
                 totalVo += bc.valueObjects();
                 totalPorts += bc.ports();
                 totalLoc += bc.estimatedLoc();
             }
-            md.append("| **TOTAL** | ").append(totalAgg).append(" | ")
-                    .append(totalEnt).append(" | ")
-                    .append(totalVo).append(" | ")
-                    .append(totalPorts).append(" | ")
-                    .append(formatLoc(totalLoc)).append(" |\n\n");
+            md.append("| **TOTAL** | ")
+                    .append(totalAgg)
+                    .append(" | ")
+                    .append(totalEnt)
+                    .append(" | ")
+                    .append(totalVo)
+                    .append(" | ")
+                    .append(totalPorts)
+                    .append(" | ")
+                    .append(formatLoc(totalLoc))
+                    .append(" |\n\n");
         }
 
         // 3.3 Detected Architectural Style
@@ -717,7 +772,10 @@ public final class MarkdownReportGenerator implements ReportGenerator {
      * Appends a Mermaid diagram representing the detected architectural style.
      */
     private void appendArchitectureDiagram(
-            StringBuilder md, ComponentInventory inventory, DetectedArchitectureStyle style, SectionNumbering numbering) {
+            StringBuilder md,
+            ComponentInventory inventory,
+            DetectedArchitectureStyle style,
+            SectionNumbering numbering) {
         String styleName = getStyleDisplayName(style);
         md.append(numbering.h4(styleName)).append("\n\n");
 
@@ -760,10 +818,16 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         md.append("    subgraph CORE[\"DOMAIN CORE\"]\n");
         md.append("        direction TB\n");
-        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        AGG[\"Aggregates (")
+                .append(inventory.aggregateRoots())
+                .append(")\"]\n");
         md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
-        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n");
-        md.append("        SVC[\"Domain Services (").append(inventory.domainServices()).append(")\"]\n\n");
+        md.append("        VO[\"Value Objects (")
+                .append(inventory.valueObjects())
+                .append(")\"]\n");
+        md.append("        SVC[\"Domain Services (")
+                .append(inventory.domainServices())
+                .append(")\"]\n\n");
         md.append("        AGG ~~~ ENT\n");
         md.append("        ENT ~~~ VO\n");
         md.append("        VO ~~~ SVC\n");
@@ -779,12 +843,22 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("    end\n\n");
 
         md.append("\n");
-        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
-        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("    S1([\"Driving Ports: ")
+                .append(inventory.drivingPorts())
+                .append("\"]) ~~~ S2([\"Domain Types: ")
+                .append(inventory.totalDomainTypes())
+                .append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ")
+                .append(inventory.drivenPorts())
+                .append("\"])\n");
         md.append("\n\n");
 
-        md.append("    DRIVING -->|\"Driving Ports (").append(inventory.drivingPorts()).append(")\"| CORE\n");
-        md.append("    CORE -->|\"Driven Ports (").append(inventory.drivenPorts()).append(")\"| DRIVEN\n");
+        md.append("    DRIVING -->|\"Driving Ports (")
+                .append(inventory.drivingPorts())
+                .append(")\"| CORE\n");
+        md.append("    CORE -->|\"Driven Ports (")
+                .append(inventory.drivenPorts())
+                .append(")\"| DRIVEN\n");
         md.append("```\n\n");
     }
 
@@ -807,9 +881,13 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         md.append("    subgraph DOMAIN[\"DOMAIN LAYER\"]\n");
         md.append("        direction LR\n");
-        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        AGG[\"Aggregates (")
+                .append(inventory.aggregateRoots())
+                .append(")\"]\n");
         md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
-        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        VO[\"Value Objects (")
+                .append(inventory.valueObjects())
+                .append(")\"]\n\n");
         md.append("        AGG ~~~ ENT\n");
         md.append("        ENT ~~~ VO\n");
         md.append("    end\n\n");
@@ -822,8 +900,14 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("    end\n\n");
 
         md.append("\n");
-        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
-        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("    S1([\"Driving Ports: ")
+                .append(inventory.drivingPorts())
+                .append("\"]) ~~~ S2([\"Domain Types: ")
+                .append(inventory.totalDomainTypes())
+                .append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ")
+                .append(inventory.drivenPorts())
+                .append("\"])\n");
         md.append("\n\n");
 
         md.append("    PRESENTATION --> APPLICATION\n");
@@ -863,16 +947,26 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         md.append("    subgraph ENTITIES[\"ENTITIES\"]\n");
         md.append("        direction LR\n");
-        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        AGG[\"Aggregates (")
+                .append(inventory.aggregateRoots())
+                .append(")\"]\n");
         md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
-        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        VO[\"Value Objects (")
+                .append(inventory.valueObjects())
+                .append(")\"]\n\n");
         md.append("        AGG ~~~ ENT\n");
         md.append("        ENT ~~~ VO\n");
         md.append("    end\n\n");
 
         md.append("\n");
-        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
-        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("    S1([\"Driving Ports: ")
+                .append(inventory.drivingPorts())
+                .append("\"]) ~~~ S2([\"Domain Types: ")
+                .append(inventory.totalDomainTypes())
+                .append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ")
+                .append(inventory.drivenPorts())
+                .append("\"])\n");
         md.append("\n\n");
 
         md.append("    FRAMEWORKS --> ADAPTERS\n");
@@ -909,16 +1003,26 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         md.append("    subgraph CORE[\"DOMAIN MODEL\"]\n");
         md.append("        direction LR\n");
-        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        AGG[\"Aggregates (")
+                .append(inventory.aggregateRoots())
+                .append(")\"]\n");
         md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
-        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n\n");
+        md.append("        VO[\"Value Objects (")
+                .append(inventory.valueObjects())
+                .append(")\"]\n\n");
         md.append("        AGG ~~~ ENT\n");
         md.append("        ENT ~~~ VO\n");
         md.append("    end\n\n");
 
         md.append("\n");
-        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
-        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("    S1([\"Driving Ports: ")
+                .append(inventory.drivingPorts())
+                .append("\"]) ~~~ S2([\"Domain Types: ")
+                .append(inventory.totalDomainTypes())
+                .append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ")
+                .append(inventory.drivenPorts())
+                .append("\"])\n");
         md.append("\n\n");
 
         md.append("    INFRA --> APP\n");
@@ -938,9 +1042,13 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("flowchart LR\n");
         md.append("    subgraph COMPONENTS[\"DETECTED COMPONENTS\"]\n");
         md.append("        direction TB\n");
-        md.append("        AGG[\"Aggregates (").append(inventory.aggregateRoots()).append(")\"]\n");
+        md.append("        AGG[\"Aggregates (")
+                .append(inventory.aggregateRoots())
+                .append(")\"]\n");
         md.append("        ENT[\"Entities (").append(inventory.entities()).append(")\"]\n");
-        md.append("        VO[\"Value Objects (").append(inventory.valueObjects()).append(")\"]\n");
+        md.append("        VO[\"Value Objects (")
+                .append(inventory.valueObjects())
+                .append(")\"]\n");
         md.append("        SVC[\"Services (").append(inventory.domainServices()).append(")\"]\n");
         md.append("        PORTS[\"Ports (").append(inventory.totalPorts()).append(")\"]\n\n");
         md.append("        AGG ~~~ ENT\n");
@@ -950,17 +1058,25 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         md.append("    end\n\n");
 
         md.append("\n");
-        md.append("    S1([\"Driving Ports: ").append(inventory.drivingPorts()).append("\"]) ~~~ S2([\"Domain Types: ").append(inventory.totalDomainTypes()).append("\"])\n");
-        md.append("    S2 ~~~ S3([\"Driven Ports: ").append(inventory.drivenPorts()).append("\"])\n");
+        md.append("    S1([\"Driving Ports: ")
+                .append(inventory.drivingPorts())
+                .append("\"]) ~~~ S2([\"Domain Types: ")
+                .append(inventory.totalDomainTypes())
+                .append("\"])\n");
+        md.append("    S2 ~~~ S3([\"Driven Ports: ")
+                .append(inventory.drivenPorts())
+                .append("\"])\n");
         md.append("\n");
         md.append("```\n\n");
-        md.append("*Note: The architectural style could not be clearly identified. Consider reviewing package structure and dependencies.*\n\n");
+        md.append(
+                "*Note: The architectural style could not be clearly identified. Consider reviewing package structure and dependencies.*\n\n");
     }
 
     /**
      * Appends the DDD compliance section with enhanced formatting.
      */
-    private void appendDddCompliance(StringBuilder md, int dddCompliancePercent, AuditReport report, SectionNumbering numbering) {
+    private void appendDddCompliance(
+            StringBuilder md, int dddCompliancePercent, AuditReport report, SectionNumbering numbering) {
         md.append(numbering.h2("Domain-Driven Design Compliance")).append("\n\n");
 
         // Filter DDD-related violations
@@ -969,11 +1085,12 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 .toList();
 
         // Group violations by constraint ID
-        Map<String, List<ViolationEntry>> byConstraint = dddViolations.stream()
-                .collect(java.util.stream.Collectors.groupingBy(ViolationEntry::constraintId));
+        Map<String, List<ViolationEntry>> byConstraint =
+                dddViolations.stream().collect(java.util.stream.Collectors.groupingBy(ViolationEntry::constraintId));
 
         // 4.1 DDD Compliance Score
-        md.append(numbering.h3("DDD Compliance Score: " + dddCompliancePercent + "%")).append("\n\n");
+        md.append(numbering.h3("DDD Compliance Score: " + dddCompliancePercent + "%"))
+                .append("\n\n");
 
         // DDD Rules compliance table
         md.append("| DDD Rule | Compliance | Details |\n");
@@ -988,69 +1105,97 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         int totalDomainEvents = inventory.domainEvents();
 
         // Aggregates with identity
-        int identityViolations = byConstraint.getOrDefault("ddd:entity-identity", List.of()).size();
+        int identityViolations =
+                byConstraint.getOrDefault("ddd:entity-identity", List.of()).size();
         int aggregatesWithIdentity = Math.max(0, totalAggregates - identityViolations);
         int identityPercent = totalAggregates > 0 ? (aggregatesWithIdentity * 100 / totalAggregates) : 100;
         md.append("| Aggregates with identity | ")
-                .append(identityPercent).append("% | ")
-                .append(aggregatesWithIdentity).append("/").append(totalAggregates)
+                .append(identityPercent)
+                .append("% | ")
+                .append(aggregatesWithIdentity)
+                .append("/")
+                .append(totalAggregates)
                 .append(" aggregates have proper identity |\n");
 
         // Aggregate boundaries respected
-        int boundaryViolations = byConstraint.getOrDefault("ddd:aggregate-boundary", List.of()).size();
+        int boundaryViolations =
+                byConstraint.getOrDefault("ddd:aggregate-boundary", List.of()).size();
         int boundaryPercent = totalEntities > 0 ? Math.max(0, 100 - (boundaryViolations * 100 / totalEntities)) : 100;
-        String boundaryDetails = boundaryViolations == 0 ? "All boundaries respected" :
-                boundaryViolations + " violation(s): entities accessible outside aggregate";
+        String boundaryDetails = boundaryViolations == 0
+                ? "All boundaries respected"
+                : boundaryViolations + " violation(s): entities accessible outside aggregate";
         md.append("| Aggregate boundaries respected | ")
-                .append(boundaryPercent).append("% | ")
-                .append(boundaryDetails).append(" |\n");
+                .append(boundaryPercent)
+                .append("% | ")
+                .append(boundaryDetails)
+                .append(" |\n");
 
         // Immutable Value Objects
-        int immutabilityViolations = byConstraint.getOrDefault("ddd:value-object-immutable", List.of()).size();
+        int immutabilityViolations = byConstraint
+                .getOrDefault("ddd:value-object-immutable", List.of())
+                .size();
         int immutableVOs = Math.max(0, totalValueObjects - immutabilityViolations);
         int voPercent = totalValueObjects > 0 ? (immutableVOs * 100 / totalValueObjects) : 100;
-        String voDetails = immutabilityViolations == 0 ? "All VOs are immutable" :
-                immutableVOs + "/" + totalValueObjects + " VOs are immutable (" + immutabilityViolations + " with setters)";
+        String voDetails = immutabilityViolations == 0
+                ? "All VOs are immutable"
+                : immutableVOs + "/" + totalValueObjects + " VOs are immutable (" + immutabilityViolations
+                        + " with setters)";
         md.append("| Immutable Value Objects | ")
-                .append(voPercent).append("% | ")
-                .append(voDetails).append(" |\n");
+                .append(voPercent)
+                .append("% | ")
+                .append(voDetails)
+                .append(" |\n");
 
         // One repository per Aggregate Root
-        int repoViolations = byConstraint.getOrDefault("ddd:aggregate-repository", List.of()).size();
+        int repoViolations =
+                byConstraint.getOrDefault("ddd:aggregate-repository", List.of()).size();
         int repoPercent = totalAggregates > 0 ? Math.max(0, 100 - (repoViolations * 100 / totalAggregates)) : 100;
-        String repoDetails = repoViolations == 0 ? totalAggregates + " repositories for " + totalAggregates + " aggregate roots" :
-                repoViolations + " aggregate(s) missing repository";
+        String repoDetails = repoViolations == 0
+                ? totalAggregates + " repositories for " + totalAggregates + " aggregate roots"
+                : repoViolations + " aggregate(s) missing repository";
         md.append("| One repository per Aggregate Root | ")
-                .append(repoPercent).append("% | ")
-                .append(repoDetails).append(" |\n");
+                .append(repoPercent)
+                .append("% | ")
+                .append(repoDetails)
+                .append(" |\n");
 
         // No cycles between aggregates
-        int cycleViolations = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of()).size();
+        int cycleViolations =
+                byConstraint.getOrDefault("ddd:aggregate-cycle", List.of()).size();
         int cyclePercent = cycleViolations == 0 ? 100 : Math.max(0, 100 - (cycleViolations * 20));
-        String cycleDetails = cycleViolations == 0 ? "No cycles detected" :
-                cycleViolations + " cycle(s) detected";
+        String cycleDetails = cycleViolations == 0 ? "No cycles detected" : cycleViolations + " cycle(s) detected";
         md.append("| No cycles between aggregates | ")
-                .append(cyclePercent).append("% | ")
-                .append(cycleDetails).append(" |\n");
+                .append(cyclePercent)
+                .append("% | ")
+                .append(cycleDetails)
+                .append(" |\n");
 
         // Domain Events named in past tense
-        int eventNamingViolations = byConstraint.getOrDefault("ddd:event-naming", List.of()).size();
+        int eventNamingViolations =
+                byConstraint.getOrDefault("ddd:event-naming", List.of()).size();
         int correctEvents = Math.max(0, totalDomainEvents - eventNamingViolations);
         int eventPercent = totalDomainEvents > 0 ? (correctEvents * 100 / totalDomainEvents) : 100;
-        String eventDetails = eventNamingViolations == 0 ? "All events correctly named" :
-                correctEvents + "/" + totalDomainEvents + " events correctly named";
+        String eventDetails = eventNamingViolations == 0
+                ? "All events correctly named"
+                : correctEvents + "/" + totalDomainEvents + " events correctly named";
         md.append("| Domain Events named in past tense | ")
-                .append(eventPercent).append("% | ")
-                .append(eventDetails).append(" |\n");
+                .append(eventPercent)
+                .append("% | ")
+                .append(eventDetails)
+                .append(" |\n");
 
         // Domain purity
-        int purityViolations = byConstraint.getOrDefault("ddd:domain-purity", List.of()).size();
+        int purityViolations =
+                byConstraint.getOrDefault("ddd:domain-purity", List.of()).size();
         int purityPercent = purityViolations == 0 ? 100 : Math.max(0, 100 - (purityViolations * 10));
-        String purityDetails = purityViolations == 0 ? "Domain layer is pure" :
-                purityViolations + " domain type(s) with forbidden imports";
+        String purityDetails = purityViolations == 0
+                ? "Domain layer is pure"
+                : purityViolations + " domain type(s) with forbidden imports";
         md.append("| Domain purity (no infrastructure) | ")
-                .append(purityPercent).append("% | ")
-                .append(purityDetails).append(" |\n\n");
+                .append(purityPercent)
+                .append("% | ")
+                .append(purityDetails)
+                .append(" |\n\n");
 
         // 4.2 Aggregate Analysis
         if (!report.aggregateDetails().isEmpty()) {
@@ -1062,18 +1207,26 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             for (var agg : report.aggregateDetails()) {
                 String repoStatus = agg.hasRepository() ? "✅" : "❌";
                 String cohesionStr = agg.cohesion() >= 0 ? String.format("%.2f", agg.cohesion()) : "–";
-                String status = switch (agg.status()) {
-                    case OK -> "✅";
-                    case WARNING -> "⚠️";
-                    case PROBLEM -> "❌";
-                };
+                String status =
+                        switch (agg.status()) {
+                            case OK -> "✅";
+                            case WARNING -> "⚠️";
+                            case PROBLEM -> "❌";
+                        };
 
-                md.append("| `").append(agg.rootName()).append("` | ")
-                        .append(agg.entityCount()).append(" | ")
-                        .append(agg.valueObjectCount()).append(" | ")
-                        .append(repoStatus).append(" | ")
-                        .append(cohesionStr).append(" | ")
-                        .append(status).append(" |\n");
+                md.append("| `")
+                        .append(agg.rootName())
+                        .append("` | ")
+                        .append(agg.entityCount())
+                        .append(" | ")
+                        .append(agg.valueObjectCount())
+                        .append(" | ")
+                        .append(repoStatus)
+                        .append(" | ")
+                        .append(cohesionStr)
+                        .append(" | ")
+                        .append(status)
+                        .append(" |\n");
             }
             md.append("\n");
         } else if (!inventory.aggregateExamples().isEmpty()) {
@@ -1084,24 +1237,28 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             md.append("|----------------|:----------:|:------:|\n");
 
             for (String agg : inventory.aggregateExamples()) {
-                boolean hasRepoViolation = byConstraint.getOrDefault("ddd:aggregate-repository", List.of())
-                        .stream()
-                        .anyMatch(v -> v.message().contains(agg) || v.affectedType().contains(agg));
+                boolean hasRepoViolation = byConstraint.getOrDefault("ddd:aggregate-repository", List.of()).stream()
+                        .anyMatch(v ->
+                                v.message().contains(agg) || v.affectedType().contains(agg));
                 String repoStatus = hasRepoViolation ? "❌" : "✅";
 
-                boolean hasCycle = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of())
-                        .stream()
+                boolean hasCycle = byConstraint.getOrDefault("ddd:aggregate-cycle", List.of()).stream()
                         .anyMatch(v -> v.message().contains(agg));
                 String status = hasCycle ? "⚠️" : "✅";
 
-                md.append("| `").append(agg).append("` | ")
-                        .append(repoStatus).append(" | ")
-                        .append(status).append(" |\n");
+                md.append("| `")
+                        .append(agg)
+                        .append("` | ")
+                        .append(repoStatus)
+                        .append(" | ")
+                        .append(status)
+                        .append(" |\n");
             }
 
             if (inventory.aggregateRoots() > inventory.aggregateExamples().size()) {
                 md.append("| *... and ")
-                        .append(inventory.aggregateRoots() - inventory.aggregateExamples().size())
+                        .append(inventory.aggregateRoots()
+                                - inventory.aggregateExamples().size())
                         .append(" more* | | |\n");
             }
             md.append("\n");
@@ -1112,11 +1269,17 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 md.append("| Bounded Context | Aggregates | Entities | VOs | Ports |\n");
                 md.append("|-----------------|:----------:|:--------:|:---:|:-----:|\n");
                 for (var bc : inventory.boundedContexts()) {
-                    md.append("| ").append(bc.name()).append(" | ")
-                            .append(bc.aggregates()).append(" | ")
-                            .append(bc.entities()).append(" | ")
-                            .append(bc.valueObjects()).append(" | ")
-                            .append(bc.ports()).append(" |\n");
+                    md.append("| ")
+                            .append(bc.name())
+                            .append(" | ")
+                            .append(bc.aggregates())
+                            .append(" | ")
+                            .append(bc.entities())
+                            .append(" | ")
+                            .append(bc.valueObjects())
+                            .append(" | ")
+                            .append(bc.ports())
+                            .append(" |\n");
                 }
                 md.append("\n");
             }
@@ -1134,7 +1297,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 for (var violation : cycleViolationsList) {
                     // Extract cycle information from message
                     String message = violation.message();
-                    String cycleInfo = message.contains(":") ? message.substring(message.lastIndexOf(":") + 1).trim() : message;
+                    String cycleInfo = message.contains(":")
+                            ? message.substring(message.lastIndexOf(":") + 1).trim()
+                            : message;
 
                     md.append("```\n");
                     md.append("┌─────────────────────────────────────────────────────────────┐\n");
@@ -1158,9 +1323,13 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 md.append("| Domain Type | Issue | Location |\n");
                 md.append("|-------------|-------|----------|\n");
                 for (var violation : purityViolationsList) {
-                    md.append("| `").append(violation.affectedType()).append("` | ")
-                            .append(escapeMarkdown(violation.message())).append(" | `")
-                            .append(violation.location()).append("` |\n");
+                    md.append("| `")
+                            .append(violation.affectedType())
+                            .append("` | ")
+                            .append(escapeMarkdown(violation.message()))
+                            .append(" | `")
+                            .append(violation.location())
+                            .append("` |\n");
                 }
                 md.append("\n");
             }
@@ -1173,13 +1342,17 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 md.append("|-------|-------|------------|\n");
                 for (var violation : eventViolationsList) {
                     String eventName = extractSimpleName(violation.location());
-                    String suggestion = eventName.replace("Event", "edEvent")
+                    String suggestion = eventName
+                            .replace("Event", "edEvent")
                             .replace("PlaceEvent", "PlacedEvent")
                             .replace("CancelEvent", "CancelledEvent")
                             .replace("AddEvent", "AddedEvent");
-                    md.append("| `").append(eventName).append("` | ")
+                    md.append("| `")
+                            .append(eventName)
+                            .append("` | ")
                             .append("Should be named in past tense | `")
-                            .append(suggestion).append("` |\n");
+                            .append(suggestion)
+                            .append("` |\n");
                 }
                 md.append("\n");
             }
@@ -1197,14 +1370,19 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                 md.append("|------------|---------------|---------|");
                 md.append("\n");
                 for (var violation : otherViolations) {
-                    md.append("| `").append(violation.constraintId()).append("` | `")
-                            .append(violation.affectedType()).append("` | ")
-                            .append(escapeMarkdown(violation.message())).append(" |\n");
+                    md.append("| `")
+                            .append(violation.constraintId())
+                            .append("` | `")
+                            .append(violation.affectedType())
+                            .append("` | ")
+                            .append(escapeMarkdown(violation.message()))
+                            .append(" |\n");
                 }
                 md.append("\n");
             }
         } else {
-            md.append("✅ **No DDD violations detected.** The domain model follows DDD tactical patterns correctly.\n\n");
+            md.append(
+                    "✅ **No DDD violations detected.** The domain model follows DDD tactical patterns correctly.\n\n");
         }
     }
 
@@ -1223,7 +1401,11 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the hexagonal compliance section with port matrix.
      */
-    private void appendHexagonalCompliance(StringBuilder md, int hexCompliancePercent, java.util.List<PortMatrixEntry> portMatrix, SectionNumbering numbering) {
+    private void appendHexagonalCompliance(
+            StringBuilder md,
+            int hexCompliancePercent,
+            java.util.List<PortMatrixEntry> portMatrix,
+            SectionNumbering numbering) {
         md.append(numbering.h2("Hexagonal Compliance")).append("\n\n");
         md.append("**Score: ").append(hexCompliancePercent).append("%**\n\n");
 
@@ -1299,7 +1481,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
     /**
      * Appends the recommendations section.
      */
-    private void appendRecommendations(StringBuilder md, java.util.List<Recommendation> recommendations, SectionNumbering numbering) {
+    private void appendRecommendations(
+            StringBuilder md, java.util.List<Recommendation> recommendations, SectionNumbering numbering) {
         md.append(numbering.h2("Recommendations")).append("\n\n");
 
         if (recommendations.isEmpty()) {
@@ -1331,7 +1514,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
         for (var rec : recommendations) {
             md.append("### ").append(rec.title()).append("\n\n");
             md.append("**Priority:** ").append(rec.priority()).append("  \n");
-            md.append("**Estimated Effort:** ").append(String.format("%.1f days", rec.estimatedEffort())).append("  \n");
+            md.append("**Estimated Effort:** ")
+                    .append(String.format("%.1f days", rec.estimatedEffort()))
+                    .append("  \n");
             md.append("**Expected Impact:** ").append(rec.expectedImpact()).append("\n\n");
             md.append(rec.description()).append("\n\n");
             if (!rec.affectedTypes().isEmpty()) {
@@ -1372,38 +1557,38 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // DDD patterns
         if (lowerStrength.contains("ddd") || lowerStrength.contains("domain-driven")) {
-            return new String[]{"DDD Patterns", strength};
+            return new String[] {"DDD Patterns", strength};
         }
         if (lowerStrength.contains("domain model") || lowerStrength.contains("value object")) {
-            return new String[]{"Domain Model", strength};
+            return new String[] {"Domain Model", strength};
         }
         if (lowerStrength.contains("aggregate")) {
-            return new String[]{"Aggregates", strength};
+            return new String[] {"Aggregates", strength};
         }
 
         // Hexagonal architecture
         if (lowerStrength.contains("hexagonal")) {
-            return new String[]{"Hexagonal Architecture", strength};
+            return new String[] {"Hexagonal Architecture", strength};
         }
         if (lowerStrength.contains("port")) {
-            return new String[]{"Ports", strength};
+            return new String[] {"Ports", strength};
         }
 
         // Architecture quality
         if (lowerStrength.contains("cycle") || lowerStrength.contains("layer violation")) {
-            return new String[]{"Architecture", strength};
+            return new String[] {"Architecture", strength};
         }
         if (lowerStrength.contains("cohesion")) {
-            return new String[]{"Cohesion", strength};
+            return new String[] {"Cohesion", strength};
         }
         if (lowerStrength.contains("coupling")) {
-            return new String[]{"Coupling", strength};
+            return new String[] {"Coupling", strength};
         }
         if (lowerStrength.contains("dependency")) {
-            return new String[]{"Dependencies", strength};
+            return new String[] {"Dependencies", strength};
         }
 
         // Default
-        return new String[]{"General", strength};
+        return new String[] {"General", strength};
     }
 }

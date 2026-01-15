@@ -16,14 +16,15 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import javax.lang.model.element.Modifier;
 
 /**
  * Strategy for generating FIND_ALL method implementations.
  *
  * <p>This strategy handles repository findAll operations that retrieve all
- * entities of a type. It generates code that:
+ * entities of a type. It uses the MethodKind classification from the SPI
+ * and generates code that:
  * <ol>
  *   <li>Calls repository.findAll()</li>
  *   <li>Streams the results</li>
@@ -41,27 +42,20 @@ import javax.lang.model.element.Modifier;
  * }
  * }</pre>
  *
- * <h3>Supported Method Names:</h3>
+ * <h3>Supported MethodKinds:</h3>
  * <ul>
- *   <li>findAll()</li>
- *   <li>getAll()</li>
- *   <li>list()</li>
- *   <li>listAll()</li>
- *   <li>all()</li>
+ *   <li>{@link MethodKind#FIND_ALL} - findAll(), getAll(), list()</li>
+ *   <li>{@link MethodKind#FIND_ALL_BY_ID} - findAllById(ids)</li>
  * </ul>
  *
- * <h3>Return Type Requirements:</h3>
- * <p>This strategy expects the method to return {@code List<DomainType>} or
- * {@code Set<DomainType>}. The implementation always uses {@code .toList()}
- * regardless of the declared return type.
- *
- * @since 2.0.0
+ * @since 3.0.0
  */
 public final class FindAllMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public boolean supports(AdapterMethodSpec method) {
-        return method.pattern() == MethodPattern.FIND_ALL;
+        // Use MethodKind from SPI instead of local pattern inference
+        return method.kind() == MethodKind.FIND_ALL || method.kind() == MethodKind.FIND_ALL_BY_ID;
     }
 
     @Override

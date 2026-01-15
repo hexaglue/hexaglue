@@ -377,8 +377,8 @@ class TypeMappingsTest {
     void unwrapIdentifier_shouldReturnUnwrappedTypeForWrappedIdentity() {
         TypeRef wrappedType = TypeRef.of("com.example.OrderId");
         TypeRef unwrappedType = TypeRef.of("java.util.UUID");
-        Identity identity =
-                new Identity("id", wrappedType, unwrappedType, IdentityStrategy.UUID, IdentityWrapperKind.RECORD);
+        Identity identity = Identity.wrapped(
+                "id", wrappedType, unwrappedType, IdentityStrategy.UUID, IdentityWrapperKind.RECORD, "value");
 
         TypeName result = TypeMappings.unwrapIdentifier(identity);
 
@@ -388,7 +388,7 @@ class TypeMappingsTest {
     @Test
     void unwrapIdentifier_shouldReturnTypeWhenNotWrapped() {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
-        Identity identity = new Identity("id", uuidType, uuidType, IdentityStrategy.UUID, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", uuidType, IdentityStrategy.UUID);
 
         TypeName result = TypeMappings.unwrapIdentifier(identity);
 
@@ -399,8 +399,8 @@ class TypeMappingsTest {
     void unwrapIdentifier_shouldHandleLongUnwrappedType() {
         TypeRef wrappedType = TypeRef.of("com.example.TaskId");
         TypeRef unwrappedType = TypeRef.of("java.lang.Long");
-        Identity identity =
-                new Identity("id", wrappedType, unwrappedType, IdentityStrategy.IDENTITY, IdentityWrapperKind.CLASS);
+        Identity identity = Identity.wrapped(
+                "id", wrappedType, unwrappedType, IdentityStrategy.IDENTITY, IdentityWrapperKind.CLASS, "getValue");
 
         TypeName result = TypeMappings.unwrapIdentifier(identity);
 

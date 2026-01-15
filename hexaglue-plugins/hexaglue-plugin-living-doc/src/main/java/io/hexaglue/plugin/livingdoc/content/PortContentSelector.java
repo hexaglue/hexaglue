@@ -53,7 +53,10 @@ public final class PortContentSelector {
     }
 
     private MethodDoc toMethodDoc(PortMethod method) {
-        return new MethodDoc(method.name(), method.returnType(), method.parameters());
+        String returnType = method.returnType().qualifiedName();
+        List<String> parameters =
+                method.parameters().stream().map(p -> p.type().qualifiedName()).toList();
+        return new MethodDoc(method.name(), returnType, parameters);
     }
 
     private DebugInfo toDebugInfo(Port port) {

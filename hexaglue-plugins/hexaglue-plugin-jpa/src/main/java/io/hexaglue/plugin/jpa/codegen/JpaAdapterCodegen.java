@@ -253,12 +253,12 @@ public final class JpaAdapterCodegen {
      * Creates the adapter context for method generation.
      *
      * <p>The context provides all metadata needed by strategies to generate
-     * method bodies, including type information and field names.
+     * method bodies, including type information, field names, and identity info.
      *
      * @param spec the adapter specification
      * @return the AdapterContext for strategy use
      */
     private static AdapterContext createContext(AdapterSpec spec) {
-        return new AdapterContext(spec.domainClass(), spec.entityClass(), "repository", "mapper");
+        return new AdapterContext(spec.domainClass(), spec.entityClass(), "repository", "mapper", spec.idInfo());
     }
 }

@@ -14,7 +14,7 @@
 package io.hexaglue.spi.ir;
 
 /**
- * Cardinality of a property.
+ * Cardinality of a property or return type.
  */
 public enum Cardinality {
 
@@ -31,5 +31,12 @@ public enum Cardinality {
     /**
      * Collection of values (e.g., {@code List<LineItem> items}).
      */
-    COLLECTION
+    COLLECTION,
+
+    /**
+     * Stream of values (e.g., {@code Stream<Order> orders}).
+     *
+     * @since 3.0.0
+     */
+    STREAM
 }

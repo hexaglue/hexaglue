@@ -16,6 +16,7 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.strategy.AdapterContext;
 import io.hexaglue.spi.ir.DomainModel;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Port;
@@ -68,6 +69,7 @@ import java.util.stream.Collectors;
  * @param repositoryClass the JavaPoet type of the Spring Data repository
  * @param mapperClass the JavaPoet type of the MapStruct mapper
  * @param methods the list of methods to implement
+ * @param idInfo the identity information for ID handling (may be null)
  * @since 2.0.0
  */
 public record AdapterSpec(
@@ -78,7 +80,8 @@ public record AdapterSpec(
         TypeName entityClass,
         TypeName repositoryClass,
         TypeName mapperClass,
-        List<AdapterMethodSpec> methods) {
+        List<AdapterMethodSpec> methods,
+        AdapterContext.IdInfo idInfo) {
 
     /**
      * Creates an AdapterSpec from a SPI Port, DomainModel, and JpaConfig.
@@ -132,6 +135,10 @@ public record AdapterSpec(
         List<AdapterMethodSpec> methods =
                 port.methods().stream().map(AdapterMethodSpec::from).collect(Collectors.toList());
 
+        // Build IdInfo from domain type's identity
+        AdapterContext.IdInfo idInfo =
+                domainType.identity().map(AdapterContext.IdInfo::from).orElse(null);
+
         return new AdapterSpec(
                 entityPackage,
                 className,
@@ -140,7 +147,8 @@ public record AdapterSpec(
                 entityClass,
                 repositoryClass,
                 mapperClass,
-                methods);
+                methods,
+                idInfo);
     }
 
     /**
@@ -171,12 +179,12 @@ public record AdapterSpec(
     }
 
     /**
-     * Returns the count of methods by pattern.
+     * Returns the count of methods by kind.
      *
-     * @param pattern the method pattern to count
-     * @return the number of methods matching the pattern
+     * @param kind the method kind to count
+     * @return the number of methods matching the kind
      */
-    public long methodCountByPattern(MethodPattern pattern) {
-        return methods.stream().filter(m -> m.pattern() == pattern).count();
+    public long methodCountByKind(io.hexaglue.spi.ir.MethodKind kind) {
+        return methods.stream().filter(m -> m.kind() == kind).count();
     }
 }

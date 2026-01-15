@@ -46,10 +46,30 @@ class EntitySpecBuilderTest {
                 IdentityWrapperKind.NONE);
 
         PropertyFieldSpec property1 = new PropertyFieldSpec(
-                "firstName", ClassName.get(String.class), Nullability.NON_NULL, "first_name", false);
+                "firstName",
+                ClassName.get(String.class),
+                Nullability.NON_NULL,
+                "first_name",
+                false,
+                false,
+                false,
+                "java.lang.String",
+                false,
+                null,
+                null);
 
-        PropertyFieldSpec property2 =
-                new PropertyFieldSpec("email", ClassName.get(String.class), Nullability.NULLABLE, "email", false);
+        PropertyFieldSpec property2 = new PropertyFieldSpec(
+                "email",
+                ClassName.get(String.class),
+                Nullability.NULLABLE,
+                "email",
+                false,
+                false,
+                false,
+                "java.lang.String",
+                false,
+                null,
+                null);
 
         RelationFieldSpec relation = new RelationFieldSpec(
                 "address",
@@ -261,8 +281,18 @@ class EntitySpecBuilderTest {
                 IdentityStrategy.IDENTITY,
                 IdentityWrapperKind.NONE);
 
-        PropertyFieldSpec property =
-                new PropertyFieldSpec("name", ClassName.get(String.class), Nullability.NON_NULL, "name", false);
+        PropertyFieldSpec property = new PropertyFieldSpec(
+                "name",
+                ClassName.get(String.class),
+                Nullability.NON_NULL,
+                "name",
+                false,
+                false,
+                false,
+                "java.lang.String",
+                false,
+                null,
+                null);
 
         // When: Building spec
         EntitySpec spec = EntitySpec.builder()

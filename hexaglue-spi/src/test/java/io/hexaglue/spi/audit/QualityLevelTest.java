@@ -119,9 +119,7 @@ class QualityLevelTest {
     @Test
     void testAssessment_returnsNonEmptyString_forAllLevels() {
         for (QualityLevel level : QualityLevel.values()) {
-            assertThat(level.assessment())
-                    .isNotNull()
-                    .isNotBlank();
+            assertThat(level.assessment()).isNotNull().isNotBlank();
         }
     }
 

@@ -1,14 +1,27 @@
 # HexaGlue Integration Tests
 
-Integration tests that verify example applications start correctly with HexaGlue.
+Integration tests that verify example applications compile and start correctly with HexaGlue.
 
 ## Tested Applications
 
-| Example | Description |
-|---------|-------------|
-| `coffeeshop` | Coffee shop app with orders and line items |
-| `ecommerce` | E-commerce app with multiple aggregates |
-| `minimal` | Minimal app for the Quick Start guide |
+### Tutorial Examples
+
+| Example | Focus |
+|---------|-------|
+| `tutorial-validation` | Classification validation phase |
+| `tutorial-living-doc` | Living Documentation plugin |
+| `tutorial-audit` | Architecture audit (clean) |
+
+### Sample Applications
+
+| Example | Complexity | Description |
+|---------|------------|-------------|
+| `sample-basic` | Beginner | Single aggregate, basic entity generation |
+| `sample-value-objects` | Intermediate | Value objects, enums, embedded collections |
+| `sample-multi-aggregate` | Advanced | Multiple aggregates, relationships |
+| `sample-audit-violations` | Advanced | Intentional violations for audit testing |
+| `sample-starwars` | Intermediate | Hexagonal app with Star Wars theme |
+| `sample-pokedex` | Intermediate | Hexagonal app with Pokemon theme |
 
 ## How It Works
 
@@ -40,7 +53,7 @@ mvn -pl build/integration-tests invoker:run
 
 ```bash
 # From the example directory
-cd examples/coffeeshop
+cd examples/sample-basic
 mvn clean verify
 ```
 

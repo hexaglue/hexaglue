@@ -27,39 +27,25 @@ final class TestFixtures {
     // ===== Identity Fixtures =====
 
     static Identity wrappedUuidIdentity(String fieldName, String wrapperType) {
-        return new Identity(
+        return Identity.wrapped(
                 fieldName,
                 TypeRef.of(wrapperType),
                 TypeRef.of("java.util.UUID"),
                 IdentityStrategy.ASSIGNED,
-                IdentityWrapperKind.RECORD);
+                IdentityWrapperKind.RECORD,
+                "value");
     }
 
     static Identity rawUuidIdentity(String fieldName) {
-        return new Identity(
-                fieldName,
-                TypeRef.of("java.util.UUID"),
-                TypeRef.of("java.util.UUID"),
-                IdentityStrategy.ASSIGNED,
-                IdentityWrapperKind.NONE);
+        return Identity.unwrapped(fieldName, TypeRef.of("java.util.UUID"), IdentityStrategy.ASSIGNED);
     }
 
     static Identity rawLongIdentity(String fieldName) {
-        return new Identity(
-                fieldName,
-                TypeRef.of("java.lang.Long"),
-                TypeRef.of("java.lang.Long"),
-                IdentityStrategy.AUTO,
-                IdentityWrapperKind.NONE);
+        return Identity.unwrapped(fieldName, TypeRef.of("java.lang.Long"), IdentityStrategy.AUTO);
     }
 
     static Identity sequenceIdentity(String fieldName) {
-        return new Identity(
-                fieldName,
-                TypeRef.of("java.lang.Long"),
-                TypeRef.of("java.lang.Long"),
-                IdentityStrategy.SEQUENCE,
-                IdentityWrapperKind.NONE);
+        return Identity.unwrapped(fieldName, TypeRef.of("java.lang.Long"), IdentityStrategy.SEQUENCE);
     }
 
     // ===== TypeRef Fixtures =====
@@ -324,10 +310,10 @@ final class TestFixtures {
                 List.of(managedType),
                 managedType,
                 List.of(
-                        new PortMethod("save", managedType, List.of(managedType)),
-                        new PortMethod("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
-                        new PortMethod("findAll", "java.util.List<" + managedType + ">", List.of()),
-                        new PortMethod("delete", "void", List.of(managedType))),
+                        PortMethod.legacy("save", managedType, List.of(managedType)),
+                        PortMethod.legacy("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
+                        PortMethod.legacy("findAll", "java.util.List<" + managedType + ">", List.of()),
+                        PortMethod.legacy("delete", "void", List.of(managedType))),
                 List.of(),
                 SourceRef.unknown());
     }
@@ -344,14 +330,14 @@ final class TestFixtures {
                 List.of(managedType),
                 managedType,
                 List.of(
-                        new PortMethod("save", managedType, List.of(managedType)),
-                        new PortMethod("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
-                        new PortMethod("findAll", "java.util.List<" + managedType + ">", List.of()),
-                        new PortMethod("delete", "void", List.of(managedType)),
-                        new PortMethod(
+                        PortMethod.legacy("save", managedType, List.of(managedType)),
+                        PortMethod.legacy("findById", "java.util.Optional<" + managedType + ">", List.of(idType)),
+                        PortMethod.legacy("findAll", "java.util.List<" + managedType + ">", List.of()),
+                        PortMethod.legacy("delete", "void", List.of(managedType)),
+                        PortMethod.legacy(
                                 "findByEmail", "java.util.Optional<" + managedType + ">", List.of(pkg + ".Email")),
-                        new PortMethod("existsByEmail", "boolean", List.of(pkg + ".Email")),
-                        new PortMethod(
+                        PortMethod.legacy("existsByEmail", "boolean", List.of(pkg + ".Email")),
+                        PortMethod.legacy(
                                 "findByCustomerId",
                                 "java.util.List<" + managedType + ">",
                                 List.of(pkg + ".CustomerId"))),

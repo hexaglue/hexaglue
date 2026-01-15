@@ -16,6 +16,7 @@ package io.hexaglue.plugin.jpa.codegen;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
+import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +38,8 @@ class RepositoryGenerationIntegrationTest {
                 "OrderRepository",
                 ClassName.get("com.example.infrastructure.jpa", "OrderEntity"),
                 ClassName.get(UUID.class),
-                "com.example.domain.Order");
+                "com.example.domain.Order",
+                List.of());
 
         // When - Generate the repository interface
         JavaFile javaFile = JpaRepositoryCodegen.generateFile(spec);

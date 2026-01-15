@@ -130,7 +130,7 @@ public final class JpaEntityCodegen {
 
         // Add relationship fields
         for (RelationFieldSpec relation : spec.relations()) {
-            addRelationField(builder, relation);
+            addRelationField(builder, relation, spec);
         }
 
         // Add no-args constructor (required by JPA)
@@ -206,20 +206,38 @@ public final class JpaEntityCodegen {
     }
 
     /**
-     * Adds a simple property field with {@code @Column} or {@code @Embedded} annotation.
+     * Adds a simple property field with appropriate JPA annotation.
      *
-     * <p>For embedded value objects, uses {@code @Embedded} instead of {@code @Column}.
-     * For simple properties, generates {@code @Column} with snake_case name and nullability.
+     * <p>The annotation is selected based on the property type:
+     * <ul>
+     *   <li>Enum types: {@code @Enumerated(EnumType.STRING)} + {@code @Column}</li>
+     *   <li>Embedded value objects: {@code @Embedded}</li>
+     *   <li>Wrapped foreign keys: {@code @Column} with unwrapped type (e.g., CustomerId → UUID)</li>
+     *   <li>Simple properties: {@code @Column} with snake_case name and nullability</li>
+     * </ul>
+     *
+     * <p>Value Objects are automatically treated as embedded because they are immutable
+     * and identity-less, making them ideal candidates for JPA's {@code @Embedded} mapping.
+     *
+     * <p>Wrapped foreign keys (e.g., {@code CustomerId}) are unwrapped to their primitive
+     * type (e.g., {@code UUID}) for JPA persistence, with conversion handled by MapStruct.
      *
      * @param builder the class builder
      * @param property the property field specification
      */
     private static void addPropertyField(TypeSpec.Builder builder, PropertyFieldSpec property) {
-        FieldSpec.Builder fieldBuilder = FieldSpec.builder(property.javaType(), property.fieldName(), Modifier.PRIVATE);
+        // Use effectiveJpaType() to get unwrapped type for foreign keys
+        TypeName fieldType = property.effectiveJpaType();
+        FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldType, property.fieldName(), Modifier.PRIVATE);
 
-        if (property.isEmbedded()) {
+        if (property.isEnum()) {
+            // Enum types need @Enumerated(EnumType.STRING) for readable persistence
+            fieldBuilder.addAnnotation(JpaAnnotations.enumerated());
+            fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
+        } else if (property.shouldBeEmbedded()) {
             fieldBuilder.addAnnotation(JpaAnnotations.embedded());
         } else {
+            // Simple properties and wrapped foreign keys both use @Column
             fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
         }
 
@@ -235,13 +253,27 @@ public final class JpaEntityCodegen {
      * <p>For collection relationships (one-to-many, many-to-many, element collection),
      * initializes the field to an empty {@code ArrayList} to avoid null pointer issues.
      *
+     * <p>For {@code @ElementCollection}, also adds {@code @CollectionTable} annotation
+     * with proper table and join column names.
+     *
      * @param builder the class builder
      * @param relation the relation field specification
+     * @param entitySpec the entity specification (for table name derivation)
      */
-    private static void addRelationField(TypeSpec.Builder builder, RelationFieldSpec relation) {
+    private static void addRelationField(TypeSpec.Builder builder, RelationFieldSpec relation, EntitySpec entitySpec) {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         relation.targetType(), relation.fieldName(), Modifier.PRIVATE)
                 .addAnnotation(JpaAnnotations.relationAnnotation(relation));
+
+        // For ELEMENT_COLLECTION, add @CollectionTable annotation
+        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.ELEMENT_COLLECTION) {
+            // Derive collection table name: entity_table + "_" + field_name (plural)
+            String tableName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName())
+                    + "_" + NamingConventions.toSnakeCase(relation.fieldName());
+            String joinColumnName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName()) + "_id";
+
+            fieldBuilder.addAnnotation(JpaAnnotations.collectionTable(tableName, joinColumnName));
+        }
 
         // Initialize collections to avoid NullPointerException
         if (relation.isCollection()) {
@@ -291,10 +323,11 @@ public final class JpaEntityCodegen {
         builder.addMethod(createGetter(id.fieldName(), idType));
         builder.addMethod(createSetter(id.fieldName(), idType));
 
-        // Property field accessors
+        // Property field accessors (use effectiveJpaType for wrapped foreign keys)
         for (PropertyFieldSpec property : spec.properties()) {
-            builder.addMethod(createGetter(property.fieldName(), property.javaType()));
-            builder.addMethod(createSetter(property.fieldName(), property.javaType()));
+            TypeName propertyType = property.effectiveJpaType();
+            builder.addMethod(createGetter(property.fieldName(), propertyType));
+            builder.addMethod(createSetter(property.fieldName(), propertyType));
         }
 
         // Relationship field accessors

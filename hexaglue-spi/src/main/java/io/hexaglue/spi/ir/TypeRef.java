@@ -57,6 +57,8 @@ public record TypeRef(
     private static final Set<String> MAP_TYPES =
             Set.of("java.util.Map", "java.util.HashMap", "java.util.TreeMap", "java.util.LinkedHashMap");
 
+    private static final Set<String> STREAM_TYPES = Set.of("java.util.stream.Stream");
+
     /**
      * Creates a simple (non-parameterized) type reference.
      */
@@ -133,6 +135,15 @@ public record TypeRef(
     }
 
     /**
+     * Returns true if this is a Stream-like type.
+     *
+     * @since 3.0.0
+     */
+    public boolean isStreamLike() {
+        return STREAM_TYPES.contains(qualifiedName);
+    }
+
+    /**
      * Returns the first type argument, or null if not parameterized.
      */
     public TypeRef firstArgument() {
@@ -140,11 +151,11 @@ public record TypeRef(
     }
 
     /**
-     * Unwraps Optional/Collection to get the element type.
+     * Unwraps Optional/Collection/Stream to get the element type.
      * Returns this if not a wrapper type.
      */
     public TypeRef unwrapElement() {
-        if ((isOptionalLike() || isCollectionLike()) && !typeArguments.isEmpty()) {
+        if ((isOptionalLike() || isCollectionLike() || isStreamLike()) && !typeArguments.isEmpty()) {
             return typeArguments.get(0);
         }
         return this;
@@ -207,6 +218,9 @@ public record TypeRef(
         }
         if (COLLECTION_TYPES.contains(qualifiedName)) {
             return Cardinality.COLLECTION;
+        }
+        if (STREAM_TYPES.contains(qualifiedName)) {
+            return Cardinality.STREAM;
         }
         return Cardinality.SINGLE;
     }

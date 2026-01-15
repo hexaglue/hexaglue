@@ -172,10 +172,9 @@ public class RecommendationGenerator {
             recommendations.add(Recommendation.builder()
                     .priority(RecommendationPriority.SHORT_TERM)
                     .title("Fix " + violationCount + " layer violation(s)")
-                    .description(
-                            "Layer violations compromise the architectural integrity of the application. "
-                                    + "Ensure domain types don't depend on infrastructure and that dependencies "
-                                    + "flow inward toward the domain.")
+                    .description("Layer violations compromise the architectural integrity of the application. "
+                            + "Ensure domain types don't depend on infrastructure and that dependencies "
+                            + "flow inward toward the domain.")
                     .estimatedEffort(violationCount * LAYER_VIOLATION_EFFORT)
                     .expectedImpact("Better separation of concerns and adherence to hexagonal architecture")
                     .build());
@@ -185,13 +184,15 @@ public class RecommendationGenerator {
     }
 
     private double calculateEffort(List<Violation> violations) {
-        return violations.stream().mapToDouble(v -> switch (v.severity()) {
+        return violations.stream()
+                .mapToDouble(v -> switch (v.severity()) {
                     case BLOCKER -> BLOCKER_EFFORT;
                     case CRITICAL -> CRITICAL_EFFORT;
                     case MAJOR -> MAJOR_EFFORT;
                     case MINOR -> MINOR_EFFORT;
                     case INFO -> 0.1;
-                }).sum();
+                })
+                .sum();
     }
 
     private RecommendationPriority determinePriority(Severity maxSeverity, int violationCount) {
@@ -204,8 +205,7 @@ public class RecommendationGenerator {
     }
 
     private String createTitle(ConstraintId constraintId, int count) {
-        String constraintName =
-                constraintId.name().replace("-", " ").replace("_", " ");
+        String constraintName = constraintId.name().replace("-", " ").replace("_", " ");
         return String.format("Address %d %s violation(s)", count, constraintName);
     }
 
@@ -233,7 +233,8 @@ public class RecommendationGenerator {
 
         if ("ddd".equals(category)) {
             return switch (maxSeverity) {
-                case BLOCKER, CRITICAL -> "Critical improvement in domain model clarity and business logic encapsulation";
+                case BLOCKER, CRITICAL ->
+                    "Critical improvement in domain model clarity and business logic encapsulation";
                 case MAJOR -> "Improved domain model consistency and maintainability";
                 case MINOR, INFO -> "Minor improvement in DDD pattern adherence";
             };

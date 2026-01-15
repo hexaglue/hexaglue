@@ -563,17 +563,15 @@ public class DddAuditPlugin implements AuditPlugin {
             List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
                     synthesizeMethodsFromProperties(type.properties(), type.construct());
 
-            CodeMetrics codeMetrics =
-                    new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
+            CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
 
             // Determine layer based on DomainKind
             LayerClassification layer = layerFromDomainKind(type.kind());
 
             // Determine code unit kind
-            CodeUnitKind unitKind =
-                    type.construct() == io.hexaglue.spi.ir.JavaConstruct.RECORD
-                            ? CodeUnitKind.RECORD
-                            : CodeUnitKind.CLASS;
+            CodeUnitKind unitKind = type.construct() == io.hexaglue.spi.ir.JavaConstruct.RECORD
+                    ? CodeUnitKind.RECORD
+                    : CodeUnitKind.CLASS;
 
             units.add(new CodeUnit(
                     type.qualifiedName(),
@@ -591,8 +589,10 @@ public class DddAuditPlugin implements AuditPlugin {
             List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.methods().stream()
                     .map(method -> new io.hexaglue.spi.audit.MethodDeclaration(
                             method.name(),
-                            method.returnType(),
-                            method.parameters(), // List<String> already
+                            method.returnType().qualifiedName(),
+                            method.parameters().stream()
+                                    .map(p -> p.type().qualifiedName())
+                                    .toList(),
                             Set.of(), // modifiers
                             Set.of(), // annotations
                             0 // complexity
@@ -639,8 +639,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * @return synthesized method declarations (getters only)
      */
     private List<io.hexaglue.spi.audit.MethodDeclaration> synthesizeMethodsFromProperties(
-            List<io.hexaglue.spi.ir.DomainProperty> properties,
-            io.hexaglue.spi.ir.JavaConstruct construct) {
+            List<io.hexaglue.spi.ir.DomainProperty> properties, io.hexaglue.spi.ir.JavaConstruct construct) {
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methods = new ArrayList<>();
 
@@ -650,12 +649,7 @@ public class DddAuditPlugin implements AuditPlugin {
             if (construct == io.hexaglue.spi.ir.JavaConstruct.RECORD) {
                 // Records have accessor methods with the same name as the property
                 methods.add(new io.hexaglue.spi.audit.MethodDeclaration(
-                        propName,
-                        prop.type().qualifiedName(),
-                        List.of(),
-                        Set.of("public"),
-                        Set.of(),
-                        1));
+                        propName, prop.type().qualifiedName(), List.of(), Set.of("public"), Set.of(), 1));
             } else {
                 // Regular classes typically have getXxx() methods
                 String capitalizedName = propName.substring(0, 1).toUpperCase() + propName.substring(1);
@@ -687,8 +681,8 @@ public class DddAuditPlugin implements AuditPlugin {
      */
     private LayerClassification layerFromDomainKind(DomainKind kind) {
         return switch (kind) {
-            case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE -> LayerClassification
-                    .DOMAIN;
+            case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE ->
+                LayerClassification.DOMAIN;
             case APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> LayerClassification.APPLICATION;
             case UNCLASSIFIED -> LayerClassification.UNKNOWN;
         };

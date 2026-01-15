@@ -17,11 +17,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.spi.ir.Cardinality;
+import io.hexaglue.spi.ir.ConfidenceLevel;
+import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
+import io.hexaglue.spi.ir.DomainType;
+import io.hexaglue.spi.ir.JavaConstruct;
 import io.hexaglue.spi.ir.Nullability;
 import io.hexaglue.spi.ir.RelationInfo;
 import io.hexaglue.spi.ir.RelationKind;
+import io.hexaglue.spi.ir.SourceRef;
 import io.hexaglue.spi.ir.TypeRef;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -47,6 +54,8 @@ class PropertyFieldSpecTest {
         assertThat(spec.nullability()).isEqualTo(Nullability.NON_NULL);
         assertThat(spec.columnName()).isEqualTo("first_name");
         assertThat(spec.isEmbedded()).isFalse();
+        assertThat(spec.isValueObject()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isFalse();
         assertThat(spec.isRequired()).isTrue();
         assertThat(spec.isNullable()).isFalse();
     }
@@ -138,5 +147,157 @@ class PropertyFieldSpecTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("is an identity")
                 .hasMessageContaining("IdFieldSpec");
+    }
+
+    // =====================================================================
+    // Value Object detection tests
+    // =====================================================================
+
+    @Test
+    void from_shouldDetectValueObject_whenTypeIsValueObjectInAllTypes() {
+        // Given: A property whose type is a Value Object
+        DomainProperty emailProperty = new DomainProperty(
+                "email", TypeRef.of("com.example.Email"), Cardinality.SINGLE, Nullability.NON_NULL, false);
+
+        // And: A list of all types containing Email as a Value Object
+        DomainType emailValueObject = new DomainType(
+                "com.example.Email",
+                "Email",
+                "com.example",
+                DomainKind.VALUE_OBJECT,
+                ConfidenceLevel.HIGH,
+                JavaConstruct.RECORD,
+                Optional.empty(),
+                List.of(new DomainProperty(
+                        "value", TypeRef.of("java.lang.String"), Cardinality.SINGLE, Nullability.NON_NULL, false)),
+                List.of(),
+                SourceRef.unknown());
+
+        List<DomainType> allTypes = List.of(emailValueObject);
+
+        // When: Converting to PropertyFieldSpec with allTypes
+        PropertyFieldSpec spec = PropertyFieldSpec.from(emailProperty, allTypes);
+
+        // Then: Single-property VALUE_OBJECT records are treated as simple wrappers
+        // They are unwrapped to their primitive type instead of being embedded
+        assertThat(spec.isValueObject()).isTrue();
+        assertThat(spec.isEmbedded()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isFalse(); // Simple wrappers are unwrapped, not embedded
+        assertThat(spec.typeQualifiedName()).isEqualTo("com.example.Email");
+        assertThat(spec.unwrappedType()).isNotNull();
+        assertThat(spec.unwrappedType().toString()).isEqualTo("java.lang.String");
+        assertThat(spec.wrapperAccessorMethod()).isEqualTo("value");
+    }
+
+    @Test
+    void from_shouldDetectValueObjectAsEmbedded_whenMultipleProperties() {
+        // Given: A property whose type is a Value Object with multiple properties
+        DomainProperty moneyProperty = new DomainProperty(
+                "totalPrice", TypeRef.of("com.example.Money"), Cardinality.SINGLE, Nullability.NON_NULL, false);
+
+        // And: A list of all types containing Money as a Value Object with 2 properties
+        DomainType moneyValueObject = new DomainType(
+                "com.example.Money",
+                "Money",
+                "com.example",
+                DomainKind.VALUE_OBJECT,
+                ConfidenceLevel.HIGH,
+                JavaConstruct.RECORD,
+                Optional.empty(),
+                List.of(
+                        new DomainProperty(
+                                "amount",
+                                TypeRef.of("java.math.BigDecimal"),
+                                Cardinality.SINGLE,
+                                Nullability.NON_NULL,
+                                false),
+                        new DomainProperty(
+                                "currency",
+                                TypeRef.of("java.util.Currency"),
+                                Cardinality.SINGLE,
+                                Nullability.NON_NULL,
+                                false)),
+                List.of(),
+                SourceRef.unknown());
+
+        List<DomainType> allTypes = List.of(moneyValueObject);
+
+        // When: Converting to PropertyFieldSpec with allTypes
+        PropertyFieldSpec spec = PropertyFieldSpec.from(moneyProperty, allTypes);
+
+        // Then: Multi-property VALUE_OBJECTs should be embedded
+        assertThat(spec.isValueObject()).isTrue();
+        assertThat(spec.isEmbedded()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isTrue(); // Multi-property VALUE_OBJECTs are embedded
+        assertThat(spec.typeQualifiedName()).isEqualTo("com.example.Money");
+        assertThat(spec.unwrappedType()).isNull(); // Not a simple wrapper
+        assertThat(spec.wrapperAccessorMethod()).isNull();
+    }
+
+    @Test
+    void from_shouldNotDetectValueObject_whenTypeIsNotInAllTypes() {
+        // Given: A property whose type is not in allTypes
+        DomainProperty emailProperty = new DomainProperty(
+                "email", TypeRef.of("com.example.Email"), Cardinality.SINGLE, Nullability.NON_NULL, false);
+
+        // And: An empty list of allTypes
+        List<DomainType> allTypes = List.of();
+
+        // When: Converting to PropertyFieldSpec with empty allTypes
+        PropertyFieldSpec spec = PropertyFieldSpec.from(emailProperty, allTypes);
+
+        // Then: isValueObject should be false
+        assertThat(spec.isValueObject()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isFalse();
+    }
+
+    @Test
+    void from_shouldNotDetectValueObject_whenTypeIsEntity() {
+        // Given: A property whose type is an Entity (not a Value Object)
+        DomainProperty itemProperty = new DomainProperty(
+                "owner", TypeRef.of("com.example.Person"), Cardinality.SINGLE, Nullability.NON_NULL, false);
+
+        // And: A list of all types containing Person as an Entity
+        DomainType personEntity = new DomainType(
+                "com.example.Person",
+                "Person",
+                "com.example",
+                DomainKind.ENTITY,
+                ConfidenceLevel.HIGH,
+                JavaConstruct.CLASS,
+                Optional.empty(),
+                List.of(),
+                List.of(),
+                SourceRef.unknown());
+
+        List<DomainType> allTypes = List.of(personEntity);
+
+        // When: Converting to PropertyFieldSpec with allTypes
+        PropertyFieldSpec spec = PropertyFieldSpec.from(itemProperty, allTypes);
+
+        // Then: isValueObject should be false
+        assertThat(spec.isValueObject()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isFalse();
+    }
+
+    @Test
+    void shouldBeEmbedded_shouldReturnTrue_whenEmbeddedEvenIfNotValueObject() {
+        // Given: A property marked as embedded but not a Value Object type
+        DomainProperty addressProperty = new DomainProperty(
+                "address",
+                TypeRef.of("com.example.Address"),
+                Cardinality.SINGLE,
+                Nullability.NON_NULL,
+                false,
+                true, // isEmbedded = true
+                null);
+
+        // When: Converting to PropertyFieldSpec (with empty allTypes)
+        PropertyFieldSpec spec = PropertyFieldSpec.from(addressProperty, List.of());
+
+        // Then: shouldBeEmbedded should be true (from isEmbedded flag)
+        assertThat(spec.isEmbedded()).isTrue();
+        assertThat(spec.isValueObject()).isFalse();
+        assertThat(spec.shouldBeEmbedded()).isTrue();
     }
 }

@@ -64,12 +64,12 @@ public class InventoryBuilder {
         Objects.requireNonNull(architectureQuery, "architectureQuery required");
 
         // Group domain types by kind
-        Map<DomainKind, List<DomainType>> typesByKind = ir.domain().types().stream()
-                .collect(Collectors.groupingBy(DomainType::kind));
+        Map<DomainKind, List<DomainType>> typesByKind =
+                ir.domain().types().stream().collect(Collectors.groupingBy(DomainType::kind));
 
         // Group ports by direction
-        Map<PortDirection, List<Port>> portsByDirection = ir.ports().ports().stream()
-                .collect(Collectors.groupingBy(Port::direction));
+        Map<PortDirection, List<Port>> portsByDirection =
+                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
 
         // Extract examples (simple names, limited)
         List<String> aggregateExamples = extractTypeExamples(typesByKind.get(DomainKind.AGGREGATE_ROOT));
@@ -89,11 +89,10 @@ public class InventoryBuilder {
                 .valueObjects(countTypes(typesByKind, DomainKind.VALUE_OBJECT))
                 .domainEvents(countTypes(typesByKind, DomainKind.DOMAIN_EVENT))
                 .domainServices(countTypes(typesByKind, DomainKind.DOMAIN_SERVICE))
-                .applicationServices(
-                        countTypes(typesByKind, DomainKind.APPLICATION_SERVICE)
-                                + countTypes(typesByKind, DomainKind.INBOUND_ONLY)
-                                + countTypes(typesByKind, DomainKind.OUTBOUND_ONLY)
-                                + countTypes(typesByKind, DomainKind.SAGA))
+                .applicationServices(countTypes(typesByKind, DomainKind.APPLICATION_SERVICE)
+                        + countTypes(typesByKind, DomainKind.INBOUND_ONLY)
+                        + countTypes(typesByKind, DomainKind.OUTBOUND_ONLY)
+                        + countTypes(typesByKind, DomainKind.SAGA))
                 .drivingPorts(countPorts(portsByDirection, PortDirection.DRIVING))
                 .drivenPorts(countPorts(portsByDirection, PortDirection.DRIVEN))
                 .aggregateExamples(aggregateExamples)
@@ -144,11 +143,7 @@ public class InventoryBuilder {
         if (ports == null || ports.isEmpty()) {
             return List.of();
         }
-        return ports.stream()
-                .map(Port::simpleName)
-                .sorted()
-                .limit(MAX_EXAMPLES)
-                .toList();
+        return ports.stream().map(Port::simpleName).sorted().limit(MAX_EXAMPLES).toList();
     }
 
     /**
@@ -165,8 +160,8 @@ public class InventoryBuilder {
         List<BoundedContextInfo> boundedContexts = architectureQuery.findBoundedContexts();
 
         // Create a lookup map: qualified type name -> DomainType
-        Map<String, DomainType> typeByName = ir.domain().types().stream()
-                .collect(Collectors.toMap(DomainType::qualifiedName, t -> t, (a, b) -> a));
+        Map<String, DomainType> typeByName =
+                ir.domain().types().stream().collect(Collectors.toMap(DomainType::qualifiedName, t -> t, (a, b) -> a));
 
         List<BoundedContextStats> stats = new ArrayList<>();
 
@@ -182,9 +177,14 @@ public class InventoryBuilder {
                     .filter(port -> bcInfo.containsPackage(port.packageName()))
                     .toList();
 
-            int aggregates = (int) bcTypes.stream().filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT).count();
-            int entities = (int) bcTypes.stream().filter(t -> t.kind() == DomainKind.ENTITY).count();
-            int vos = (int) bcTypes.stream().filter(t -> t.kind() == DomainKind.VALUE_OBJECT).count();
+            int aggregates = (int) bcTypes.stream()
+                    .filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT)
+                    .count();
+            int entities = (int)
+                    bcTypes.stream().filter(t -> t.kind() == DomainKind.ENTITY).count();
+            int vos = (int) bcTypes.stream()
+                    .filter(t -> t.kind() == DomainKind.VALUE_OBJECT)
+                    .count();
             int ports = bcPorts.size();
 
             // Calculate actual LOC from SourceRef

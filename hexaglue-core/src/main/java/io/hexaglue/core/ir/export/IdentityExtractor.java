@@ -124,7 +124,17 @@ final class IdentityExtractor {
                 ? IdentityStrategy.COMPOSITE
                 : determineStrategy(unwrapResult.unwrappedType().rawQualifiedName());
 
-        return new Identity(field.simpleName(), spiType, spiUnwrappedType, strategy, unwrapResult.wrapperKind());
+        if (unwrapResult.wrapperKind() == IdentityWrapperKind.NONE) {
+            return Identity.unwrapped(field.simpleName(), spiType, strategy);
+        } else {
+            return Identity.wrapped(
+                    field.simpleName(),
+                    spiType,
+                    spiUnwrappedType,
+                    strategy,
+                    unwrapResult.wrapperKind(),
+                    unwrapResult.accessorName());
+        }
     }
 
     /**
@@ -132,8 +142,9 @@ final class IdentityExtractor {
      *
      * @param unwrappedType the inner type (primitive/wrapper after unwrapping)
      * @param wrapperKind the kind of wrapper (NONE, RECORD, or CLASS)
+     * @param accessorName the method name to access the unwrapped value (null if not wrapped)
      */
-    record UnwrapResult(TypeRef unwrappedType, IdentityWrapperKind wrapperKind) {}
+    record UnwrapResult(TypeRef unwrappedType, IdentityWrapperKind wrapperKind, String accessorName) {}
 
     /**
      * Unwraps identity wrapper types to extract the underlying primitive/simple type.
@@ -163,7 +174,7 @@ final class IdentityExtractor {
 
         // Check if this is a known primitive/wrapper ID type
         if (IDENTITY_TYPES.contains(typeName)) {
-            return new UnwrapResult(typeRef, IdentityWrapperKind.NONE);
+            return new UnwrapResult(typeRef, IdentityWrapperKind.NONE, null);
         }
 
         // Check if the type is a record with components
@@ -175,21 +186,32 @@ final class IdentityExtractor {
             // Composite ID: record with 2+ fields
             if (fields.size() >= 2) {
                 // Don't unwrap composite IDs - they stay as-is
-                return new UnwrapResult(typeRef, IdentityWrapperKind.NONE);
+                return new UnwrapResult(typeRef, IdentityWrapperKind.NONE, null);
             }
 
             // Single-field wrapper: try to unwrap if it wraps a primitive
             if (fields.size() == 1) {
-                TypeRef innerType = fields.get(0).type();
+                FieldNode innerField = fields.get(0);
+                TypeRef innerType = innerField.type();
                 if (IDENTITY_TYPES.contains(innerType.rawQualifiedName())) {
                     IdentityWrapperKind wrapperKind =
                             typeNode.isRecord() ? IdentityWrapperKind.RECORD : IdentityWrapperKind.CLASS;
-                    return new UnwrapResult(innerType, wrapperKind);
+                    // For records, accessor is the component name; for classes, it's getValue() convention
+                    String accessorName =
+                            typeNode.isRecord() ? innerField.simpleName() : "get" + capitalize(innerField.simpleName());
+                    return new UnwrapResult(innerType, wrapperKind, accessorName);
                 }
             }
         }
 
-        return new UnwrapResult(typeRef, IdentityWrapperKind.NONE);
+        return new UnwrapResult(typeRef, IdentityWrapperKind.NONE, null);
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     /**

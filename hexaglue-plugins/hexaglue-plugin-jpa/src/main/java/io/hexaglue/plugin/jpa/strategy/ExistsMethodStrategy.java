@@ -16,17 +16,25 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import javax.lang.model.element.Modifier;
 
 /**
- * Strategy for generating EXISTS method implementations.
+ * Strategy for generating EXISTS_BY_ID method implementations.
  *
  * <p>This strategy handles repository exists operations that check for the
- * presence of an entity by its identifier. It generates code that delegates
- * directly to the repository's existsById method.
+ * presence of an entity by its identifier. It uses the MethodKind classification
+ * from the SPI and properly handles wrapped vs unwrapped identity types.
  *
- * <h3>Generated Code Pattern:</h3>
+ * <h3>Generated Code Pattern (Wrapped ID):</h3>
+ * <pre>{@code
+ * @Override
+ * public boolean existsById(OrderId orderId) {
+ *     return repository.existsById(mapper.map(orderId));
+ * }
+ * }</pre>
+ *
+ * <h3>Generated Code Pattern (Unwrapped ID):</h3>
  * <pre>{@code
  * @Override
  * public boolean existsById(UUID id) {
@@ -34,34 +42,32 @@ import javax.lang.model.element.Modifier;
  * }
  * }</pre>
  *
- * <h3>Supported Method Names:</h3>
+ * <h3>Supported MethodKinds:</h3>
  * <ul>
- *   <li>exists(id)</li>
- *   <li>existsById(id)</li>
- *   <li>contains(id)</li>
+ *   <li>{@link MethodKind#EXISTS_BY_ID} - existsById(id), exists(id)</li>
  * </ul>
  *
- * <h3>Return Type Requirements:</h3>
- * <p>EXISTS methods must return {@code boolean}. If the declared return type
- * is different, the generated code may fail to compile.
+ * <p>Note: EXISTS_BY_PROPERTY is handled by {@link ExistsByPropertyMethodStrategy}.
  *
- * @since 2.0.0
+ * @since 3.0.0
  */
 public final class ExistsMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public boolean supports(AdapterMethodSpec method) {
-        return method.pattern() == MethodPattern.EXISTS;
+        // Only handle EXISTS_BY_ID - EXISTS_BY_PROPERTY is handled by ExistsByPropertyMethodStrategy
+        return method.kind() == MethodKind.EXISTS_BY_ID;
     }
 
     @Override
     public MethodSpec generate(AdapterMethodSpec method, AdapterContext context) {
         if (!method.hasParameters()) {
-            throw new IllegalArgumentException("EXISTS method must have at least one parameter: " + method.name());
+            throw new IllegalArgumentException(
+                    "EXISTS_BY_ID method must have at least one parameter: " + method.name());
         }
 
         AdapterMethodSpec.ParameterInfo idParam = method.firstParameter()
-                .orElseThrow(() -> new IllegalArgumentException("EXISTS method requires an ID parameter"));
+                .orElseThrow(() -> new IllegalArgumentException("EXISTS_BY_ID method requires an ID parameter"));
 
         MethodSpec.Builder builder = MethodSpec.methodBuilder(method.name())
                 .addModifiers(Modifier.PUBLIC)
@@ -74,10 +80,27 @@ public final class ExistsMethodStrategy implements MethodBodyStrategy {
                     ParameterSpec.builder(param.type(), param.name()).build());
         }
 
-        // Generate method body
-        // return repository.existsById(id);
-        builder.addStatement("return $L.existsById($L)", context.repositoryFieldName(), idParam.name());
+        // Generate method body with correct ID handling
+        String idExpression = generateIdExpression(idParam, context);
+        builder.addStatement("return $L.existsById($L)", context.repositoryFieldName(), idExpression);
 
         return builder.build();
+    }
+
+    /**
+     * Generates the expression to obtain the unwrapped ID value for repository operations.
+     *
+     * @param param the ID parameter
+     * @param context the adapter context with IdInfo
+     * @return the expression to get the unwrapped ID
+     */
+    private String generateIdExpression(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
+        // If the parameter is marked as identity AND the context indicates a wrapped ID,
+        // we need to use mapper.map() to unwrap
+        if (param.isIdentity() && context.hasWrappedId()) {
+            return String.format("%s.map(%s)", context.mapperFieldName(), param.name());
+        }
+        // Otherwise, use the parameter directly (unwrapped ID)
+        return param.name();
     }
 }

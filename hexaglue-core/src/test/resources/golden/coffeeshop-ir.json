@@ -10,6 +10,13 @@
         "properties": [{"name": "productName", "typeName": "java.lang.String", "cardinality": "SINGLE"}, {"name": "quantity", "typeName": "int", "cardinality": "SINGLE"}, {"name": "unitPrice", "typeName": "java.math.BigDecimal", "cardinality": "SINGLE"}]
       },
       {
+        "qualifiedName": "com.coffeeshop.domain.order.Location",
+        "simpleName": "Location",
+        "kind": "VALUE_OBJECT",
+        "confidence": "LOW",
+        "construct": "ENUM"
+      },
+      {
         "qualifiedName": "com.coffeeshop.domain.order.Order",
         "simpleName": "Order",
         "kind": "AGGREGATE_ROOT",

@@ -64,8 +64,8 @@ class ClassificationConfigTest {
         @Test
         void builder_shouldBuildWithExplicitClassifications() {
             ClassificationConfig config = ClassificationConfig.builder()
-                    .explicitClassifications(Map.of(
-                            "com.example.Order", "AGGREGATE_ROOT", "com.example.OrderId", "VALUE_OBJECT"))
+                    .explicitClassifications(
+                            Map.of("com.example.Order", "AGGREGATE_ROOT", "com.example.OrderId", "VALUE_OBJECT"))
                     .build();
 
             assertThat(config.explicitClassifications()).hasSize(2);
@@ -103,7 +103,8 @@ class ClassificationConfigTest {
             assertThat(config.shouldExclude("com.example.order.DomainEvent")).isTrue();
             assertThat(config.shouldExclude("com.example.payment.DomainEvent")).isTrue();
             assertThat(config.shouldExclude("com.example.DomainEvent")).isFalse();
-            assertThat(config.shouldExclude("com.example.order.domain.DomainEvent")).isFalse();
+            assertThat(config.shouldExclude("com.example.order.domain.DomainEvent"))
+                    .isFalse();
         }
 
         @Test
@@ -113,7 +114,8 @@ class ClassificationConfigTest {
                     .build();
 
             assertThat(config.shouldExclude("com.example.OrderException")).isTrue();
-            assertThat(config.shouldExclude("com.example.order.domain.InvalidOrderException")).isTrue();
+            assertThat(config.shouldExclude("com.example.order.domain.InvalidOrderException"))
+                    .isTrue();
             // Note: "OrderException" without a dot doesn't match "**.*Exception" pattern
             // because the pattern expects at least one dot before "Exception"
             assertThat(config.shouldExclude("OrderException")).isFalse();
@@ -200,8 +202,7 @@ class ClassificationConfigTest {
 
         @Test
         void defaults_shouldAllowInferredAndNotFailOnUnclassified() {
-            ClassificationConfig.ValidationConfig validationConfig =
-                    ClassificationConfig.ValidationConfig.defaults();
+            ClassificationConfig.ValidationConfig validationConfig = ClassificationConfig.ValidationConfig.defaults();
 
             assertThat(validationConfig.failOnUnclassified()).isFalse();
             assertThat(validationConfig.allowInferred()).isTrue();

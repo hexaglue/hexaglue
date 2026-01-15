@@ -16,10 +16,17 @@ package io.hexaglue.plugin.jpa.builder;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.JpaModelUtils;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.spi.ir.Port;
+import io.hexaglue.spi.ir.PortMethod;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Builder for transforming SPI DomainType to RepositorySpec model.
@@ -57,6 +64,7 @@ public final class RepositorySpecBuilder {
     private DomainType domainType;
     private JpaConfig config;
     private String infrastructurePackage;
+    private List<Port> ports = List.of();
 
     private RepositorySpecBuilder() {
         // Use static factory method
@@ -108,6 +116,20 @@ public final class RepositorySpecBuilder {
     }
 
     /**
+     * Sets the ports associated with this domain type.
+     *
+     * <p>The ports are used to extract derived query methods (findByProperty,
+     * existsByProperty, etc.) that need to be declared in the repository interface.
+     *
+     * @param ports the repository ports for this domain type
+     * @return this builder
+     */
+    public RepositorySpecBuilder ports(List<Port> ports) {
+        this.ports = ports != null ? ports : List.of();
+        return this;
+    }
+
+    /**
      * Builds the RepositorySpec from the provided configuration.
      *
      * <p>This method performs the transformation from SPI DomainType to the
@@ -117,6 +139,10 @@ public final class RepositorySpecBuilder {
      * <p>The ID type is unwrapped for JPA compatibility. For example, a wrapped
      * identifier {@code record OrderId(UUID value)} is unwrapped to {@code UUID}
      * for use in the {@code JpaRepository<OrderEntity, UUID>} generic parameter.
+     *
+     * <p>Derived methods are collected from the associated ports. Methods like
+     * {@code findByEmail}, {@code existsByStatus} are extracted and will be
+     * declared in the generated repository interface.
      *
      * @return an immutable RepositorySpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -136,7 +162,62 @@ public final class RepositorySpecBuilder {
         TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
         TypeName idType = resolveIdType();
 
-        return new RepositorySpec(infrastructurePackage, interfaceName, entityType, idType, domainType.qualifiedName());
+        // Collect derived methods from ports
+        List<DerivedMethodSpec> derivedMethods = collectDerivedMethods(entityType);
+
+        return new RepositorySpec(
+                infrastructurePackage, interfaceName, entityType, idType, domainType.qualifiedName(), derivedMethods);
+    }
+
+    /**
+     * Collects derived query methods from the associated ports.
+     *
+     * <p>This method scans all ports for property-based query methods
+     * (findByProperty, existsByProperty, countByProperty, etc.) and
+     * transforms them into DerivedMethodSpec instances.
+     *
+     * <p>Method deduplication is performed using method signatures to avoid
+     * generating duplicate methods when multiple ports declare the same query.
+     *
+     * @param entityType the entity type to use in return types
+     * @return list of derived method specifications
+     */
+    private List<DerivedMethodSpec> collectDerivedMethods(TypeName entityType) {
+        if (ports.isEmpty()) {
+            return List.of();
+        }
+
+        // Use LinkedHashMap to preserve insertion order and deduplicate by signature
+        Map<String, DerivedMethodSpec> methodsBySignature = new LinkedHashMap<>();
+
+        for (Port port : ports) {
+            for (PortMethod method : port.methods()) {
+                DerivedMethodSpec spec = DerivedMethodSpec.from(method, entityType);
+                if (spec != null) {
+                    String signature = computeMethodSignature(spec);
+                    // Keep the first occurrence only (deduplication)
+                    methodsBySignature.putIfAbsent(signature, spec);
+                }
+            }
+        }
+
+        return new ArrayList<>(methodsBySignature.values());
+    }
+
+    /**
+     * Computes a unique signature for a method based on name and parameter types.
+     *
+     * <p>This is used for deduplication when multiple ports declare the same method.
+     *
+     * @param spec the derived method specification
+     * @return a signature string in the format "methodName(Type1,Type2,...)"
+     */
+    private String computeMethodSignature(DerivedMethodSpec spec) {
+        String paramTypes = spec.parameters().stream()
+                .map(p -> p.type().toString())
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+        return spec.methodName() + "(" + paramTypes + ")";
     }
 
     /**

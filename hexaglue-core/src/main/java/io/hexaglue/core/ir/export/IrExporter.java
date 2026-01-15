@@ -22,6 +22,7 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.AnnotationRef;
+import io.hexaglue.core.graph.model.FieldNode;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -32,6 +33,7 @@ import io.hexaglue.spi.ir.*;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Exports a classified application graph to the IR (Intermediate Representation).
@@ -108,7 +110,7 @@ public final class IrExporter {
         GraphQuery query = graph.query();
 
         List<DomainType> domainTypes = exportDomainTypes(graph, classifications, query, context);
-        List<Port> ports = exportPorts(graph, classifications);
+        List<Port> ports = exportPorts(graph, classifications, domainTypes);
 
         return new IrSnapshot(
                 new DomainModel(domainTypes),
@@ -121,25 +123,192 @@ public final class IrExporter {
             List<ClassificationResult> classifications,
             GraphQuery query,
             ClassificationContext context) {
-        return classifications.stream()
+
+        // Export classified domain types
+        List<DomainType> classifiedTypes = classifications.stream()
                 .filter(c -> c.target() == ClassificationTarget.DOMAIN)
                 .filter(c -> c.status() == ClassificationStatus.CLASSIFIED)
                 .map(c -> toDomainType(graph, c, query, context))
+                .toList();
+
+        // Find and export unclassified VALUE_OBJECT types (records and enums in the domain)
+        // that are referenced by classified types - needed by plugins for embedded/enum fields
+        List<DomainType> unclassifiedValueObjects = exportUnclassifiedValueObjects(graph, query, classifiedTypes);
+
+        // Merge and sort all domain types
+        return Stream.concat(classifiedTypes.stream(), unclassifiedValueObjects.stream())
                 .sorted(Comparator.comparing(DomainType::qualifiedName))
                 .toList();
     }
 
-    private List<Port> exportPorts(ApplicationGraph graph, List<ClassificationResult> classifications) {
+    /**
+     * Exports unclassified VALUE_OBJECT types that are referenced by classified types.
+     *
+     * <p>These types are needed by plugins to:
+     * <ul>
+     *   <li>Detect enum fields for {@code @Enumerated} annotation</li>
+     *   <li>Detect VALUE_OBJECT collections for {@code @ElementCollection}</li>
+     *   <li>Detect embedded VALUE_OBJECT fields for {@code @Embedded}</li>
+     * </ul>
+     *
+     * <p>Types are detected as VALUE_OBJECT if they are:
+     * <ul>
+     *   <li>Records (immutable data carriers)</li>
+     *   <li>Enums (fixed set of values)</li>
+     *   <li>Classes without identity fields (data structures without own lifecycle)</li>
+     * </ul>
+     *
+     * <p>Only includes types that are:
+     * <ul>
+     *   <li>Potential VALUE_OBJECTs (records, enums, or classes without identity)</li>
+     *   <li>Not already classified</li>
+     *   <li>Referenced by at least one classified domain type (via fields)</li>
+     * </ul>
+     *
+     * @param graph the application graph
+     * @param query the graph query interface
+     * @param classifiedTypes the list of classified domain types
+     * @return list of unclassified VALUE_OBJECT types referenced by classified types
+     */
+    private List<DomainType> exportUnclassifiedValueObjects(
+            ApplicationGraph graph, GraphQuery query, List<DomainType> classifiedTypes) {
+        // Collect qualified names of classified types for exclusion
+        Set<String> classifiedNames =
+                classifiedTypes.stream().map(DomainType::qualifiedName).collect(Collectors.toSet());
+
+        // Collect type names referenced by classified types (via properties)
+        Set<String> referencedTypes = classifiedTypes.stream()
+                .flatMap(dt -> dt.properties().stream())
+                .map(prop -> prop.type().qualifiedName())
+                .collect(Collectors.toSet());
+
+        // Also include types from collection generics
+        classifiedTypes.stream()
+                .flatMap(dt -> dt.properties().stream())
+                .filter(prop -> prop.type().isCollectionLike())
+                .map(prop -> prop.type().unwrapElement())
+                .filter(t -> t != null)
+                .map(t -> t.qualifiedName())
+                .forEach(referencedTypes::add);
+
+        return graph.typeNodes().stream()
+                .filter(node -> !classifiedNames.contains(node.qualifiedName()))
+                .filter(node -> referencedTypes.contains(node.qualifiedName()))
+                .filter(node -> looksLikeValueObject(node, query))
+                .filter(node -> !node.isInterface()) // Safety check
+                .map(node -> toMinimalDomainType(node, query))
+                .toList();
+    }
+
+    /**
+     * Determines if a type looks like a VALUE_OBJECT based on heuristics.
+     *
+     * <p>A type is considered a VALUE_OBJECT if it is:
+     * <ul>
+     *   <li>A record (immutable data carrier)</li>
+     *   <li>An enum (fixed set of values)</li>
+     *   <li>A class without identity fields (data structure without own lifecycle)</li>
+     * </ul>
+     *
+     * @param node the type node to check
+     * @param query the graph query for field access
+     * @return true if the type looks like a VALUE_OBJECT
+     */
+    private boolean looksLikeValueObject(TypeNode node, GraphQuery query) {
+        // Records and enums are clearly VALUE_OBJECTs
+        if (node.isRecord() || node.isEnum()) {
+            return true;
+        }
+
+        // Classes without identity fields are likely VALUE_OBJECTs
+        // This heuristic helps detect embedded collection elements like OrderLine
+        if (node.isClass() && !hasIdentityField(node, query)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks if a type has its own identity field.
+     *
+     * <p>A field is considered an identity of the type if:
+     * <ul>
+     *   <li>It is named exactly "id"</li>
+     *   <li>Or it matches the pattern "{typeName}Id" (e.g., "orderId" in Order)</li>
+     * </ul>
+     *
+     * <p>This is more precise than just checking if any field ends with "Id",
+     * which would incorrectly flag foreign key references (like "productId" in OrderLine)
+     * as identity fields.
+     *
+     * @param node the type node to check
+     * @param query the graph query for field access
+     * @return true if the type has its own identity field
+     */
+    private boolean hasIdentityField(TypeNode node, GraphQuery query) {
+        String typeName = node.simpleName();
+        String expectedIdFieldName = Character.toLowerCase(typeName.charAt(0)) + typeName.substring(1) + "Id";
+
+        return query.fieldsOf(node).stream().anyMatch(field -> {
+            String fieldName = field.simpleName();
+            // Field is "id" or matches "{typeName}Id" pattern (e.g., "orderId" for Order)
+            return fieldName.equals("id") || fieldName.equals(expectedIdFieldName);
+        });
+    }
+
+    /**
+     * Creates a minimal DomainType for an unclassified VALUE_OBJECT type.
+     *
+     * <p>This is used to export records, enums, and classes that weren't classified
+     * but are needed by plugins to properly handle embedded/enum fields.
+     *
+     * <p>Properties are extracted for records and classes to support {@code @Embeddable} generation.
+     * Enums don't need properties since they're mapped via {@code @Enumerated}.
+     *
+     * @param node the type node
+     * @param query the graph query interface (for property extraction)
+     * @return a minimal DomainType with VALUE_OBJECT classification
+     */
+    private DomainType toMinimalDomainType(TypeNode node, GraphQuery query) {
+        // Extract properties for records and classes (needed for @Embeddable generation)
+        // Enums don't need properties since they map via @Enumerated
+        List<DomainProperty> properties = node.isEnum()
+                ? List.of()
+                : propertyExtractor.extractProperties(query.graph(), node, null);
+
+        return new DomainType(
+                node.qualifiedName(),
+                node.simpleName(),
+                node.packageName(),
+                DomainKind.VALUE_OBJECT,
+                ConfidenceLevel.LOW, // Low confidence since inferred, not classified
+                typeConverter.toJavaConstruct(node.form()),
+                Optional.empty(), // No identity for VALUE_OBJECT
+                properties,
+                List.of(), // No relations for minimal export
+                extractAnnotationNames(node),
+                SourceRef.toSpi(node.sourceRef()));
+    }
+
+    private List<Port> exportPorts(
+            ApplicationGraph graph, List<ClassificationResult> classifications, List<DomainType> domainTypes) {
         // Build classification context from domain classifications for primary type detection
         Map<NodeId, ClassificationResult> domainClassificationsMap = classifications.stream()
                 .filter(c -> c.target() == ClassificationTarget.DOMAIN)
                 .filter(c -> c.status() == ClassificationStatus.CLASSIFIED)
                 .collect(Collectors.toMap(ClassificationResult::subjectId, c -> c));
 
+        // Build identity map from domain types for method classification
+        Map<String, Identity> identityByTypeName = domainTypes.stream()
+                .filter(dt -> dt.identity().isPresent())
+                .collect(Collectors.toMap(
+                        DomainType::qualifiedName, dt -> dt.identity().get()));
+
         return classifications.stream()
                 .filter(c -> c.target() == ClassificationTarget.PORT)
                 .filter(c -> c.status() == ClassificationStatus.CLASSIFIED)
-                .map(c -> toPort(graph, c, domainClassificationsMap))
+                .map(c -> toPort(graph, c, domainClassificationsMap, identityByTypeName))
                 .sorted(Comparator.comparing(Port::qualifiedName))
                 .toList();
     }
@@ -165,6 +334,10 @@ public final class IrExporter {
                 : Optional.empty();
         String identityFieldName = identity.map(Identity::fieldName).orElse(null);
 
+        // Extract properties and enrich them with relation info
+        List<DomainProperty> properties = propertyExtractor.extractProperties(graph, node, identityFieldName);
+        List<DomainProperty> enrichedProperties = enrichPropertiesWithRelations(properties, relations);
+
         return new DomainType(
                 node.qualifiedName(),
                 node.simpleName(),
@@ -173,22 +346,84 @@ public final class IrExporter {
                 typeConverter.toSpiConfidence(classification.confidence()),
                 typeConverter.toJavaConstruct(node.form()),
                 identity,
-                propertyExtractor.extractProperties(graph, node, identityFieldName),
+                enrichedProperties,
                 relations,
                 extractAnnotationNames(node),
                 SourceRef.toSpi(node.sourceRef()));
     }
 
+    /**
+     * Enriches properties with relation information from DomainRelations.
+     *
+     * <p>For each property that has a corresponding relation (matched by field name),
+     * creates a new DomainProperty with the RelationInfo populated. This enables
+     * plugins to detect relationships using {@link DomainProperty#hasRelation()}.
+     *
+     * @param properties the original properties from PropertyExtractor
+     * @param relations the relations from RelationAnalyzer
+     * @return properties enriched with relation info
+     */
+    private List<DomainProperty> enrichPropertiesWithRelations(
+            List<DomainProperty> properties, List<DomainRelation> relations) {
+        // Build a map of property name -> relation for quick lookup
+        Map<String, DomainRelation> relationsByProperty = relations.stream()
+                .collect(Collectors.toMap(DomainRelation::propertyName, r -> r, (a, b) -> a));
+
+        return properties.stream()
+                .map(prop -> {
+                    DomainRelation relation = relationsByProperty.get(prop.name());
+                    if (relation != null) {
+                        // Create RelationInfo from DomainRelation
+                        RelationInfo relationInfo = toRelationInfo(relation);
+                        // Determine if this should be embedded (EMBEDDED relation kind)
+                        boolean isEmbedded = relation.kind() == RelationKind.EMBEDDED;
+                        return new DomainProperty(
+                                prop.name(),
+                                prop.type(),
+                                prop.cardinality(),
+                                prop.nullability(),
+                                prop.isIdentity(),
+                                isEmbedded,
+                                relationInfo);
+                    }
+                    return prop;
+                })
+                .toList();
+    }
+
+    /**
+     * Converts a DomainRelation to a RelationInfo.
+     *
+     * @param relation the domain relation
+     * @return the relation info for the property
+     */
+    private RelationInfo toRelationInfo(DomainRelation relation) {
+        return new RelationInfo(
+                relation.kind(),
+                relation.targetTypeFqn(),
+                relation.mappedBy(),
+                true, // owning side by default
+                relation.cascade(),
+                relation.fetch(),
+                relation.targetKind());
+    }
+
     private Port toPort(
             ApplicationGraph graph,
             ClassificationResult classification,
-            Map<NodeId, ClassificationResult> domainClassifications) {
+            Map<NodeId, ClassificationResult> domainClassifications,
+            Map<String, Identity> identityByTypeName) {
         TypeNode node = graph.typeNode(classification.subjectId())
                 .orElseThrow(() -> new IllegalStateException(
                         "Classification refers to unknown node: " + classification.subjectId()));
 
         List<String> managedTypes = portExtractor.extractManagedTypes(graph, node);
         String primaryManagedType = portExtractor.extractPrimaryManagedType(managedTypes, domainClassifications);
+
+        // Get the identity of the primary managed type for method classification
+        Optional<Identity> aggregateIdentity = primaryManagedType != null
+                ? Optional.ofNullable(identityByTypeName.get(primaryManagedType))
+                : Optional.empty();
 
         return new Port(
                 node.qualifiedName(),
@@ -199,7 +434,7 @@ public final class IrExporter {
                 typeConverter.toSpiConfidence(classification.confidence()),
                 managedTypes,
                 primaryManagedType,
-                portExtractor.extractPortMethods(graph, node),
+                portExtractor.extractPortMethods(graph, node, aggregateIdentity),
                 extractAnnotationNames(node),
                 SourceRef.toSpi(node.sourceRef()));
     }
@@ -216,7 +451,13 @@ public final class IrExporter {
             String projectVersion) {
         String basePackage = inferBasePackage(graph);
         return new IrMetadata(
-                basePackage, projectName, projectVersion, Instant.now(), ENGINE_VERSION, domainTypes.size(), ports.size());
+                basePackage,
+                projectName,
+                projectVersion,
+                Instant.now(),
+                ENGINE_VERSION,
+                domainTypes.size(),
+                ports.size());
     }
 
     private String inferBasePackage(ApplicationGraph graph) {

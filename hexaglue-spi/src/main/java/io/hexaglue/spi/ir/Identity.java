@@ -27,13 +27,16 @@ package io.hexaglue.spi.ir;
  * @param unwrappedType the underlying type if wrapped (e.g., TypeRef("java.util.UUID"))
  * @param strategy the identity generation strategy
  * @param wrapperKind the kind of wrapper (RECORD, CLASS, or NONE)
+ * @param accessorMethodName the method name to access the unwrapped value (e.g., "value" for records,
+ *                           "getValue" for classes, null if not wrapped)
  */
 public record Identity(
         String fieldName,
         TypeRef type,
         TypeRef unwrappedType,
         IdentityStrategy strategy,
-        IdentityWrapperKind wrapperKind) {
+        IdentityWrapperKind wrapperKind,
+        String accessorMethodName) {
 
     /**
      * Returns true if the identity is wrapped in a custom type.
@@ -73,6 +76,42 @@ public record Identity(
         TypeRef unwrapped = TypeRef.of(unwrappedTypeName);
         IdentityWrapperKind wrapperKind =
                 typeName.equals(unwrappedTypeName) ? IdentityWrapperKind.NONE : IdentityWrapperKind.RECORD;
-        return new Identity(fieldName, type, unwrapped, strategy, wrapperKind);
+        String accessor = wrapperKind == IdentityWrapperKind.RECORD ? "value" : null;
+        return new Identity(fieldName, type, unwrapped, strategy, wrapperKind, accessor);
+    }
+
+    /**
+     * Creates an Identity for an unwrapped (primitive/simple) identifier.
+     *
+     * @param fieldName the field name
+     * @param type the type reference
+     * @param strategy the generation strategy
+     * @return a new Identity with NONE wrapper kind
+     * @since 3.0.0
+     */
+    public static Identity unwrapped(String fieldName, TypeRef type, IdentityStrategy strategy) {
+        return new Identity(fieldName, type, type, strategy, IdentityWrapperKind.NONE, null);
+    }
+
+    /**
+     * Creates an Identity for a wrapped identifier (record or class).
+     *
+     * @param fieldName the field name
+     * @param type the wrapper type reference
+     * @param unwrappedType the underlying type reference
+     * @param strategy the generation strategy
+     * @param wrapperKind the wrapper kind (RECORD or CLASS)
+     * @param accessorMethodName the method to access the unwrapped value
+     * @return a new Identity
+     * @since 3.0.0
+     */
+    public static Identity wrapped(
+            String fieldName,
+            TypeRef type,
+            TypeRef unwrappedType,
+            IdentityStrategy strategy,
+            IdentityWrapperKind wrapperKind,
+            String accessorMethodName) {
+        return new Identity(fieldName, type, unwrappedType, strategy, wrapperKind, accessorMethodName);
     }
 }

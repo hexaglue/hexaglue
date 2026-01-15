@@ -64,7 +64,9 @@ public class C4DiagramBuilder {
         diagram.append("flowchart TB\n");
 
         // System boundary
-        diagram.append("    subgraph SYSTEM[\"<b>").append(projectName).append("</b><br/>Domain-Driven Application\"]\n");
+        diagram.append("    subgraph SYSTEM[\"<b>")
+                .append(projectName)
+                .append("</b><br/>Domain-Driven Application\"]\n");
         diagram.append("        direction TB\n");
 
         // Bounded contexts as internal components
@@ -72,8 +74,13 @@ public class C4DiagramBuilder {
             for (BoundedContextStats bc : boundedContexts) {
                 String bcId = sanitizeId(bc.name());
                 String stats = String.format("%d Aggregates, %d Entities", bc.aggregates(), bc.entities());
-                diagram.append("        ").append(bcId).append("[\"<b>").append(bc.name())
-                        .append("</b><br/>Bounded Context<br/><small>").append(stats).append("</small>\"]\n");
+                diagram.append("        ")
+                        .append(bcId)
+                        .append("[\"<b>")
+                        .append(bc.name())
+                        .append("</b><br/>Bounded Context<br/><small>")
+                        .append(stats)
+                        .append("</small>\"]\n");
             }
         } else {
             diagram.append("        CORE[\"<b>Domain Core</b><br/>No bounded contexts detected\"]\n");
@@ -94,7 +101,11 @@ public class C4DiagramBuilder {
         diagram.append("    style USER ").append(PERSON_STYLE).append("\n");
         diagram.append("    style EXTERNAL ").append(EXTERNAL_STYLE).append("\n");
         for (BoundedContextStats bc : boundedContexts) {
-            diagram.append("    style ").append(sanitizeId(bc.name())).append(" ").append(CONTAINER_STYLE).append("\n");
+            diagram.append("    style ")
+                    .append(sanitizeId(bc.name()))
+                    .append(" ")
+                    .append(CONTAINER_STYLE)
+                    .append("\n");
         }
 
         diagram.append("```\n");
@@ -114,13 +125,12 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
 
-        List<BoundedContextInfo> contexts = architectureQuery != null
-                ? architectureQuery.findBoundedContexts()
-                : List.of();
+        List<BoundedContextInfo> contexts =
+                architectureQuery != null ? architectureQuery.findBoundedContexts() : List.of();
 
         // Group ports by direction
-        Map<PortDirection, List<Port>> portsByDirection = ir.ports().ports().stream()
-                .collect(Collectors.groupingBy(Port::direction));
+        Map<PortDirection, List<Port>> portsByDirection =
+                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
 
         List<Port> drivingPorts = portsByDirection.getOrDefault(PortDirection.DRIVING, List.of());
         List<Port> drivenPorts = portsByDirection.getOrDefault(PortDirection.DRIVEN, List.of());
@@ -131,10 +141,16 @@ public class C4DiagramBuilder {
             diagram.append("        direction TB\n");
             for (Port port : drivingPorts.stream().limit(5).toList()) {
                 String portId = sanitizeId(port.simpleName());
-                diagram.append("        ").append(portId).append("_D[\"").append(port.simpleName()).append("\"]\n");
+                diagram.append("        ")
+                        .append(portId)
+                        .append("_D[\"")
+                        .append(port.simpleName())
+                        .append("\"]\n");
             }
             if (drivingPorts.size() > 5) {
-                diagram.append("        MORE_D[\"... +").append(drivingPorts.size() - 5).append(" more\"]\n");
+                diagram.append("        MORE_D[\"... +")
+                        .append(drivingPorts.size() - 5)
+                        .append(" more\"]\n");
             }
             diagram.append("    end\n\n");
         }
@@ -145,7 +161,11 @@ public class C4DiagramBuilder {
         if (!contexts.isEmpty()) {
             for (BoundedContextInfo bc : contexts) {
                 String bcId = sanitizeId(bc.name());
-                diagram.append("        ").append(bcId).append("[\"").append(capitalize(bc.name())).append("\"]\n");
+                diagram.append("        ")
+                        .append(bcId)
+                        .append("[\"")
+                        .append(capitalize(bc.name()))
+                        .append("\"]\n");
             }
         } else {
             diagram.append("        DOMAIN[\"Domain Model\"]\n");
@@ -158,10 +178,16 @@ public class C4DiagramBuilder {
             diagram.append("        direction TB\n");
             for (Port port : drivenPorts.stream().limit(5).toList()) {
                 String portId = sanitizeId(port.simpleName());
-                diagram.append("        ").append(portId).append("_V[\"").append(port.simpleName()).append("\"]\n");
+                diagram.append("        ")
+                        .append(portId)
+                        .append("_V[\"")
+                        .append(port.simpleName())
+                        .append("\"]\n");
             }
             if (drivenPorts.size() > 5) {
-                diagram.append("        MORE_V[\"... +").append(drivenPorts.size() - 5).append(" more\"]\n");
+                diagram.append("        MORE_V[\"... +")
+                        .append(drivenPorts.size() - 5)
+                        .append(" more\"]\n");
             }
             diagram.append("    end\n\n");
         }
@@ -207,23 +233,38 @@ public class C4DiagramBuilder {
 
         for (DomainType aggregate : aggregates) {
             String aggId = sanitizeId(aggregate.simpleName());
-            diagram.append("    subgraph ").append(aggId).append("_AGG[\"<b>").append(aggregate.simpleName())
+            diagram.append("    subgraph ")
+                    .append(aggId)
+                    .append("_AGG[\"<b>")
+                    .append(aggregate.simpleName())
                     .append("</b><br/>Aggregate Root\"]\n");
 
             // Add root
-            diagram.append("        ").append(aggId).append("((").append(aggregate.simpleName()).append("))\n");
+            diagram.append("        ")
+                    .append(aggId)
+                    .append("((")
+                    .append(aggregate.simpleName())
+                    .append("))\n");
 
             // Add child entities
             List<DomainType> children = aggregateChildren.getOrDefault(aggregate.qualifiedName(), List.of());
             for (DomainType child : children.stream().limit(4).toList()) {
                 String childId = sanitizeId(child.simpleName());
-                String shape = child.kind() == DomainKind.ENTITY ? "[" + child.simpleName() + "]"
+                String shape = child.kind() == DomainKind.ENTITY
+                        ? "[" + child.simpleName() + "]"
                         : "(" + child.simpleName() + ")";
                 diagram.append("        ").append(childId).append(shape).append("\n");
-                diagram.append("        ").append(aggId).append(" --> ").append(childId).append("\n");
+                diagram.append("        ")
+                        .append(aggId)
+                        .append(" --> ")
+                        .append(childId)
+                        .append("\n");
             }
             if (children.size() > 4) {
-                diagram.append("        MORE_").append(aggId).append("[\"... +").append(children.size() - 4)
+                diagram.append("        MORE_")
+                        .append(aggId)
+                        .append("[\"... +")
+                        .append(children.size() - 4)
                         .append(" more\"]\n");
             }
 
@@ -239,7 +280,11 @@ public class C4DiagramBuilder {
                     if (otherAgg.qualifiedName().equals(targetFqn)) {
                         String fromId = sanitizeId(aggregate.simpleName());
                         String toId = sanitizeId(otherAgg.simpleName());
-                        diagram.append("    ").append(fromId).append(" -.-> ").append(toId).append("\n");
+                        diagram.append("    ")
+                                .append(fromId)
+                                .append(" -.-> ")
+                                .append(toId)
+                                .append("\n");
                     }
                 }
             }
@@ -248,7 +293,9 @@ public class C4DiagramBuilder {
         // Styles
         diagram.append("\n");
         for (DomainType aggregate : aggregates) {
-            diagram.append("    style ").append(sanitizeId(aggregate.simpleName())).append(" fill:#ff9800,stroke:#e65100\n");
+            diagram.append("    style ")
+                    .append(sanitizeId(aggregate.simpleName()))
+                    .append(" fill:#ff9800,stroke:#e65100\n");
         }
 
         diagram.append("```\n");
@@ -266,8 +313,8 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
 
-        Map<PortDirection, List<Port>> portsByDirection = ir.ports().ports().stream()
-                .collect(Collectors.groupingBy(Port::direction));
+        Map<PortDirection, List<Port>> portsByDirection =
+                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
 
         List<Port> drivingPorts = portsByDirection.getOrDefault(PortDirection.DRIVING, List.of());
         List<Port> drivenPorts = portsByDirection.getOrDefault(PortDirection.DRIVEN, List.of());
@@ -278,7 +325,12 @@ public class C4DiagramBuilder {
         for (Port port : drivingPorts) {
             String id = sanitizeId(port.simpleName()) + "_IN";
             String icon = port.isRepository() ? "📦" : "🔌";
-            diagram.append("        ").append(id).append("[\"").append(icon).append(" ").append(port.simpleName())
+            diagram.append("        ")
+                    .append(id)
+                    .append("[\"")
+                    .append(icon)
+                    .append(" ")
+                    .append(port.simpleName())
                     .append("\"]\n");
         }
         if (drivingPorts.isEmpty()) {
@@ -295,7 +347,12 @@ public class C4DiagramBuilder {
         for (Port port : drivenPorts) {
             String id = sanitizeId(port.simpleName()) + "_OUT";
             String icon = port.isRepository() ? "📦" : "🔌";
-            diagram.append("        ").append(id).append("[\"").append(icon).append(" ").append(port.simpleName())
+            diagram.append("        ")
+                    .append(id)
+                    .append("[\"")
+                    .append(icon)
+                    .append(" ")
+                    .append(port.simpleName())
                     .append("\"]\n");
         }
         if (drivenPorts.isEmpty()) {
@@ -334,7 +391,8 @@ public class C4DiagramBuilder {
         for (DomainType aggregate : aggregates) {
             String aggPackage = aggregate.packageName();
             List<DomainType> children = entities.stream()
-                    .filter(e -> e.packageName().equals(aggPackage) || e.packageName().startsWith(aggPackage + "."))
+                    .filter(e -> e.packageName().equals(aggPackage)
+                            || e.packageName().startsWith(aggPackage + "."))
                     .collect(Collectors.toList());
             result.put(aggregate.qualifiedName(), children);
         }

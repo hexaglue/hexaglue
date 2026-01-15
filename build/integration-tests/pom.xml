@@ -45,7 +45,9 @@
                 <configuration>
                     <projectsDirectory>${project.basedir}/../../examples</projectsDirectory>
                     <cloneProjectsTo>${project.build.directory}/it</cloneProjectsTo>
-                    <localRepositoryPath>${project.build.directory}/local-repo</localRepositoryPath>
+                    <!-- Use the standard Maven local repository (~/.m2/repository)
+                         to ensure integration tests use the same artifacts as the main build.
+                         This avoids stale artifact issues with an isolated local-repo cache. -->
                     <settingsFile>${project.basedir}/src/it/settings.xml</settingsFile>
                     <postBuildHookScript>verify</postBuildHookScript>
                     <goals>

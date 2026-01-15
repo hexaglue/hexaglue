@@ -885,14 +885,16 @@ class IrExporterTest {
                     .filter(m -> m.name().equals("save"))
                     .findFirst()
                     .orElseThrow();
-            assertThat(saveMethod.parameters()).containsExactly("com.example.Order");
-            assertThat(saveMethod.returnType()).isEqualTo("void");
+            assertThat(saveMethod.parameters()).hasSize(1);
+            assertThat(saveMethod.parameters().get(0).typeName()).isEqualTo("com.example.Order");
+            assertThat(saveMethod.returnType().qualifiedName()).isEqualTo("void");
 
             PortMethod deleteMethod = port.methods().stream()
                     .filter(m -> m.name().equals("deleteById"))
                     .findFirst()
                     .orElseThrow();
-            assertThat(deleteMethod.parameters()).containsExactly("java.lang.String");
+            assertThat(deleteMethod.parameters()).hasSize(1);
+            assertThat(deleteMethod.parameters().get(0).typeName()).isEqualTo("java.lang.String");
         }
     }
 

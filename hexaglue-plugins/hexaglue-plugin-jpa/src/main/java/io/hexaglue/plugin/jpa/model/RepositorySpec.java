@@ -17,6 +17,7 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.spi.ir.DomainType;
+import java.util.List;
 
 /**
  * Specification for generating a Spring Data JPA repository interface.
@@ -50,10 +51,16 @@ import io.hexaglue.spi.ir.DomainType;
  * @param entityType the JavaPoet type of the entity class
  * @param idType the JavaPoet type of the entity's ID field
  * @param domainQualifiedName the fully qualified name of the domain aggregate root
+ * @param derivedMethods custom query methods to generate (e.g., findByEmail, existsByStatus)
  * @since 2.0.0
  */
 public record RepositorySpec(
-        String packageName, String interfaceName, TypeName entityType, TypeName idType, String domainQualifiedName) {
+        String packageName,
+        String interfaceName,
+        TypeName entityType,
+        TypeName idType,
+        String domainQualifiedName,
+        List<DerivedMethodSpec> derivedMethods) {
 
     /**
      * Creates a RepositorySpec from a SPI DomainType and JpaConfig.
@@ -89,7 +96,9 @@ public record RepositorySpec(
         TypeName entityType = ClassName.get(entityPackage, entityClassName);
         TypeName idType = resolveIdType(domainType);
 
-        return new RepositorySpec(entityPackage, interfaceName, entityType, idType, domainType.qualifiedName());
+        // Factory method creates a spec without derived methods (use builder for full control)
+        return new RepositorySpec(
+                entityPackage, interfaceName, entityType, idType, domainType.qualifiedName(), List.of());
     }
 
     /**

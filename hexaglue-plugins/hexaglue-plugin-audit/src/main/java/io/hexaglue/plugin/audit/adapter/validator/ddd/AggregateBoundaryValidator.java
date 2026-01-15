@@ -100,8 +100,7 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
             Set<String> dependents = findDependents(codebase, entityQName);
 
             // Filter out dependencies from within the same aggregate
-            Set<String> externalDependents =
-                    filterExternalDependents(dependents, aggregateQName, entityToAggregate);
+            Set<String> externalDependents = filterExternalDependents(dependents, aggregateQName, entityToAggregate);
 
             if (!externalDependents.isEmpty()) {
                 violations.add(Violation.builder(CONSTRAINT_ID)

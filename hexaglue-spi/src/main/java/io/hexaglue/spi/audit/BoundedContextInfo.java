@@ -49,10 +49,7 @@ import java.util.Objects;
  * @param typeNames      the fully-qualified names of all types in this bounded context
  * @since 3.0.0
  */
-public record BoundedContextInfo(
-        String name,
-        String rootPackage,
-        List<String> typeNames) {
+public record BoundedContextInfo(String name, String rootPackage, List<String> typeNames) {
 
     /**
      * Compact constructor with validation and defensive copy.

@@ -20,8 +20,9 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.plugin.jpa.model.MethodPattern;
+import io.hexaglue.spi.ir.MethodKind;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -31,7 +32,7 @@ import org.junit.jupiter.api.Test;
  * <p>These tests validate the SAVE strategy implementation, ensuring it generates
  * correct method bodies with mapper and repository calls.
  *
- * @since 2.0.0
+ * @since 3.0.0
  */
 class SaveMethodStrategyTest {
 
@@ -44,11 +45,11 @@ class SaveMethodStrategyTest {
     @BeforeEach
     void setUp() {
         strategy = new SaveMethodStrategy();
-        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper");
+        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper", null);
     }
 
     @Test
-    void supports_shouldReturnTrueForSavePattern() {
+    void supports_shouldReturnTrueForSaveKind() {
         // Given
         AdapterMethodSpec method = createSaveMethod("save");
 
@@ -60,13 +61,31 @@ class SaveMethodStrategyTest {
     }
 
     @Test
-    void supports_shouldReturnFalseForFindByIdPattern() {
+    void supports_shouldReturnTrueForSaveAllKind() {
         // Given
-        AdapterMethodSpec method = new AdapterMethodSpec(
+        AdapterMethodSpec method = AdapterMethodSpec.of(
+                "saveAll",
+                ClassName.get("java.util", "List"),
+                List.of(new AdapterMethodSpec.ParameterInfo("orders", ClassName.get("java.util", "List"), false)),
+                MethodKind.SAVE_ALL,
+                Optional.empty());
+
+        // When
+        boolean supports = strategy.supports(method);
+
+        // Then
+        assertThat(supports).isTrue();
+    }
+
+    @Test
+    void supports_shouldReturnFalseForFindByIdKind() {
+        // Given
+        AdapterMethodSpec method = AdapterMethodSpec.of(
                 "findById",
                 ClassName.get("java.util", "Optional"),
-                List.of(new AdapterMethodSpec.ParameterInfo("id", ClassName.get("java.util", "UUID"))),
-                MethodPattern.FIND_BY_ID);
+                List.of(new AdapterMethodSpec.ParameterInfo("id", ClassName.get("java.util", "UUID"), true)),
+                MethodKind.FIND_BY_ID,
+                Optional.empty());
 
         // When
         boolean supports = strategy.supports(method);
@@ -76,10 +95,10 @@ class SaveMethodStrategyTest {
     }
 
     @Test
-    void supports_shouldReturnFalseForFindAllPattern() {
+    void supports_shouldReturnFalseForFindAllKind() {
         // Given
-        AdapterMethodSpec method =
-                new AdapterMethodSpec("findAll", ClassName.get("java.util", "List"), List.of(), MethodPattern.FIND_ALL);
+        AdapterMethodSpec method = AdapterMethodSpec.of(
+                "findAll", ClassName.get("java.util", "List"), List.of(), MethodKind.FIND_ALL, Optional.empty());
 
         // When
         boolean supports = strategy.supports(method);
@@ -89,13 +108,14 @@ class SaveMethodStrategyTest {
     }
 
     @Test
-    void supports_shouldReturnFalseForDeletePattern() {
+    void supports_shouldReturnFalseForDeleteByIdKind() {
         // Given
-        AdapterMethodSpec method = new AdapterMethodSpec(
-                "delete",
+        AdapterMethodSpec method = AdapterMethodSpec.of(
+                "deleteById",
                 TypeName.VOID,
-                List.of(new AdapterMethodSpec.ParameterInfo("id", ClassName.get("java.util", "UUID"))),
-                MethodPattern.DELETE);
+                List.of(new AdapterMethodSpec.ParameterInfo("id", ClassName.get("java.util", "UUID"), true)),
+                MethodKind.DELETE_BY_ID,
+                Optional.empty());
 
         // When
         boolean supports = strategy.supports(method);
@@ -105,13 +125,14 @@ class SaveMethodStrategyTest {
     }
 
     @Test
-    void supports_shouldReturnFalseForCustomPattern() {
+    void supports_shouldReturnFalseForCustomKind() {
         // Given
-        AdapterMethodSpec method = new AdapterMethodSpec(
+        AdapterMethodSpec method = AdapterMethodSpec.of(
                 "findByStatus",
                 ClassName.get("java.util", "List"),
-                List.of(new AdapterMethodSpec.ParameterInfo("status", ClassName.get("java.lang", "String"))),
-                MethodPattern.CUSTOM);
+                List.of(new AdapterMethodSpec.ParameterInfo("status", ClassName.get("java.lang", "String"), false)),
+                MethodKind.CUSTOM,
+                Optional.empty());
 
         // When
         boolean supports = strategy.supports(method);
@@ -236,13 +257,14 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldUseFirstParameterForMapping() {
         // Given: Method with multiple parameters (edge case)
-        AdapterMethodSpec method = new AdapterMethodSpec(
+        AdapterMethodSpec method = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
                 List.of(
-                        new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE),
-                        new AdapterMethodSpec.ParameterInfo("flag", TypeName.BOOLEAN)),
-                MethodPattern.SAVE);
+                        new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false),
+                        new AdapterMethodSpec.ParameterInfo("flag", TypeName.BOOLEAN, false)),
+                MethodKind.SAVE,
+                Optional.empty());
 
         // When
         MethodSpec generatedMethod = strategy.generate(method, context);
@@ -257,11 +279,12 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldHandleVoidReturnType() {
         // Given: Save method with void return type
-        AdapterMethodSpec method = new AdapterMethodSpec(
+        AdapterMethodSpec method = AdapterMethodSpec.of(
                 "save",
                 TypeName.VOID,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
 
         // When
         MethodSpec generatedMethod = strategy.generate(method, context);
@@ -277,7 +300,8 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldThrowForMethodWithoutParameters() {
         // Given
-        AdapterMethodSpec method = new AdapterMethodSpec("save", DOMAIN_TYPE, List.of(), MethodPattern.SAVE);
+        AdapterMethodSpec method =
+                AdapterMethodSpec.of("save", DOMAIN_TYPE, List.of(), MethodKind.SAVE, Optional.empty());
 
         // When/Then
         assertThatThrownBy(() -> strategy.generate(method, context))
@@ -288,7 +312,7 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldUseCustomFieldNames() {
         // Given
-        AdapterContext customContext = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper");
+        AdapterContext customContext = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null);
         AdapterMethodSpec method = createSaveMethod("save");
 
         // When
@@ -305,11 +329,12 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldPreserveParameterNames() {
         // Given: Method with custom parameter name
-        AdapterMethodSpec method = new AdapterMethodSpec(
+        AdapterMethodSpec method = AdapterMethodSpec.of(
                 "save",
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("domainOrder", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("domainOrder", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
 
         // When
         MethodSpec generatedMethod = strategy.generate(method, context);
@@ -325,10 +350,11 @@ class SaveMethodStrategyTest {
      * Helper method to create a SAVE method spec.
      */
     private AdapterMethodSpec createSaveMethod(String methodName) {
-        return new AdapterMethodSpec(
+        return AdapterMethodSpec.of(
                 methodName,
                 DOMAIN_TYPE,
-                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE)),
-                MethodPattern.SAVE);
+                List.of(new AdapterMethodSpec.ParameterInfo("order", DOMAIN_TYPE, false)),
+                MethodKind.SAVE,
+                Optional.empty());
     }
 }

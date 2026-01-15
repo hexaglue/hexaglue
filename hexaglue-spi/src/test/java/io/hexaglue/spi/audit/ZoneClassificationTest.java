@@ -40,13 +40,7 @@ class ZoneClassificationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "0.1, 0.5",
-        "0.2, 0.3",
-        "0.3, 0.7",
-        "0.15, 0.0",
-        "0.25, 1.0"
-    })
+    @CsvSource({"0.1, 0.5", "0.2, 0.3", "0.3, 0.7", "0.15, 0.0", "0.25, 1.0"})
     void testClassify_MainSequence_whenDistanceLessThanOrEqualToThreshold(double distance, double instability) {
         // Given: 0 < D <= 0.3
 
@@ -58,12 +52,7 @@ class ZoneClassificationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "0.5, 0.0",
-        "0.7, 0.3",
-        "1.0, 0.4",
-        "0.4, 0.49"
-    })
+    @CsvSource({"0.5, 0.0", "0.7, 0.3", "1.0, 0.4", "0.4, 0.49"})
     void testClassify_ZoneOfPain_whenDistanceHighAndInstabilityLow(double distance, double instability) {
         // Given: D > 0.3 AND I < 0.5 (stable + concrete)
 
@@ -75,13 +64,7 @@ class ZoneClassificationTest {
     }
 
     @ParameterizedTest
-    @CsvSource({
-        "0.5, 0.5",
-        "0.7, 0.7",
-        "1.0, 1.0",
-        "0.4, 0.6",
-        "0.6, 0.8"
-    })
+    @CsvSource({"0.5, 0.5", "0.7, 0.7", "1.0, 1.0", "0.4, 0.6", "0.6, 0.8"})
     void testClassify_ZoneOfUselessness_whenDistanceHighAndInstabilityHigh(double distance, double instability) {
         // Given: D > 0.3 AND I >= 0.5 (unstable + abstract)
 

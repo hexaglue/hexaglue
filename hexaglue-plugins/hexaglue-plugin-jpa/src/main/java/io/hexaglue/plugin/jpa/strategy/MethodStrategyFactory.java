@@ -26,13 +26,15 @@ import java.util.List;
  *
  * <h3>Strategy Chain Order:</h3>
  * <ol>
- *   <li>{@link SaveMethodStrategy} - Handles save/create/update operations</li>
- *   <li>{@link FindByIdMethodStrategy} - Handles findById/getById operations</li>
- *   <li>{@link FindAllMethodStrategy} - Handles findAll/getAll operations</li>
- *   <li>{@link DeleteMethodStrategy} - Handles delete/remove operations</li>
- *   <li>{@link ExistsMethodStrategy} - Handles exists/contains checks</li>
- *   <li>{@link CountMethodStrategy} - Handles count operations</li>
- *   <li>{@link FallbackMethodStrategy} - Catch-all for custom methods</li>
+ *   <li>{@link SaveMethodStrategy} - Handles SAVE, SAVE_ALL</li>
+ *   <li>{@link FindByIdMethodStrategy} - Handles FIND_BY_ID</li>
+ *   <li>{@link FindByPropertyMethodStrategy} - Handles FIND_BY_PROPERTY, FIND_ALL_BY_PROPERTY</li>
+ *   <li>{@link FindAllMethodStrategy} - Handles FIND_ALL, FIND_ALL_BY_ID</li>
+ *   <li>{@link DeleteMethodStrategy} - Handles DELETE_BY_ID, DELETE_ALL, DELETE_BY_PROPERTY</li>
+ *   <li>{@link ExistsMethodStrategy} - Handles EXISTS_BY_ID</li>
+ *   <li>{@link ExistsByPropertyMethodStrategy} - Handles EXISTS_BY_PROPERTY</li>
+ *   <li>{@link CountMethodStrategy} - Handles COUNT_ALL, COUNT_BY_PROPERTY</li>
+ *   <li>{@link FallbackMethodStrategy} - Catch-all for CUSTOM methods</li>
  * </ol>
  *
  * <h3>Design Decisions:</h3>
@@ -40,7 +42,8 @@ import java.util.List;
  *   <li>Immutable Strategy List: Strategies are initialized once and reused</li>
  *   <li>Thread-Safe: No mutable state, safe for concurrent use</li>
  *   <li>Fail-Safe: Fallback strategy guarantees a result is always returned</li>
- *   <li>Open/Closed Principle: New strategies can be added by modifying only this class</li>
+ *   <li>Property-Based Before ID-Based: More specific strategies checked first</li>
+ *   <li>Uses MethodKind from SPI: All strategies now consume classification from SPI</li>
  * </ul>
  *
  * <h3>Usage Example:</h3>
@@ -51,7 +54,7 @@ import java.util.List;
  * MethodSpec generated = strategy.generate(method, context);
  * }</pre>
  *
- * @since 2.0.0
+ * @since 3.0.0
  * @see MethodBodyStrategy
  */
 public final class MethodStrategyFactory {
@@ -59,15 +62,19 @@ public final class MethodStrategyFactory {
     /**
      * Ordered list of strategies to try.
      *
-     * <p>IMPORTANT: FallbackMethodStrategy must be last as it always returns true
-     * in its supports() method. This ensures specific strategies are checked first.
+     * <p>IMPORTANT: Order matters! Property-based strategies must come before
+     * their ID-based counterparts to ensure correct classification.
+     * FallbackMethodStrategy must be last as it always returns true
+     * in its supports() method.
      */
     private final List<MethodBodyStrategy> strategies = List.of(
             new SaveMethodStrategy(),
             new FindByIdMethodStrategy(),
+            new FindByPropertyMethodStrategy(), // Must be before FindAll
             new FindAllMethodStrategy(),
             new DeleteMethodStrategy(),
-            new ExistsMethodStrategy(),
+            new ExistsMethodStrategy(), // EXISTS_BY_ID only
+            new ExistsByPropertyMethodStrategy(), // EXISTS_BY_PROPERTY
             new CountMethodStrategy(),
             new FallbackMethodStrategy() // Must be last
             );

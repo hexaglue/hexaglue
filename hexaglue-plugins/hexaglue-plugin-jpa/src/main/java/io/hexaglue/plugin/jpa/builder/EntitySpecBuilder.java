@@ -23,6 +23,7 @@ import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -60,6 +61,7 @@ public final class EntitySpecBuilder {
     private JpaConfig config;
     private String infrastructurePackage;
     private List<DomainType> allTypes;
+    private Map<String, String> embeddableMapping = Map.of();
 
     private EntitySpecBuilder() {
         // Use static factory method
@@ -124,6 +126,20 @@ public final class EntitySpecBuilder {
     }
 
     /**
+     * Sets the mapping from domain VALUE_OBJECT types to JPA embeddable types.
+     *
+     * <p>This mapping is used to replace domain types with generated embeddable types
+     * in relationships (EMBEDDED and ELEMENT_COLLECTION).
+     *
+     * @param embeddableMapping map from domain FQN to embeddable FQN
+     * @return this builder
+     */
+    public EntitySpecBuilder embeddableMapping(Map<String, String> embeddableMapping) {
+        this.embeddableMapping = embeddableMapping != null ? embeddableMapping : Map.of();
+        return this;
+    }
+
+    /**
      * Builds the EntitySpec from the provided configuration.
      *
      * <p>This method performs the complete transformation from SPI DomainType
@@ -171,13 +187,18 @@ public final class EntitySpecBuilder {
      * converting only simple properties and embedded value objects to
      * PropertyFieldSpec instances.
      *
+     * <p>Value Object detection: Each property's type is checked against the
+     * list of all domain types. If the type is classified as VALUE_OBJECT,
+     * the property will be marked for embedded treatment even if not explicitly
+     * marked as embedded.
+     *
      * @return list of property field specifications
      */
     private List<PropertyFieldSpec> buildPropertySpecs() {
         return domainType.properties().stream()
                 .filter(prop -> !prop.isIdentity())
                 .filter(prop -> !prop.hasRelation())
-                .map(PropertyFieldSpec::from)
+                .map(prop -> PropertyFieldSpec.from(prop, allTypes))
                 .collect(Collectors.toList());
     }
 
@@ -207,6 +228,9 @@ public final class EntitySpecBuilder {
      * plugin's RelationFieldSpec model. It creates a DomainRelation for compatibility
      * with the existing RelationFieldSpec.from() method.
      *
+     * <p>For EMBEDDED and ELEMENT_COLLECTION relationships, the embeddableMapping is used
+     * to replace domain VALUE_OBJECT types with their corresponding JPA embeddable types.
+     *
      * @param property the domain property with relation info
      * @return the relation field specification
      */
@@ -231,7 +255,8 @@ public final class EntitySpecBuilder {
                 fetch,
                 relationInfo.kind() == io.hexaglue.spi.ir.RelationKind.ONE_TO_MANY);
 
-        return RelationFieldSpec.from(domainRelation);
+        // Use embeddableMapping to replace domain types with JPA embeddable types
+        return RelationFieldSpec.from(domainRelation, embeddableMapping);
     }
 
     /**

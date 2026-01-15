@@ -44,7 +44,7 @@ class JpaMapperCodegenTest {
     void generate_shouldCreateMapperInterface() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -59,7 +59,7 @@ class JpaMapperCodegenTest {
     void generate_shouldHaveGeneratedAnnotation() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -75,7 +75,7 @@ class JpaMapperCodegenTest {
     void generate_shouldHaveMapperAnnotation() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -89,7 +89,7 @@ class JpaMapperCodegenTest {
     void generate_shouldHaveToEntityMethod() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -106,7 +106,7 @@ class JpaMapperCodegenTest {
     void generate_shouldHaveToDomainMethod() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -126,7 +126,7 @@ class JpaMapperCodegenTest {
                 List.of(MappingSpec.direct("id", "orderId.value"), MappingSpec.direct("amount", "totalAmount"));
 
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -148,7 +148,7 @@ class JpaMapperCodegenTest {
                 List.of(MappingSpec.direct("orderId", "id"), MappingSpec.direct("totalAmount", "amount"));
 
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toDomainMappings, List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toDomainMappings, List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -169,7 +169,7 @@ class JpaMapperCodegenTest {
         List<MappingSpec> mappings = List.of(MappingSpec.ignore("createdAt"));
 
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, mappings, List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, mappings, List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -188,7 +188,7 @@ class JpaMapperCodegenTest {
         List<MappingSpec> mappings = List.of(MappingSpec.expression("createdAt", "java.time.Instant.now()"));
 
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, mappings, List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, mappings, List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -205,7 +205,7 @@ class JpaMapperCodegenTest {
     void generate_shouldBePublicInterface() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -219,7 +219,7 @@ class JpaMapperCodegenTest {
     void generate_shouldIncludeJavadoc() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -245,7 +245,7 @@ class JpaMapperCodegenTest {
     void generateFile_shouldCreateJavaFile() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -260,7 +260,7 @@ class JpaMapperCodegenTest {
     void generateFile_shouldHaveCorrectPackage() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -274,7 +274,7 @@ class JpaMapperCodegenTest {
     void generateFile_shouldIncludeNecessaryImports() {
         // Given
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(), List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -301,7 +301,7 @@ class JpaMapperCodegenTest {
         List<MappingSpec> toDomainMappings = List.of(MappingSpec.direct("orderId", "id"));
 
         MapperSpec spec = new MapperSpec(
-                TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, toDomainMappings, null);
+                TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, toDomainMappings, null, List.of(), List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -332,7 +332,7 @@ class JpaMapperCodegenTest {
                 MappingSpec.expression("createdAt", "java.time.Instant.now()"));
 
         MapperSpec spec =
-                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, List.of(), null);
+                new MapperSpec(TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, toEntityMappings, List.of(), null, List.of(), List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -347,5 +347,83 @@ class JpaMapperCodegenTest {
                 .contains("ignore = true")
                 .contains("target = \"createdAt\"")
                 .contains("expression = \"java(java.time.Instant.now())\"");
+    }
+
+    // =====================================================================
+    // Value Object conversion methods tests
+    // =====================================================================
+
+    @Test
+    void generate_shouldIncludeValueObjectConversionMethods() {
+        // Given - A mapper with a Value Object mapping
+        MapperSpec.ValueObjectMappingSpec emailVoSpec =
+                new MapperSpec.ValueObjectMappingSpec("com.example.Email", "Email", "java.lang.String", "value", true);
+
+        MapperSpec spec = new MapperSpec(
+                TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(emailVoSpec), List.of());
+
+        // When
+        TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+        String generatedCode = mapperInterface.toString();
+
+        // Then - Should contain unwrap method: String map(Email)
+        assertThat(generatedCode)
+                .contains("default java.lang.String map(com.example.Email vo)")
+                .contains("return vo != null ? vo.value() : null");
+
+        // And - Should contain wrap method: Email mapToEmail(String)
+        assertThat(generatedCode)
+                .contains("default com.example.Email mapToEmail(java.lang.String value)")
+                .contains("return value != null ? new com.example.Email(value) : null");
+    }
+
+    @Test
+    void generate_shouldHandleMultipleValueObjects() {
+        // Given - A mapper with multiple Value Object mappings
+        MapperSpec.ValueObjectMappingSpec emailVoSpec =
+                new MapperSpec.ValueObjectMappingSpec("com.example.Email", "Email", "java.lang.String", "value", true);
+        MapperSpec.ValueObjectMappingSpec phoneVoSpec =
+                new MapperSpec.ValueObjectMappingSpec("com.example.Phone", "Phone", "java.lang.String", "number", true);
+
+        MapperSpec spec = new MapperSpec(
+                TEST_PACKAGE,
+                MAPPER_NAME,
+                DOMAIN_TYPE,
+                ENTITY_TYPE,
+                List.of(),
+                List.of(),
+                null,
+                List.of(emailVoSpec, phoneVoSpec),
+                List.of());
+
+        // When
+        TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+        String generatedCode = mapperInterface.toString();
+
+        // Then - Should contain methods for both Value Objects
+        assertThat(generatedCode)
+                .contains("default java.lang.String map(com.example.Email vo)")
+                .contains("default com.example.Email mapToEmail(java.lang.String value)")
+                .contains("default java.lang.String map(com.example.Phone vo)")
+                .contains("default com.example.Phone mapToPhone(java.lang.String value)");
+    }
+
+    @Test
+    void generate_shouldHandleClassBasedValueObject() {
+        // Given - A Value Object that is a class (not a record)
+        MapperSpec.ValueObjectMappingSpec classVoSpec = new MapperSpec.ValueObjectMappingSpec(
+                "com.example.Money", "Money", "java.math.BigDecimal", "getAmount", false);
+
+        MapperSpec spec = new MapperSpec(
+                TEST_PACKAGE, MAPPER_NAME, DOMAIN_TYPE, ENTITY_TYPE, List.of(), List.of(), null, List.of(classVoSpec), List.of());
+
+        // When
+        TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+        String generatedCode = mapperInterface.toString();
+
+        // Then - Should use getAmount() accessor for class-based VO
+        assertThat(generatedCode)
+                .contains("return vo != null ? vo.getAmount() : null")
+                .contains("default com.example.Money mapToMoney(java.math.BigDecimal value)");
     }
 }

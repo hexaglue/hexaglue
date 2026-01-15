@@ -52,8 +52,8 @@ class LivingDocPluginTest {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
         TypeRef orderIdType = TypeRef.of("com.example.domain.OrderId");
 
-        Identity orderId =
-                new Identity("id", orderIdType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD);
+        Identity orderId = Identity.wrapped(
+                "id", orderIdType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD, "value");
 
         DomainType orderAggregate = new DomainType(
                 "com.example.domain.Order",
@@ -94,8 +94,8 @@ class LivingDocPluginTest {
                 List.of("com.example.domain.Order"),
                 "com.example.domain.Order",
                 List.of(
-                        new PortMethod("findById", "Optional<Order>", List.of("OrderId")),
-                        new PortMethod("save", "Order", List.of("Order"))),
+                        PortMethod.legacy("findById", "Optional<Order>", List.of("OrderId")),
+                        PortMethod.legacy("save", "Order", List.of("Order"))),
                 List.of(),
                 SourceRef.unknown());
 
@@ -108,7 +108,7 @@ class LivingDocPluginTest {
                 ConfidenceLevel.MEDIUM,
                 List.of(),
                 null,
-                List.of(new PortMethod("placeOrder", "OrderId", List.of("OrderRequest"))),
+                List.of(PortMethod.legacy("placeOrder", "OrderId", List.of("OrderRequest"))),
                 List.of(),
                 SourceRef.unknown());
 

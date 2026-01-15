@@ -24,7 +24,6 @@ import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.IdentityWrapperKind;
 import io.hexaglue.spi.ir.Nullability;
 import io.hexaglue.spi.ir.RelationKind;
 import io.hexaglue.spi.ir.TypeRef;
@@ -119,7 +118,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldReturnNullForAssignedStrategy() {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
-        Identity identity = new Identity("id", uuidType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", uuidType, IdentityStrategy.ASSIGNED);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
@@ -129,8 +128,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldReturnNullForNaturalStrategy() {
         TypeRef stringType = TypeRef.of("java.lang.String");
-        Identity identity =
-                new Identity("isbn", stringType, stringType, IdentityStrategy.NATURAL, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("isbn", stringType, IdentityStrategy.NATURAL);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
@@ -140,7 +138,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldCreateAnnotationForAutoStrategy() {
         TypeRef longType = TypeRef.of("java.lang.Long");
-        Identity identity = new Identity("id", longType, longType, IdentityStrategy.AUTO, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.AUTO);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
@@ -154,7 +152,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldCreateAnnotationForIdentityStrategy() {
         TypeRef longType = TypeRef.of("java.lang.Long");
-        Identity identity = new Identity("id", longType, longType, IdentityStrategy.IDENTITY, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.IDENTITY);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
@@ -168,7 +166,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldCreateAnnotationForSequenceStrategy() {
         TypeRef longType = TypeRef.of("java.lang.Long");
-        Identity identity = new Identity("id", longType, longType, IdentityStrategy.SEQUENCE, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.SEQUENCE);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
@@ -182,7 +180,7 @@ class JpaAnnotationsTest {
     @Test
     void generatedValue_shouldCreateAnnotationForUuidStrategy() {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
-        Identity identity = new Identity("id", uuidType, uuidType, IdentityStrategy.UUID, IdentityWrapperKind.NONE);
+        Identity identity = Identity.unwrapped("id", uuidType, IdentityStrategy.UUID);
 
         AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
 
