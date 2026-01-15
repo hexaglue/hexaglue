@@ -1,10 +1,10 @@
 databaseChangeLog:
   - changeSet:
-      id: 1
+      id: "1"
       author: Dorian Frances
       changes:
         - createTable:
-            tableName: pokemons
+            tableName: pokemon
             columns:
               - column:
                   name: id

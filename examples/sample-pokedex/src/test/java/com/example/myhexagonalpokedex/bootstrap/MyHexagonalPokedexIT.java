@@ -82,7 +82,7 @@ abstract class MyHexagonalPokedexIT {
                             wiremockServer.stop();
                         }
                     });
-            TestPropertyValues.of("infrastructure.pokeapi.app.api:http://localhost:" + wiremockServer.port())
+            TestPropertyValues.of("pokeapi.base-url:http://localhost:" + wiremockServer.port())
                     .applyTo(configurableApplicationContext);
         }
 
