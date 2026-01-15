@@ -60,9 +60,8 @@ class ClassificationIntegrationTest {
         @Test
         @DisplayName("should classify @AggregateRoot as AGGREGATE_ROOT")
         void shouldClassifyAggregateRoot() {
-            var aggregateRoots = model.domainEntities()
-                    .filter(e -> e.isAggregateRoot())
-                    .toList();
+            var aggregateRoots =
+                    model.domainEntities().filter(e -> e.isAggregateRoot()).toList();
 
             assertThat(aggregateRoots).hasSize(1);
             assertThat(aggregateRoots.get(0).id().qualifiedName())
@@ -87,9 +86,7 @@ class ClassificationIntegrationTest {
             var valueObjects = model.valueObjects().toList();
 
             // Money and Address have explicit @ValueObject annotation
-            assertThat(valueObjects)
-                    .extracting(vo -> vo.id().simpleName())
-                    .contains("Money", "Address");
+            assertThat(valueObjects).extracting(vo -> vo.id().simpleName()).contains("Money", "Address");
         }
 
         @Test
@@ -111,9 +108,7 @@ class ClassificationIntegrationTest {
         void shouldClassifyDrivingPorts() {
             var drivingPorts = model.drivingPorts().toList();
 
-            assertThat(drivingPorts)
-                    .extracting(p -> p.id().simpleName())
-                    .contains("PlaceOrderUseCase");
+            assertThat(drivingPorts).extracting(p -> p.id().simpleName()).contains("PlaceOrderUseCase");
         }
 
         @Test
@@ -121,9 +116,7 @@ class ClassificationIntegrationTest {
         void shouldClassifyExplicitDrivenPorts() {
             var drivenPorts = model.drivenPorts().toList();
 
-            assertThat(drivenPorts)
-                    .extracting(p -> p.id().simpleName())
-                    .contains("PaymentGateway");
+            assertThat(drivenPorts).extracting(p -> p.id().simpleName()).contains("PaymentGateway");
         }
 
         @Test
@@ -131,9 +124,7 @@ class ClassificationIntegrationTest {
         void shouldClassifyRepositoryByNaming() {
             var drivenPorts = model.drivenPorts().toList();
 
-            assertThat(drivenPorts)
-                    .extracting(p -> p.id().simpleName())
-                    .contains("OrderRepository");
+            assertThat(drivenPorts).extracting(p -> p.id().simpleName()).contains("OrderRepository");
         }
     }
 

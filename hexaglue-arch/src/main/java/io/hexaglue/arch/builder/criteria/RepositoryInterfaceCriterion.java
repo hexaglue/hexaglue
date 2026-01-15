@@ -65,8 +65,8 @@ public final class RepositoryInterfaceCriterion implements ClassificationCriteri
                 .filter(ann -> REPOSITORY_ANNOTATIONS.contains(ann.simpleName()))
                 .findFirst()
                 .map(ann -> {
-                    Evidence evidence = Evidence.at(
-                            EvidenceType.ANNOTATION, "@Repository annotation found", type.sourceLocation());
+                    Evidence evidence =
+                            Evidence.at(EvidenceType.ANNOTATION, "@Repository annotation found", type.sourceLocation());
                     return CriterionMatch.high("Interface has @Repository annotation", evidence);
                 });
 

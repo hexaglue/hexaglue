@@ -369,7 +369,8 @@ class PluginExecutorTest {
             writer = new TestCodeWriter();
             diagnostics = new TestDiagnosticReporter();
             outputStore = new PluginOutputStore();
-            model = ArchitecturalModel.builder(ProjectContext.forTesting("Test", "com.example")).build();
+            model = ArchitecturalModel.builder(ProjectContext.forTesting("Test", "com.example"))
+                    .build();
         }
 
         @Test
@@ -448,23 +449,43 @@ class PluginExecutorTest {
             // Given - use a plain PluginContext that doesn't implement ArchModelPluginContext
             PluginContext plainContext = new PluginContext() {
                 @Override
-                public IrSnapshot ir() { return ir; }
+                public IrSnapshot ir() {
+                    return ir;
+                }
+
                 @Override
-                public PluginConfig config() { return config; }
+                public PluginConfig config() {
+                    return config;
+                }
+
                 @Override
-                public CodeWriter writer() { return writer; }
+                public CodeWriter writer() {
+                    return writer;
+                }
+
                 @Override
-                public DiagnosticReporter diagnostics() { return diagnostics; }
+                public DiagnosticReporter diagnostics() {
+                    return diagnostics;
+                }
+
                 @Override
                 public <T> void setOutput(String key, T value) {}
+
                 @Override
                 public <T> java.util.Optional<T> getOutput(String fromPluginId, String key, Class<T> type) {
                     return java.util.Optional.empty();
                 }
+
                 @Override
-                public String currentPluginId() { return "plain-plugin"; }
+                public String currentPluginId() {
+                    return "plain-plugin";
+                }
+
                 @Override
-                public io.hexaglue.spi.plugin.TemplateEngine templates() { return null; }
+                public io.hexaglue.spi.plugin.TemplateEngine templates() {
+                    return null;
+                }
+
                 @Override
                 public java.util.Optional<io.hexaglue.spi.audit.ArchitectureQuery> architectureQuery() {
                     return java.util.Optional.empty();

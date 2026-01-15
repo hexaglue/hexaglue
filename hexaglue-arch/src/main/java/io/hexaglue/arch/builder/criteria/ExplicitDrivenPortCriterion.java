@@ -30,8 +30,7 @@ import java.util.Set;
  */
 public final class ExplicitDrivenPortCriterion extends ExplicitAnnotationCriterion {
 
-    private static final Set<String> DRIVEN_PORT_ANNOTATIONS =
-            Set.of("DrivenPort", "SecondaryPort", "OutboundPort");
+    private static final Set<String> DRIVEN_PORT_ANNOTATIONS = Set.of("DrivenPort", "SecondaryPort", "OutboundPort");
 
     /**
      * Creates a new ExplicitDrivenPortCriterion.

@@ -54,8 +54,8 @@ public final class RepositoryDominantTypeCriterion implements ClassificationCrit
     @Override
     public Optional<CriterionMatch> evaluate(TypeSyntax type, ClassificationContext context) {
         if (context.isRepositoryDominantType(type.qualifiedName())) {
-            Evidence evidence = Evidence.of(
-                    EvidenceType.RELATIONSHIP, "Type is the primary type in a repository interface");
+            Evidence evidence =
+                    Evidence.of(EvidenceType.RELATIONSHIP, "Type is the primary type in a repository interface");
             return Optional.of(CriterionMatch.medium(
                     "Type is used as primary type in a repository (indicates aggregate root)", evidence));
         }

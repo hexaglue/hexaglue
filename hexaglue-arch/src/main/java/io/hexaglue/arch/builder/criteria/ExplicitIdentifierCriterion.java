@@ -35,10 +35,6 @@ public final class ExplicitIdentifierCriterion extends ExplicitAnnotationCriteri
      * Creates a new ExplicitIdentifierCriterion.
      */
     public ExplicitIdentifierCriterion() {
-        super(
-                "explicit-identifier",
-                ElementKind.IDENTIFIER,
-                IDENTIFIER_ANNOTATIONS,
-                "Type has @Identifier annotation");
+        super("explicit-identifier", ElementKind.IDENTIFIER, IDENTIFIER_ANNOTATIONS, "Type has @Identifier annotation");
     }
 }

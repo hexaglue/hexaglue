@@ -151,8 +151,8 @@ class PortClassifierTest {
         @DisplayName("should classify interface with @Repository as DRIVEN_PORT")
         void shouldClassifyWithRepositoryAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.OrderStorage", TypeForm.INTERFACE)
-                    .withAnnotation("Repository");
+            TypeSyntax type =
+                    new StubTypeSyntax("com.example.OrderStorage", TypeForm.INTERFACE).withAnnotation("Repository");
             PortClassifier classifier = new PortClassifier(List.of(new RepositoryInterfaceCriterion()));
 
             // when
@@ -161,8 +161,7 @@ class PortClassifierTest {
             // then
             assertThat(trace.classifiedAs()).isEqualTo(ElementKind.DRIVEN_PORT);
             assertThat(trace.confidence()).isEqualTo(ConfidenceLevel.HIGH);
-            assertThat(trace.winningCriterion().evidence().get(0).type())
-                    .isEqualTo(EvidenceType.ANNOTATION);
+            assertThat(trace.winningCriterion().evidence().get(0).type()).isEqualTo(EvidenceType.ANNOTATION);
         }
 
         @Test
@@ -178,8 +177,7 @@ class PortClassifierTest {
             // then
             assertThat(trace.classifiedAs()).isEqualTo(ElementKind.DRIVEN_PORT);
             assertThat(trace.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
-            assertThat(trace.winningCriterion().evidence().get(0).type())
-                    .isEqualTo(EvidenceType.NAMING);
+            assertThat(trace.winningCriterion().evidence().get(0).type()).isEqualTo(EvidenceType.NAMING);
         }
     }
 
@@ -255,8 +253,8 @@ class PortClassifierTest {
         @DisplayName("should prefer explicit annotation over naming convention")
         void shouldPreferExplicitOverNaming() {
             // given - interface named Repository but annotated as DrivingPort
-            TypeSyntax type = new StubTypeSyntax("com.example.OrderRepository", TypeForm.INTERFACE)
-                    .withAnnotation("DrivingPort");
+            TypeSyntax type =
+                    new StubTypeSyntax("com.example.OrderRepository", TypeForm.INTERFACE).withAnnotation("DrivingPort");
             PortClassifier classifier = PortClassifiers.standard();
 
             // when

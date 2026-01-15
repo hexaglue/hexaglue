@@ -49,8 +49,7 @@ class DomainClassifierTest {
         @DisplayName("should classify as AGGREGATE_ROOT when @AggregateRoot annotation present")
         void shouldClassifyAsAggregateRootWithAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Order")
-                    .withAnnotation("io.hexaglue.ddd.AggregateRoot");
+            TypeSyntax type = new StubTypeSyntax("com.example.Order").withAnnotation("io.hexaglue.ddd.AggregateRoot");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitAggregateRootCriterion()));
 
             // when
@@ -66,8 +65,7 @@ class DomainClassifierTest {
         @DisplayName("should classify as VALUE_OBJECT when @ValueObject annotation present")
         void shouldClassifyAsValueObjectWithAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Money")
-                    .withAnnotation("io.hexaglue.ddd.ValueObject");
+            TypeSyntax type = new StubTypeSyntax("com.example.Money").withAnnotation("io.hexaglue.ddd.ValueObject");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitValueObjectCriterion()));
 
             // when
@@ -82,8 +80,7 @@ class DomainClassifierTest {
         @DisplayName("should classify as ENTITY when @Entity annotation present")
         void shouldClassifyAsEntityWithAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.OrderLine")
-                    .withAnnotation("io.hexaglue.ddd.Entity");
+            TypeSyntax type = new StubTypeSyntax("com.example.OrderLine").withAnnotation("io.hexaglue.ddd.Entity");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitEntityCriterion()));
 
             // when
@@ -98,8 +95,7 @@ class DomainClassifierTest {
         @DisplayName("should classify as IDENTIFIER when @Identifier annotation present")
         void shouldClassifyAsIdentifierWithAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.OrderId")
-                    .withAnnotation("io.hexaglue.ddd.Identifier");
+            TypeSyntax type = new StubTypeSyntax("com.example.OrderId").withAnnotation("io.hexaglue.ddd.Identifier");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitIdentifierCriterion()));
 
             // when
@@ -114,8 +110,8 @@ class DomainClassifierTest {
         @DisplayName("should classify as DOMAIN_EVENT when @DomainEvent annotation present")
         void shouldClassifyAsDomainEventWithAnnotation() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.OrderPlaced")
-                    .withAnnotation("io.hexaglue.ddd.DomainEvent");
+            TypeSyntax type =
+                    new StubTypeSyntax("com.example.OrderPlaced").withAnnotation("io.hexaglue.ddd.DomainEvent");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitDomainEventCriterion()));
 
             // when
@@ -156,8 +152,7 @@ class DomainClassifierTest {
         @DisplayName("should prefer explicit annotation over heuristic")
         void shouldPreferExplicitOverHeuristic() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Order")
-                    .withAnnotation("io.hexaglue.ddd.AggregateRoot");
+            TypeSyntax type = new StubTypeSyntax("com.example.Order").withAnnotation("io.hexaglue.ddd.AggregateRoot");
             ClassificationContext ctxWithRepository = ClassificationContext.builder(new StubSyntaxProvider())
                     .repositoryDominantTypes(Set.of("com.example.Order"))
                     .build();
@@ -222,8 +217,8 @@ class DomainClassifierTest {
         void shouldReturnUnclassifiedWhenNoCriteriaMatch() {
             // given
             TypeSyntax type = new StubTypeSyntax("com.example.SomeUtility");
-            DomainClassifier classifier = new DomainClassifier(List.of(
-                    new ExplicitAggregateRootCriterion(), new ExplicitValueObjectCriterion()));
+            DomainClassifier classifier = new DomainClassifier(
+                    List.of(new ExplicitAggregateRootCriterion(), new ExplicitValueObjectCriterion()));
 
             // when
             ClassificationTrace trace = classifier.classify(type, context);
@@ -257,8 +252,7 @@ class DomainClassifierTest {
         @DisplayName("should include all evaluated criteria in trace")
         void shouldIncludeAllEvaluatedCriteria() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Order")
-                    .withAnnotation("io.hexaglue.ddd.AggregateRoot");
+            TypeSyntax type = new StubTypeSyntax("com.example.Order").withAnnotation("io.hexaglue.ddd.AggregateRoot");
             DomainClassifier classifier = new DomainClassifier(List.of(
                     new ExplicitAggregateRootCriterion(),
                     new ExplicitValueObjectCriterion(),
@@ -269,7 +263,9 @@ class DomainClassifierTest {
 
             // then
             assertThat(trace.evaluatedCriteria()).hasSize(3);
-            assertThat(trace.evaluatedCriteria().stream().filter(c -> c.matched()).count())
+            assertThat(trace.evaluatedCriteria().stream()
+                            .filter(c -> c.matched())
+                            .count())
                     .isEqualTo(1);
         }
 
@@ -277,8 +273,7 @@ class DomainClassifierTest {
         @DisplayName("should include evidence in winning criterion")
         void shouldIncludeEvidenceInWinningCriterion() {
             // given
-            TypeSyntax type = new StubTypeSyntax("com.example.Order")
-                    .withAnnotation("io.hexaglue.ddd.AggregateRoot");
+            TypeSyntax type = new StubTypeSyntax("com.example.Order").withAnnotation("io.hexaglue.ddd.AggregateRoot");
             DomainClassifier classifier = new DomainClassifier(List.of(new ExplicitAggregateRootCriterion()));
 
             // when
@@ -286,8 +281,7 @@ class DomainClassifierTest {
 
             // then
             assertThat(trace.winningCriterion().evidence()).isNotEmpty();
-            assertThat(trace.winningCriterion().evidence().get(0).type())
-                    .isEqualTo(EvidenceType.ANNOTATION);
+            assertThat(trace.winningCriterion().evidence().get(0).type()).isEqualTo(EvidenceType.ANNOTATION);
         }
     }
 
@@ -623,12 +617,7 @@ class DomainClassifierTest {
 
         @Override
         public io.hexaglue.syntax.SyntaxMetadata metadata() {
-            return new io.hexaglue.syntax.SyntaxMetadata(
-                    "",
-                    List.of(),
-                    0,
-                    java.time.Instant.now(),
-                    "Stub");
+            return new io.hexaglue.syntax.SyntaxMetadata("", List.of(), 0, java.time.Instant.now(), "Stub");
         }
 
         @Override

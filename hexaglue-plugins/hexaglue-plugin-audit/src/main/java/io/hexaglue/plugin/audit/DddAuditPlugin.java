@@ -362,9 +362,11 @@ public class DddAuditPlugin implements AuditPlugin {
                                 .formatted(executionResult.snapshot().errorCount()));
             }
 
-            // Log v4 model summary if available
+            // Log v4 model summary and enrich audit with classification info
             if (archModel != null) {
                 logV4ModelSummary(archModel, context.diagnostics());
+            } else {
+                context.diagnostics().info("Using legacy IrSnapshot for audit (v4 ArchitecturalModel not available)");
             }
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
@@ -372,21 +374,51 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Logs a summary of the v4 architectural model for informational purposes.
+     * Logs a detailed summary of the v4 architectural model including unclassified types.
+     *
+     * <p>When v4 model is available, this provides:
+     * <ul>
+     *   <li>Element counts by type</li>
+     *   <li>Unclassified type warnings with remediation hints</li>
+     *   <li>Classification confidence information</li>
+     * </ul>
      *
      * @param model the architectural model
      * @param diagnostics the diagnostic reporter
      * @since 4.0.0
      */
     private void logV4ModelSummary(ArchitecturalModel model, io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) {
+        // Basic counts
         long aggregateCount = model.aggregates().count();
-        long entityCount = model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
+        long entityCount =
+                model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
         long valueObjectCount = model.valueObjects().count();
         long drivingPortCount = model.drivingPorts().count();
         long drivenPortCount = model.drivenPorts().count();
+        long unclassifiedCount = model.unclassifiedCount();
+
         diagnostics.info(String.format(
                 "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
                 aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
+
+        // Warn about unclassified types with remediation hints
+        if (unclassifiedCount > 0) {
+            diagnostics.warn(String.format("Found %d unclassified types:", unclassifiedCount));
+            model.unclassifiedTypes().limit(5).forEach(unclassified -> {
+                String hint = unclassified.classificationTrace().remediationHints().stream()
+                        .findFirst()
+                        .map(h -> " - Hint: " + h.description())
+                        .orElse("");
+                diagnostics.warn(String.format(
+                        "  - %s: %s%s",
+                        unclassified.id().simpleName(),
+                        unclassified.classificationTrace().explain(),
+                        hint));
+            });
+            if (unclassifiedCount > 5) {
+                diagnostics.warn(String.format("  ... and %d more unclassified types", unclassifiedCount - 5));
+            }
+        }
     }
 
     /**
