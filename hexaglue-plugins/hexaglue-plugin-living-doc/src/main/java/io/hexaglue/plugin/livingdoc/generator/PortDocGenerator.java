@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
@@ -30,14 +31,36 @@ import java.util.List;
  *   <li>DocumentationModel - immutable records representing documentation content</li>
  *   <li>Renderer - renders documentation models to Markdown</li>
  * </ol>
+ *
+ * <p>Supports both legacy SPI (IrSnapshot) and v4 model (ArchitecturalModel).
+ *
+ * @since 3.0.0
  */
 public final class PortDocGenerator {
 
     private final PortContentSelector contentSelector;
     private final PortRenderer renderer;
 
+    /**
+     * Creates a generator using legacy IrSnapshot.
+     *
+     * @param ir the IR snapshot
+     * @deprecated Use {@link #PortDocGenerator(ArchitecturalModel)} for v4 model support
+     */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public PortDocGenerator(IrSnapshot ir) {
         this.contentSelector = new PortContentSelector(ir);
+        this.renderer = new PortRenderer();
+    }
+
+    /**
+     * Creates a generator using v4 ArchitecturalModel.
+     *
+     * @param model the architectural model
+     * @since 4.0.0
+     */
+    public PortDocGenerator(ArchitecturalModel model) {
+        this.contentSelector = new PortContentSelector(model);
         this.renderer = new PortRenderer();
     }
 

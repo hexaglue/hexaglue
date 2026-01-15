@@ -15,6 +15,9 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.ValueObject;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
@@ -22,6 +25,8 @@ import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.syntax.FieldSyntax;
+import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -73,10 +78,17 @@ import java.util.Set;
  */
 public final class MapperSpecBuilder {
 
+    // Legacy SPI fields
     private DomainType domainType;
+    private List<DomainType> allTypes;
+
+    // v4 model fields
+    private DomainEntity domainEntity;
+    private ArchitecturalModel architecturalModel;
+
+    // Common fields
     private JpaConfig config;
     private String infrastructurePackage;
-    private List<DomainType> allTypes;
     private java.util.Map<String, String> embeddableMapping = java.util.Map.of();
 
     private MapperSpecBuilder() {
@@ -97,7 +109,9 @@ public final class MapperSpecBuilder {
      *
      * @param domainType the domain aggregate root or entity
      * @return this builder
+     * @deprecated Use {@link #domainEntity(DomainEntity)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public MapperSpecBuilder domainType(DomainType domainType) {
         this.domainType = domainType;
         return this;
@@ -136,9 +150,35 @@ public final class MapperSpecBuilder {
      *
      * @param allTypes all domain types from the IR snapshot
      * @return this builder
+     * @deprecated Use {@link #model(ArchitecturalModel)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public MapperSpecBuilder allTypes(List<DomainType> allTypes) {
         this.allTypes = allTypes;
+        return this;
+    }
+
+    /**
+     * Sets the v4 domain entity to transform.
+     *
+     * @param entity the domain entity from ArchitecturalModel
+     * @return this builder
+     * @since 4.0.0
+     */
+    public MapperSpecBuilder domainEntity(DomainEntity entity) {
+        this.domainEntity = entity;
+        return this;
+    }
+
+    /**
+     * Sets the v4 architectural model for type resolution.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 4.0.0
+     */
+    public MapperSpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
         return this;
     }
 
@@ -159,14 +199,8 @@ public final class MapperSpecBuilder {
     /**
      * Builds the MapperSpec from the provided configuration.
      *
-     * <p>This method performs the transformation from SPI DomainType to the
-     * MapperSpec model. It analyzes the domain type structure to generate
-     * appropriate mapping annotations for both toEntity and toDomain conversions.
-     *
-     * <p>Value Object detection: The builder scans all properties of the domain type
-     * and identifies any whose type is classified as VALUE_OBJECT in allTypes.
-     * For each such Value Object with a single property (simple wrapper pattern),
-     * conversion methods are generated.
+     * <p>If v4 model is available (domainEntity and architecturalModel set),
+     * uses v4 model. Otherwise falls back to legacy SPI.
      *
      * @return an immutable MapperSpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -174,6 +208,54 @@ public final class MapperSpecBuilder {
     public MapperSpec build() {
         validateRequiredFields();
 
+        // Use v4 model if available
+        if (domainEntity != null && architecturalModel != null) {
+            return buildFromV4Model();
+        }
+
+        // Fall back to legacy SPI
+        return buildFromLegacyModel();
+    }
+
+    /**
+     * Builds MapperSpec using v4 ArchitecturalModel.
+     *
+     * @return the built MapperSpec
+     * @since 4.0.0
+     */
+    private MapperSpec buildFromV4Model() {
+        String simpleName = domainEntity.id().simpleName();
+        String interfaceName = simpleName + config.mapperSuffix();
+
+        TypeName domainTypeName = ClassName.bestGuess(domainEntity.id().qualifiedName());
+        String entityClassName = simpleName + config.entitySuffix();
+        TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
+
+        List<MappingSpec> toEntityMappings = buildToEntityMappingsV4();
+        List<MappingSpec> toDomainMappings = buildToDomainMappingsV4();
+
+        MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentityV4();
+        List<ValueObjectMappingSpec> valueObjectMappings = detectValueObjectMappingsV4();
+        List<MapperSpec.EmbeddableMappingSpec> embeddableMappings = buildEmbeddableMappings();
+
+        return new MapperSpec(
+                infrastructurePackage,
+                interfaceName,
+                domainTypeName,
+                entityType,
+                toEntityMappings,
+                toDomainMappings,
+                wrappedIdentity,
+                valueObjectMappings,
+                embeddableMappings);
+    }
+
+    /**
+     * Builds MapperSpec using legacy SPI model.
+     *
+     * @return the built MapperSpec
+     */
+    private MapperSpec buildFromLegacyModel() {
         String interfaceName = domainType.simpleName() + config.mapperSuffix();
 
         TypeName domainTypeName = ClassName.bestGuess(domainType.qualifiedName());
@@ -301,6 +383,175 @@ public final class MapperSpecBuilder {
         }
 
         return mappings;
+    }
+
+    /**
+     * Builds mapping specifications for domain to entity conversion using v4 model.
+     *
+     * @return list of mapping specifications for toEntity method
+     * @since 4.0.0
+     */
+    private List<MappingSpec> buildToEntityMappingsV4() {
+        List<MappingSpec> mappings = new ArrayList<>();
+
+        // Map identity field if name differs from "id"
+        if (domainEntity.hasIdentity()) {
+            String identityFieldName = domainEntity.identityField();
+            if (!identityFieldName.equals("id")) {
+                mappings.add(MappingSpec.direct("id", identityFieldName));
+            }
+        }
+
+        // Ignore version field if optimistic locking is enabled
+        if (config.enableOptimisticLocking()) {
+            mappings.add(MappingSpec.ignore("version"));
+        }
+
+        // Ignore audit fields if auditing is enabled
+        if (config.enableAuditing()) {
+            mappings.add(MappingSpec.ignore("createdDate"));
+            mappings.add(MappingSpec.ignore("lastModifiedDate"));
+        }
+
+        return mappings;
+    }
+
+    /**
+     * Builds mapping specifications for entity to domain conversion using v4 model.
+     *
+     * @return list of mapping specifications for toDomain method
+     * @since 4.0.0
+     */
+    private List<MappingSpec> buildToDomainMappingsV4() {
+        List<MappingSpec> mappings = new ArrayList<>();
+
+        // Map identity field if name differs from "id"
+        if (domainEntity.hasIdentity()) {
+            String identityFieldName = domainEntity.identityField();
+            if (!identityFieldName.equals("id")) {
+                mappings.add(MappingSpec.direct(identityFieldName, "id"));
+            }
+        }
+
+        return mappings;
+    }
+
+    /**
+     * Detects wrapped identity using v4 model.
+     *
+     * @return the wrapped identity spec, or null if identity is not wrapped
+     * @since 4.0.0
+     */
+    private MapperSpec.WrappedIdentitySpec detectWrappedIdentityV4() {
+        if (!domainEntity.hasIdentity()) {
+            return null;
+        }
+
+        TypeRef idType = domainEntity.identityType();
+
+        // Check if identity type is a value object wrapper
+        var voOpt = architecturalModel
+                .valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
+                .filter(vo -> vo.componentFields().size() == 1)
+                .filter(vo -> vo.syntax() != null)
+                .findFirst();
+
+        if (voOpt.isEmpty()) {
+            return null;
+        }
+
+        ValueObject vo = voOpt.get();
+        FieldSyntax wrappedField = vo.syntax().fields().get(0);
+        String wrapperType = vo.id().qualifiedName();
+        String unwrappedType = wrappedField.type().qualifiedName();
+        String accessorMethod = wrappedField.name(); // For records, accessor is field name
+
+        return new MapperSpec.WrappedIdentitySpec(wrapperType, unwrappedType, accessorMethod);
+    }
+
+    /**
+     * Detects Value Objects used as properties using v4 model.
+     *
+     * @return list of Value Object mapping specifications
+     * @since 4.0.0
+     */
+    private List<ValueObjectMappingSpec> detectValueObjectMappingsV4() {
+        Set<String> processedTypes = new HashSet<>();
+        List<ValueObjectMappingSpec> mappings = new ArrayList<>();
+
+        // Exclude the entity's own identity type (handled by detectWrappedIdentityV4)
+        String identityTypeName =
+                domainEntity.hasIdentity() ? domainEntity.identityType().qualifiedName() : null;
+
+        // Scan all fields of the domain entity
+        if (domainEntity.syntax() != null) {
+            scanFieldsForValueObjectsV4(domainEntity.syntax().fields(), identityTypeName, processedTypes, mappings);
+        }
+
+        // Also scan fields of embedded VALUE_OBJECTs
+        for (String embeddableDomainFqn : embeddableMapping.keySet()) {
+            architecturalModel
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(embeddableDomainFqn))
+                    .filter(vo -> vo.syntax() != null)
+                    .findFirst()
+                    .ifPresent(vo -> scanFieldsForValueObjectsV4(
+                            vo.syntax().fields(), identityTypeName, processedTypes, mappings));
+        }
+
+        return mappings;
+    }
+
+    /**
+     * Scans a list of fields for Value Object wrapper types using v4 model.
+     */
+    private void scanFieldsForValueObjectsV4(
+            List<FieldSyntax> fields,
+            String identityTypeName,
+            Set<String> processedTypes,
+            List<ValueObjectMappingSpec> mappings) {
+
+        for (FieldSyntax field : fields) {
+            // Skip static fields
+            if (field.isStatic()) {
+                continue;
+            }
+
+            String fieldTypeName = field.type().qualifiedName();
+
+            // Skip if already processed (avoid duplicate conversion methods)
+            if (processedTypes.contains(fieldTypeName)) {
+                continue;
+            }
+
+            // Skip the entity's own identity type (handled by detectWrappedIdentityV4)
+            if (fieldTypeName.equals(identityTypeName)) {
+                continue;
+            }
+
+            // Check if the field type is a simple wrapper value object
+            var voOpt = architecturalModel
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(fieldTypeName))
+                    .filter(vo -> vo.componentFields().size() == 1)
+                    .filter(vo -> vo.syntax() != null)
+                    .findFirst();
+
+            if (voOpt.isPresent()) {
+                ValueObject vo = voOpt.get();
+                FieldSyntax wrappedField = vo.syntax().fields().get(0);
+                String wrapperType = vo.id().qualifiedName();
+                String simpleName = vo.id().simpleName();
+                String unwrappedType = wrappedField.type().qualifiedName();
+                String accessorMethod = wrappedField.name();
+                boolean isRecord = vo.syntax().isRecord();
+
+                mappings.add(
+                        new ValueObjectMappingSpec(wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
+                processedTypes.add(fieldTypeName);
+            }
+        }
     }
 
     /**
@@ -476,20 +727,28 @@ public final class MapperSpecBuilder {
     /**
      * Validates that all required fields are set.
      *
+     * <p>Supports both v4 model (domainEntity + architecturalModel) and
+     * legacy model (domainType + allTypes).
+     *
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainType == null) {
-            throw new IllegalStateException("domainType is required");
-        }
         if (config == null) {
             throw new IllegalStateException("config is required");
         }
         if (infrastructurePackage == null || infrastructurePackage.isEmpty()) {
             throw new IllegalStateException("infrastructurePackage is required");
         }
-        if (allTypes == null) {
-            throw new IllegalStateException("allTypes is required");
+
+        // Check v4 model
+        boolean hasV4Model = domainEntity != null && architecturalModel != null;
+
+        // Check legacy model
+        boolean hasLegacyModel = domainType != null && allTypes != null;
+
+        if (!hasV4Model && !hasLegacyModel) {
+            throw new IllegalStateException(
+                    "Either v4 model (domainEntity + model) or legacy model (domainType + allTypes) is required");
         }
     }
 }

@@ -15,6 +15,9 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.JpaModelUtils;
@@ -23,6 +26,7 @@ import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortMethod;
+import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -61,10 +65,18 @@ import java.util.Map;
  */
 public final class RepositorySpecBuilder {
 
+    // Legacy SPI fields
     private DomainType domainType;
+    private List<Port> ports = List.of();
+
+    // v4 model fields
+    private DomainEntity domainEntity;
+    private List<DrivenPort> drivenPorts = List.of();
+    private ArchitecturalModel architecturalModel;
+
+    // Common fields
     private JpaConfig config;
     private String infrastructurePackage;
-    private List<Port> ports = List.of();
 
     private RepositorySpecBuilder() {
         // Use static factory method
@@ -84,7 +96,9 @@ public final class RepositorySpecBuilder {
      *
      * @param domainType the domain aggregate root
      * @return this builder
+     * @deprecated Use {@link #domainEntity(DomainEntity)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public RepositorySpecBuilder domainType(DomainType domainType) {
         this.domainType = domainType;
         return this;
@@ -123,26 +137,55 @@ public final class RepositorySpecBuilder {
      *
      * @param ports the repository ports for this domain type
      * @return this builder
+     * @deprecated Use {@link #drivenPorts(List)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public RepositorySpecBuilder ports(List<Port> ports) {
         this.ports = ports != null ? ports : List.of();
         return this;
     }
 
     /**
+     * Sets the v4 domain entity to transform.
+     *
+     * @param entity the domain entity from ArchitecturalModel
+     * @return this builder
+     * @since 4.0.0
+     */
+    public RepositorySpecBuilder domainEntity(DomainEntity entity) {
+        this.domainEntity = entity;
+        return this;
+    }
+
+    /**
+     * Sets the v4 driven ports for derived method extraction.
+     *
+     * @param ports the driven ports for this domain entity
+     * @return this builder
+     * @since 4.0.0
+     */
+    public RepositorySpecBuilder drivenPorts(List<DrivenPort> ports) {
+        this.drivenPorts = ports != null ? ports : List.of();
+        return this;
+    }
+
+    /**
+     * Sets the v4 architectural model.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 4.0.0
+     */
+    public RepositorySpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
+        return this;
+    }
+
+    /**
      * Builds the RepositorySpec from the provided configuration.
      *
-     * <p>This method performs the transformation from SPI DomainType to the
-     * RepositorySpec model. It validates that all required fields are set
-     * and derives the repository interface name and type parameters.
-     *
-     * <p>The ID type is unwrapped for JPA compatibility. For example, a wrapped
-     * identifier {@code record OrderId(UUID value)} is unwrapped to {@code UUID}
-     * for use in the {@code JpaRepository<OrderEntity, UUID>} generic parameter.
-     *
-     * <p>Derived methods are collected from the associated ports. Methods like
-     * {@code findByEmail}, {@code existsByStatus} are extracted and will be
-     * declared in the generated repository interface.
+     * <p>If v4 model is available (domainEntity set), uses v4 model.
+     * Otherwise falls back to legacy SPI.
      *
      * @return an immutable RepositorySpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -151,6 +194,52 @@ public final class RepositorySpecBuilder {
     public RepositorySpec build() {
         validateRequiredFields();
 
+        // Use v4 model if available
+        if (domainEntity != null) {
+            return buildFromV4Model();
+        }
+
+        // Fall back to legacy SPI
+        return buildFromLegacyModel();
+    }
+
+    /**
+     * Builds RepositorySpec using v4 ArchitecturalModel.
+     *
+     * @return the built RepositorySpec
+     * @since 4.0.0
+     */
+    private RepositorySpec buildFromV4Model() {
+        if (!domainEntity.hasIdentity()) {
+            throw new IllegalArgumentException("Domain entity "
+                    + domainEntity.id().qualifiedName() + " has no identity. Cannot generate JPA repository.");
+        }
+
+        String simpleName = domainEntity.id().simpleName();
+        String interfaceName = simpleName + config.repositorySuffix();
+        String entityClassName = simpleName + config.entitySuffix();
+
+        TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
+        TypeName idType = resolveIdTypeV4();
+
+        // Collect derived methods from v4 driven ports
+        List<DerivedMethodSpec> derivedMethods = collectDerivedMethodsV4(entityType);
+
+        return new RepositorySpec(
+                infrastructurePackage,
+                interfaceName,
+                entityType,
+                idType,
+                domainEntity.id().qualifiedName(),
+                derivedMethods);
+    }
+
+    /**
+     * Builds RepositorySpec using legacy SPI model.
+     *
+     * @return the built RepositorySpec
+     */
+    private RepositorySpec buildFromLegacyModel() {
         if (!domainType.hasIdentity()) {
             throw new IllegalArgumentException(
                     "Domain type " + domainType.qualifiedName() + " has no identity. Cannot generate JPA repository.");
@@ -167,6 +256,62 @@ public final class RepositorySpecBuilder {
 
         return new RepositorySpec(
                 infrastructurePackage, interfaceName, entityType, idType, domainType.qualifiedName(), derivedMethods);
+    }
+
+    /**
+     * Resolves the ID type from the v4 domain entity's identity.
+     *
+     * @return the JavaPoet TypeName of the unwrapped ID type
+     */
+    private TypeName resolveIdTypeV4() {
+        TypeRef idType = domainEntity.identityType();
+
+        // Check if it's a value object wrapper (needs unwrapping)
+        if (architecturalModel != null) {
+            var voOpt = architecturalModel
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
+                    .filter(vo -> vo.componentFields().size() == 1)
+                    .filter(vo -> vo.syntax() != null)
+                    .findFirst();
+
+            if (voOpt.isPresent()) {
+                // Unwrap the value object
+                var wrappedField = voOpt.get().syntax().fields().get(0);
+                return JpaModelUtils.resolveTypeName(wrappedField.type().qualifiedName());
+            }
+        }
+
+        return JpaModelUtils.resolveTypeName(idType.qualifiedName());
+    }
+
+    /**
+     * Collects derived query methods from v4 driven ports.
+     *
+     * @param entityType the entity type for return types
+     * @return list of derived method specifications
+     */
+    private List<DerivedMethodSpec> collectDerivedMethodsV4(TypeName entityType) {
+        if (drivenPorts.isEmpty()) {
+            return List.of();
+        }
+
+        Map<String, DerivedMethodSpec> methodsBySignature = new LinkedHashMap<>();
+
+        for (DrivenPort port : drivenPorts) {
+            for (var operation : port.operations()) {
+                // Use method syntax if available
+                if (operation.syntax() != null) {
+                    DerivedMethodSpec spec = DerivedMethodSpec.fromV4(operation, entityType);
+                    if (spec != null) {
+                        String signature = computeMethodSignature(spec);
+                        methodsBySignature.putIfAbsent(signature, spec);
+                    }
+                }
+            }
+        }
+
+        return new ArrayList<>(methodsBySignature.values());
     }
 
     /**
@@ -243,17 +388,21 @@ public final class RepositorySpecBuilder {
     /**
      * Validates that all required fields are set.
      *
+     * <p>Supports both v4 model (domainEntity) and legacy model (domainType).
+     *
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainType == null) {
-            throw new IllegalStateException("domainType is required");
-        }
         if (config == null) {
             throw new IllegalStateException("config is required");
         }
         if (infrastructurePackage == null || infrastructurePackage.isEmpty()) {
             throw new IllegalStateException("infrastructurePackage is required");
+        }
+
+        // Check v4 model or legacy model
+        if (domainEntity == null && domainType == null) {
+            throw new IllegalStateException("Either domainEntity (v4) or domainType (legacy) is required");
         }
     }
 }

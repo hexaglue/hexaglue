@@ -13,11 +13,17 @@
 
 package io.hexaglue.plugin.jpa.builder;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.ValueObject;
 import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.extraction.JpaAnnotationExtractor;
+import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
 import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.spi.ir.DomainType;
+import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -40,11 +46,18 @@ import java.util.stream.Collectors;
  */
 public final class EmbeddableSpecBuilder {
 
+    // Legacy SPI fields
     private DomainType domainType;
+    private List<DomainType> allTypes;
+
+    // v4 model fields
+    private ValueObject valueObject;
+    private ArchitecturalModel architecturalModel;
+
+    // Common fields
     private JpaConfig config;
     private String infrastructurePackage;
-    private List<DomainType> allTypes;
-    private java.util.Map<String, String> embeddableMapping = java.util.Map.of();
+    private Map<String, String> embeddableMapping = Map.of();
 
     private EmbeddableSpecBuilder() {
         // Use static factory method
@@ -64,7 +77,9 @@ public final class EmbeddableSpecBuilder {
      *
      * @param domainType the domain value object
      * @return this builder
+     * @deprecated Use {@link #valueObject(ValueObject)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public EmbeddableSpecBuilder domainType(DomainType domainType) {
         this.domainType = domainType;
         return this;
@@ -97,9 +112,37 @@ public final class EmbeddableSpecBuilder {
      *
      * @param allTypes all domain types from the IR snapshot
      * @return this builder
+     * @deprecated Use {@link #model(ArchitecturalModel)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public EmbeddableSpecBuilder allTypes(List<DomainType> allTypes) {
         this.allTypes = allTypes;
+        return this;
+    }
+
+    /**
+     * Sets the v4 value object to transform.
+     *
+     * <p>This is the preferred method for v4 model support.
+     *
+     * @param vo the value object from ArchitecturalModel
+     * @return this builder
+     * @since 4.0.0
+     */
+    public EmbeddableSpecBuilder valueObject(ValueObject vo) {
+        this.valueObject = vo;
+        return this;
+    }
+
+    /**
+     * Sets the v4 architectural model for type resolution.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 4.0.0
+     */
+    public EmbeddableSpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
         return this;
     }
 
@@ -120,12 +163,56 @@ public final class EmbeddableSpecBuilder {
     /**
      * Builds the EmbeddableSpec from the provided configuration.
      *
+     * <p>If v4 model is available (valueObject and architecturalModel set),
+     * uses the v4 extraction utilities. Otherwise falls back to legacy SPI.
+     *
      * @return an immutable EmbeddableSpec ready for code generation
      * @throws IllegalStateException if required fields are missing
      */
     public EmbeddableSpec build() {
         validateRequiredFields();
 
+        // Use v4 model if available
+        if (valueObject != null && architecturalModel != null) {
+            return buildFromV4Model();
+        }
+
+        // Fall back to legacy SPI
+        return buildFromLegacyModel();
+    }
+
+    /**
+     * Builds EmbeddableSpec using v4 ArchitecturalModel.
+     *
+     * @return the built EmbeddableSpec
+     * @since 4.0.0
+     */
+    private EmbeddableSpec buildFromV4Model() {
+        TypeSyntax syntax = valueObject.syntax();
+        if (syntax == null) {
+            throw new IllegalStateException("Value object " + valueObject.id().qualifiedName()
+                    + " has no syntax. Cannot generate JPA embeddable.");
+        }
+
+        String simpleName = valueObject.id().simpleName();
+        String className = simpleName + config.embeddableSuffix();
+
+        List<PropertyFieldSpec> properties = buildPropertySpecsV4(syntax);
+
+        return EmbeddableSpec.builder()
+                .packageName(infrastructurePackage)
+                .className(className)
+                .domainQualifiedName(valueObject.id().qualifiedName())
+                .addProperties(properties)
+                .build();
+    }
+
+    /**
+     * Builds EmbeddableSpec using legacy SPI model.
+     *
+     * @return the built EmbeddableSpec
+     */
+    private EmbeddableSpec buildFromLegacyModel() {
         String className = domainType.simpleName() + config.embeddableSuffix();
 
         List<PropertyFieldSpec> properties = buildPropertySpecs();
@@ -136,6 +223,16 @@ public final class EmbeddableSpecBuilder {
                 .domainQualifiedName(domainType.qualifiedName())
                 .addProperties(properties)
                 .build();
+    }
+
+    /**
+     * Builds property field specifications using v4 model.
+     */
+    private List<PropertyFieldSpec> buildPropertySpecsV4(TypeSyntax syntax) {
+        List<PropertyInfo> properties = JpaAnnotationExtractor.extractProperties(syntax);
+        return properties.stream()
+                .map(prop -> PropertyFieldSpec.from(prop, architecturalModel))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -159,20 +256,28 @@ public final class EmbeddableSpecBuilder {
     /**
      * Validates that all required fields are set.
      *
+     * <p>Supports both v4 model (valueObject + architecturalModel) and
+     * legacy model (domainType + allTypes).
+     *
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainType == null) {
-            throw new IllegalStateException("domainType is required");
-        }
         if (config == null) {
             throw new IllegalStateException("config is required");
         }
         if (infrastructurePackage == null || infrastructurePackage.isEmpty()) {
             throw new IllegalStateException("infrastructurePackage is required");
         }
-        if (allTypes == null) {
-            throw new IllegalStateException("allTypes is required");
+
+        // Check v4 model
+        boolean hasV4Model = valueObject != null && architecturalModel != null;
+
+        // Check legacy model
+        boolean hasLegacyModel = domainType != null && allTypes != null;
+
+        if (!hasV4Model && !hasLegacyModel) {
+            throw new IllegalStateException(
+                    "Either v4 model (valueObject + model) or legacy model (domainType + allTypes) is required");
         }
     }
 }

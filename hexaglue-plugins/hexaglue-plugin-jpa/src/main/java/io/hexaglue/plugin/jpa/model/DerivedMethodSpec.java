@@ -16,10 +16,12 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.spi.ir.MethodKind;
 import io.hexaglue.spi.ir.MethodParameter;
 import io.hexaglue.spi.ir.PortMethod;
 import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.syntax.MethodSyntax;
 import java.util.List;
 
 /**
@@ -76,6 +78,168 @@ public record DerivedMethodSpec(
                 .toList();
 
         return new DerivedMethodSpec(methodName, returnType, params, method.kind());
+    }
+
+    /**
+     * Creates a DerivedMethodSpec from a v4 PortOperation.
+     *
+     * <p>This factory method transforms the v4 representation to the plugin's internal
+     * specification, inferring method kind from the method name pattern.
+     *
+     * @param operation the v4 port operation
+     * @param entityTypeName the entity class name to use for return types
+     * @return a new DerivedMethodSpec, or null if the method should not be generated
+     * @since 4.0.0
+     */
+    public static DerivedMethodSpec fromV4(PortOperation operation, TypeName entityTypeName) {
+        String methodName = operation.name();
+
+        // Infer method kind from name pattern
+        MethodKind kind = inferMethodKind(methodName);
+
+        // Only generate derived methods for property-based queries
+        if (!isPropertyBasedMethod(kind)) {
+            return null;
+        }
+
+        TypeName returnType = resolveReturnTypeV4(operation, kind, entityTypeName);
+        List<ParameterSpec> params = buildParametersV4(operation);
+
+        return new DerivedMethodSpec(methodName, returnType, params, kind);
+    }
+
+    /**
+     * Infers the MethodKind from the method name pattern.
+     */
+    private static MethodKind inferMethodKind(String name) {
+        if (name.startsWith("findBy") && !name.startsWith("findAllBy")) {
+            return MethodKind.FIND_BY_PROPERTY;
+        }
+        if (name.startsWith("findAllBy")) {
+            return MethodKind.FIND_ALL_BY_PROPERTY;
+        }
+        if (name.startsWith("existsBy")) {
+            return MethodKind.EXISTS_BY_PROPERTY;
+        }
+        if (name.startsWith("countBy")) {
+            return MethodKind.COUNT_BY_PROPERTY;
+        }
+        if (name.startsWith("deleteBy")) {
+            return MethodKind.DELETE_BY_PROPERTY;
+        }
+        if (name.startsWith("streamBy")) {
+            return MethodKind.STREAM_BY_PROPERTY;
+        }
+        if (name.startsWith("findById") || name.equals("findById")) {
+            return MethodKind.FIND_BY_ID;
+        }
+        if (name.equals("save")) {
+            return MethodKind.SAVE;
+        }
+        if (name.equals("saveAll")) {
+            return MethodKind.SAVE_ALL;
+        }
+        if (name.equals("delete") || name.equals("deleteById")) {
+            return MethodKind.DELETE_BY_ID;
+        }
+        if (name.equals("deleteAll") || name.equals("deleteAllById")) {
+            return MethodKind.DELETE_ALL;
+        }
+        return MethodKind.CUSTOM;
+    }
+
+    /**
+     * Resolves the return type from v4 PortOperation.
+     */
+    private static TypeName resolveReturnTypeV4(PortOperation operation, MethodKind kind, TypeName entityTypeName) {
+        // Boolean for exists methods
+        if (kind == MethodKind.EXISTS_BY_PROPERTY) {
+            return TypeName.BOOLEAN;
+        }
+
+        // Long for count methods
+        if (kind == MethodKind.COUNT_BY_PROPERTY) {
+            return TypeName.LONG;
+        }
+
+        // Long for delete methods
+        if (kind == MethodKind.DELETE_BY_PROPERTY) {
+            return ClassName.get(Long.class);
+        }
+
+        io.hexaglue.syntax.TypeRef returnType = operation.returnType();
+        if (returnType == null) {
+            return TypeName.VOID;
+        }
+
+        // Optional<Entity> for single-result finders
+        if (returnType.qualifiedName().startsWith("java.util.Optional")) {
+            return ParameterizedTypeName.get(ClassName.get("java.util", "Optional"), entityTypeName);
+        }
+
+        // List<Entity> for multi-result finders
+        if (returnType.qualifiedName().startsWith("java.util.List")
+                || returnType.qualifiedName().startsWith("java.util.Collection")) {
+            return ParameterizedTypeName.get(ClassName.get("java.util", "List"), entityTypeName);
+        }
+
+        // Stream<Entity> for stream methods
+        if (returnType.qualifiedName().startsWith("java.util.stream.Stream")) {
+            return ParameterizedTypeName.get(ClassName.get("java.util.stream", "Stream"), entityTypeName);
+        }
+
+        // Fallback to Optional<Entity> for safety
+        return ParameterizedTypeName.get(ClassName.get("java.util", "Optional"), entityTypeName);
+    }
+
+    /**
+     * Builds parameters from v4 PortOperation.
+     */
+    private static List<ParameterSpec> buildParametersV4(PortOperation operation) {
+        MethodSyntax syntax = operation.syntax();
+        if (syntax == null) {
+            // Fall back to operation parameter types
+            return operation.parameterTypes().stream()
+                    .map(type -> new ParameterSpec("param", resolveTypeNameV4(type)))
+                    .toList();
+        }
+
+        return syntax.parameters().stream()
+                .map(param -> new ParameterSpec(param.name(), resolveTypeNameV4(param.type())))
+                .toList();
+    }
+
+    /**
+     * Resolves a v4 TypeRef to a JavaPoet TypeName.
+     */
+    private static TypeName resolveTypeNameV4(io.hexaglue.syntax.TypeRef typeRef) {
+        // Handle primitives
+        if (typeRef.isPrimitive()) {
+            return switch (typeRef.qualifiedName()) {
+                case "boolean" -> TypeName.BOOLEAN;
+                case "byte" -> TypeName.BYTE;
+                case "short" -> TypeName.SHORT;
+                case "int" -> TypeName.INT;
+                case "long" -> TypeName.LONG;
+                case "float" -> TypeName.FLOAT;
+                case "double" -> TypeName.DOUBLE;
+                case "char" -> TypeName.CHAR;
+                case "void" -> TypeName.VOID;
+                default -> ClassName.bestGuess(typeRef.qualifiedName());
+            };
+        }
+
+        // Handle parameterized types
+        if (!typeRef.typeArguments().isEmpty()) {
+            TypeName rawType = ClassName.bestGuess(typeRef.qualifiedName());
+            TypeName[] typeArgs = typeRef.typeArguments().stream()
+                    .map(DerivedMethodSpec::resolveTypeNameV4)
+                    .toArray(TypeName[]::new);
+            return ParameterizedTypeName.get((ClassName) rawType, typeArgs);
+        }
+
+        // Simple class type
+        return ClassName.bestGuess(typeRef.qualifiedName());
     }
 
     /**

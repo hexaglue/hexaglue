@@ -15,9 +15,13 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
+import io.hexaglue.plugin.jpa.model.JpaModelUtils;
 import io.hexaglue.plugin.jpa.strategy.AdapterContext;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Port;
@@ -82,8 +86,16 @@ import java.util.stream.Collectors;
  */
 public final class AdapterSpecBuilder {
 
+    // Legacy SPI fields
     private List<Port> ports;
     private DomainType domainType;
+
+    // v4 model fields
+    private List<DrivenPort> drivenPorts;
+    private DomainEntity domainEntity;
+    private ArchitecturalModel architecturalModel;
+
+    // Common fields
     private JpaConfig config;
     private String infrastructurePackage;
 
@@ -109,7 +121,9 @@ public final class AdapterSpecBuilder {
      *
      * @param ports the driven port interfaces
      * @return this builder
+     * @deprecated Use {@link #drivenPorts(List)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public AdapterSpecBuilder ports(List<Port> ports) {
         this.ports = ports;
         return this;
@@ -123,7 +137,9 @@ public final class AdapterSpecBuilder {
      *
      * @param domainType the domain aggregate root or entity
      * @return this builder
+     * @deprecated Use {@link #domainEntity(DomainEntity)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public AdapterSpecBuilder domainType(DomainType domainType) {
         this.domainType = domainType;
         return this;
@@ -155,18 +171,46 @@ public final class AdapterSpecBuilder {
     }
 
     /**
+     * Sets the v4 driven ports to implement.
+     *
+     * @param ports the driven ports
+     * @return this builder
+     * @since 4.0.0
+     */
+    public AdapterSpecBuilder drivenPorts(List<DrivenPort> ports) {
+        this.drivenPorts = ports;
+        return this;
+    }
+
+    /**
+     * Sets the v4 domain entity managed by this adapter.
+     *
+     * @param entity the domain entity
+     * @return this builder
+     * @since 4.0.0
+     */
+    public AdapterSpecBuilder domainEntity(DomainEntity entity) {
+        this.domainEntity = entity;
+        return this;
+    }
+
+    /**
+     * Sets the v4 architectural model.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 4.0.0
+     */
+    public AdapterSpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
+        return this;
+    }
+
+    /**
      * Builds the AdapterSpec from the provided configuration.
      *
-     * <p>This method performs the transformation from SPI Port(s) and DomainType
-     * to the AdapterSpec model. It resolves all type references, generates method
-     * specifications with deduplication, and prepares the complete adapter
-     * specification for code generation.
-     *
-     * <p>Adapter naming strategy:
-     * <ul>
-     *   <li>Single port: Use port name + adapter suffix (e.g., OrderRepositoryAdapter)</li>
-     *   <li>Multiple ports: Use domain type name + adapter suffix (e.g., OrderAdapter)</li>
-     * </ul>
+     * <p>If v4 model is available (drivenPorts and domainEntity set),
+     * uses v4 model. Otherwise falls back to legacy SPI.
      *
      * @return an immutable AdapterSpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -175,6 +219,124 @@ public final class AdapterSpecBuilder {
     public AdapterSpec build() {
         validateRequiredFields();
 
+        // Use v4 model if available
+        if (drivenPorts != null && domainEntity != null) {
+            return buildFromV4Model();
+        }
+
+        // Fall back to legacy SPI
+        return buildFromLegacyModel();
+    }
+
+    /**
+     * Builds AdapterSpec using v4 ArchitecturalModel.
+     *
+     * @return the built AdapterSpec
+     * @since 4.0.0
+     */
+    private AdapterSpec buildFromV4Model() {
+        if (drivenPorts.isEmpty()) {
+            throw new IllegalArgumentException("At least one driven port is required to generate an adapter");
+        }
+
+        String simpleName = domainEntity.id().simpleName();
+
+        // Derive class name based on number of ports
+        String className;
+        if (drivenPorts.size() == 1) {
+            className = drivenPorts.get(0).id().simpleName() + config.adapterSuffix();
+        } else {
+            className = simpleName + config.adapterSuffix();
+        }
+
+        // Convert all ports to TypeNames for implements clause
+        List<TypeName> implementedPorts = drivenPorts.stream()
+                .map(port -> ClassName.bestGuess(port.id().qualifiedName()))
+                .collect(Collectors.toList());
+
+        // Resolve domain, entity, repository, and mapper types
+        TypeName domainClass = ClassName.bestGuess(domainEntity.id().qualifiedName());
+        String entityClassName = simpleName + config.entitySuffix();
+        TypeName entityClass = ClassName.get(infrastructurePackage, entityClassName);
+        TypeName repositoryClass = ClassName.get(infrastructurePackage, simpleName + config.repositorySuffix());
+        TypeName mapperClass = ClassName.get(infrastructurePackage, simpleName + config.mapperSuffix());
+
+        // Collect all methods from all driven ports with deduplication
+        List<AdapterMethodSpec> methods = buildAdapterMethodSpecsV4();
+
+        // Build IdInfo from domain entity's identity
+        AdapterContext.IdInfo idInfo = buildIdInfoV4();
+
+        return new AdapterSpec(
+                infrastructurePackage,
+                className,
+                implementedPorts,
+                domainClass,
+                entityClass,
+                repositoryClass,
+                mapperClass,
+                methods,
+                idInfo);
+    }
+
+    /**
+     * Builds IdInfo from v4 domain entity.
+     */
+    private AdapterContext.IdInfo buildIdInfoV4() {
+        if (!domainEntity.hasIdentity()) {
+            return null;
+        }
+
+        io.hexaglue.syntax.TypeRef idType = domainEntity.identityType();
+
+        // Check if it's a wrapped identity
+        TypeName wrapperType = JpaModelUtils.resolveTypeName(idType.qualifiedName());
+        TypeName unwrappedType = wrapperType;
+        boolean isWrapped = false;
+
+        if (architecturalModel != null) {
+            var voOpt = architecturalModel
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
+                    .filter(vo -> vo.componentFields().size() == 1)
+                    .filter(vo -> vo.syntax() != null)
+                    .findFirst();
+
+            if (voOpt.isPresent()) {
+                var vo = voOpt.get();
+                var wrappedField = vo.syntax().fields().get(0);
+                unwrappedType =
+                        JpaModelUtils.resolveTypeName(wrappedField.type().qualifiedName());
+                isWrapped = true;
+            }
+        }
+
+        return new AdapterContext.IdInfo(isWrapped ? wrapperType : null, unwrappedType, isWrapped);
+    }
+
+    /**
+     * Builds adapter method specifications from v4 driven ports.
+     */
+    private List<AdapterMethodSpec> buildAdapterMethodSpecsV4() {
+        Map<String, AdapterMethodSpec> methodsBySignature = new LinkedHashMap<>();
+
+        for (DrivenPort port : drivenPorts) {
+            for (var operation : port.operations()) {
+                AdapterMethodSpec spec = AdapterMethodSpec.fromV4(operation);
+                String signature = computeSignature(spec);
+                methodsBySignature.putIfAbsent(signature, spec);
+            }
+        }
+
+        return new ArrayList<>(methodsBySignature.values());
+    }
+
+    /**
+     * Builds AdapterSpec using legacy SPI model.
+     *
+     * @return the built AdapterSpec
+     */
+    private AdapterSpec buildFromLegacyModel() {
         if (ports.isEmpty()) {
             throw new IllegalArgumentException("At least one port is required to generate an adapter");
         }

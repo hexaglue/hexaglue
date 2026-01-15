@@ -13,7 +13,13 @@
 
 package io.hexaglue.plugin.jpa.builder;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.extraction.IdentityInfo;
+import io.hexaglue.plugin.jpa.extraction.JpaAnnotationExtractor;
+import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
+import io.hexaglue.plugin.jpa.extraction.RelationInfo;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.IdFieldSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
@@ -22,8 +28,10 @@ import io.hexaglue.plugin.jpa.util.NamingConventions;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -57,10 +65,17 @@ import java.util.stream.Collectors;
  */
 public final class EntitySpecBuilder {
 
+    // Legacy SPI fields
     private DomainType domainType;
+    private List<DomainType> allTypes;
+
+    // v4 model fields
+    private DomainEntity domainEntity;
+    private ArchitecturalModel architecturalModel;
+
+    // Common fields
     private JpaConfig config;
     private String infrastructurePackage;
-    private List<DomainType> allTypes;
     private Map<String, String> embeddableMapping = Map.of();
 
     private EntitySpecBuilder() {
@@ -81,7 +96,9 @@ public final class EntitySpecBuilder {
      *
      * @param domainType the domain aggregate root or entity
      * @return this builder
+     * @deprecated Use {@link #domainEntity(DomainEntity)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public EntitySpecBuilder domainType(DomainType domainType) {
         this.domainType = domainType;
         return this;
@@ -119,9 +136,41 @@ public final class EntitySpecBuilder {
      *
      * @param allTypes all domain types from the IR snapshot
      * @return this builder
+     * @deprecated Use {@link #model(ArchitecturalModel)} for v4 model support
      */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public EntitySpecBuilder allTypes(List<DomainType> allTypes) {
         this.allTypes = allTypes;
+        return this;
+    }
+
+    /**
+     * Sets the v4 domain entity to transform.
+     *
+     * <p>This is the preferred method for v4 model support. When set,
+     * the builder will use the v4 extraction utilities.
+     *
+     * @param entity the domain entity from ArchitecturalModel
+     * @return this builder
+     * @since 4.0.0
+     */
+    public EntitySpecBuilder domainEntity(DomainEntity entity) {
+        this.domainEntity = entity;
+        return this;
+    }
+
+    /**
+     * Sets the v4 architectural model for type resolution.
+     *
+     * <p>This is the preferred method for v4 model support. When set,
+     * the builder will use the v4 extraction utilities.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 4.0.0
+     */
+    public EntitySpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
         return this;
     }
 
@@ -142,9 +191,12 @@ public final class EntitySpecBuilder {
     /**
      * Builds the EntitySpec from the provided configuration.
      *
-     * <p>This method performs the complete transformation from SPI DomainType
-     * to the EntitySpec model. It validates that all required fields are set
-     * and applies the transformation logic.
+     * <p>This method performs the complete transformation from either the legacy
+     * SPI DomainType or v4 DomainEntity to the EntitySpec model. It validates
+     * that all required fields are set and applies the transformation logic.
+     *
+     * <p>If v4 model is available (domainEntity and architecturalModel set),
+     * uses the v4 extraction utilities. Otherwise falls back to legacy SPI.
      *
      * @return an immutable EntitySpec ready for code generation
      * @throws IllegalStateException if required fields are missing
@@ -153,6 +205,72 @@ public final class EntitySpecBuilder {
     public EntitySpec build() {
         validateRequiredFields();
 
+        // Use v4 model if available
+        if (domainEntity != null && architecturalModel != null) {
+            return buildFromV4Model();
+        }
+
+        // Fall back to legacy SPI
+        return buildFromLegacyModel();
+    }
+
+    /**
+     * Builds EntitySpec using v4 ArchitecturalModel.
+     *
+     * @return the built EntitySpec
+     * @since 4.0.0
+     */
+    private EntitySpec buildFromV4Model() {
+        if (!domainEntity.hasIdentity()) {
+            throw new IllegalArgumentException("Domain entity "
+                    + domainEntity.id().qualifiedName() + " has no identity. Cannot generate JPA entity.");
+        }
+
+        TypeSyntax syntax = domainEntity.syntax();
+        if (syntax == null) {
+            throw new IllegalStateException("Domain entity " + domainEntity.id().qualifiedName()
+                    + " has no syntax. Cannot generate JPA entity.");
+        }
+
+        String simpleName = domainEntity.id().simpleName();
+        String className = simpleName + config.entitySuffix();
+        String tableName = NamingConventions.toTableName(simpleName, config.tablePrefix());
+
+        // Extract identity using v4 extractor
+        Optional<IdentityInfo> identityInfoOpt = JpaAnnotationExtractor.extractIdentity(syntax);
+        if (identityInfoOpt.isEmpty()) {
+            // Fallback to model's identity info
+            identityInfoOpt =
+                    Optional.of(IdentityInfo.simpleId(domainEntity.identityField(), domainEntity.identityType()));
+        }
+
+        IdentityInfo identityInfo = identityInfoOpt.get();
+        TypeSyntax identityTypeSyntax = findTypeSyntax(identityInfo.idType().qualifiedName());
+        IdFieldSpec idField = IdFieldSpec.from(identityInfo, identityTypeSyntax);
+
+        // Extract properties and relations
+        List<PropertyFieldSpec> properties = buildPropertySpecsV4(syntax);
+        List<RelationFieldSpec> relations = buildRelationSpecsV4(syntax);
+
+        return EntitySpec.builder()
+                .packageName(infrastructurePackage)
+                .className(className)
+                .tableName(tableName)
+                .domainQualifiedName(domainEntity.id().qualifiedName())
+                .idField(idField)
+                .addProperties(properties)
+                .addRelations(relations)
+                .enableAuditing(config.enableAuditing())
+                .enableOptimisticLocking(config.enableOptimisticLocking())
+                .build();
+    }
+
+    /**
+     * Builds EntitySpec using legacy SPI model.
+     *
+     * @return the built EntitySpec
+     */
+    private EntitySpec buildFromLegacyModel() {
         if (!domainType.hasIdentity()) {
             throw new IllegalArgumentException(
                     "Domain type " + domainType.qualifiedName() + " has no identity. Cannot generate JPA entity.");
@@ -178,6 +296,39 @@ public final class EntitySpecBuilder {
                 .enableAuditing(config.enableAuditing())
                 .enableOptimisticLocking(config.enableOptimisticLocking())
                 .build();
+    }
+
+    /**
+     * Finds TypeSyntax for a qualified name from the v4 model.
+     */
+    private TypeSyntax findTypeSyntax(String qualifiedName) {
+        // Check value objects (identity types are often value objects)
+        return architecturalModel
+                .valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
+                .map(vo -> vo.syntax())
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Builds property field specifications using v4 model.
+     */
+    private List<PropertyFieldSpec> buildPropertySpecsV4(TypeSyntax syntax) {
+        List<PropertyInfo> properties = JpaAnnotationExtractor.extractProperties(syntax);
+        return properties.stream()
+                .map(prop -> PropertyFieldSpec.from(prop, architecturalModel))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Builds relationship field specifications using v4 model.
+     */
+    private List<RelationFieldSpec> buildRelationSpecsV4(TypeSyntax syntax) {
+        List<RelationInfo> relations = JpaAnnotationExtractor.extractRelations(syntax);
+        return relations.stream()
+                .map(rel -> RelationFieldSpec.from(rel, architecturalModel, embeddableMapping))
+                .collect(Collectors.toList());
     }
 
     /**
@@ -303,20 +454,28 @@ public final class EntitySpecBuilder {
     /**
      * Validates that all required fields are set.
      *
+     * <p>Supports both v4 model (domainEntity + architecturalModel) and
+     * legacy model (domainType + allTypes).
+     *
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainType == null) {
-            throw new IllegalStateException("domainType is required");
-        }
         if (config == null) {
             throw new IllegalStateException("config is required");
         }
         if (infrastructurePackage == null || infrastructurePackage.isEmpty()) {
             throw new IllegalStateException("infrastructurePackage is required");
         }
-        if (allTypes == null) {
-            throw new IllegalStateException("allTypes is required");
+
+        // Check v4 model
+        boolean hasV4Model = domainEntity != null && architecturalModel != null;
+
+        // Check legacy model
+        boolean hasLegacyModel = domainType != null && allTypes != null;
+
+        if (!hasV4Model && !hasLegacyModel) {
+            throw new IllegalStateException(
+                    "Either v4 model (domainEntity + model) or legacy model (domainType + allTypes) is required");
         }
     }
 }

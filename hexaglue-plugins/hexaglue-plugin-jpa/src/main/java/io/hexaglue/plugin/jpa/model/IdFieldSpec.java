@@ -14,9 +14,12 @@
 package io.hexaglue.plugin.jpa.model;
 
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.plugin.jpa.extraction.IdentityInfo;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.IdentityStrategy;
 import io.hexaglue.spi.ir.IdentityWrapperKind;
+import io.hexaglue.syntax.TypeForm;
+import io.hexaglue.syntax.TypeSyntax;
 
 /**
  * Intermediate representation of an identity field for JPA entity generation.
@@ -68,6 +71,62 @@ public record IdFieldSpec(
 
         return new IdFieldSpec(
                 identity.fieldName(), javaType, unwrappedType, identity.strategy(), identity.wrapperKind());
+    }
+
+    /**
+     * Creates an IdFieldSpec from v4 IdentityInfo extracted from annotations.
+     *
+     * <p>This factory method converts the v4 extraction model to the JavaPoet-based
+     * generation model. It handles both wrapped and unwrapped identity types.
+     *
+     * @param info the identity info from JpaAnnotationExtractor
+     * @param identityTypeSyntax the syntax of the identity type (for wrapper detection)
+     * @return an IdFieldSpec ready for code generation
+     * @since 4.0.0
+     */
+    public static IdFieldSpec from(IdentityInfo info, TypeSyntax identityTypeSyntax) {
+        TypeName javaType = JpaModelUtils.resolveTypeName(info.idType().qualifiedName());
+        TypeName unwrappedType = info.wrappedTypeOpt()
+                .map(t -> JpaModelUtils.resolveTypeName(t.qualifiedName()))
+                .orElse(javaType);
+
+        IdentityStrategy strategy = mapGenerationStrategy(info.strategy());
+        IdentityWrapperKind wrapperKind = detectWrapperKind(info, identityTypeSyntax);
+
+        return new IdFieldSpec(info.fieldName(), javaType, unwrappedType, strategy, wrapperKind);
+    }
+
+    /**
+     * Maps IdentityInfo.GenerationStrategy to IdentityStrategy.
+     */
+    private static IdentityStrategy mapGenerationStrategy(IdentityInfo.GenerationStrategy strategy) {
+        if (strategy == null) {
+            return IdentityStrategy.ASSIGNED;
+        }
+        return switch (strategy) {
+            case NONE -> IdentityStrategy.ASSIGNED;
+            case IDENTITY -> IdentityStrategy.IDENTITY;
+            case SEQUENCE -> IdentityStrategy.SEQUENCE;
+            case TABLE -> IdentityStrategy.TABLE;
+            case AUTO -> IdentityStrategy.AUTO;
+            case UUID -> IdentityStrategy.UUID;
+        };
+    }
+
+    /**
+     * Detects the wrapper kind from the identity type syntax.
+     */
+    private static IdentityWrapperKind detectWrapperKind(IdentityInfo info, TypeSyntax syntax) {
+        if (info.embedded()) {
+            return IdentityWrapperKind.NONE; // Embedded IDs are not wrapped
+        }
+        if (!info.isWrapped()) {
+            return IdentityWrapperKind.NONE;
+        }
+        if (syntax != null && syntax.form() == TypeForm.RECORD) {
+            return IdentityWrapperKind.RECORD;
+        }
+        return IdentityWrapperKind.CLASS;
     }
 
     /**

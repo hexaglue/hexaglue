@@ -15,12 +15,16 @@ package io.hexaglue.plugin.jpa.model;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
 import io.hexaglue.plugin.jpa.util.TypeMappings;
 import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.JavaConstruct;
 import io.hexaglue.spi.ir.Nullability;
+import io.hexaglue.syntax.TypeForm;
 import java.util.List;
 import java.util.Map;
 
@@ -249,6 +253,80 @@ public record PropertyFieldSpec(
             return str;
         }
         return Character.toUpperCase(str.charAt(0)) + str.substring(1);
+    }
+
+    /**
+     * Creates a PropertyFieldSpec from v4 PropertyInfo extracted from annotations.
+     *
+     * <p>This factory method converts the v4 extraction model to the JavaPoet-based
+     * generation model. It uses the ArchitecturalModel for type resolution.
+     *
+     * @param info the property info from JpaAnnotationExtractor
+     * @param model the architectural model for type resolution
+     * @return a PropertyFieldSpec ready for code generation
+     * @since 4.0.0
+     */
+    public static PropertyFieldSpec from(PropertyInfo info, ArchitecturalModel model) {
+        TypeName javaType = TypeMappings.toJpaType(info.fieldType().qualifiedName());
+        String columnName = info.columnNameOpt().orElseGet(() -> JpaModelUtils.toSnakeCase(info.fieldName()));
+        String typeQualifiedName = info.fieldType().qualifiedName();
+
+        // Detect value object
+        boolean isValueObject =
+                model.valueObjects().anyMatch(vo -> vo.id().qualifiedName().equals(typeQualifiedName));
+
+        // Detect enum from syntax
+        boolean isEnum = model.registry()
+                .all(ValueObject.class)
+                .filter(vo -> vo.id().qualifiedName().equals(typeQualifiedName))
+                .filter(vo -> vo.syntax() != null)
+                .anyMatch(vo -> vo.syntax().form() == TypeForm.ENUM);
+
+        // Check for simple wrapper type
+        ValueObject matchingVo = model.valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(typeQualifiedName))
+                .findFirst()
+                .orElse(null);
+
+        boolean isSimpleWrapper = isSimpleWrapperV4(matchingVo);
+        boolean isWrappedForeignKey = isSimpleWrapper && typeQualifiedName.endsWith("Id");
+
+        TypeName unwrappedType = null;
+        String wrapperAccessorMethod = null;
+
+        if (isSimpleWrapper && matchingVo != null && matchingVo.syntax() != null) {
+            // Get the single field from the wrapper type
+            var wrappedField = matchingVo.syntax().fields().get(0);
+            unwrappedType = TypeMappings.toJpaType(wrappedField.type().qualifiedName());
+            // For records, the accessor is the field name
+            boolean isRecord = matchingVo.syntax().form() == TypeForm.RECORD;
+            wrapperAccessorMethod = isRecord ? wrappedField.name() : "get" + capitalize(wrappedField.name());
+        }
+
+        Nullability nullability = info.nullable() ? Nullability.NULLABLE : Nullability.NON_NULL;
+
+        return new PropertyFieldSpec(
+                info.fieldName(),
+                javaType,
+                nullability,
+                columnName,
+                false, // isEmbedded - derived from relation, not property
+                isValueObject,
+                isEnum,
+                typeQualifiedName,
+                isWrappedForeignKey,
+                unwrappedType,
+                wrapperAccessorMethod);
+    }
+
+    /**
+     * Determines if a v4 value object is a simple wrapper type.
+     */
+    private static boolean isSimpleWrapperV4(ValueObject vo) {
+        if (vo == null || vo.syntax() == null) {
+            return false;
+        }
+        return (vo.syntax().form() == TypeForm.RECORD) && vo.componentFields().size() == 1;
     }
 
     /**
