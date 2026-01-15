@@ -437,10 +437,7 @@ public final class JpaMapperCodegen {
                 .returns(primitiveType)
                 .addParameter(valueObjectClass, "vo")
                 .addStatement("return vo != null ? vo.$L() : null", voSpec.accessorMethod())
-                .addJavadoc(
-                        "Unwraps {@link $L} to {@link $L}.\n\n",
-                        voSpec.simpleName(),
-                        voSpec.primitiveType())
+                .addJavadoc("Unwraps {@link $L} to {@link $L}.\n\n", voSpec.simpleName(), voSpec.primitiveType())
                 .addJavadoc("@param vo the Value Object to unwrap\n")
                 .addJavadoc("@return the underlying value, or null if input is null\n")
                 .build();
@@ -469,8 +466,7 @@ public final class JpaMapperCodegen {
                 .returns(valueObjectClass)
                 .addParameter(primitiveType, "value")
                 .addStatement("return value != null ? new $T(value) : null", valueObjectClass)
-                .addJavadoc(
-                        "Wraps {@link $L} into {@link $L}.\n\n", voSpec.primitiveType(), voSpec.simpleName())
+                .addJavadoc("Wraps {@link $L} into {@link $L}.\n\n", voSpec.primitiveType(), voSpec.simpleName())
                 .addJavadoc("@param value the primitive value to wrap\n")
                 .addJavadoc("@return the Value Object, or null if input is null\n")
                 .build();

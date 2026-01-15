@@ -104,8 +104,8 @@ class AdapterMethodSpecTest {
         void shouldMapParameterIsIdentityFlag() {
             // Given: findById with ID parameter marked as identity
             MethodParameter idParam = MethodParameter.of("orderId", TypeRef.of(TEST_PKG + ".OrderId"), true);
-            PortMethod portMethod =
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(idParam), MethodKind.FIND_BY_ID);
+            PortMethod portMethod = PortMethod.of(
+                    "findById", TypeRef.of("java.util.Optional"), List.of(idParam), MethodKind.FIND_BY_ID);
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.from(portMethod);
@@ -139,7 +139,8 @@ class AdapterMethodSpecTest {
             List<MethodParameter> params = List.of(
                     MethodParameter.simple("status", TypeRef.of("java.lang.String")),
                     MethodParameter.simple("limit", TypeRef.of("int")));
-            PortMethod portMethod = PortMethod.of("findByStatusWithLimit", TypeRef.of("java.util.List"), params, MethodKind.CUSTOM);
+            PortMethod portMethod =
+                    PortMethod.of("findByStatusWithLimit", TypeRef.of("java.util.List"), params, MethodKind.CUSTOM);
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.from(portMethod);
@@ -176,11 +177,7 @@ class AdapterMethodSpecTest {
         void returnsCollectionShouldReturnTrueForList() {
             // Given
             AdapterMethodSpec spec = AdapterMethodSpec.of(
-                    "findAll",
-                    ClassName.get("java.util", "List"),
-                    List.of(),
-                    MethodKind.FIND_ALL,
-                    Optional.empty());
+                    "findAll", ClassName.get("java.util", "List"), List.of(), MethodKind.FIND_ALL, Optional.empty());
 
             // Then
             assertThat(spec.returnsCollection()).isTrue();
@@ -257,11 +254,7 @@ class AdapterMethodSpecTest {
         void hasParametersShouldReturnFalseWhenNoParameters() {
             // Given
             AdapterMethodSpec spec = AdapterMethodSpec.of(
-                    "findAll",
-                    ClassName.get("java.util", "List"),
-                    List.of(),
-                    MethodKind.FIND_ALL,
-                    Optional.empty());
+                    "findAll", ClassName.get("java.util", "List"), List.of(), MethodKind.FIND_ALL, Optional.empty());
 
             // Then
             assertThat(spec.hasParameters()).isFalse();
@@ -271,12 +264,8 @@ class AdapterMethodSpecTest {
         @DisplayName("firstParameter should return empty for method without parameters")
         void firstParameterShouldReturnEmptyForMethodWithoutParameters() {
             // Given
-            AdapterMethodSpec spec = AdapterMethodSpec.of(
-                    "count",
-                    TypeName.LONG,
-                    List.of(),
-                    MethodKind.COUNT_ALL,
-                    Optional.empty());
+            AdapterMethodSpec spec =
+                    AdapterMethodSpec.of("count", TypeName.LONG, List.of(), MethodKind.COUNT_ALL, Optional.empty());
 
             // Then
             assertThat(spec.firstParameter()).isEmpty();
@@ -469,8 +458,7 @@ class AdapterMethodSpecTest {
             // Given: findById returns Optional<Pokemon> - this is the sample-pokedex scenario
             MethodParameter idParam = MethodParameter.of("pokemonId", TypeRef.of("java.lang.Integer"), true);
             TypeRef optionalPokemon = TypeRef.parameterized(
-                    "java.util.Optional",
-                    TypeRef.of("com.example.myhexagonalpokedex.domain.pokemon.Pokemon"));
+                    "java.util.Optional", TypeRef.of("com.example.myhexagonalpokedex.domain.pokemon.Pokemon"));
             PortMethod portMethod = PortMethod.of("findById", optionalPokemon, List.of(idParam), MethodKind.FIND_BY_ID);
 
             // When
@@ -497,8 +485,7 @@ class AdapterMethodSpecTest {
         @DisplayName("returnType should be ParameterizedTypeName for List<Order>")
         void returnTypeShouldBeParameterizedTypeNameForList() {
             // Given: findAll returns List<Order>
-            TypeRef listOrder =
-                    TypeRef.parameterized("java.util.List", TypeRef.of("com.example.domain.order.Order"));
+            TypeRef listOrder = TypeRef.parameterized("java.util.List", TypeRef.of("com.example.domain.order.Order"));
             PortMethod portMethod = PortMethod.of("findAll", listOrder, List.of(), MethodKind.FIND_ALL);
 
             // When

@@ -265,7 +265,8 @@ class FindByPropertyMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then
-            assertThat(methodCode).contains("return repository.findByStatus(status).stream().map(mapper::toDomain).toList()");
+            assertThat(methodCode)
+                    .contains("return repository.findByStatus(status).stream().map(mapper::toDomain).toList()");
         }
 
         @Test
@@ -301,7 +302,8 @@ class FindByPropertyMethodStrategyTest {
             AdapterMethodSpec method = AdapterMethodSpec.of(
                     "findByUsername",
                     DOMAIN_TYPE,
-                    List.of(new AdapterMethodSpec.ParameterInfo("username", ClassName.get("java.lang", "String"), false)),
+                    List.of(new AdapterMethodSpec.ParameterInfo(
+                            "username", ClassName.get("java.lang", "String"), false)),
                     MethodKind.FIND_BY_PROPERTY,
                     Optional.of("username"));
 
@@ -328,8 +330,10 @@ class FindByPropertyMethodStrategyTest {
                     "findByFirstNameAndLastName",
                     OPTIONAL_USER,
                     List.of(
-                            new AdapterMethodSpec.ParameterInfo("firstName", ClassName.get("java.lang", "String"), false),
-                            new AdapterMethodSpec.ParameterInfo("lastName", ClassName.get("java.lang", "String"), false)),
+                            new AdapterMethodSpec.ParameterInfo(
+                                    "firstName", ClassName.get("java.lang", "String"), false),
+                            new AdapterMethodSpec.ParameterInfo(
+                                    "lastName", ClassName.get("java.lang", "String"), false)),
                     MethodKind.FIND_BY_PROPERTY,
                     Optional.of("firstName"));
 
@@ -375,9 +379,7 @@ class FindByPropertyMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then
-            assertThat(methodCode)
-                    .contains("jpaRepo.findByEmail(email)")
-                    .contains("entityMapper::toDomain");
+            assertThat(methodCode).contains("jpaRepo.findByEmail(email)").contains("entityMapper::toDomain");
         }
 
         @Test
@@ -387,7 +389,8 @@ class FindByPropertyMethodStrategyTest {
             AdapterMethodSpec method = AdapterMethodSpec.of(
                     "findByEmail",
                     OPTIONAL_USER,
-                    List.of(new AdapterMethodSpec.ParameterInfo("emailAddress", ClassName.get("java.lang", "String"), false)),
+                    List.of(new AdapterMethodSpec.ParameterInfo(
+                            "emailAddress", ClassName.get("java.lang", "String"), false)),
                     MethodKind.FIND_BY_PROPERTY,
                     Optional.of("email"));
 
@@ -396,9 +399,7 @@ class FindByPropertyMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then
-            assertThat(methodCode)
-                    .contains("java.lang.String emailAddress")
-                    .contains("findByEmail(emailAddress)");
+            assertThat(methodCode).contains("java.lang.String emailAddress").contains("findByEmail(emailAddress)");
         }
 
         @Test
@@ -456,11 +457,13 @@ class FindByPropertyMethodStrategyTest {
     /**
      * Helper method to create a FIND_BY_PROPERTY method spec.
      */
-    private AdapterMethodSpec createFindByPropertyMethod(String methodName, String targetProperty, TypeName returnType) {
+    private AdapterMethodSpec createFindByPropertyMethod(
+            String methodName, String targetProperty, TypeName returnType) {
         return AdapterMethodSpec.of(
                 methodName,
                 returnType,
-                List.of(new AdapterMethodSpec.ParameterInfo(targetProperty, ClassName.get("java.lang", "String"), false)),
+                List.of(new AdapterMethodSpec.ParameterInfo(
+                        targetProperty, ClassName.get("java.lang", "String"), false)),
                 MethodKind.FIND_BY_PROPERTY,
                 Optional.of(targetProperty));
     }

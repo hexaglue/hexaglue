@@ -381,9 +381,8 @@ public final class MapperSpecBuilder {
         List<ValueObjectMappingSpec> mappings = new ArrayList<>();
 
         // Exclude the entity's own identity type (handled by detectWrappedIdentity)
-        String identityTypeName = domainType.identity()
-                .map(id -> id.type().qualifiedName())
-                .orElse(null);
+        String identityTypeName =
+                domainType.identity().map(id -> id.type().qualifiedName()).orElse(null);
 
         // Scan all properties of the domain type
         scanPropertiesForValueObjects(domainType.properties(), identityTypeName, processedTypes, mappings);
@@ -396,7 +395,8 @@ public final class MapperSpecBuilder {
                     .orElse(null);
 
             if (embeddableDomainType != null) {
-                scanPropertiesForValueObjects(embeddableDomainType.properties(), identityTypeName, processedTypes, mappings);
+                scanPropertiesForValueObjects(
+                        embeddableDomainType.properties(), identityTypeName, processedTypes, mappings);
             }
         }
 

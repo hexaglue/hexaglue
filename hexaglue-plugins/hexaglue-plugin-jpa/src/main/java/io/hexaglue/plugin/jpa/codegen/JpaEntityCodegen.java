@@ -268,8 +268,8 @@ public final class JpaEntityCodegen {
         // For ELEMENT_COLLECTION, add @CollectionTable annotation
         if (relation.kind() == io.hexaglue.spi.ir.RelationKind.ELEMENT_COLLECTION) {
             // Derive collection table name: entity_table + "_" + field_name (plural)
-            String tableName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName())
-                    + "_" + NamingConventions.toSnakeCase(relation.fieldName());
+            String tableName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName()) + "_"
+                    + NamingConventions.toSnakeCase(relation.fieldName());
             String joinColumnName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName()) + "_id";
 
             fieldBuilder.addAnnotation(JpaAnnotations.collectionTable(tableName, joinColumnName));

@@ -115,8 +115,10 @@ public record AdapterMethodSpec(
         if (typeString.startsWith("java.util.Optional") || typeString.equals("java.util.Optional")) {
             return Cardinality.OPTIONAL;
         }
-        if (typeString.startsWith("java.util.List") || typeString.startsWith("java.util.Set")
-                || typeString.equals("java.util.List") || typeString.equals("java.util.Set")) {
+        if (typeString.startsWith("java.util.List")
+                || typeString.startsWith("java.util.Set")
+                || typeString.equals("java.util.List")
+                || typeString.equals("java.util.Set")) {
             return Cardinality.COLLECTION;
         }
         return Cardinality.SINGLE;

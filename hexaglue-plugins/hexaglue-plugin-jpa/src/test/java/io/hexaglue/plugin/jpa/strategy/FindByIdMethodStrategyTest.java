@@ -130,11 +130,7 @@ class FindByIdMethodStrategyTest {
         void shouldReturnFalseForFindAllKind() {
             // Given
             AdapterMethodSpec method = AdapterMethodSpec.of(
-                    "findAll",
-                    ClassName.get("java.util", "List"),
-                    List.of(),
-                    MethodKind.FIND_ALL,
-                    Optional.empty());
+                    "findAll", ClassName.get("java.util", "List"), List.of(), MethodKind.FIND_ALL, Optional.empty());
 
             // When
             boolean supports = strategy.supports(method);
@@ -196,9 +192,7 @@ class FindByIdMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then: Should pass id directly, not mapper.map(id)
-            assertThat(methodCode)
-                    .contains("return repository.findById(id)")
-                    .doesNotContain("mapper.map(id)");
+            assertThat(methodCode).contains("return repository.findById(id)").doesNotContain("mapper.map(id)");
         }
 
         @Test
@@ -344,9 +338,7 @@ class FindByIdMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then: Should use custom field names
-            assertThat(methodCode)
-                    .contains("jpaRepository.findById(id)")
-                    .contains("entityMapper::toDomain");
+            assertThat(methodCode).contains("jpaRepository.findById(id)").contains("entityMapper::toDomain");
         }
 
         @Test
@@ -367,9 +359,7 @@ class FindByIdMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then: Should preserve custom parameter name
-            assertThat(methodCode)
-                    .contains("java.util.UUID identifier")
-                    .contains("findById(identifier)");
+            assertThat(methodCode).contains("java.util.UUID identifier").contains("findById(identifier)");
         }
 
         @Test
@@ -390,9 +380,7 @@ class FindByIdMethodStrategyTest {
             String methodCode = generatedMethod.toString();
 
             // Then: Should NOT use mapper.map() even though context has wrapped ID
-            assertThat(methodCode)
-                    .contains("findById(id)")
-                    .doesNotContain("mapper.map(id)");
+            assertThat(methodCode).contains("findById(id)").doesNotContain("mapper.map(id)");
         }
     }
 

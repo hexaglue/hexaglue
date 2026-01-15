@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
@@ -36,6 +37,7 @@ import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.plugin.audit.domain.service.AuditOrchestrator;
 import io.hexaglue.plugin.audit.domain.service.ConstraintEngine;
 import io.hexaglue.plugin.audit.domain.service.MetricAggregator;
+import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.audit.ArchitectureMetrics;
 import io.hexaglue.spi.audit.AuditContext;
 import io.hexaglue.spi.audit.AuditMetadata;
@@ -91,12 +93,21 @@ import java.util.Set;
  * </pre>
  *
  * @since 1.0.0
+ * @since 4.0.0 - Added support for v4 ArchitecturalModel
  */
 public class DddAuditPlugin implements AuditPlugin {
 
     public static final String PLUGIN_ID = "io.hexaglue.plugin.audit.ddd";
 
     private final ConstraintRegistry registry;
+
+    /**
+     * The v4 architectural model, captured in execute() before audit().
+     * May be null if running in legacy mode.
+     *
+     * @since 4.0.0
+     */
+    private ArchitecturalModel archModel;
 
     /**
      * Encapsulates the complete audit execution result for report generation.
@@ -308,16 +319,22 @@ public class DddAuditPlugin implements AuditPlugin {
      *
      * <p>The execution flow is stateless:
      * <ol>
+     *   <li>Capture v4 ArchitecturalModel (if available)</li>
      *   <li>Build codebase from IR</li>
      *   <li>Load configuration</li>
      *   <li>Execute audit to produce snapshot</li>
      *   <li>Generate reports from snapshot and domain data</li>
      *   <li>Store snapshot in context outputs</li>
      * </ol>
+     *
+     * @since 4.0.0 - Added support for v4 ArchitecturalModel
      */
     @Override
     public void execute(PluginContext context) {
         try {
+            // Capture v4 ArchitecturalModel if available
+            this.archModel = PluginContexts.getModel(context).orElse(null);
+
             // Build codebase from IR
             Codebase codebase = buildCodebaseFromIr(context.ir());
 
@@ -344,9 +361,32 @@ public class DddAuditPlugin implements AuditPlugin {
                         .warn("Audit found %d errors"
                                 .formatted(executionResult.snapshot().errorCount()));
             }
+
+            // Log v4 model summary if available
+            if (archModel != null) {
+                logV4ModelSummary(archModel, context.diagnostics());
+            }
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
         }
+    }
+
+    /**
+     * Logs a summary of the v4 architectural model for informational purposes.
+     *
+     * @param model the architectural model
+     * @param diagnostics the diagnostic reporter
+     * @since 4.0.0
+     */
+    private void logV4ModelSummary(ArchitecturalModel model, io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) {
+        long aggregateCount = model.aggregates().count();
+        long entityCount = model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
+        long valueObjectCount = model.valueObjects().count();
+        long drivingPortCount = model.drivingPorts().count();
+        long drivenPortCount = model.drivenPorts().count();
+        diagnostics.info(String.format(
+                "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
+                aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
     }
 
     /**

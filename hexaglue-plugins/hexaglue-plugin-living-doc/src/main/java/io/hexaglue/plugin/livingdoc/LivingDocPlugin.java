@@ -13,16 +13,19 @@
 
 package io.hexaglue.plugin.livingdoc;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
+import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
+import io.hexaglue.spi.plugin.PluginContext;
 
 /**
  * Living Documentation plugin for HexaGlue.
@@ -40,15 +43,38 @@ import io.hexaglue.spi.plugin.PluginConfig;
  *   <li>{@code outputDir} - output directory for documentation (default: "living-doc")</li>
  *   <li>{@code generateDiagrams} - whether to generate Mermaid diagrams (default: true)</li>
  * </ul>
+ *
+ * @since 4.0.0 - Added support for v4 ArchitecturalModel
  */
 public final class LivingDocPlugin implements GeneratorPlugin {
 
     /** Plugin identifier. */
     public static final String PLUGIN_ID = "io.hexaglue.plugin.livingdoc";
 
+    /**
+     * The v4 architectural model, captured in execute() before generate().
+     * May be null if running in legacy mode.
+     */
+    private ArchitecturalModel archModel;
+
     @Override
     public String id() {
         return PLUGIN_ID;
+    }
+
+    /**
+     * Captures the v4 ArchitecturalModel from the context before delegating to generate().
+     *
+     * <p>This override allows the plugin to access both the legacy IrSnapshot (via GeneratorContext)
+     * and the new ArchitecturalModel for future migration.
+     *
+     * @param context the plugin context (may be an ArchModelPluginContext)
+     * @since 4.0.0
+     */
+    @Override
+    public void execute(PluginContext context) {
+        this.archModel = PluginContexts.getModel(context).orElse(null);
+        GeneratorPlugin.super.execute(context);
     }
 
     @Override
@@ -101,5 +127,27 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         int portCount = ir.ports().ports().size();
         diagnostics.info(String.format(
                 "Living documentation complete: %d domain types, %d ports documented", typeCount, portCount));
+
+        // Log v4 model summary if available
+        if (archModel != null) {
+            logV4ModelSummary(archModel, diagnostics);
+        }
+    }
+
+    /**
+     * Logs a summary of the v4 architectural model for informational purposes.
+     *
+     * @param model the architectural model
+     * @param diagnostics the diagnostic reporter
+     */
+    private void logV4ModelSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
+        long aggregateCount = model.aggregates().count();
+        long entityCount = model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
+        long valueObjectCount = model.valueObjects().count();
+        long drivingPortCount = model.drivingPorts().count();
+        long drivenPortCount = model.drivenPorts().count();
+        diagnostics.info(String.format(
+                "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
+                aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
     }
 }

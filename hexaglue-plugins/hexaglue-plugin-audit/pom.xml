@@ -27,6 +27,11 @@
             <groupId>io.hexaglue</groupId>
             <artifactId>hexaglue-spi</artifactId>
         </dependency>
+        <!-- HexaGlue SPI v4 extension (for ArchitecturalModel support) -->
+        <dependency>
+            <groupId>io.hexaglue</groupId>
+            <artifactId>hexaglue-spi-arch</artifactId>
+        </dependency>
 
         <!-- Testing -->
         <dependency>

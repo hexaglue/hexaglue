@@ -41,10 +41,7 @@ import java.util.List;
  * @since 3.0.0
  */
 public record EmbeddableSpec(
-        String packageName,
-        String className,
-        String domainQualifiedName,
-        List<PropertyFieldSpec> properties) {
+        String packageName, String className, String domainQualifiedName, List<PropertyFieldSpec> properties) {
 
     /**
      * Creates a new builder instance.
@@ -166,11 +163,7 @@ public record EmbeddableSpec(
                 throw new IllegalStateException("domainQualifiedName is required");
             }
 
-            return new EmbeddableSpec(
-                    packageName,
-                    className,
-                    domainQualifiedName,
-                    List.copyOf(properties));
+            return new EmbeddableSpec(packageName, className, domainQualifiedName, List.copyOf(properties));
         }
     }
 }

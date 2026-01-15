@@ -27,7 +27,7 @@
     <properties>
         <hexaglue.root>${project.basedir}/..</hexaglue.root>
         <!-- HexaGlue core version (explicit, cannot use ${project.version} because plugins have their own version) -->
-        <hexaglue.version>3.0.0-SNAPSHOT</hexaglue.version>
+        <hexaglue.version>4.0.0-SNAPSHOT</hexaglue.version>
         <!-- Plugin-specific dependencies -->
         <jakarta-persistence.version>3.2.0</jakarta-persistence.version>
     </properties>
@@ -38,6 +38,24 @@
             <dependency>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-spi</artifactId>
+                <version>${hexaglue.version}</version>
+            </dependency>
+            <!-- HexaGlue SPI v4 extension (for ArchitecturalModel support) -->
+            <dependency>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-spi-arch</artifactId>
+                <version>${hexaglue.version}</version>
+            </dependency>
+            <!-- HexaGlue Arch (transitive from spi-arch) -->
+            <dependency>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-arch</artifactId>
+                <version>${hexaglue.version}</version>
+            </dependency>
+            <!-- HexaGlue Syntax API (transitive from arch) -->
+            <dependency>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-syntax-api</artifactId>
                 <version>${hexaglue.version}</version>
             </dependency>
             <!-- Jakarta Persistence API (for JPA plugin) -->

@@ -22,7 +22,6 @@ import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.AnnotationRef;
-import io.hexaglue.core.graph.model.FieldNode;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -273,9 +272,8 @@ public final class IrExporter {
     private DomainType toMinimalDomainType(TypeNode node, GraphQuery query) {
         // Extract properties for records and classes (needed for @Embeddable generation)
         // Enums don't need properties since they map via @Enumerated
-        List<DomainProperty> properties = node.isEnum()
-                ? List.of()
-                : propertyExtractor.extractProperties(query.graph(), node, null);
+        List<DomainProperty> properties =
+                node.isEnum() ? List.of() : propertyExtractor.extractProperties(query.graph(), node, null);
 
         return new DomainType(
                 node.qualifiedName(),
@@ -366,8 +364,8 @@ public final class IrExporter {
     private List<DomainProperty> enrichPropertiesWithRelations(
             List<DomainProperty> properties, List<DomainRelation> relations) {
         // Build a map of property name -> relation for quick lookup
-        Map<String, DomainRelation> relationsByProperty = relations.stream()
-                .collect(Collectors.toMap(DomainRelation::propertyName, r -> r, (a, b) -> a));
+        Map<String, DomainRelation> relationsByProperty =
+                relations.stream().collect(Collectors.toMap(DomainRelation::propertyName, r -> r, (a, b) -> a));
 
         return properties.stream()
                 .map(prop -> {
