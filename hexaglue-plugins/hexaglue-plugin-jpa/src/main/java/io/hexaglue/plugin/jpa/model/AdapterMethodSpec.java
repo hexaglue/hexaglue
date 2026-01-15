@@ -16,10 +16,12 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.spi.ir.Cardinality;
 import io.hexaglue.spi.ir.MethodKind;
 import io.hexaglue.spi.ir.PortMethod;
 import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.syntax.MethodSyntax;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -148,6 +150,177 @@ public record AdapterMethodSpec(
         Cardinality returnCardinality = method.returnType().cardinality();
 
         return new AdapterMethodSpec(method.name(), returnType, parameters, kind, targetProperty, returnCardinality);
+    }
+
+    /**
+     * Creates an AdapterMethodSpec from a v4 PortOperation.
+     *
+     * <p>This factory method converts the v4 port operation to the
+     * JavaPoet-based generation model, inferring the method kind from
+     * the operation name pattern since v4 doesn't expose MethodKind directly.
+     *
+     * @param operation the port operation from v4 model
+     * @return an AdapterMethodSpec ready for code generation
+     * @since 4.0.0
+     */
+    public static AdapterMethodSpec fromV4(PortOperation operation) {
+        TypeName returnType = resolveTypeNameV4(operation.returnType());
+        List<ParameterInfo> parameters = buildParametersV4(operation);
+
+        // Infer method kind from name pattern
+        MethodKind kind = inferMethodKind(operation.name());
+        Optional<String> targetProperty = extractTargetProperty(operation.name(), kind);
+
+        // Infer cardinality from return type
+        Cardinality returnCardinality = inferCardinalityFromTypeName(returnType);
+
+        return new AdapterMethodSpec(operation.name(), returnType, parameters, kind, targetProperty, returnCardinality);
+    }
+
+    /**
+     * Infers the MethodKind from the method name pattern.
+     *
+     * @param name the method name
+     * @return the inferred MethodKind
+     */
+    private static MethodKind inferMethodKind(String name) {
+        if (name.equals("save")) {
+            return MethodKind.SAVE;
+        }
+        if (name.equals("saveAll")) {
+            return MethodKind.SAVE_ALL;
+        }
+        if (name.equals("findById")) {
+            return MethodKind.FIND_BY_ID;
+        }
+        if (name.equals("findAll")) {
+            return MethodKind.FIND_ALL;
+        }
+        if (name.equals("existsById")) {
+            return MethodKind.EXISTS_BY_ID;
+        }
+        if (name.equals("count") || name.equals("countAll")) {
+            return MethodKind.COUNT_ALL;
+        }
+        if (name.equals("delete") || name.equals("deleteById")) {
+            return MethodKind.DELETE_BY_ID;
+        }
+        if (name.equals("deleteAll") || name.equals("deleteAllById")) {
+            return MethodKind.DELETE_ALL;
+        }
+        if (name.startsWith("findBy") && !name.startsWith("findAllBy")) {
+            return MethodKind.FIND_BY_PROPERTY;
+        }
+        if (name.startsWith("findAllBy")) {
+            return MethodKind.FIND_ALL_BY_PROPERTY;
+        }
+        if (name.startsWith("existsBy")) {
+            return MethodKind.EXISTS_BY_PROPERTY;
+        }
+        if (name.startsWith("countBy")) {
+            return MethodKind.COUNT_BY_PROPERTY;
+        }
+        if (name.startsWith("deleteBy")) {
+            return MethodKind.DELETE_BY_PROPERTY;
+        }
+        if (name.startsWith("streamBy")) {
+            return MethodKind.STREAM_BY_PROPERTY;
+        }
+        return MethodKind.CUSTOM;
+    }
+
+    /**
+     * Extracts the target property from the method name for property-based methods.
+     *
+     * @param name the method name
+     * @param kind the method kind
+     * @return the target property name, or empty if not applicable
+     */
+    private static Optional<String> extractTargetProperty(String name, MethodKind kind) {
+        return switch (kind) {
+            case FIND_BY_PROPERTY -> extractPropertyFromPrefix(name, "findBy");
+            case FIND_ALL_BY_PROPERTY -> extractPropertyFromPrefix(name, "findAllBy");
+            case EXISTS_BY_PROPERTY -> extractPropertyFromPrefix(name, "existsBy");
+            case COUNT_BY_PROPERTY -> extractPropertyFromPrefix(name, "countBy");
+            case DELETE_BY_PROPERTY -> extractPropertyFromPrefix(name, "deleteBy");
+            case STREAM_BY_PROPERTY -> extractPropertyFromPrefix(name, "streamBy");
+            default -> Optional.empty();
+        };
+    }
+
+    private static Optional<String> extractPropertyFromPrefix(String name, String prefix) {
+        if (name.startsWith(prefix) && name.length() > prefix.length()) {
+            String property = name.substring(prefix.length());
+            // Convert first char to lowercase (e.g., "Email" -> "email")
+            return Optional.of(Character.toLowerCase(property.charAt(0)) + property.substring(1));
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Builds parameters from v4 PortOperation.
+     */
+    private static List<ParameterInfo> buildParametersV4(PortOperation operation) {
+        MethodSyntax syntax = operation.syntax();
+        if (syntax != null) {
+            return syntax.parameters().stream()
+                    .map(param -> new ParameterInfo(
+                            param.name(), resolveTypeNameV4(param.type()), isIdentityParameter(param.name())))
+                    .collect(Collectors.toList());
+        }
+
+        // Fall back to operation parameter types with generated names
+        int index = 0;
+        List<ParameterInfo> params = new java.util.ArrayList<>();
+        for (io.hexaglue.syntax.TypeRef type : operation.parameterTypes()) {
+            String paramName = "param" + index++;
+            params.add(new ParameterInfo(paramName, resolveTypeNameV4(type), false));
+        }
+        return params;
+    }
+
+    /**
+     * Heuristic to detect identity parameters (e.g., "id", "orderId").
+     */
+    private static boolean isIdentityParameter(String name) {
+        return "id".equals(name) || name.endsWith("Id");
+    }
+
+    /**
+     * Resolves a v4 TypeRef to a JavaPoet TypeName.
+     */
+    private static TypeName resolveTypeNameV4(io.hexaglue.syntax.TypeRef typeRef) {
+        if (typeRef == null) {
+            return TypeName.VOID;
+        }
+
+        // Handle primitives
+        if (typeRef.isPrimitive()) {
+            return switch (typeRef.qualifiedName()) {
+                case "boolean" -> TypeName.BOOLEAN;
+                case "byte" -> TypeName.BYTE;
+                case "short" -> TypeName.SHORT;
+                case "int" -> TypeName.INT;
+                case "long" -> TypeName.LONG;
+                case "float" -> TypeName.FLOAT;
+                case "double" -> TypeName.DOUBLE;
+                case "char" -> TypeName.CHAR;
+                case "void" -> TypeName.VOID;
+                default -> ClassName.bestGuess(typeRef.qualifiedName());
+            };
+        }
+
+        // Handle parameterized types
+        if (!typeRef.typeArguments().isEmpty()) {
+            ClassName rawType = ClassName.bestGuess(typeRef.qualifiedName());
+            TypeName[] typeArgs = typeRef.typeArguments().stream()
+                    .map(AdapterMethodSpec::resolveTypeNameV4)
+                    .toArray(TypeName[]::new);
+            return ParameterizedTypeName.get(rawType, typeArgs);
+        }
+
+        // Simple class type
+        return ClassName.bestGuess(typeRef.qualifiedName());
     }
 
     /**

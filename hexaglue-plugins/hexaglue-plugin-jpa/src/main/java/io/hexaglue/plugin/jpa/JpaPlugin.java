@@ -16,6 +16,9 @@ package io.hexaglue.plugin.jpa;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EntitySpecBuilder;
@@ -49,6 +52,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * JPA plugin for HexaGlue.
@@ -125,19 +129,6 @@ public final class JpaPlugin implements GeneratorPlugin {
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
-        // Log v4 model info if available
-        if (archModel != null) {
-            diagnostics.info("Using v4 ArchitecturalModel (classification traces available)");
-            logClassificationSummary(archModel, diagnostics);
-        } else {
-            diagnostics.info("Using legacy IrSnapshot (v4 ArchitecturalModel not available)");
-        }
-
-        if (ir.isEmpty()) {
-            diagnostics.info("No domain types to process");
-            return;
-        }
-
         // Load configuration
         JpaConfig config = JpaConfig.from(pluginConfig);
 
@@ -148,6 +139,233 @@ public final class JpaPlugin implements GeneratorPlugin {
 
         diagnostics.info("JPA Plugin starting with package: " + infraPackage);
         logConfig(diagnostics, config);
+
+        // Use v4 model if available, otherwise fall back to legacy
+        if (archModel != null) {
+            diagnostics.info("Using v4 ArchitecturalModel (classification traces available)");
+            logClassificationSummary(archModel, diagnostics);
+            generateFromV4Model(archModel, config, infraPackage, writer, diagnostics);
+        } else {
+            diagnostics.info("Using legacy IrSnapshot (v4 ArchitecturalModel not available)");
+            generateFromLegacyModel(ir, config, infraPackage, writer, diagnostics);
+        }
+    }
+
+    /**
+     * Generates JPA infrastructure using v4 ArchitecturalModel.
+     *
+     * @param model the architectural model
+     * @param config the JPA configuration
+     * @param infraPackage the infrastructure package name
+     * @param writer the artifact writer
+     * @param diagnostics the diagnostic reporter
+     * @since 4.0.0
+     */
+    private void generateFromV4Model(
+            ArchitecturalModel model,
+            JpaConfig config,
+            String infraPackage,
+            ArtifactWriter writer,
+            DiagnosticReporter diagnostics) {
+
+        // Counters for summary
+        int entityCount = 0;
+        int embeddableCount = 0;
+        int repositoryCount = 0;
+        int mapperCount = 0;
+        int adapterCount = 0;
+
+        // Build embeddable mapping: domain VALUE_OBJECT FQN -> generated embeddable FQN
+        Map<String, String> embeddableMapping = new HashMap<>();
+
+        // Generate embeddables from ValueObjects
+        if (config.generateEmbeddables()) {
+            // First pass: compute all embeddable mappings
+            model.valueObjects()
+                    .filter(vo -> vo.syntax() != null)
+                    .filter(vo -> !isEnumTypeV4(vo))
+                    .forEach(vo -> {
+                        String embeddableClassName = vo.id().simpleName() + config.embeddableSuffix();
+                        String embeddableFqn = infraPackage + "." + embeddableClassName;
+                        embeddableMapping.put(vo.id().qualifiedName(), embeddableFqn);
+                    });
+
+            // Second pass: generate embeddables
+            for (ValueObject vo :
+                    model.valueObjects().filter(v -> v.syntax() != null).toList()) {
+                if (isEnumTypeV4(vo)) {
+                    continue;
+                }
+
+                try {
+                    EmbeddableSpec embeddableSpec = EmbeddableSpecBuilder.builder()
+                            .valueObject(vo)
+                            .model(model)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .embeddableMapping(embeddableMapping)
+                            .build();
+
+                    TypeSpec embeddableTypeSpec = JpaEmbeddableCodegen.generate(embeddableSpec);
+                    String embeddableSource = toJavaSource(infraPackage, embeddableTypeSpec);
+                    writer.writeJavaSource(infraPackage, embeddableSpec.className(), embeddableSource);
+                    embeddableCount++;
+                    diagnostics.info("Generated embeddable: " + embeddableSpec.className());
+
+                } catch (IOException e) {
+                    diagnostics.error(
+                            "Failed to generate embeddable for " + vo.id().simpleName(), e);
+                } catch (IllegalArgumentException | IllegalStateException e) {
+                    diagnostics.warn("Skipping embeddable " + vo.id().simpleName() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        // Group driven ports by primary managed type
+        Map<String, List<DrivenPort>> portsByManagedType = model.drivenPorts()
+                .filter(port -> port.primaryManagedType().isPresent())
+                .collect(Collectors.groupingBy(
+                        port -> port.primaryManagedType().get().id().qualifiedName(), Collectors.toList()));
+
+        // Generate entities from DomainEntities
+        for (DomainEntity entity :
+                model.domainEntities().filter(DomainEntity::hasIdentity).toList()) {
+            try {
+                EntitySpec entitySpec = EntitySpecBuilder.builder()
+                        .domainEntity(entity)
+                        .model(model)
+                        .config(config)
+                        .infrastructurePackage(infraPackage)
+                        .embeddableMapping(embeddableMapping)
+                        .build();
+
+                TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
+                String entitySource = toJavaSource(infraPackage, entityTypeSpec);
+                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                entityCount++;
+                diagnostics.info("Generated entity: " + entitySpec.className());
+
+                // Get driven ports for this entity
+                List<DrivenPort> portsForEntity =
+                        portsByManagedType.getOrDefault(entity.id().qualifiedName(), List.of());
+
+                // Generate repository if enabled
+                if (config.generateRepositories()) {
+                    RepositorySpec repoSpec = RepositorySpecBuilder.builder()
+                            .domainEntity(entity)
+                            .drivenPorts(portsForEntity)
+                            .model(model)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .build();
+
+                    TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
+                    String repoSource = toJavaSource(infraPackage, repoTypeSpec);
+                    writer.writeJavaSource(infraPackage, repoSpec.interfaceName(), repoSource);
+                    repositoryCount++;
+                    diagnostics.info("Generated repository: " + repoSpec.interfaceName());
+                }
+
+                // Generate mapper if enabled
+                if (config.generateMappers()) {
+                    MapperSpec mapperSpec = MapperSpecBuilder.builder()
+                            .domainEntity(entity)
+                            .model(model)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .embeddableMapping(embeddableMapping)
+                            .build();
+
+                    TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
+                    String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
+                    writer.writeJavaSource(infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    mapperCount++;
+                    diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
+                }
+
+            } catch (IOException e) {
+                diagnostics.error(
+                        "Failed to generate JPA class for " + entity.id().simpleName(), e);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                diagnostics.warn("Skipping " + entity.id().simpleName() + ": " + e.getMessage());
+            }
+        }
+
+        // Generate adapters for driven ports
+        if (config.generateAdapters()) {
+            for (DrivenPort port : model.drivenPorts().toList()) {
+                if (port.primaryManagedType().isEmpty()) {
+                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": no managed type");
+                    continue;
+                }
+
+                // Find the domain entity for this port
+                String managedTypeFqn = port.primaryManagedType().get().id().qualifiedName();
+                Optional<DomainEntity> entityOpt = model.domainEntities()
+                        .filter(e -> e.id().qualifiedName().equals(managedTypeFqn))
+                        .findFirst();
+
+                if (entityOpt.isEmpty()) {
+                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": managed type "
+                            + managedTypeFqn + " not found as entity");
+                    continue;
+                }
+
+                DomainEntity entity = entityOpt.get();
+
+                try {
+                    AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
+                            .drivenPorts(List.of(port))
+                            .domainEntity(entity)
+                            .model(model)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .build();
+
+                    TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
+                    String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
+                    writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
+                    adapterCount++;
+
+                    diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
+                            + port.id().simpleName());
+                } catch (IOException e) {
+                    diagnostics.error(
+                            "Failed to generate adapter for port " + port.id().simpleName(), e);
+                } catch (IllegalArgumentException | IllegalStateException e) {
+                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": " + e.getMessage());
+                }
+            }
+        }
+
+        // Summary
+        diagnostics.info(String.format(
+                "JPA generation complete: %d entities, %d embeddables, %d repositories, %d mappers, %d adapters",
+                entityCount, embeddableCount, repositoryCount, mapperCount, adapterCount));
+    }
+
+    /**
+     * Generates JPA infrastructure using legacy IrSnapshot model.
+     *
+     * @param ir the IR snapshot
+     * @param config the JPA configuration
+     * @param infraPackage the infrastructure package name
+     * @param writer the artifact writer
+     * @param diagnostics the diagnostic reporter
+     * @deprecated Use v4 ArchitecturalModel instead
+     */
+    @Deprecated
+    private void generateFromLegacyModel(
+            IrSnapshot ir,
+            JpaConfig config,
+            String infraPackage,
+            ArtifactWriter writer,
+            DiagnosticReporter diagnostics) {
+
+        if (ir.isEmpty()) {
+            diagnostics.info("No domain types to process");
+            return;
+        }
 
         // Collect all domain types for mapper and entity references
         List<DomainType> allTypes = new ArrayList<>(ir.domain().types());
@@ -369,6 +587,19 @@ public final class JpaPlugin implements GeneratorPlugin {
      */
     private boolean isEnumType(DomainType type) {
         return type.construct() == io.hexaglue.spi.ir.JavaConstruct.ENUM;
+    }
+
+    /**
+     * Determines if a v4 ValueObject is an enum type.
+     *
+     * <p>Enums don't need embeddable classes - they are handled via @Enumerated.
+     *
+     * @param vo the value object
+     * @return true if the type is an enum
+     * @since 4.0.0
+     */
+    private boolean isEnumTypeV4(ValueObject vo) {
+        return vo.syntax() != null && vo.syntax().isEnum();
     }
 
     /**

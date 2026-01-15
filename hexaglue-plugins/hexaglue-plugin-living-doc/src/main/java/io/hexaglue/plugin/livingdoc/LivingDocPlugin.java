@@ -117,21 +117,23 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         writer.writeDoc(outputDir + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
 
-        // Generate domain documentation (still uses IrSnapshot for detailed info)
-        DomainDocGenerator domainGen = new DomainDocGenerator(ir);
+        // Generate domain documentation - prefer v4 model when available
+        DomainDocGenerator domainGen =
+                archModel != null ? new DomainDocGenerator(archModel) : new DomainDocGenerator(ir);
         String domainDoc = domainGen.generate();
         writer.writeDoc(outputDir + "/domain.md", domainDoc);
         diagnostics.info("Generated domain model documentation");
 
-        // Generate ports documentation (still uses IrSnapshot for detailed info)
-        PortDocGenerator portGen = new PortDocGenerator(ir);
+        // Generate ports documentation - prefer v4 model when available
+        PortDocGenerator portGen = archModel != null ? new PortDocGenerator(archModel) : new PortDocGenerator(ir);
         String portsDoc = portGen.generate();
         writer.writeDoc(outputDir + "/ports.md", portsDoc);
         diagnostics.info("Generated ports documentation");
 
-        // Generate diagrams if enabled (still uses IrSnapshot)
+        // Generate diagrams if enabled - prefer v4 model when available
         if (generateDiagrams) {
-            DiagramGenerator diagramGen = new DiagramGenerator(ir);
+            DiagramGenerator diagramGen =
+                    archModel != null ? new DiagramGenerator(archModel) : new DiagramGenerator(ir);
             String diagrams = diagramGen.generate();
             writer.writeDoc(outputDir + "/diagrams.md", diagrams);
             diagnostics.info("Generated architecture diagrams");

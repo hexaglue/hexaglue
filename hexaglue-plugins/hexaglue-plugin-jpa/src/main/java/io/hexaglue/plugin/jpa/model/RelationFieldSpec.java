@@ -16,12 +16,16 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.plugin.jpa.extraction.RelationInfo;
 import io.hexaglue.spi.ir.CascadeType;
 import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.RelationKind;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -180,6 +184,115 @@ public record RelationFieldSpec(
      */
     public boolean targetsValueObject() {
         return targetKind == DomainKind.VALUE_OBJECT;
+    }
+
+    /**
+     * Creates a RelationFieldSpec from v4 RelationInfo extracted from annotations.
+     *
+     * <p>This factory method converts the v4 extraction model to the generation model.
+     * It uses the ArchitecturalModel to determine the target type's DomainKind.
+     *
+     * @param info the relation info from JpaAnnotationExtractor
+     * @param model the architectural model for type resolution
+     * @param embeddableMapping map from domain FQN to embeddable FQN
+     * @return a RelationFieldSpec ready for code generation
+     * @since 4.0.0
+     */
+    public static RelationFieldSpec from(
+            RelationInfo info, ArchitecturalModel model, Map<String, String> embeddableMapping) {
+        String targetFqn = info.targetType().qualifiedName();
+
+        // For EMBEDDED and ELEMENT_COLLECTION, use embeddable type if available
+        if ((info.relationKind() == RelationInfo.RelationKind.EMBEDDED
+                        || info.relationKind() == RelationInfo.RelationKind.ELEMENT_COLLECTION)
+                && embeddableMapping.containsKey(targetFqn)) {
+            targetFqn = embeddableMapping.get(targetFqn);
+        }
+
+        RelationKind kind = mapRelationKind(info.relationKind());
+        TypeName targetType = resolveTargetType(kind, targetFqn);
+        DomainKind targetKind = findDomainKindV4(model, info.targetType().qualifiedName());
+        CascadeType cascade = mapCascadeType(info.cascade());
+        FetchType fetch = mapFetchType(info.fetch());
+
+        return new RelationFieldSpec(
+                info.fieldName(),
+                targetType,
+                kind,
+                targetKind,
+                info.mappedByOpt().orElse(null),
+                cascade,
+                fetch,
+                info.orphanRemoval());
+    }
+
+    /**
+     * Maps RelationInfo.RelationKind to spi.ir.RelationKind.
+     */
+    private static RelationKind mapRelationKind(RelationInfo.RelationKind kind) {
+        return switch (kind) {
+            case ONE_TO_ONE -> RelationKind.ONE_TO_ONE;
+            case ONE_TO_MANY -> RelationKind.ONE_TO_MANY;
+            case MANY_TO_ONE -> RelationKind.MANY_TO_ONE;
+            case MANY_TO_MANY -> RelationKind.MANY_TO_MANY;
+            case EMBEDDED -> RelationKind.EMBEDDED;
+            case ELEMENT_COLLECTION -> RelationKind.ELEMENT_COLLECTION;
+        };
+    }
+
+    /**
+     * Maps RelationInfo.CascadeType to spi.ir.CascadeType.
+     */
+    private static CascadeType mapCascadeType(RelationInfo.CascadeType cascade) {
+        if (cascade == null) {
+            return CascadeType.NONE;
+        }
+        return switch (cascade) {
+            case NONE -> CascadeType.NONE;
+            case PERSIST -> CascadeType.PERSIST;
+            case MERGE -> CascadeType.MERGE;
+            case REMOVE -> CascadeType.REMOVE;
+            case REFRESH -> CascadeType.REFRESH;
+            case DETACH -> CascadeType.DETACH;
+            case ALL -> CascadeType.ALL;
+        };
+    }
+
+    /**
+     * Maps RelationInfo.FetchType to spi.ir.FetchType.
+     */
+    private static FetchType mapFetchType(RelationInfo.FetchType fetch) {
+        if (fetch == null) {
+            return FetchType.LAZY;
+        }
+        return switch (fetch) {
+            case LAZY -> FetchType.LAZY;
+            case EAGER -> FetchType.EAGER;
+        };
+    }
+
+    /**
+     * Finds the DomainKind for a type using v4 model.
+     */
+    private static DomainKind findDomainKindV4(ArchitecturalModel model, String qualifiedName) {
+        // Check if it's an aggregate root
+        if (model.domainEntities()
+                .filter(e -> e.entityKind() == ElementKind.AGGREGATE_ROOT)
+                .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
+            return DomainKind.AGGREGATE_ROOT;
+        }
+        // Check if it's an entity
+        if (model.domainEntities()
+                .filter(e -> e.entityKind() == ElementKind.ENTITY)
+                .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
+            return DomainKind.ENTITY;
+        }
+        // Check if it's a value object
+        if (model.valueObjects().anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
+            return DomainKind.VALUE_OBJECT;
+        }
+        // Default to VALUE_OBJECT for unknown types
+        return DomainKind.VALUE_OBJECT;
     }
 
     /**

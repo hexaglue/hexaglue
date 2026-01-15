@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
 import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
@@ -33,6 +34,10 @@ import java.util.Map;
  *   <li>DocumentationModel - immutable records representing documentation content</li>
  *   <li>Renderer - renders documentation models to Mermaid diagrams</li>
  * </ol>
+ *
+ * <p>Supports both legacy SPI (IrSnapshot) and v4 model (ArchitecturalModel).
+ *
+ * @since 3.0.0
  */
 public final class DiagramGenerator {
 
@@ -40,9 +45,28 @@ public final class DiagramGenerator {
     private final PortContentSelector portSelector;
     private final DiagramRenderer renderer;
 
+    /**
+     * Creates a generator using legacy IrSnapshot.
+     *
+     * @param ir the IR snapshot
+     * @deprecated Use {@link #DiagramGenerator(ArchitecturalModel)} for v4 model support
+     */
+    @Deprecated(since = "4.0.0", forRemoval = true)
     public DiagramGenerator(IrSnapshot ir) {
         this.domainSelector = new DomainContentSelector(ir);
         this.portSelector = new PortContentSelector(ir);
+        this.renderer = new DiagramRenderer();
+    }
+
+    /**
+     * Creates a generator using v4 ArchitecturalModel.
+     *
+     * @param model the architectural model
+     * @since 4.0.0
+     */
+    public DiagramGenerator(ArchitecturalModel model) {
+        this.domainSelector = new DomainContentSelector(model);
+        this.portSelector = new PortContentSelector(model);
         this.renderer = new DiagramRenderer();
     }
 
