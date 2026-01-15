@@ -90,7 +90,7 @@ public record JpaConfig(
      * Creates default configuration.
      */
     static JpaConfig defaults() {
-        return new JpaConfig("Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "",
-                false, false, true, true, true, true);
+        return new JpaConfig(
+                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
     }
 }

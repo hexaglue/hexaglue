@@ -14,7 +14,12 @@
 package io.hexaglue.core.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.spi.arch.ArchModelPluginContext;
+import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
@@ -26,6 +31,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -337,6 +344,159 @@ class PluginExecutorTest {
                 .isEmpty();
         assertThat(plugin2Context.getOutput("unknown-plugin", "my-data", String.class))
                 .isEmpty();
+    }
+
+    /**
+     * Tests for v4 ArchitecturalModel integration with DefaultPluginContext.
+     *
+     * @since 4.0.0
+     */
+    @Nested
+    @DisplayName("V4 ArchitecturalModel Integration")
+    class ArchitecturalModelIntegrationTest {
+
+        private IrSnapshot ir;
+        private PluginConfig config;
+        private CodeWriter writer;
+        private DiagnosticReporter diagnostics;
+        private PluginOutputStore outputStore;
+        private ArchitecturalModel model;
+
+        @BeforeEach
+        void setUp() {
+            ir = IrSnapshot.empty("com.example");
+            config = new MapPluginConfig(Map.of());
+            writer = new TestCodeWriter();
+            diagnostics = new TestDiagnosticReporter();
+            outputStore = new PluginOutputStore();
+            model = ArchitecturalModel.builder(ProjectContext.forTesting("Test", "com.example")).build();
+        }
+
+        @Test
+        @DisplayName("DefaultPluginContext with model implements ArchModelPluginContext")
+        void contextWithModel_implementsArchModelPluginContext() {
+            // Given
+            DefaultPluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, model, config, writer, diagnostics, outputStore, null);
+
+            // Then
+            assertThat(context).isInstanceOf(ArchModelPluginContext.class);
+        }
+
+        @Test
+        @DisplayName("DefaultPluginContext with model provides model()")
+        void contextWithModel_providesModel() {
+            // Given
+            DefaultPluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, model, config, writer, diagnostics, outputStore, null);
+
+            // Then
+            assertThat(context.model()).isSameAs(model);
+            assertThat(context.hasModel()).isTrue();
+        }
+
+        @Test
+        @DisplayName("DefaultPluginContext without model throws on model()")
+        void contextWithoutModel_throwsOnModel() {
+            // Given
+            DefaultPluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, config, writer, diagnostics, outputStore, null);
+
+            // Then
+            assertThat(context.hasModel()).isFalse();
+            assertThatThrownBy(context::model)
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("ArchitecturalModel not available");
+        }
+
+        @Test
+        @DisplayName("PluginContexts.hasArchModel() returns true for context with model")
+        void pluginContexts_hasArchModel_withModel() {
+            // Given
+            PluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, model, config, writer, diagnostics, outputStore, null);
+
+            // Then
+            assertThat(PluginContexts.hasArchModel(context)).isTrue();
+        }
+
+        @Test
+        @DisplayName("PluginContexts.hasArchModel() returns false for context without model")
+        void pluginContexts_hasArchModel_withoutModel() {
+            // Given
+            PluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, config, writer, diagnostics, outputStore, null);
+
+            // Then - context still implements ArchModelPluginContext, but hasArchModel checks model()
+            assertThat(PluginContexts.hasArchModel(context)).isTrue();
+        }
+
+        @Test
+        @DisplayName("PluginContexts.getModel() returns model for context with model")
+        void pluginContexts_getModel_withModel() {
+            // Given
+            PluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, model, config, writer, diagnostics, outputStore, null);
+
+            // Then
+            assertThat(PluginContexts.getModel(context)).hasValue(model);
+        }
+
+        @Test
+        @DisplayName("PluginContexts.getModel() returns empty for plain PluginContext")
+        void pluginContexts_getModel_withPlainContext() {
+            // Given - use a plain PluginContext that doesn't implement ArchModelPluginContext
+            PluginContext plainContext = new PluginContext() {
+                @Override
+                public IrSnapshot ir() { return ir; }
+                @Override
+                public PluginConfig config() { return config; }
+                @Override
+                public CodeWriter writer() { return writer; }
+                @Override
+                public DiagnosticReporter diagnostics() { return diagnostics; }
+                @Override
+                public <T> void setOutput(String key, T value) {}
+                @Override
+                public <T> java.util.Optional<T> getOutput(String fromPluginId, String key, Class<T> type) {
+                    return java.util.Optional.empty();
+                }
+                @Override
+                public String currentPluginId() { return "plain-plugin"; }
+                @Override
+                public io.hexaglue.spi.plugin.TemplateEngine templates() { return null; }
+                @Override
+                public java.util.Optional<io.hexaglue.spi.audit.ArchitectureQuery> architectureQuery() {
+                    return java.util.Optional.empty();
+                }
+            };
+
+            // Then
+            assertThat(PluginContexts.getModel(plainContext)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("PluginContexts.getModel() returns empty for legacy DefaultPluginContext without model")
+        void pluginContexts_getModel_withLegacyContext() {
+            // Given - DefaultPluginContext without model (legacy mode)
+            PluginContext legacyContext =
+                    new DefaultPluginContext("test-plugin", ir, config, writer, diagnostics, outputStore, null);
+
+            // Then - getModel() should return empty, not throw
+            assertThat(PluginContexts.getModel(legacyContext)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("v4 model coexists with legacy IR")
+        void modelCoexistsWithLegacyIr() {
+            // Given
+            DefaultPluginContext context =
+                    new DefaultPluginContext("test-plugin", ir, model, config, writer, diagnostics, outputStore, null);
+
+            // Then - both APIs work
+            assertThat(context.ir()).isSameAs(ir);
+            assertThat(context.model()).isSameAs(model);
+        }
     }
 
     // Test helpers

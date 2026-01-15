@@ -16,8 +16,8 @@ package io.hexaglue.plugin.jpa.codegen;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
-import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.ParameterSpec;
+import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
@@ -156,7 +156,8 @@ public final class JpaRepositoryCodegen {
 
         // Add parameters
         for (DerivedMethodSpec.ParameterSpec param : method.parameters()) {
-            builder.addParameter(ParameterSpec.builder(param.type(), param.name()).build());
+            builder.addParameter(
+                    ParameterSpec.builder(param.type(), param.name()).build());
         }
 
         return builder.build();

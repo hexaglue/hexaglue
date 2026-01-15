@@ -30,6 +30,8 @@ import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
@@ -39,6 +41,7 @@ import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortKind;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
+import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -94,9 +97,25 @@ public final class JpaPlugin implements GeneratorPlugin {
     /** Indentation for generated code (4 spaces). */
     private static final String INDENT = "    ";
 
+    /** V4 ArchitecturalModel (set during execute if available). */
+    private ArchitecturalModel archModel;
+
     @Override
     public String id() {
         return PLUGIN_ID;
+    }
+
+    /**
+     * Overrides default execute to capture v4 ArchitecturalModel if available.
+     *
+     * @param context the plugin context
+     * @since 4.0.0
+     */
+    @Override
+    public void execute(PluginContext context) {
+        // Capture v4 model if available before delegating to generate()
+        this.archModel = PluginContexts.getModel(context).orElse(null);
+        GeneratorPlugin.super.execute(context);
     }
 
     @Override
@@ -105,6 +124,12 @@ public final class JpaPlugin implements GeneratorPlugin {
         PluginConfig pluginConfig = context.config();
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
+
+        // Log v4 model info if available
+        if (archModel != null) {
+            diagnostics.info("Using v4 ArchitecturalModel (classification traces available)");
+            logClassificationSummary(archModel, diagnostics);
+        }
 
         if (ir.isEmpty()) {
             diagnostics.info("No domain types to process");
@@ -130,7 +155,8 @@ public final class JpaPlugin implements GeneratorPlugin {
         Map<Port, DomainType> portToManagedType = new LinkedHashMap<>();
         for (Port port : ir.ports().ports()) {
             if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
-                Optional<DomainType> managedType = findManagedType(port, ir.domain().types());
+                Optional<DomainType> managedType =
+                        findManagedType(port, ir.domain().types());
                 if (managedType.isPresent() && managedType.get().isEntity()) {
                     portToManagedType.put(port, managedType.get());
                 } else if (managedType.isEmpty()) {
@@ -275,7 +301,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 try {
                     AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
-                            .ports(List.of(port))  // Single port per adapter
+                            .ports(List.of(port)) // Single port per adapter
                             .domainType(managedType)
                             .config(config)
                             .infrastructurePackage(infraPackage)
@@ -286,7 +312,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                     writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
                     adapterCount++;
 
-                    diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing " + port.simpleName());
+                    diagnostics.info(
+                            "Generated adapter: " + adapterSpec.className() + " implementing " + port.simpleName());
                 } catch (IOException e) {
                     diagnostics.error("Failed to generate adapter for port " + port.simpleName(), e);
                 } catch (IllegalArgumentException | IllegalStateException e) {
@@ -375,5 +402,31 @@ public final class JpaPlugin implements GeneratorPlugin {
                 .filter(t -> t.simpleName().equals(searchName))
                 .filter(DomainType::isEntity)
                 .findFirst();
+    }
+
+    /**
+     * Logs a summary of the v4 ArchitecturalModel classification.
+     *
+     * <p>This provides visibility into the new classification system when available,
+     * including classification traces for debugging.
+     *
+     * @param model the architectural model
+     * @param diagnostics the diagnostic reporter
+     * @since 4.0.0
+     */
+    private void logClassificationSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
+        long aggregateCount = model.aggregates().count();
+        long entityCount = model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
+        long valueObjectCount = model.valueObjects().count();
+        long drivenPortCount = model.drivenPorts().count();
+
+        diagnostics.info(String.format(
+                "v4 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
+                aggregateCount, entityCount, valueObjectCount, drivenPortCount));
+
+        // Log classification traces for aggregates (useful for debugging)
+        model.aggregates().limit(3).forEach(agg -> {
+            diagnostics.info("  - " + agg.id().simpleName() + ": " + agg.classificationTrace().explain());
+        });
     }
 }

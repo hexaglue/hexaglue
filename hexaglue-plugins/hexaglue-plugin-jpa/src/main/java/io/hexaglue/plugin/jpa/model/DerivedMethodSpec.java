@@ -71,8 +71,9 @@ public record DerivedMethodSpec(
 
         String methodName = method.name();
         TypeName returnType = resolveReturnType(method, entityTypeName);
-        List<ParameterSpec> params =
-                method.parameters().stream().map(DerivedMethodSpec::toParameterSpec).toList();
+        List<ParameterSpec> params = method.parameters().stream()
+                .map(DerivedMethodSpec::toParameterSpec)
+                .toList();
 
         return new DerivedMethodSpec(methodName, returnType, params, method.kind());
     }
@@ -175,8 +176,9 @@ public record DerivedMethodSpec(
         // Handle parameterized types
         if (typeRef.isParameterized()) {
             TypeName rawType = ClassName.bestGuess(typeRef.qualifiedName());
-            TypeName[] typeArgs =
-                    typeRef.typeArguments().stream().map(DerivedMethodSpec::resolveTypeName).toArray(TypeName[]::new);
+            TypeName[] typeArgs = typeRef.typeArguments().stream()
+                    .map(DerivedMethodSpec::resolveTypeName)
+                    .toArray(TypeName[]::new);
             return ParameterizedTypeName.get((ClassName) rawType, typeArgs);
         }
 

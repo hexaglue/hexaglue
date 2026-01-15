@@ -60,7 +60,8 @@ class AdapterSpecBuilderTest {
 
     @BeforeEach
     void setUp() {
-        config = new JpaConfig("Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
+        config = new JpaConfig(
+                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
         orderAggregate = createOrderAggregate();
     }
 
@@ -162,12 +163,20 @@ class AdapterSpecBuilderTest {
         @DisplayName("should include all methods from port")
         void shouldIncludeAllMethodsFromPort() {
             // Given
-            Port port = createPortWithMethods("OrderRepository", List.of(
-                    PortMethod.of("save", TypeRef.of(TEST_PKG + ".Order"), List.of(
-                            MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))), MethodKind.SAVE),
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)), MethodKind.FIND_BY_ID),
-                    PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+            Port port = createPortWithMethods(
+                    "OrderRepository",
+                    List.of(
+                            PortMethod.of(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Order"),
+                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
+                                    MethodKind.SAVE),
+                            PortMethod.of(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
+                                    MethodKind.FIND_BY_ID),
+                            PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -179,7 +188,8 @@ class AdapterSpecBuilderTest {
 
             // Then
             assertThat(spec.methods()).hasSize(3);
-            assertThat(spec.methods()).extracting(AdapterMethodSpec::name)
+            assertThat(spec.methods())
+                    .extracting(AdapterMethodSpec::name)
                     .containsExactly("save", "findById", "findAll");
         }
     }
@@ -192,15 +202,27 @@ class AdapterSpecBuilderTest {
         @DisplayName("should deduplicate identical methods from multiple ports")
         void shouldDeduplicateIdenticalMethodsFromMultiplePorts() {
             // Given: Two ports with the same findById method (common in sample-pokedex)
-            Port port1 = createPortWithMethods("ReadableOrderRepository", List.of(
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)), MethodKind.FIND_BY_ID)));
+            Port port1 = createPortWithMethods(
+                    "ReadableOrderRepository",
+                    List.of(PortMethod.of(
+                            "findById",
+                            TypeRef.of("java.util.Optional"),
+                            List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
+                            MethodKind.FIND_BY_ID)));
 
-            Port port2 = createPortWithMethods("WritableOrderRepository", List.of(
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)), MethodKind.FIND_BY_ID),
-                    PortMethod.of("save", TypeRef.of(TEST_PKG + ".Order"), List.of(
-                            MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))), MethodKind.SAVE)));
+            Port port2 = createPortWithMethods(
+                    "WritableOrderRepository",
+                    List.of(
+                            PortMethod.of(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
+                                    MethodKind.FIND_BY_ID),
+                            PortMethod.of(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Order"),
+                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
+                                    MethodKind.SAVE)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -212,8 +234,7 @@ class AdapterSpecBuilderTest {
 
             // Then: findById should appear only once
             assertThat(spec.methods()).hasSize(2);
-            assertThat(spec.methods()).extracting(AdapterMethodSpec::name)
-                    .containsExactly("findById", "save");
+            assertThat(spec.methods()).extracting(AdapterMethodSpec::name).containsExactly("findById", "save");
 
             // Verify only one findById
             long findByIdCount = spec.methods().stream()
@@ -228,13 +249,21 @@ class AdapterSpecBuilderTest {
         @DisplayName("should implement all ports in the adapter")
         void shouldImplementAllPortsInTheAdapter() {
             // Given
-            Port port1 = createPortWithMethods("ReadableOrderRepository", List.of(
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)), MethodKind.FIND_BY_ID)));
+            Port port1 = createPortWithMethods(
+                    "ReadableOrderRepository",
+                    List.of(PortMethod.of(
+                            "findById",
+                            TypeRef.of("java.util.Optional"),
+                            List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
+                            MethodKind.FIND_BY_ID)));
 
-            Port port2 = createPortWithMethods("WritableOrderRepository", List.of(
-                    PortMethod.of("save", TypeRef.of(TEST_PKG + ".Order"), List.of(
-                            MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))), MethodKind.SAVE)));
+            Port port2 = createPortWithMethods(
+                    "WritableOrderRepository",
+                    List.of(PortMethod.of(
+                            "save",
+                            TypeRef.of(TEST_PKG + ".Order"),
+                            List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
+                            MethodKind.SAVE)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -253,11 +282,13 @@ class AdapterSpecBuilderTest {
         void shouldKeepFirstOccurrenceWhenDeduplicating() {
             // Given: Two ports with same method name but potentially different return types
             // (first port's version should be kept)
-            Port port1 = createPortWithMethods("PrimaryRepository", List.of(
-                    PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+            Port port1 = createPortWithMethods(
+                    "PrimaryRepository",
+                    List.of(PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
 
-            Port port2 = createPortWithMethods("SecondaryRepository", List.of(
-                    PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+            Port port2 = createPortWithMethods(
+                    "SecondaryRepository",
+                    List.of(PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -276,11 +307,19 @@ class AdapterSpecBuilderTest {
         @DisplayName("should not deduplicate methods with different parameter types")
         void shouldNotDeduplicateMethodsWithDifferentParameterTypes() {
             // Given: Same method name but different parameter types (overloading)
-            Port port = createPortWithMethods("OrderRepository", List.of(
-                    PortMethod.of("delete", TypeRef.of("void"), List.of(
-                            MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))), MethodKind.DELETE_ALL),
-                    PortMethod.of("delete", TypeRef.of("void"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)), MethodKind.DELETE_BY_ID)));
+            Port port = createPortWithMethods(
+                    "OrderRepository",
+                    List.of(
+                            PortMethod.of(
+                                    "delete",
+                                    TypeRef.of("void"),
+                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
+                                    MethodKind.DELETE_ALL),
+                            PortMethod.of(
+                                    "delete",
+                                    TypeRef.of("void"),
+                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
+                                    MethodKind.DELETE_BY_ID)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -470,16 +509,29 @@ class AdapterSpecBuilderTest {
         @DisplayName("merged ports should not produce duplicate findById methods")
         void mergedPortsShouldNotProduceDuplicateFindByIdMethods() {
             // Given: This was causing "Duplicate method 'findById'" errors in sample-pokedex
-            Port readPort = createPortWithMethods("PokemonReadRepository", List.of(
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)), MethodKind.FIND_BY_ID),
-                    PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+            Port readPort = createPortWithMethods(
+                    "PokemonReadRepository",
+                    List.of(
+                            PortMethod.of(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)),
+                                    MethodKind.FIND_BY_ID),
+                            PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
 
-            Port writePort = createPortWithMethods("PokemonWriteRepository", List.of(
-                    PortMethod.of("save", TypeRef.of(TEST_PKG + ".Pokemon"), List.of(
-                            MethodParameter.simple("pokemon", TypeRef.of(TEST_PKG + ".Pokemon"))), MethodKind.SAVE),
-                    PortMethod.of("findById", TypeRef.of("java.util.Optional"), List.of(
-                            MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)), MethodKind.FIND_BY_ID)));
+            Port writePort = createPortWithMethods(
+                    "PokemonWriteRepository",
+                    List.of(
+                            PortMethod.of(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Pokemon"),
+                                    List.of(MethodParameter.simple("pokemon", TypeRef.of(TEST_PKG + ".Pokemon"))),
+                                    MethodKind.SAVE),
+                            PortMethod.of(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)),
+                                    MethodKind.FIND_BY_ID)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -550,9 +602,11 @@ class AdapterSpecBuilderTest {
                 ConfidenceLevel.HIGH,
                 List.of(TEST_PKG + ".Order"),
                 TEST_PKG + ".Order",
-                List.of(
-                        PortMethod.of("save", TypeRef.of(TEST_PKG + ".Order"), List.of(
-                                MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))), MethodKind.SAVE)),
+                List.of(PortMethod.of(
+                        "save",
+                        TypeRef.of(TEST_PKG + ".Order"),
+                        List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
+                        MethodKind.SAVE)),
                 List.of(),
                 SourceRef.unknown());
     }

@@ -83,10 +83,7 @@ public record MapperSpec(
      * @since 3.0.0
      */
     public record EmbeddableMappingSpec(
-            String domainTypeFqn,
-            String embeddableFqn,
-            String domainSimpleName,
-            String embeddableSimpleName) {}
+            String domainTypeFqn, String embeddableFqn, String domainSimpleName, String embeddableSimpleName) {}
 
     /**
      * Specification for a wrapped identity type that needs conversion methods.
@@ -124,11 +121,7 @@ public record MapperSpec(
      * @since 3.0.0
      */
     public record ValueObjectMappingSpec(
-            String valueObjectType,
-            String simpleName,
-            String primitiveType,
-            String accessorMethod,
-            boolean isRecord) {
+            String valueObjectType, String simpleName, String primitiveType, String accessorMethod, boolean isRecord) {
 
         /**
          * Creates a ValueObjectMappingSpec from a DomainType representing a Value Object or Identifier.
@@ -142,8 +135,8 @@ public record MapperSpec(
          */
         public static ValueObjectMappingSpec from(DomainType domainType) {
             // Accept both VALUE_OBJECT and IDENTIFIER types
-            boolean isWrapperType = domainType.isValueObject()
-                    || domainType.kind() == io.hexaglue.spi.ir.DomainKind.IDENTIFIER;
+            boolean isWrapperType =
+                    domainType.isValueObject() || domainType.kind() == io.hexaglue.spi.ir.DomainKind.IDENTIFIER;
             if (!isWrapperType) {
                 return null;
             }

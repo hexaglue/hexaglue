@@ -181,7 +181,9 @@ public record PropertyFieldSpec(
         // - Simple value wrappers like Money, Quantity (single property)
         // These should be unwrapped to their primitive types for JPA persistence
         boolean isSimpleWrapper = isSimpleWrapperType(matchingType);
-        boolean isWrappedForeignKey = isSimpleWrapper && matchingType != null && matchingType.simpleName().endsWith("Id");
+        boolean isWrappedForeignKey = isSimpleWrapper
+                && matchingType != null
+                && matchingType.simpleName().endsWith("Id");
         TypeName unwrappedType = null;
         String wrapperAccessorMethod = null;
 
@@ -190,7 +192,8 @@ public record PropertyFieldSpec(
             DomainProperty wrappedProperty = matchingType.properties().get(0);
             unwrappedType = TypeMappings.toJpaType(wrappedProperty.type());
             // For records, the accessor is the property name (e.g., "value")
-            wrapperAccessorMethod = matchingType.isRecord() ? wrappedProperty.name() : "get" + capitalize(wrappedProperty.name());
+            wrapperAccessorMethod =
+                    matchingType.isRecord() ? wrappedProperty.name() : "get" + capitalize(wrappedProperty.name());
         }
 
         return new PropertyFieldSpec(

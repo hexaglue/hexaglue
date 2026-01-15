@@ -261,7 +261,15 @@ class JpaAdapterCodegenTest {
     void generate_shouldThrowForNullImplementedPorts() {
         // Given
         AdapterSpec spec = new AdapterSpec(
-                TEST_PACKAGE, ADAPTER_NAME, null, DOMAIN_TYPE, ENTITY_TYPE, REPOSITORY_TYPE, MAPPER_TYPE, List.of(), null);
+                TEST_PACKAGE,
+                ADAPTER_NAME,
+                null,
+                DOMAIN_TYPE,
+                ENTITY_TYPE,
+                REPOSITORY_TYPE,
+                MAPPER_TYPE,
+                List.of(),
+                null);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
