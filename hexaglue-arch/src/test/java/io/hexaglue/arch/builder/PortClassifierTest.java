@@ -243,6 +243,21 @@ class PortClassifierTest {
             // then
             assertThat(trace.classifiedAs()).isEqualTo(ElementKind.DRIVING_PORT);
         }
+
+        @Test
+        @DisplayName("should classify interface ending with UseCases (plural) as DRIVING_PORT")
+        void shouldClassifyPluralUseCasesInterface() {
+            // given
+            TypeSyntax type = new StubTypeSyntax("com.example.TaskUseCases", TypeForm.INTERFACE);
+            PortClassifier classifier = new PortClassifier(List.of(new UseCaseInterfaceCriterion()));
+
+            // when
+            ClassificationTrace trace = classifier.classify(type, context);
+
+            // then
+            assertThat(trace.classifiedAs()).isEqualTo(ElementKind.DRIVING_PORT);
+            assertThat(trace.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
+        }
     }
 
     @Nested

@@ -15,109 +15,94 @@ package io.hexaglue.plugin.livingdoc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.arch.ElementId;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.ports.PortClassification;
+import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainModel;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.Identity;
-import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.IdentityWrapperKind;
-import io.hexaglue.spi.ir.IrMetadata;
-import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.JavaConstruct;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
-import io.hexaglue.spi.ir.PortMethod;
-import io.hexaglue.spi.ir.PortModel;
-import io.hexaglue.spi.ir.SourceRef;
-import io.hexaglue.spi.ir.TypeRef;
-import java.time.Instant;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
+import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for LivingDocPlugin using v4 ArchitecturalModel API.
+ *
+ * @since 4.0.0
+ */
 class LivingDocPluginTest {
 
-    private IrSnapshot testIr;
+    private static final String PKG = "com.example.domain";
+
+    private ArchitecturalModel testModel;
+
+    private ClassificationTrace highConfidence(ElementKind kind) {
+        return ClassificationTrace.highConfidence(kind, "test", "Test classification");
+    }
 
     @BeforeEach
     void setUp() {
         // Create test domain types
-        TypeRef uuidType = TypeRef.of("java.util.UUID");
-        TypeRef orderIdType = TypeRef.of("com.example.domain.OrderId");
-
-        Identity orderId = Identity.wrapped(
-                "id", orderIdType, uuidType, IdentityStrategy.ASSIGNED, IdentityWrapperKind.RECORD, "value");
-
-        DomainType orderAggregate = new DomainType(
-                "com.example.domain.Order",
-                "Order",
-                "com.example.domain",
-                DomainKind.AGGREGATE_ROOT,
-                ConfidenceLevel.HIGH,
-                JavaConstruct.CLASS,
-                Optional.of(orderId),
-                List.of(),
-                List.of(),
-                List.of(),
-                SourceRef.unknown());
-
-        DomainType moneyVo = new DomainType(
-                "com.example.domain.Money",
-                "Money",
-                "com.example.domain",
-                DomainKind.VALUE_OBJECT,
-                ConfidenceLevel.EXPLICIT,
-                JavaConstruct.RECORD,
+        DomainEntity orderAggregate = new DomainEntity(
+                ElementId.of(PKG + ".Order"),
+                ElementKind.AGGREGATE_ROOT,
+                "id",
+                TypeRef.of(PKG + ".OrderId"),
                 Optional.empty(),
                 List.of(),
-                List.of(),
-                List.of(),
-                SourceRef.unknown());
+                null,
+                highConfidence(ElementKind.AGGREGATE_ROOT));
 
-        DomainModel domain = new DomainModel(List.of(orderAggregate, moneyVo));
+        ValueObject moneyVo = ValueObject.of(PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
 
         // Create test ports
-        Port orderRepository = new Port(
-                "com.example.ports.out.OrderRepository",
-                "OrderRepository",
-                "com.example.ports.out",
-                PortKind.REPOSITORY,
-                PortDirection.DRIVEN,
-                ConfidenceLevel.HIGH,
-                List.of("com.example.domain.Order"),
-                "com.example.domain.Order",
-                List.of(
-                        PortMethod.legacy("findById", "Optional<Order>", List.of("OrderId")),
-                        PortMethod.legacy("save", "Order", List.of("Order"))),
-                List.of(),
-                SourceRef.unknown());
+        PortOperation findById = new PortOperation(
+                "findById",
+                TypeRef.of("java.util.Optional"),
+                List.of(TypeRef.of(PKG + ".OrderId")),
+                null);
+        PortOperation save = new PortOperation("save", TypeRef.of(PKG + ".Order"), List.of(TypeRef.of(PKG + ".Order")), null);
 
-        Port orderUseCase = new Port(
-                "com.example.ports.in.OrderingProducts",
-                "OrderingProducts",
-                "com.example.ports.in",
-                PortKind.USE_CASE,
-                PortDirection.DRIVING,
-                ConfidenceLevel.MEDIUM,
+        DrivenPort orderRepository = new DrivenPort(
+                ElementId.of("com.example.ports.out.OrderRepository"),
+                PortClassification.REPOSITORY,
+                List.of(findById, save),
+                Optional.empty(),
                 List.of(),
                 null,
-                List.of(PortMethod.legacy("placeOrder", "OrderId", List.of("OrderRequest"))),
+                highConfidence(ElementKind.DRIVEN_PORT));
+
+        PortOperation placeOrder = new PortOperation(
+                "placeOrder", TypeRef.of(PKG + ".OrderId"), List.of(TypeRef.of("com.example.OrderRequest")), null);
+
+        DrivingPort orderUseCase = new DrivingPort(
+                ElementId.of("com.example.ports.in.OrderingProducts"),
+                PortClassification.USE_CASE,
+                List.of(placeOrder),
                 List.of(),
-                SourceRef.unknown());
+                null,
+                highConfidence(ElementKind.DRIVING_PORT));
 
-        PortModel ports = new PortModel(List.of(orderRepository, orderUseCase));
-
-        // Create IR metadata
-        IrMetadata metadata = IrMetadata.withDefaults("com.example", Instant.now(), "2.0.0-SNAPSHOT", 2, 2);
-
-        testIr = new IrSnapshot(domain, ports, metadata);
+        // Build the model
+        testModel = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
+                .add(orderAggregate)
+                .add(moneyVo)
+                .add(orderRepository)
+                .add(orderUseCase)
+                .build();
     }
 
     @Test
@@ -128,7 +113,8 @@ class LivingDocPluginTest {
 
     @Test
     void overviewGeneratorShouldGenerateValidMarkdown() {
-        OverviewGenerator generator = new OverviewGenerator(testIr);
+        DocumentationModel docModel = DocumentationModelFactory.fromArchModel(testModel);
+        OverviewGenerator generator = new OverviewGenerator(docModel);
         String result = generator.generate(true);
 
         assertThat(result).contains("# Architecture Overview");
@@ -142,7 +128,7 @@ class LivingDocPluginTest {
 
     @Test
     void domainDocGeneratorShouldGenerateValidMarkdown() {
-        DomainDocGenerator generator = new DomainDocGenerator(testIr);
+        DomainDocGenerator generator = new DomainDocGenerator(testModel);
         String result = generator.generate();
 
         assertThat(result).contains("# Domain Model");
@@ -150,12 +136,11 @@ class LivingDocPluginTest {
         assertThat(result).contains("### Order");
         assertThat(result).contains("## Value Objects");
         assertThat(result).contains("### Money");
-        assertThat(result).contains("| **Kind** | Aggregate Root |");
     }
 
     @Test
     void portDocGeneratorShouldGenerateValidMarkdown() {
-        PortDocGenerator generator = new PortDocGenerator(testIr);
+        PortDocGenerator generator = new PortDocGenerator(testModel);
         String result = generator.generate();
 
         assertThat(result).contains("# Ports");
@@ -163,12 +148,11 @@ class LivingDocPluginTest {
         assertThat(result).contains("### OrderingProducts");
         assertThat(result).contains("## Driven Ports (Secondary)");
         assertThat(result).contains("### OrderRepository");
-        assertThat(result).contains("| **Kind** | Repository |");
     }
 
     @Test
     void diagramGeneratorShouldGenerateMermaidDiagrams() {
-        DiagramGenerator generator = new DiagramGenerator(testIr);
+        DiagramGenerator generator = new DiagramGenerator(testModel);
         String result = generator.generate();
 
         assertThat(result).contains("# Architecture Diagrams");

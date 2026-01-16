@@ -24,7 +24,6 @@ import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
@@ -46,11 +45,10 @@ import io.hexaglue.spi.plugin.PluginContext;
  *   <li>{@code generateDiagrams} - whether to generate Mermaid diagrams (default: true)</li>
  * </ul>
  *
- * <p>This plugin supports both legacy {@code IrSnapshot} and v4 {@code ArchitecturalModel}.
- * When an ArchitecturalModel is available, it uses the new unified API for improved
- * classification information. Otherwise, it falls back to IrSnapshot.
+ * <p>This plugin requires a v4 {@code ArchitecturalModel}. The documentation models
+ * use SPI classification types ({@code DomainKind}, {@code ConfidenceLevel}) for output.
  *
- * @since 4.0.0 - Migrated to support v4 ArchitecturalModel
+ * @since 4.0.0
  */
 public final class LivingDocPlugin implements GeneratorPlugin {
 
@@ -59,7 +57,6 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
     /**
      * The v4 architectural model, captured in execute() before generate().
-     * May be null if running in legacy mode.
      */
     private ArchitecturalModel archModel;
 
@@ -82,23 +79,21 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
     @Override
     public void generate(GeneratorContext context) throws Exception {
-        IrSnapshot ir = context.ir();
         PluginConfig config = context.config();
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
-        // Build documentation model from the best available source
-        DocumentationModel docModel;
-        String sourceInfo;
-        if (archModel != null) {
-            docModel = DocumentationModelFactory.fromArchModel(archModel);
-            sourceInfo = "v4 ArchitecturalModel";
-            diagnostics.info("Using v4 ArchitecturalModel for documentation generation");
-        } else {
-            docModel = DocumentationModelFactory.fromIrSnapshot(ir);
-            sourceInfo = "legacy IrSnapshot";
-            diagnostics.info("Using legacy IrSnapshot for documentation generation");
+        // Require v4 ArchitecturalModel
+        if (archModel == null) {
+            diagnostics.error(
+                    "v4 ArchitecturalModel is required for living documentation generation. "
+                            + "Please ensure the model is available.");
+            return;
         }
+
+        // Build documentation model from ArchitecturalModel
+        // Note: DocumentationModel uses SPI classification types (DomainKind, ConfidenceLevel)
+        DocumentationModel docModel = DocumentationModelFactory.fromArchModel(archModel);
 
         if (docModel.isEmpty()) {
             diagnostics.info("No domain types or ports to document");
@@ -111,29 +106,27 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
         diagnostics.info("Generating living documentation in: " + outputDir);
 
-        // Generate README/overview using new DocumentationModel
+        // Generate README/overview using DocumentationModel
         OverviewGenerator overviewGen = new OverviewGenerator(docModel);
         String readme = overviewGen.generate(generateDiagrams);
         writer.writeDoc(outputDir + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
 
-        // Generate domain documentation - prefer v4 model when available
-        DomainDocGenerator domainGen =
-                archModel != null ? new DomainDocGenerator(archModel) : new DomainDocGenerator(ir);
+        // Generate domain documentation
+        DomainDocGenerator domainGen = new DomainDocGenerator(archModel);
         String domainDoc = domainGen.generate();
         writer.writeDoc(outputDir + "/domain.md", domainDoc);
         diagnostics.info("Generated domain model documentation");
 
-        // Generate ports documentation - prefer v4 model when available
-        PortDocGenerator portGen = archModel != null ? new PortDocGenerator(archModel) : new PortDocGenerator(ir);
+        // Generate ports documentation
+        PortDocGenerator portGen = new PortDocGenerator(archModel);
         String portsDoc = portGen.generate();
         writer.writeDoc(outputDir + "/ports.md", portsDoc);
         diagnostics.info("Generated ports documentation");
 
-        // Generate diagrams if enabled - prefer v4 model when available
+        // Generate diagrams if enabled
         if (generateDiagrams) {
-            DiagramGenerator diagramGen =
-                    archModel != null ? new DiagramGenerator(archModel) : new DiagramGenerator(ir);
+            DiagramGenerator diagramGen = new DiagramGenerator(archModel);
             String diagrams = diagramGen.generate();
             writer.writeDoc(outputDir + "/diagrams.md", diagrams);
             diagnostics.info("Generated architecture diagrams");
@@ -141,9 +134,8 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
         // Summary
         diagnostics.info(String.format(
-                "Living documentation complete (%s): %d aggregate roots, %d entities, %d value objects, "
+                "Living documentation complete: %d aggregate roots, %d entities, %d value objects, "
                         + "%d driving ports, %d driven ports",
-                sourceInfo,
                 docModel.aggregateRoots().size(),
                 docModel.entities().size(),
                 docModel.valueObjects().size(),

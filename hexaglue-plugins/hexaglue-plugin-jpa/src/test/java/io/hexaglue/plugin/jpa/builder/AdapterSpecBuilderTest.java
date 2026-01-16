@@ -16,24 +16,17 @@ package io.hexaglue.plugin.jpa.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.arch.ElementId;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.PortClassification;
+import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
-import io.hexaglue.plugin.jpa.strategy.AdapterContext;
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.Identity;
-import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.JavaConstruct;
-import io.hexaglue.spi.ir.MethodKind;
-import io.hexaglue.spi.ir.MethodParameter;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
-import io.hexaglue.spi.ir.PortMethod;
-import io.hexaglue.spi.ir.SourceRef;
-import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,9 +38,9 @@ import org.junit.jupiter.api.Test;
  * Unit tests for {@link AdapterSpecBuilder}.
  *
  * <p>These tests validate the builder's ability to create adapter specifications
- * from ports and domain types, with special focus on method deduplication.
+ * from v4 DrivenPorts and DomainEntities, with special focus on method deduplication.
  *
- * @since 3.0.0
+ * @since 4.0.0
  */
 @DisplayName("AdapterSpecBuilder")
 class AdapterSpecBuilderTest {
@@ -56,13 +49,17 @@ class AdapterSpecBuilderTest {
     private static final String INFRA_PKG = "com.example.infrastructure.jpa";
 
     private JpaConfig config;
-    private DomainType orderAggregate;
+    private DomainEntity orderAggregate;
 
     @BeforeEach
     void setUp() {
         config = new JpaConfig(
                 "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
         orderAggregate = createOrderAggregate();
+    }
+
+    private ClassificationTrace highConfidence(ElementKind kind) {
+        return ClassificationTrace.highConfidence(kind, "test", "Test classification");
     }
 
     @Nested
@@ -73,17 +70,17 @@ class AdapterSpecBuilderTest {
         @DisplayName("should create adapter spec with correct class name")
         void shouldCreateAdapterSpecWithCorrectClassName() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
 
-            // Then: Single port uses port name (Phase 1 change)
+            // Then: Single port uses port name
             assertThat(spec.className()).isEqualTo("OrderRepositoryAdapter");
         }
 
@@ -91,12 +88,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should set correct package name")
         void shouldSetCorrectPackageName() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -109,12 +106,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should resolve correct entity type")
         void shouldResolveCorrectEntityType() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -127,12 +124,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should resolve correct repository type")
         void shouldResolveCorrectRepositoryType() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -145,12 +142,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should resolve correct mapper type")
         void shouldResolveCorrectMapperType() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -163,25 +160,17 @@ class AdapterSpecBuilderTest {
         @DisplayName("should include all methods from port")
         void shouldIncludeAllMethodsFromPort() {
             // Given
-            Port port = createPortWithMethods(
+            DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            PortMethod.of(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Order"),
-                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
-                                    MethodKind.SAVE),
-                            PortMethod.of(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
-                                    MethodKind.FIND_BY_ID),
-                            PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null),
+                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null),
+                            new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -202,32 +191,20 @@ class AdapterSpecBuilderTest {
         @DisplayName("should deduplicate identical methods from multiple ports")
         void shouldDeduplicateIdenticalMethodsFromMultiplePorts() {
             // Given: Two ports with the same findById method (common in sample-pokedex)
-            Port port1 = createPortWithMethods(
+            DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(PortMethod.of(
-                            "findById",
-                            TypeRef.of("java.util.Optional"),
-                            List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
-                            MethodKind.FIND_BY_ID)));
+                    List.of(new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null)));
 
-            Port port2 = createPortWithMethods(
+            DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
                     List.of(
-                            PortMethod.of(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
-                                    MethodKind.FIND_BY_ID),
-                            PortMethod.of(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Order"),
-                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
-                                    MethodKind.SAVE)));
+                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null),
+                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port1, port2))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port1, port2))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -249,26 +226,18 @@ class AdapterSpecBuilderTest {
         @DisplayName("should implement all ports in the adapter")
         void shouldImplementAllPortsInTheAdapter() {
             // Given
-            Port port1 = createPortWithMethods(
+            DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(PortMethod.of(
-                            "findById",
-                            TypeRef.of("java.util.Optional"),
-                            List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
-                            MethodKind.FIND_BY_ID)));
+                    List.of(new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null)));
 
-            Port port2 = createPortWithMethods(
+            DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
-                    List.of(PortMethod.of(
-                            "save",
-                            TypeRef.of(TEST_PKG + ".Order"),
-                            List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
-                            MethodKind.SAVE)));
+                    List.of(new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port1, port2))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port1, port2))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -282,18 +251,18 @@ class AdapterSpecBuilderTest {
         void shouldKeepFirstOccurrenceWhenDeduplicating() {
             // Given: Two ports with same method name but potentially different return types
             // (first port's version should be kept)
-            Port port1 = createPortWithMethods(
+            DrivenPort port1 = createPortWithOperations(
                     "PrimaryRepository",
-                    List.of(PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+                    List.of(new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
-            Port port2 = createPortWithMethods(
+            DrivenPort port2 = createPortWithOperations(
                     "SecondaryRepository",
-                    List.of(PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+                    List.of(new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port1, port2))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port1, port2))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -307,24 +276,17 @@ class AdapterSpecBuilderTest {
         @DisplayName("should not deduplicate methods with different parameter types")
         void shouldNotDeduplicateMethodsWithDifferentParameterTypes() {
             // Given: Same method name but different parameter types (overloading)
-            Port port = createPortWithMethods(
+            // Note: null returnType means void
+            DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            PortMethod.of(
-                                    "delete",
-                                    TypeRef.of("void"),
-                                    List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
-                                    MethodKind.DELETE_ALL),
-                            PortMethod.of(
-                                    "delete",
-                                    TypeRef.of("void"),
-                                    List.of(MethodParameter.of("id", TypeRef.of("java.util.UUID"), true)),
-                                    MethodKind.DELETE_BY_ID)));
+                            new PortOperation("delete", null, List.of(TypeRef.of(TEST_PKG + ".Order")), null),
+                            new PortOperation("delete", null, List.of(TypeRef.of("java.util.UUID")), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(port))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -335,130 +297,64 @@ class AdapterSpecBuilderTest {
     }
 
     @Nested
-    @DisplayName("buildContext()")
-    class BuildContext {
-
-        @Test
-        @DisplayName("should create context with correct field names")
-        void shouldCreateContextWithCorrectFieldNames() {
-            // Given
-            Port port = createSimplePort("OrderRepository");
-
-            // When
-            AdapterContext context = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
-                    .config(config)
-                    .infrastructurePackage(INFRA_PKG)
-                    .buildContext();
-
-            // Then
-            assertThat(context.repositoryFieldName()).isEqualTo("repository");
-            assertThat(context.mapperFieldName()).isEqualTo("mapper");
-        }
-
-        @Test
-        @DisplayName("should create context with IdInfo for wrapped identity")
-        void shouldCreateContextWithIdInfoForWrappedIdentity() {
-            // Given: Aggregate with wrapped identity (OrderId wrapping UUID)
-            Port port = createSimplePort("OrderRepository");
-
-            // When
-            AdapterContext context = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(orderAggregate)
-                    .config(config)
-                    .infrastructurePackage(INFRA_PKG)
-                    .buildContext();
-
-            // Then: IdInfo should indicate wrapped identity
-            assertThat(context.hasIdInfo()).isTrue();
-            assertThat(context.hasWrappedId()).isTrue();
-            assertThat(context.idInfo().wrappedType().toString()).isEqualTo(TEST_PKG + ".OrderId");
-            assertThat(context.idInfo().unwrappedType().toString()).isEqualTo("java.util.UUID");
-        }
-
-        @Test
-        @DisplayName("should create context with IdInfo for unwrapped identity")
-        void shouldCreateContextWithIdInfoForUnwrappedIdentity() {
-            // Given: Aggregate with unwrapped identity (raw UUID)
-            DomainType entityWithRawId = createEntityWithRawId();
-            Port port = createSimplePort("TaskRepository");
-
-            // When
-            AdapterContext context = AdapterSpecBuilder.builder()
-                    .ports(List.of(port))
-                    .domainType(entityWithRawId)
-                    .config(config)
-                    .infrastructurePackage(INFRA_PKG)
-                    .buildContext();
-
-            // Then: IdInfo should indicate unwrapped identity
-            assertThat(context.hasIdInfo()).isTrue();
-            assertThat(context.hasWrappedId()).isFalse();
-            assertThat(context.idInfo().unwrappedType().toString()).isEqualTo("java.util.UUID");
-        }
-    }
-
-    @Nested
     @DisplayName("validation")
     class Validation {
 
         @Test
-        @DisplayName("should throw when ports is null")
-        void shouldThrowWhenPortsIsNull() {
+        @DisplayName("should throw when drivenPorts is null")
+        void shouldThrowWhenDrivenPortsIsNull() {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(null)
-                            .domainType(orderAggregate)
+                            .drivenPorts(null)
+                            .domainEntity(orderAggregate)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("ports is required");
+                    .hasMessageContaining("drivenPorts is required");
         }
 
         @Test
-        @DisplayName("should throw when ports is empty")
-        void shouldThrowWhenPortsIsEmpty() {
+        @DisplayName("should throw when drivenPorts is empty")
+        void shouldThrowWhenDrivenPortsIsEmpty() {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(List.of())
-                            .domainType(orderAggregate)
+                            .drivenPorts(List.of())
+                            .domainEntity(orderAggregate)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("At least one port is required");
+                    .hasMessageContaining("At least one driven port is required");
         }
 
         @Test
-        @DisplayName("should throw when domainType is null")
-        void shouldThrowWhenDomainTypeIsNull() {
+        @DisplayName("should throw when domainEntity is null")
+        void shouldThrowWhenDomainEntityIsNull() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(List.of(port))
-                            .domainType(null)
+                            .drivenPorts(List.of(port))
+                            .domainEntity(null)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("domainType is required");
+                    .hasMessageContaining("domainEntity is required");
         }
 
         @Test
         @DisplayName("should throw when config is null")
         void shouldThrowWhenConfigIsNull() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(List.of(port))
-                            .domainType(orderAggregate)
+                            .drivenPorts(List.of(port))
+                            .domainEntity(orderAggregate)
                             .config(null)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
@@ -470,12 +366,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should throw when infrastructurePackage is null")
         void shouldThrowWhenInfrastructurePackageIsNull() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(List.of(port))
-                            .domainType(orderAggregate)
+                            .drivenPorts(List.of(port))
+                            .domainEntity(orderAggregate)
                             .config(config)
                             .infrastructurePackage(null)
                             .build())
@@ -487,12 +383,12 @@ class AdapterSpecBuilderTest {
         @DisplayName("should throw when infrastructurePackage is empty")
         void shouldThrowWhenInfrastructurePackageIsEmpty() {
             // Given
-            Port port = createSimplePort("OrderRepository");
+            DrivenPort port = createSimplePort("OrderRepository");
 
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
-                            .ports(List.of(port))
-                            .domainType(orderAggregate)
+                            .drivenPorts(List.of(port))
+                            .domainEntity(orderAggregate)
                             .config(config)
                             .infrastructurePackage("")
                             .build())
@@ -509,34 +405,22 @@ class AdapterSpecBuilderTest {
         @DisplayName("merged ports should not produce duplicate findById methods")
         void mergedPortsShouldNotProduceDuplicateFindByIdMethods() {
             // Given: This was causing "Duplicate method 'findById'" errors in sample-pokedex
-            Port readPort = createPortWithMethods(
+            DrivenPort readPort = createPortWithOperations(
                     "PokemonReadRepository",
                     List.of(
-                            PortMethod.of(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)),
-                                    MethodKind.FIND_BY_ID),
-                            PortMethod.of("findAll", TypeRef.of("java.util.List"), List.of(), MethodKind.FIND_ALL)));
+                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")), null),
+                            new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
-            Port writePort = createPortWithMethods(
+            DrivenPort writePort = createPortWithOperations(
                     "PokemonWriteRepository",
                     List.of(
-                            PortMethod.of(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Pokemon"),
-                                    List.of(MethodParameter.simple("pokemon", TypeRef.of(TEST_PKG + ".Pokemon"))),
-                                    MethodKind.SAVE),
-                            PortMethod.of(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(MethodParameter.of("id", TypeRef.of("java.lang.Integer"), true)),
-                                    MethodKind.FIND_BY_ID)));
+                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Pokemon"), List.of(TypeRef.of(TEST_PKG + ".Pokemon")), null),
+                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
-                    .ports(List.of(readPort, writePort))
-                    .domainType(orderAggregate)
+                    .drivenPorts(List.of(readPort, writePort))
+                    .domainEntity(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -556,73 +440,37 @@ class AdapterSpecBuilderTest {
 
     // ===== Helper Methods =====
 
-    private DomainType createOrderAggregate() {
-        return new DomainType(
-                TEST_PKG + ".Order",
-                "Order",
-                TEST_PKG,
-                DomainKind.AGGREGATE_ROOT,
-                ConfidenceLevel.HIGH,
-                JavaConstruct.CLASS,
-                Optional.of(Identity.wrapped(
-                        "id",
-                        TypeRef.of(TEST_PKG + ".OrderId"),
-                        TypeRef.of("java.util.UUID"),
-                        IdentityStrategy.ASSIGNED,
-                        io.hexaglue.spi.ir.IdentityWrapperKind.RECORD,
-                        "value")),
+    private DomainEntity createOrderAggregate() {
+        return new DomainEntity(
+                ElementId.of(TEST_PKG + ".Order"),
+                ElementKind.AGGREGATE_ROOT,
+                "id",
+                TypeRef.of(TEST_PKG + ".OrderId"),
+                Optional.empty(),
                 List.of(),
-                List.of(),
-                List.of(),
-                SourceRef.unknown());
+                null,
+                highConfidence(ElementKind.AGGREGATE_ROOT));
     }
 
-    private DomainType createEntityWithRawId() {
-        return new DomainType(
-                TEST_PKG + ".Task",
-                "Task",
-                TEST_PKG,
-                DomainKind.ENTITY,
-                ConfidenceLevel.HIGH,
-                JavaConstruct.CLASS,
-                Optional.of(Identity.unwrapped("id", TypeRef.of("java.util.UUID"), IdentityStrategy.ASSIGNED)),
+    private DrivenPort createSimplePort(String name) {
+        return new DrivenPort(
+                ElementId.of(TEST_PKG + ".ports.out." + name),
+                PortClassification.REPOSITORY,
+                List.of(new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)),
+                Optional.empty(),
                 List.of(),
-                List.of(),
-                List.of(),
-                SourceRef.unknown());
+                null,
+                highConfidence(ElementKind.DRIVEN_PORT));
     }
 
-    private Port createSimplePort(String name) {
-        return new Port(
-                TEST_PKG + ".ports.out." + name,
-                name,
-                TEST_PKG + ".ports.out",
-                PortKind.REPOSITORY,
-                PortDirection.DRIVEN,
-                ConfidenceLevel.HIGH,
-                List.of(TEST_PKG + ".Order"),
-                TEST_PKG + ".Order",
-                List.of(PortMethod.of(
-                        "save",
-                        TypeRef.of(TEST_PKG + ".Order"),
-                        List.of(MethodParameter.simple("order", TypeRef.of(TEST_PKG + ".Order"))),
-                        MethodKind.SAVE)),
+    private DrivenPort createPortWithOperations(String name, List<PortOperation> operations) {
+        return new DrivenPort(
+                ElementId.of(TEST_PKG + ".ports.out." + name),
+                PortClassification.REPOSITORY,
+                operations,
+                Optional.empty(),
                 List.of(),
-                SourceRef.unknown());
-    }
-
-    private Port createPortWithMethods(String name, List<PortMethod> methods) {
-        return new Port(
-                TEST_PKG + ".ports.out." + name,
-                name,
-                TEST_PKG + ".ports.out",
-                PortKind.REPOSITORY,
-                PortDirection.DRIVEN,
-                ConfidenceLevel.HIGH,
-                List.of(TEST_PKG + ".Order"),
-                TEST_PKG + ".Order",
-                methods,
-                List.of(),
-                SourceRef.unknown());
+                null,
+                highConfidence(ElementKind.DRIVEN_PORT));
     }
 }

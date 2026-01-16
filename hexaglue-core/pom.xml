@@ -56,6 +56,12 @@
             <artifactId>hexaglue-arch</artifactId>
         </dependency>
 
+        <!-- HexaGlue Syntax Spoon (for v4 SyntaxProvider + ArchitecturalModelBuilder) -->
+        <dependency>
+            <groupId>io.hexaglue</groupId>
+            <artifactId>hexaglue-syntax-spoon</artifactId>
+        </dependency>
+
         <!-- jMolecules DDD annotations (for testing criteria) -->
         <dependency>
             <groupId>org.jmolecules</groupId>

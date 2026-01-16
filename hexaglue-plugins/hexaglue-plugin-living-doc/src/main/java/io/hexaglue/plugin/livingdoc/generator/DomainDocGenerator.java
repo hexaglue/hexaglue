@@ -19,7 +19,6 @@ import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.renderer.DomainRenderer;
 import io.hexaglue.plugin.livingdoc.util.MarkdownUtil;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.List;
 
 /**
@@ -27,31 +26,17 @@ import java.util.List;
  *
  * <p>Uses three-layer architecture:
  * <ol>
- *   <li>ContentSelector - selects and transforms IR data to documentation models</li>
+ *   <li>ContentSelector - selects and transforms model data to documentation models</li>
  *   <li>DocumentationModel - immutable records representing documentation content</li>
  *   <li>Renderer - renders documentation models to Markdown</li>
  * </ol>
  *
- * <p>Supports both legacy SPI (IrSnapshot) and v4 model (ArchitecturalModel).
- *
- * @since 3.0.0
+ * @since 4.0.0
  */
 public final class DomainDocGenerator {
 
     private final DomainContentSelector contentSelector;
     private final DomainRenderer renderer;
-
-    /**
-     * Creates a generator using legacy IrSnapshot.
-     *
-     * @param ir the IR snapshot
-     * @deprecated Use {@link #DomainDocGenerator(ArchitecturalModel)} for v4 model support
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    public DomainDocGenerator(IrSnapshot ir) {
-        this.contentSelector = new DomainContentSelector(ir);
-        this.renderer = new DomainRenderer();
-    }
 
     /**
      * Creates a generator using v4 ArchitecturalModel.

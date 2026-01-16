@@ -14,6 +14,7 @@
 package io.hexaglue.plugin.audit;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
@@ -54,10 +55,7 @@ import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.QualityMetrics;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
@@ -335,9 +333,12 @@ public class DddAuditPlugin implements AuditPlugin {
             // Capture v4 ArchitecturalModel if available
             this.archModel = PluginContexts.getModel(context).orElse(null);
 
-            // Build codebase from best available source (v4 model preferred)
-            Codebase codebase =
-                    archModel != null ? buildCodebaseFromModel(archModel) : buildCodebaseFromIr(context.ir());
+            // Require v4 ArchitecturalModel for audit
+            if (archModel == null) {
+                context.diagnostics().error("v4 ArchitecturalModel is required for audit. Please ensure the model is available.");
+                return;
+            }
+            Codebase codebase = buildCodebaseFromModel(archModel);
 
             // Get architecture query from core if available
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery =
@@ -364,11 +365,7 @@ public class DddAuditPlugin implements AuditPlugin {
             }
 
             // Log v4 model summary and enrich audit with classification info
-            if (archModel != null) {
-                logV4ModelSummary(archModel, context.diagnostics());
-            } else {
-                context.diagnostics().info("Using legacy IrSnapshot for audit (v4 ArchitecturalModel not available)");
-            }
+            logV4ModelSummary(archModel, context.diagnostics());
         } catch (Exception e) {
             context.diagnostics().error("Audit plugin execution failed: " + id(), e);
         }
@@ -389,8 +386,11 @@ public class DddAuditPlugin implements AuditPlugin {
      * @since 4.0.0
      */
     private void logV4ModelSummary(ArchitecturalModel model, io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) {
-        // Basic counts
-        long aggregateCount = model.aggregates().count();
+        // Note: Use domainEntities().filter(isAggregateRoot) instead of aggregates()
+        // because ArchitecturalModelBuilder creates DomainEntity with kind=AGGREGATE_ROOT,
+        // but does not create Aggregate objects (which are higher-level constructs).
+        long aggregateCount =
+                model.domainEntities().filter(DomainEntity::isAggregateRoot).count();
         long entityCount =
                 model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
         long valueObjectCount = model.valueObjects().count();
@@ -606,236 +606,6 @@ public class DddAuditPlugin implements AuditPlugin {
         return formats;
     }
 
-    /**
-     * Builds a Codebase from IrSnapshot.
-     *
-     * <p>This converts the domain model and port model into code units that can
-     * be audited. The conversion handles:
-     * <ul>
-     *   <li>Layer classification based on DomainKind</li>
-     *   <li>Role mapping for validators</li>
-     *   <li>Field annotations for identity detection</li>
-     *   <li>Synthetic method generation for setter detection</li>
-     * </ul>
-     *
-     * @deprecated Use {@link #buildCodebaseFromModel(ArchitecturalModel)} for v4 model support
-     */
-    @Deprecated(since = "4.0.0", forRemoval = true)
-    private Codebase buildCodebaseFromIr(IrSnapshot ir) {
-        List<CodeUnit> units = new ArrayList<>();
-
-        // Convert domain types to code units
-        for (DomainType type : ir.domain().types()) {
-            // Build field declarations with annotations for identity detection
-            List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = type.properties().stream()
-                    .map(prop -> new io.hexaglue.spi.audit.FieldDeclaration(
-                            prop.name(),
-                            prop.type().qualifiedName(),
-                            Set.of(), // modifiers
-                            prop.isIdentity() ? Set.of("Id") : Set.of()))
-                    .toList();
-
-            // Synthesize method declarations from properties for setter detection
-            List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
-                    synthesizeMethodsFromProperties(type.properties(), type.construct());
-
-            CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
-
-            // Determine layer based on DomainKind
-            LayerClassification layer = layerFromDomainKind(type.kind());
-
-            // Determine code unit kind
-            CodeUnitKind unitKind = type.construct() == io.hexaglue.spi.ir.JavaConstruct.RECORD
-                    ? CodeUnitKind.RECORD
-                    : CodeUnitKind.CLASS;
-
-            units.add(new CodeUnit(
-                    type.qualifiedName(),
-                    unitKind,
-                    layer,
-                    roleFromDomainKind(type.kind()),
-                    methodDecls,
-                    fieldDecls,
-                    codeMetrics,
-                    new DocumentationInfo(false, 0, List.of())));
-        }
-
-        // Convert ports to code units
-        for (Port port : ir.ports().ports()) {
-            List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.methods().stream()
-                    .map(method -> new io.hexaglue.spi.audit.MethodDeclaration(
-                            method.name(),
-                            method.returnType().qualifiedName(),
-                            method.parameters().stream()
-                                    .map(p -> p.type().qualifiedName())
-                                    .toList(),
-                            Set.of(), // modifiers
-                            Set.of(), // annotations
-                            0 // complexity
-                            ))
-                    .toList();
-
-            CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), 0, 100.0);
-
-            units.add(new CodeUnit(
-                    port.qualifiedName(),
-                    CodeUnitKind.INTERFACE,
-                    LayerClassification.APPLICATION,
-                    port.isRepository() ? RoleClassification.REPOSITORY : RoleClassification.PORT,
-                    methodDecls,
-                    List.of(), // fields
-                    codeMetrics,
-                    new DocumentationInfo(false, 0, List.of())));
-        }
-
-        // Build dependency map from IR (includes annotations for purity checking)
-        Map<String, java.util.Set<String>> dependencies = extractDependencies(ir);
-
-        return new Codebase("audit-target", inferBasePackage(units), units, dependencies);
-    }
-
-    /**
-     * Synthesizes method declarations from domain properties.
-     *
-     * <p>For non-record types, generates getter method declarations based on property names.
-     * This provides method information for validators that need it.
-     *
-     * <p>Note: We do NOT synthesize setter methods because:
-     * <ul>
-     *   <li>We cannot reliably detect if setters actually exist in the source</li>
-     *   <li>Synthesizing setters for all classes would create false positives</li>
-     *   <li>The ValueObjectImmutabilityValidator requires actual method info from the IR</li>
-     * </ul>
-     *
-     * <p>Records are assumed to have no setters (immutable by design) and only have
-     * accessor methods matching property names.
-     *
-     * @param properties the domain properties
-     * @param construct the Java construct (RECORD, CLASS, etc.)
-     * @return synthesized method declarations (getters only)
-     */
-    private List<io.hexaglue.spi.audit.MethodDeclaration> synthesizeMethodsFromProperties(
-            List<io.hexaglue.spi.ir.DomainProperty> properties, io.hexaglue.spi.ir.JavaConstruct construct) {
-
-        List<io.hexaglue.spi.audit.MethodDeclaration> methods = new ArrayList<>();
-
-        for (io.hexaglue.spi.ir.DomainProperty prop : properties) {
-            String propName = prop.name();
-
-            if (construct == io.hexaglue.spi.ir.JavaConstruct.RECORD) {
-                // Records have accessor methods with the same name as the property
-                methods.add(new io.hexaglue.spi.audit.MethodDeclaration(
-                        propName, prop.type().qualifiedName(), List.of(), Set.of("public"), Set.of(), 1));
-            } else {
-                // Regular classes typically have getXxx() methods
-                String capitalizedName = propName.substring(0, 1).toUpperCase() + propName.substring(1);
-                methods.add(new io.hexaglue.spi.audit.MethodDeclaration(
-                        "get" + capitalizedName,
-                        prop.type().qualifiedName(),
-                        List.of(),
-                        Set.of("public"),
-                        Set.of(),
-                        1));
-            }
-        }
-
-        return methods;
-    }
-
-    /**
-     * Determines the architectural layer from DomainKind.
-     *
-     * <p>Mapping:
-     * <ul>
-     *   <li>AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE → DOMAIN</li>
-     *   <li>APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA → APPLICATION</li>
-     *   <li>UNCLASSIFIED → UNKNOWN (cannot determine layer)</li>
-     * </ul>
-     *
-     * @param kind the domain kind
-     * @return the corresponding layer classification
-     */
-    private LayerClassification layerFromDomainKind(DomainKind kind) {
-        return switch (kind) {
-            case AGGREGATE_ROOT, ENTITY, VALUE_OBJECT, IDENTIFIER, DOMAIN_EVENT, DOMAIN_SERVICE ->
-                LayerClassification.DOMAIN;
-            case APPLICATION_SERVICE, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> LayerClassification.APPLICATION;
-            case UNCLASSIFIED -> LayerClassification.UNKNOWN;
-        };
-    }
-
-    /**
-     * Converts DomainKind to RoleClassification.
-     *
-     * <p>Mapping:
-     * <ul>
-     *   <li>AGGREGATE_ROOT → AGGREGATE_ROOT</li>
-     *   <li>ENTITY → ENTITY</li>
-     *   <li>VALUE_OBJECT, IDENTIFIER → VALUE_OBJECT</li>
-     *   <li>DOMAIN_EVENT → VALUE_OBJECT (events are immutable facts, semantically value objects)</li>
-     *   <li>DOMAIN_SERVICE, APPLICATION_SERVICE → SERVICE</li>
-     *   <li>UNCLASSIFIED, INBOUND_ONLY, OUTBOUND_ONLY, SAGA → UNKNOWN</li>
-     * </ul>
-     */
-    private RoleClassification roleFromDomainKind(DomainKind kind) {
-        return switch (kind) {
-            case AGGREGATE_ROOT -> RoleClassification.AGGREGATE_ROOT;
-            case ENTITY -> RoleClassification.ENTITY;
-            case VALUE_OBJECT, IDENTIFIER -> RoleClassification.VALUE_OBJECT;
-            case DOMAIN_EVENT -> RoleClassification.VALUE_OBJECT; // Events are immutable facts
-            case DOMAIN_SERVICE, APPLICATION_SERVICE -> RoleClassification.SERVICE;
-            case UNCLASSIFIED, INBOUND_ONLY, OUTBOUND_ONLY, SAGA -> RoleClassification.UNKNOWN;
-        };
-    }
-
-    /**
-     * Extracts dependency relationships from the IR snapshot.
-     *
-     * <p>This method builds a map where each key is a fully-qualified type name,
-     * and the value is a set of fully-qualified type names that it depends on.
-     *
-     * <p>Dependencies are extracted from:
-     * <ul>
-     *   <li>Domain relations (OneToMany, ManyToOne, etc.)</li>
-     *   <li>Properties with non-primitive types</li>
-     *   <li>Annotations on the type (for domain purity checking)</li>
-     * </ul>
-     *
-     * @param ir the IR snapshot
-     * @return map of type name to its dependencies
-     */
-    private Map<String, Set<String>> extractDependencies(IrSnapshot ir) {
-        Map<String, Set<String>> deps = new HashMap<>();
-
-        // Extract from domain types
-        for (DomainType type : ir.domain().types()) {
-            Set<String> typeDeps = new HashSet<>();
-
-            // From relations
-            for (io.hexaglue.spi.ir.DomainRelation rel : type.relations()) {
-                typeDeps.add(rel.targetTypeFqn());
-            }
-
-            // From properties (non-primitive types)
-            for (io.hexaglue.spi.ir.DomainProperty prop : type.properties()) {
-                String propType = prop.type().qualifiedName();
-                if (!isPrimitive(propType)) {
-                    typeDeps.add(propType);
-                }
-            }
-
-            // From annotations (for domain purity validation)
-            // Annotations like jakarta.validation.constraints.Email indicate
-            // infrastructure dependencies in the domain layer
-            for (String annotation : type.annotations()) {
-                typeDeps.add(annotation);
-            }
-
-            deps.put(type.qualifiedName(), typeDeps);
-        }
-
-        return deps;
-    }
 
     /**
      * Checks if a type is primitive or a standard library type.
