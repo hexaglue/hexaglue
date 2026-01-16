@@ -38,17 +38,12 @@ import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
-import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortKind;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -69,9 +64,12 @@ import java.util.stream.Collectors;
  *
  * <p>This plugin uses a two-stage architecture:
  * <ol>
- *   <li><b>Specification building</b>: Builders transform SPI types to intermediate specs</li>
+ *   <li><b>Specification building</b>: Builders transform model types to intermediate specs</li>
  *   <li><b>Code generation</b>: Codegen classes generate JavaPoet TypeSpecs from specs</li>
  * </ol>
+ *
+ * <p>This plugin requires a v4 {@code ArchitecturalModel}. The generated code uses
+ * SPI classification types for consistency with the hexaglue ecosystem.
  *
  * <p>Configuration options in hexaglue.yaml:
  * <pre>
@@ -91,7 +89,7 @@ import java.util.stream.Collectors;
  *       generateAdapters: true
  * </pre>
  *
- * @since 2.0.0
+ * @since 4.0.0
  */
 public final class JpaPlugin implements GeneratorPlugin {
 
@@ -129,6 +127,14 @@ public final class JpaPlugin implements GeneratorPlugin {
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
+        // Require v4 ArchitecturalModel
+        if (archModel == null) {
+            diagnostics.error(
+                    "v4 ArchitecturalModel is required for JPA code generation. "
+                            + "Please ensure the model is available.");
+            return;
+        }
+
         // Load configuration
         JpaConfig config = JpaConfig.from(pluginConfig);
 
@@ -139,16 +145,9 @@ public final class JpaPlugin implements GeneratorPlugin {
 
         diagnostics.info("JPA Plugin starting with package: " + infraPackage);
         logConfig(diagnostics, config);
+        logClassificationSummary(archModel, diagnostics);
 
-        // Use v4 model if available, otherwise fall back to legacy
-        if (archModel != null) {
-            diagnostics.info("Using v4 ArchitecturalModel (classification traces available)");
-            logClassificationSummary(archModel, diagnostics);
-            generateFromV4Model(archModel, config, infraPackage, writer, diagnostics);
-        } else {
-            diagnostics.info("Using legacy IrSnapshot (v4 ArchitecturalModel not available)");
-            generateFromLegacyModel(ir, config, infraPackage, writer, diagnostics);
-        }
+        generateFromModel(archModel, config, infraPackage, writer, diagnostics);
     }
 
     /**
@@ -161,7 +160,7 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @param diagnostics the diagnostic reporter
      * @since 4.0.0
      */
-    private void generateFromV4Model(
+    private void generateFromModel(
             ArchitecturalModel model,
             JpaConfig config,
             String infraPackage,
@@ -183,7 +182,7 @@ public final class JpaPlugin implements GeneratorPlugin {
             // First pass: compute all embeddable mappings
             model.valueObjects()
                     .filter(vo -> vo.syntax() != null)
-                    .filter(vo -> !isEnumTypeV4(vo))
+                    .filter(vo -> !isEnumType(vo))
                     .forEach(vo -> {
                         String embeddableClassName = vo.id().simpleName() + config.embeddableSuffix();
                         String embeddableFqn = infraPackage + "." + embeddableClassName;
@@ -193,7 +192,7 @@ public final class JpaPlugin implements GeneratorPlugin {
             // Second pass: generate embeddables
             for (ValueObject vo :
                     model.valueObjects().filter(v -> v.syntax() != null).toList()) {
-                if (isEnumTypeV4(vo)) {
+                if (isEnumType(vo)) {
                     continue;
                 }
 
@@ -345,210 +344,6 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Generates JPA infrastructure using legacy IrSnapshot model.
-     *
-     * @param ir the IR snapshot
-     * @param config the JPA configuration
-     * @param infraPackage the infrastructure package name
-     * @param writer the artifact writer
-     * @param diagnostics the diagnostic reporter
-     * @deprecated Use v4 ArchitecturalModel instead
-     */
-    @Deprecated
-    private void generateFromLegacyModel(
-            IrSnapshot ir,
-            JpaConfig config,
-            String infraPackage,
-            ArtifactWriter writer,
-            DiagnosticReporter diagnostics) {
-
-        if (ir.isEmpty()) {
-            diagnostics.info("No domain types to process");
-            return;
-        }
-
-        // Collect all domain types for mapper and entity references
-        List<DomainType> allTypes = new ArrayList<>(ir.domain().types());
-
-        // Collect repository ports with their managed types (used for repository and adapter generation)
-        // Each port will generate its own adapter to avoid method signature conflicts
-        Map<Port, DomainType> portToManagedType = new LinkedHashMap<>();
-        for (Port port : ir.ports().ports()) {
-            if (port.kind() == PortKind.REPOSITORY && port.isDriven()) {
-                Optional<DomainType> managedType =
-                        findManagedType(port, ir.domain().types());
-                if (managedType.isPresent() && managedType.get().isEntity()) {
-                    portToManagedType.put(port, managedType.get());
-                } else if (managedType.isEmpty()) {
-                    diagnostics.warn("Could not determine managed type for port: " + port.simpleName());
-                }
-            }
-        }
-
-        // Group ports by managed type for repository generation (repositories are shared)
-        Map<DomainType, List<Port>> portsByManagedType = new HashMap<>();
-        for (Map.Entry<Port, DomainType> entry : portToManagedType.entrySet()) {
-            portsByManagedType
-                    .computeIfAbsent(entry.getValue(), k -> new ArrayList<>())
-                    .add(entry.getKey());
-        }
-
-        // Counters for summary
-        int entityCount = 0;
-        int embeddableCount = 0;
-        int repositoryCount = 0;
-        int mapperCount = 0;
-        int adapterCount = 0;
-
-        // Build embeddable mapping: domain VALUE_OBJECT FQN -> generated embeddable FQN
-        // Only non-enum VALUE_OBJECTs need embeddable classes (enums use @Enumerated)
-        // FIRST PASS: Build the complete mapping before generating any embeddable
-        // This allows nested VALUE_OBJECTs (like Money in OrderLine) to be substituted
-        Map<String, String> embeddableMapping = new HashMap<>();
-
-        if (config.generateEmbeddables()) {
-            // First pass: compute all embeddable mappings
-            for (DomainType type : ir.domain().types()) {
-                if (type.isValueObject() && !isEnumType(type)) {
-                    String embeddableClassName = type.simpleName() + config.embeddableSuffix();
-                    String embeddableFqn = infraPackage + "." + embeddableClassName;
-                    embeddableMapping.put(type.qualifiedName(), embeddableFqn);
-                }
-            }
-
-            // Second pass: generate embeddables with the complete mapping
-            for (DomainType type : ir.domain().types()) {
-                if (type.isValueObject() && !isEnumType(type)) {
-                    try {
-                        EmbeddableSpec embeddableSpec = EmbeddableSpecBuilder.builder()
-                                .domainType(type)
-                                .config(config)
-                                .infrastructurePackage(infraPackage)
-                                .allTypes(allTypes)
-                                .embeddableMapping(embeddableMapping)
-                                .build();
-
-                        // Generate and write JPA embeddable
-                        TypeSpec embeddableTypeSpec = JpaEmbeddableCodegen.generate(embeddableSpec);
-                        String embeddableSource = toJavaSource(infraPackage, embeddableTypeSpec);
-                        writer.writeJavaSource(infraPackage, embeddableSpec.className(), embeddableSource);
-                        embeddableCount++;
-                        diagnostics.info("Generated embeddable: " + embeddableSpec.className());
-
-                    } catch (IOException e) {
-                        diagnostics.error("Failed to generate embeddable for " + type.simpleName(), e);
-                    } catch (IllegalArgumentException | IllegalStateException e) {
-                        diagnostics.warn("Skipping embeddable " + type.simpleName() + ": " + e.getMessage());
-                    }
-                }
-            }
-        }
-
-        // Generate entities (using embeddable mapping for VALUE_OBJECT relations)
-        for (DomainType type : ir.domain().types()) {
-            try {
-                if (type.isEntity() && type.hasIdentity()) {
-                    // Build entity specification with embeddable mapping
-                    EntitySpec entitySpec = EntitySpecBuilder.builder()
-                            .domainType(type)
-                            .config(config)
-                            .infrastructurePackage(infraPackage)
-                            .allTypes(allTypes)
-                            .embeddableMapping(embeddableMapping)
-                            .build();
-
-                    // Generate and write JPA entity
-                    TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
-                    String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                    writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
-                    entityCount++;
-                    diagnostics.info("Generated entity: " + entitySpec.className());
-
-                    // Generate repository if enabled
-                    if (config.generateRepositories()) {
-                        // Get ports associated with this domain type for derived method extraction
-                        List<Port> portsForType = portsByManagedType.getOrDefault(type, List.of());
-
-                        RepositorySpec repoSpec = RepositorySpecBuilder.builder()
-                                .domainType(type)
-                                .config(config)
-                                .infrastructurePackage(infraPackage)
-                                .ports(portsForType)
-                                .build();
-
-                        TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
-                        String repoSource = toJavaSource(infraPackage, repoTypeSpec);
-                        writer.writeJavaSource(infraPackage, repoSpec.interfaceName(), repoSource);
-                        repositoryCount++;
-                        diagnostics.info("Generated repository: " + repoSpec.interfaceName());
-                    }
-
-                    // Generate mapper if enabled
-                    if (config.generateMappers()) {
-                        MapperSpec mapperSpec = MapperSpecBuilder.builder()
-                                .domainType(type)
-                                .config(config)
-                                .infrastructurePackage(infraPackage)
-                                .allTypes(allTypes)
-                                .embeddableMapping(embeddableMapping)
-                                .build();
-
-                        TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
-                        String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
-                        writer.writeJavaSource(infraPackage, mapperSpec.interfaceName(), mapperSource);
-                        mapperCount++;
-                        diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
-                    }
-
-                } else if (type.isValueObject() && isEnumType(type)) {
-                    // Enums don't need embeddables - they use @Enumerated
-                    diagnostics.info("Detected enum value object (no embeddable needed): " + type.simpleName());
-                }
-
-            } catch (IOException e) {
-                diagnostics.error("Failed to generate JPA class for " + type.simpleName(), e);
-            } catch (IllegalArgumentException | IllegalStateException e) {
-                diagnostics.warn("Skipping " + type.simpleName() + ": " + e.getMessage());
-            }
-        }
-
-        // Generate adapters for repository ports
-        // Generate ONE adapter PER PORT to avoid method signature conflicts
-        if (config.generateAdapters()) {
-            for (Map.Entry<Port, DomainType> entry : portToManagedType.entrySet()) {
-                Port port = entry.getKey();
-                DomainType managedType = entry.getValue();
-
-                try {
-                    AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
-                            .ports(List.of(port)) // Single port per adapter
-                            .domainType(managedType)
-                            .config(config)
-                            .infrastructurePackage(infraPackage)
-                            .build();
-
-                    TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
-                    String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                    writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
-                    adapterCount++;
-
-                    diagnostics.info(
-                            "Generated adapter: " + adapterSpec.className() + " implementing " + port.simpleName());
-                } catch (IOException e) {
-                    diagnostics.error("Failed to generate adapter for port " + port.simpleName(), e);
-                } catch (IllegalArgumentException | IllegalStateException e) {
-                    diagnostics.warn("Skipping adapter for port " + port.simpleName() + ": " + e.getMessage());
-                }
-            }
-        }
-
-        // Summary
-        diagnostics.info(String.format(
-                "JPA generation complete: %d entities, %d embeddables, %d repositories, %d mappers, %d adapters",
-                entityCount, embeddableCount, repositoryCount, mapperCount, adapterCount));
-    }
-
-    /**
      * Converts a JavaPoet TypeSpec to a Java source string.
      *
      * @param packageName the package name for the generated class
@@ -578,18 +373,6 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Determines if a VALUE_OBJECT is an enum type.
-     *
-     * <p>Enums don't need embeddable classes - they are handled via @Enumerated.
-     *
-     * @param type the domain type
-     * @return true if the type is an enum
-     */
-    private boolean isEnumType(DomainType type) {
-        return type.construct() == io.hexaglue.spi.ir.JavaConstruct.ENUM;
-    }
-
-    /**
      * Determines if a v4 ValueObject is an enum type.
      *
      * <p>Enums don't need embeddable classes - they are handled via @Enumerated.
@@ -598,43 +381,8 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @return true if the type is an enum
      * @since 4.0.0
      */
-    private boolean isEnumTypeV4(ValueObject vo) {
+    private boolean isEnumType(ValueObject vo) {
         return vo.syntax() != null && vo.syntax().isEnum();
-    }
-
-    /**
-     * Finds the domain type managed by a repository port.
-     *
-     * <p>Looks at the port's managed types and signature to determine
-     * which aggregate root or entity it manages.
-     *
-     * @param port the repository port
-     * @param types all domain types
-     * @return the managed domain type, if found
-     */
-    private Optional<DomainType> findManagedType(Port port, List<DomainType> types) {
-        // First check managedTypes from IR
-        if (!port.managedTypes().isEmpty()) {
-            String managedTypeFqn = port.managedTypes().get(0);
-            return types.stream()
-                    .filter(t -> t.qualifiedName().equals(managedTypeFqn))
-                    .findFirst();
-        }
-
-        // Fallback: derive from port name (e.g., "Orders" -> "Order", "OrderRepository" -> "Order")
-        String portName = port.simpleName();
-        String baseName = portName.replace("Repository", "").replace("Repo", "").replace("Store", "");
-
-        // Handle plural (simple heuristic)
-        if (baseName.endsWith("s") && !baseName.endsWith("ss")) {
-            baseName = baseName.substring(0, baseName.length() - 1);
-        }
-
-        final String searchName = baseName;
-        return types.stream()
-                .filter(t -> t.simpleName().equals(searchName))
-                .filter(DomainType::isEntity)
-                .findFirst();
     }
 
     /**
@@ -648,7 +396,11 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @since 4.0.0
      */
     private void logClassificationSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
-        long aggregateCount = model.aggregates().count();
+        // Note: Use domainEntities().filter(isAggregateRoot) instead of aggregates()
+        // because ArchitecturalModelBuilder creates DomainEntity with kind=AGGREGATE_ROOT,
+        // but does not create Aggregate objects (which are higher-level constructs).
+        long aggregateCount =
+                model.domainEntities().filter(DomainEntity::isAggregateRoot).count();
         long entityCount =
                 model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
         long valueObjectCount = model.valueObjects().count();
@@ -659,8 +411,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                 "v4 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
                 aggregateCount, entityCount, valueObjectCount, drivenPortCount));
 
-        // Log classification traces for aggregates (useful for debugging)
-        model.aggregates().limit(3).forEach(agg -> {
+        // Log classification traces for aggregate roots (useful for debugging)
+        model.domainEntities().filter(DomainEntity::isAggregateRoot).limit(3).forEach(agg -> {
             diagnostics.info("  - " + agg.id().simpleName() + ": "
                     + agg.classificationTrace().explain());
         });

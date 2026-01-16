@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.plugin;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.core.audit.DefaultArchitectureQuery;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.spi.audit.ArchitectureQuery;
@@ -54,6 +55,7 @@ public final class PluginExecutor {
     private final Map<String, Map<String, Object>> pluginConfigs;
     private final ApplicationGraph graph;
     private final Set<PluginCategory> enabledCategories;
+    private final ArchitecturalModel architecturalModel;
 
     /**
      * Creates a plugin executor.
@@ -68,10 +70,30 @@ public final class PluginExecutor {
             Map<String, Map<String, Object>> pluginConfigs,
             ApplicationGraph graph,
             Set<PluginCategory> enabledCategories) {
+        this(outputDirectory, pluginConfigs, graph, enabledCategories, null);
+    }
+
+    /**
+     * Creates a plugin executor with v4 ArchitecturalModel support.
+     *
+     * @param outputDirectory the directory for generated sources
+     * @param pluginConfigs plugin configurations keyed by plugin ID
+     * @param graph the application graph for architecture analysis (may be null)
+     * @param enabledCategories plugin categories to execute (null or empty for all categories)
+     * @param architecturalModel the v4 architectural model (may be null for legacy mode)
+     * @since 4.0.0
+     */
+    public PluginExecutor(
+            Path outputDirectory,
+            Map<String, Map<String, Object>> pluginConfigs,
+            ApplicationGraph graph,
+            Set<PluginCategory> enabledCategories,
+            ArchitecturalModel architecturalModel) {
         this.outputDirectory = outputDirectory;
         this.pluginConfigs = pluginConfigs;
         this.graph = graph;
         this.enabledCategories = enabledCategories;
+        this.architecturalModel = architecturalModel;
     }
 
     /**
@@ -268,8 +290,9 @@ public final class PluginExecutor {
                 ? new DefaultArchitectureQuery(graph, ir != null ? ir.ports() : null, ir != null ? ir.domain() : null)
                 : null;
 
-        PluginContext context =
-                new DefaultPluginContext(pluginId, ir, config, writer, diagnostics, outputStore, architectureQuery);
+        // Create context with v4 ArchitecturalModel support
+        PluginContext context = new DefaultPluginContext(
+                pluginId, ir, architecturalModel, config, writer, diagnostics, outputStore, architectureQuery);
 
         try {
             long start = System.currentTimeMillis();

@@ -13,6 +13,8 @@
 
 package io.hexaglue.core.engine;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.builder.ArchitecturalModelBuilder;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
@@ -31,6 +33,8 @@ import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.ir.IrSnapshot;
+import io.hexaglue.syntax.SyntaxProvider;
+import io.hexaglue.syntax.spoon.SpoonSyntaxProvider;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -188,6 +192,11 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                     irExporter.exportPrimaryClassifications(classifications);
             log.debug("Exported {} primary classifications for plugin access", primaryClassifications.size());
 
+            // Step 4.6: Build v4 ArchitecturalModel for plugins
+            // This provides the unified model that plugins can use via ArchModelPluginContext
+            ArchitecturalModel archModel = buildArchitecturalModel(config);
+            log.debug("Built v4 ArchitecturalModel for plugins");
+
             // Step 5: Execute plugins (if enabled)
             // Plugins of category ANALYSIS can implement secondary classification
             // Plugins of category ENRICHMENT can add semantic labels and metadata
@@ -195,7 +204,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
                 PluginExecutor executor = new PluginExecutor(
-                        config.outputDirectory(), config.pluginConfigs(), graph, config.enabledCategories());
+                        config.outputDirectory(), config.pluginConfigs(), graph, config.enabledCategories(), archModel);
                 pluginResult = executor.execute(ir, primaryClassifications);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",
@@ -240,5 +249,30 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         return results.stream()
                 .filter(c -> c.isClassified() || c.status() == ClassificationStatus.CONFLICT)
                 .toList();
+    }
+
+    /**
+     * Builds the v4 ArchitecturalModel using SpoonSyntaxProvider and ArchitecturalModelBuilder.
+     *
+     * <p>This creates the unified model that plugins can access via ArchModelPluginContext.
+     * The model uses the v4 classification system with TypeSyntax support.
+     *
+     * @param config the engine configuration
+     * @return the built ArchitecturalModel
+     * @since 4.0.0
+     */
+    private ArchitecturalModel buildArchitecturalModel(EngineConfig config) {
+        // Build SyntaxProvider with the same sources as the main pipeline
+        SyntaxProvider syntaxProvider = SpoonSyntaxProvider.builder()
+                .basePackage(config.basePackage())
+                .sourceDirectories(config.sourceRoots())
+                .javaVersion(config.javaVersion())
+                .build();
+
+        // Build ArchitecturalModel using the v4 builder
+        return ArchitecturalModelBuilder.builder(syntaxProvider)
+                .projectName(config.projectName())
+                .basePackage(config.basePackage())
+                .build();
     }
 }

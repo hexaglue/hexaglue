@@ -41,7 +41,8 @@ public final class UseCaseInterfaceCriterion implements ClassificationCriterion 
 
     private static final int EXPLICIT_PRIORITY = 100;
     private static final Set<String> USE_CASE_ANNOTATIONS = Set.of("UseCase", "Command", "Query");
-    private static final Set<String> USE_CASE_SUFFIXES = Set.of("UseCase", "Command", "Query");
+    private static final Set<String> USE_CASE_SUFFIXES =
+            Set.of("UseCase", "UseCases", "Command", "Commands", "Query", "Queries");
 
     @Override
     public String name() {
