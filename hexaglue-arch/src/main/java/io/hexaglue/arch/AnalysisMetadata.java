@@ -78,7 +78,7 @@ public record AnalysisMetadata(
      */
     public static AnalysisMetadata now(Instant startTime, String parserName, int typesAnalyzed) {
         return new AnalysisMetadata(
-                startTime, Duration.between(startTime, Instant.now()), parserName, typesAnalyzed, "4.0.0-SNAPSHOT");
+                startTime, Duration.between(startTime, Instant.now()), parserName, typesAnalyzed, "4.0.0");
     }
 
     /**
@@ -88,7 +88,7 @@ public record AnalysisMetadata(
      * @return a new AnalysisMetadata
      */
     public static AnalysisMetadata forTesting(int typesAnalyzed) {
-        return new AnalysisMetadata(Instant.now(), Duration.ofMillis(100), "Test", typesAnalyzed, "4.0.0-SNAPSHOT");
+        return new AnalysisMetadata(Instant.now(), Duration.ofMillis(100), "Test", typesAnalyzed, "4.0.0");
     }
 
     /**

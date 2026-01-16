@@ -40,7 +40,7 @@ HexaGlue is a compile-time code generation engine for Java applications followin
 ## 2. Module Hierarchy
 
 ```
-hexaglue-parent (v4.0.0-SNAPSHOT)
+hexaglue-parent (v4.0.0)
 │
 ├── build/tools                      # Build utilities
 │
@@ -72,8 +72,8 @@ hexaglue-parent (v4.0.0-SNAPSHOT)
 
 | Module Group | Version | Notes |
 |--------------|---------|-------|
-| Core modules | 4.0.0-SNAPSHOT | Via hexaglue-parent |
-| Plugins | 1.0.0-SNAPSHOT | Independent versioning |
+| Core modules | 4.0.0 | Via hexaglue-parent |
+| Plugins | 1.0.0 | Independent versioning |
 
 ---
 

@@ -88,7 +88,7 @@ public final class IrExporter {
      * @param graph the application graph
      * @param classifications the classification results for all types
      * @param projectName the project name (e.g., from Maven pom.xml), can be null
-     * @param projectVersion the project version (e.g., "1.0.0-SNAPSHOT"), can be null
+     * @param projectVersion the project version (e.g., "1.0.0"), can be null
      * @return the IR snapshot for plugins
      * @since 3.0.0
      */

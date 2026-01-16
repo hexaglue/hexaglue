@@ -21,7 +21,7 @@ import java.util.Objects;
  *
  * @param basePackage the base package that was analyzed
  * @param projectName the name of the analyzed project (e.g., from Maven project.name)
- * @param projectVersion the version of the analyzed project (e.g., "1.0.0-SNAPSHOT")
+ * @param projectVersion the version of the analyzed project (e.g., "1.0.0")
  * @param timestamp when the analysis was performed
  * @param engineVersion the HexaGlue engine version
  * @param typeCount total number of types analyzed

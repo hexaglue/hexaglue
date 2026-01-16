@@ -8,6 +8,10 @@
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Maven 3.8+](https://img.shields.io/badge/Maven-3.8%2B-blue.svg)](https://maven.apache.org/)
 [![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](https://opensource.org/licenses/MPL-2.0)
+<br>
+[![Maven Central - Core](https://img.shields.io/maven-central/v/io.hexaglue/hexaglue-core?label=Maven%20Central%20-%20HexaGlue)](https://central.sonatype.com/artifact/io.hexaglue/hexaglue-core)
+<br>
+[![Maven Central - Plugins](https://img.shields.io/maven-central/v/io.hexaglue.plugins/hexaglue-plugin-jpa?label=Maven%20Central%20-%20HexaGlue%20Plugins)](https://central.sonatype.com/artifact/io.hexaglue.plugins/hexaglue-plugin-jpa)
 
 </div>
 

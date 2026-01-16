@@ -29,7 +29,7 @@ import java.util.Optional;
  *     "my-app",
  *     "com.example.myapp",
  *     Path.of("src/main/java"),
- *     Optional.of("1.0.0-SNAPSHOT")
+ *     Optional.of("1.0.0")
  * );
  * }</pre>
  *

@@ -22,7 +22,7 @@ Add the plugin dependency to your `pom.xml`:
 <dependency>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-plugin-audit</artifactId>
-    <version>3.0.0</version>
+    <version>4.0.0</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -39,7 +39,7 @@ Add to your HexaGlue Maven plugin configuration:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>3.0.0</version>
+    <version>4.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -48,7 +48,7 @@ Add to your HexaGlue Maven plugin configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </plugin>

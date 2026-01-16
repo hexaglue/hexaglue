@@ -103,6 +103,9 @@ To avoid entering the passphrase for each signature:
 # Start the agent
 gpg-agent --daemon
 
+# Cache the passphrase
+echo "test" | gpg --clearsign > /dev/null
+
 # Configure cache (in ~/.gnupg/gpg-agent.conf)
 default-cache-ttl 3600
 max-cache-ttl 86400

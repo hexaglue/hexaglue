@@ -30,7 +30,7 @@ import java.util.Set;
  * @param javaVersion the Java version (e.g., 21)
  * @param basePackage the base package to analyze (types outside are ignored)
  * @param projectName the name of the project being analyzed (e.g., from Maven pom.xml)
- * @param projectVersion the version of the project (e.g., "1.0.0-SNAPSHOT")
+ * @param projectVersion the version of the project (e.g., "1.0.0")
  * @param outputDirectory directory for generated sources (null to skip plugin execution)
  * @param pluginConfigs plugin configurations keyed by plugin ID
  * @param options additional options (key-value pairs)
