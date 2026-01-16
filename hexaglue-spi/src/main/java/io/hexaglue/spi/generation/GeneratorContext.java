@@ -23,7 +23,6 @@ import java.util.Objects;
  * <p>This record encapsulates all the resources and information a generator
  * plugin needs to perform code generation. It provides access to:
  * <ul>
- *   <li>The analyzed application model (classification results)</li>
  *   <li>File writing capabilities (for Java sources, resources, docs)</li>
  *   <li>Diagnostic reporting (for warnings, errors, info messages)</li>
  *   <li>Plugin-specific configuration</li>
@@ -32,48 +31,58 @@ import java.util.Objects;
  * <p>Generator plugins receive this context when their {@link GeneratorPlugin#generate(GeneratorContext)}
  * method is invoked by the HexaGlue engine.
  *
- * <p>Example usage:
+ * <h2>v4 Migration</h2>
+ *
+ * <p>Since HexaGlue 4.0, plugins should use {@code PluginContext.model()} to access the
+ * {@link io.hexaglue.arch.ArchitecturalModel} instead of {@code GeneratorContext.snapshot()}.
+ * The snapshot field is deprecated and may be null.
+ *
+ * <p>Example v4 usage:
  * <pre>{@code
- * public class JpaGeneratorPlugin implements GeneratorPlugin {
+ * public class MyPlugin implements GeneratorPlugin {
+ *     private ArchitecturalModel model;
+ *
+ *     @Override
+ *     public void execute(PluginContext context) {
+ *         this.model = context.model();  // Capture v4 model
+ *         super.execute(context);
+ *     }
+ *
  *     @Override
  *     public void generate(GeneratorContext context) {
- *         ClassificationSnapshot snapshot = context.snapshot();
- *         ArtifactWriter writer = context.writer();
- *         DiagnosticReporter diagnostics = context.diagnostics();
- *
- *         snapshot.domain().aggregateRoots().forEach(aggregateRoot -> {
- *             String entityCode = generateEntityCode(aggregateRoot);
- *             try {
- *                 writer.writeJavaSource(
- *                     aggregateRoot.packageName() + ".infra",
- *                     aggregateRoot.simpleName() + "Entity",
- *                     entityCode
- *                 );
- *                 diagnostics.info("Generated JPA entity for " + aggregateRoot.simpleName());
- *             } catch (IOException e) {
- *                 diagnostics.error("Failed to write entity", e);
- *             }
+ *         // Use this.model instead of context.snapshot()
+ *         model.aggregates().forEach(agg -> {
+ *             context.writer().writeJavaSource(
+ *                 agg.packageName() + ".infra",
+ *                 agg.simpleName() + "Entity",
+ *                 generateEntityCode(agg)
+ *             );
  *         });
  *     }
  * }
  * }</pre>
  *
- * @param snapshot    the analyzed application model with classification results
+ * @param snapshot    the classification snapshot (DEPRECATED in v4, may be null)
  * @param writer      the artifact writer for generating files
  * @param diagnostics the diagnostic reporter for messages
  * @param config      the plugin-specific configuration
  * @since 3.0.0
  */
 public record GeneratorContext(
-        ClassificationSnapshot snapshot, ArtifactWriter writer, DiagnosticReporter diagnostics, PluginConfig config) {
+        @Deprecated(forRemoval = true, since = "4.0.0") ClassificationSnapshot snapshot,
+        ArtifactWriter writer,
+        DiagnosticReporter diagnostics,
+        PluginConfig config) {
 
     /**
      * Compact constructor with validation.
      *
-     * @throws NullPointerException if any parameter is null
+     * <p>Note: snapshot may be null in v4. Use {@code PluginContext.model()} instead.
+     *
+     * @throws NullPointerException if writer, diagnostics, or config is null
      */
     public GeneratorContext {
-        Objects.requireNonNull(snapshot, "snapshot required");
+        // NOTE: snapshot CAN be null in v4 - use PluginContext.model() instead
         Objects.requireNonNull(writer, "writer required");
         Objects.requireNonNull(diagnostics, "diagnostics required");
         Objects.requireNonNull(config, "config required");
@@ -82,12 +91,11 @@ public record GeneratorContext(
     /**
      * Returns the underlying IR snapshot for advanced use cases.
      *
-     * <p>Most plugins should use {@link #snapshot()} instead, but this method
-     * provides direct access to the IR snapshot if needed.
-     *
-     * @return the IR snapshot
+     * @return the IR snapshot, or null if using v4 ArchitecturalModel
+     * @deprecated Since 4.0.0. Use {@code PluginContext.model()} instead.
      */
+    @Deprecated(forRemoval = true, since = "4.0.0")
     public io.hexaglue.spi.ir.IrSnapshot ir() {
-        return snapshot.snapshot();
+        return snapshot != null ? snapshot.snapshot() : null;
     }
 }
