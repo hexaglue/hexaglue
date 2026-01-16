@@ -13,12 +13,12 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.classification.semantic.CoreAppClass;
 import io.hexaglue.core.classification.semantic.CoreAppClassIndex;
@@ -47,7 +47,7 @@ import java.util.Objects;
  * <p>Priority: 72 (higher than OUTBOUND_ONLY to take precedence)
  * <p>Confidence: HIGH
  */
-public final class FlexibleSagaCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class FlexibleSagaCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     private static final int MIN_DRIVEN_DEPENDENCIES = 2;
 
@@ -78,8 +78,8 @@ public final class FlexibleSagaCriteria implements ClassificationCriteria<Domain
     }
 
     @Override
-    public DomainKind targetKind() {
-        return DomainKind.SAGA;
+    public ElementKind targetKind() {
+        return ElementKind.SAGA;
     }
 
     @Override

@@ -15,8 +15,8 @@ package io.hexaglue.plugin.jpa.model;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.RelationKind;
@@ -37,7 +37,7 @@ class RelationFieldSpecTest {
                 "items",
                 RelationKind.ONE_TO_MANY,
                 "com.example.LineItem",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 null,
                 CascadeType.ALL,
                 FetchType.LAZY,
@@ -50,7 +50,7 @@ class RelationFieldSpecTest {
         assertThat(spec.fieldName()).isEqualTo("items");
         assertThat(spec.targetType().toString()).isEqualTo("java.util.List<com.example.LineItem>");
         assertThat(spec.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
-        assertThat(spec.targetKind()).isEqualTo(DomainKind.ENTITY);
+        assertThat(spec.targetKind()).isEqualTo(ElementKind.ENTITY);
         assertThat(spec.cascade()).isEqualTo(CascadeType.ALL);
         assertThat(spec.fetch()).isEqualTo(FetchType.LAZY);
         assertThat(spec.orphanRemoval()).isTrue();
@@ -67,7 +67,7 @@ class RelationFieldSpecTest {
                 "order",
                 RelationKind.MANY_TO_ONE,
                 "com.example.Order",
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -93,7 +93,7 @@ class RelationFieldSpecTest {
                 "address",
                 RelationKind.EMBEDDED,
                 "com.example.Address",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.EAGER,
@@ -106,7 +106,7 @@ class RelationFieldSpecTest {
         assertThat(spec.fieldName()).isEqualTo("address");
         assertThat(spec.targetType().toString()).isEqualTo("com.example.Address");
         assertThat(spec.kind()).isEqualTo(RelationKind.EMBEDDED);
-        assertThat(spec.targetKind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(spec.targetKind()).isEqualTo(ElementKind.VALUE_OBJECT);
         assertThat(spec.isEmbedded()).isTrue();
         assertThat(spec.targetsValueObject()).isTrue();
         assertThat(spec.fetch()).isEqualTo(FetchType.EAGER);
@@ -120,7 +120,7 @@ class RelationFieldSpecTest {
                 "tags",
                 RelationKind.ELEMENT_COLLECTION,
                 "com.example.Tag",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -142,7 +142,7 @@ class RelationFieldSpecTest {
                 "items",
                 RelationKind.ONE_TO_MANY,
                 "com.example.LineItem",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 null,
                 CascadeType.ALL,
                 FetchType.LAZY,
@@ -164,7 +164,7 @@ class RelationFieldSpecTest {
                 "order",
                 RelationKind.MANY_TO_ONE,
                 "com.example.Order",
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 "items",
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -186,7 +186,7 @@ class RelationFieldSpecTest {
                 "categories",
                 RelationKind.MANY_TO_MANY,
                 "com.example.Category",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -203,13 +203,13 @@ class RelationFieldSpecTest {
     @Test
     void from_shouldWrapInList_whenOneToManyOrElementCollection() {
         // Given: One-to-many and element collection relations
-        DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+        DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
 
         DomainRelation elementCollection = new DomainRelation(
                 "tags",
                 RelationKind.ELEMENT_COLLECTION,
                 "java.lang.String",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,

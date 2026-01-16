@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir.testing;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,7 +36,7 @@ public final class DomainTypeBuilder {
     private String qualifiedName;
     private String simpleName;
     private String packageName;
-    private DomainKind kind = DomainKind.ENTITY;
+    private ElementKind kind = ElementKind.ENTITY;
     private ConfidenceLevel confidence = ConfidenceLevel.HIGH;
     private JavaConstruct construct = JavaConstruct.CLASS;
     private Identity identity;
@@ -54,14 +55,14 @@ public final class DomainTypeBuilder {
      * Creates a builder for an aggregate root.
      */
     public static DomainTypeBuilder aggregateRoot(String qualifiedName) {
-        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(DomainKind.AGGREGATE_ROOT);
+        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(ElementKind.AGGREGATE_ROOT);
     }
 
     /**
      * Creates a builder for an entity.
      */
     public static DomainTypeBuilder entity(String qualifiedName) {
-        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(DomainKind.ENTITY);
+        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(ElementKind.ENTITY);
     }
 
     /**
@@ -70,7 +71,7 @@ public final class DomainTypeBuilder {
     public static DomainTypeBuilder valueObject(String qualifiedName) {
         return new DomainTypeBuilder()
                 .qualifiedName(qualifiedName)
-                .kind(DomainKind.VALUE_OBJECT)
+                .kind(ElementKind.VALUE_OBJECT)
                 .construct(JavaConstruct.RECORD);
     }
 
@@ -80,7 +81,7 @@ public final class DomainTypeBuilder {
     public static DomainTypeBuilder identifier(String qualifiedName) {
         return new DomainTypeBuilder()
                 .qualifiedName(qualifiedName)
-                .kind(DomainKind.IDENTIFIER)
+                .kind(ElementKind.IDENTIFIER)
                 .construct(JavaConstruct.RECORD);
     }
 
@@ -90,7 +91,7 @@ public final class DomainTypeBuilder {
     public static DomainTypeBuilder domainEvent(String qualifiedName) {
         return new DomainTypeBuilder()
                 .qualifiedName(qualifiedName)
-                .kind(DomainKind.DOMAIN_EVENT)
+                .kind(ElementKind.DOMAIN_EVENT)
                 .construct(JavaConstruct.RECORD);
     }
 
@@ -98,7 +99,7 @@ public final class DomainTypeBuilder {
      * Creates a builder for a domain service.
      */
     public static DomainTypeBuilder domainService(String qualifiedName) {
-        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(DomainKind.DOMAIN_SERVICE);
+        return new DomainTypeBuilder().qualifiedName(qualifiedName).kind(ElementKind.DOMAIN_SERVICE);
     }
 
     // =========================================================================
@@ -119,7 +120,7 @@ public final class DomainTypeBuilder {
     /**
      * Sets the domain kind.
      */
-    public DomainTypeBuilder kind(DomainKind kind) {
+    public DomainTypeBuilder kind(ElementKind kind) {
         this.kind = kind;
         return this;
     }
@@ -272,7 +273,7 @@ public final class DomainTypeBuilder {
      * Adds a one-to-many relation.
      */
     public DomainTypeBuilder withOneToManyRelation(String fieldName, String targetTypeFqn) {
-        relations.add(DomainRelation.oneToMany(fieldName, targetTypeFqn, DomainKind.ENTITY));
+        relations.add(DomainRelation.oneToMany(fieldName, targetTypeFqn, ElementKind.ENTITY));
         return this;
     }
 

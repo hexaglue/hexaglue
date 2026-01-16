@@ -16,7 +16,7 @@ package io.hexaglue.spi.ir;
 /**
  * The Java construct used to define a type.
  *
- * <p>This is distinct from {@link DomainKind} - a VALUE_OBJECT can be
+ * <p>This is distinct from {@link ElementKind} - a VALUE_OBJECT can be
  * implemented as a CLASS or a RECORD.
  */
 public enum JavaConstruct {

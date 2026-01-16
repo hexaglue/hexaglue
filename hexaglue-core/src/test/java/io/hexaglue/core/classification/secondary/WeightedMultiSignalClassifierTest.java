@@ -15,6 +15,7 @@ package io.hexaglue.core.classification.secondary;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationContext;
 import io.hexaglue.spi.classification.ClassificationStrategy;
@@ -22,7 +23,6 @@ import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
 import io.hexaglue.spi.core.TypeInfo;
 import io.hexaglue.spi.core.TypeKind;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -54,7 +54,7 @@ class WeightedMultiSignalClassifierTest {
     @DisplayName("Should trust EXPLICIT primary result")
     void trustsExplicitPrimary() {
         TypeInfo type = createType("Order", TypeKind.CLASS);
-        PrimaryClassificationResult primary = createPrimary(DomainKind.ENTITY, CertaintyLevel.EXPLICIT);
+        PrimaryClassificationResult primary = createPrimary(ElementKind.ENTITY, CertaintyLevel.EXPLICIT);
 
         SecondaryClassificationResult result = classifier.classify(type, emptyContext, Optional.of(primary));
 
@@ -66,7 +66,7 @@ class WeightedMultiSignalClassifierTest {
     void trustsCertainPrimary() {
         TypeInfo type = createType("Order", TypeKind.CLASS);
         PrimaryClassificationResult primary =
-                createPrimary(DomainKind.AGGREGATE_ROOT, CertaintyLevel.CERTAIN_BY_STRUCTURE);
+                createPrimary(ElementKind.AGGREGATE_ROOT, CertaintyLevel.CERTAIN_BY_STRUCTURE);
 
         SecondaryClassificationResult result = classifier.classify(type, emptyContext, Optional.of(primary));
 
@@ -88,7 +88,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerThreshold.classify(type, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+        assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         assertThat(result.evidences()).anyMatch(e -> e.signal().contains("aggregate"));
     }
 
@@ -102,7 +102,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerThreshold.classify(type, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+        assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
     }
 
     @Test
@@ -115,7 +115,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerThreshold.classify(orderType, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+        assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         assertThat(result.evidences())
                 .anyMatch(e -> e.signal().contains("aggregate") || e.signal().contains("naming"));
     }
@@ -130,7 +130,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = classifier.classify(type, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
         assertThat(result.evidences()).anyMatch(e -> e.signal().equals("java_record"));
     }
 
@@ -145,7 +145,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerThreshold.classify(type, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
     }
 
     @Test
@@ -159,7 +159,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerClassifier.classify(moneyType, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
         assertThat(result.evidences()).anyMatch(e -> e.signal().contains("value_object"));
     }
 
@@ -174,7 +174,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = lowerThresholdClassifier.classify(type, emptyContext, Optional.empty());
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
         assertThat(result.evidences()).anyMatch(e -> e.signal().contains("value_object"));
     }
 
@@ -225,12 +225,12 @@ class WeightedMultiSignalClassifierTest {
         // Use lower threshold to test the behavior
         WeightedMultiSignalClassifier lowerThreshold = new WeightedMultiSignalClassifier(4);
         TypeInfo type = createType("ProductAggregate", TypeKind.CLASS);
-        PrimaryClassificationResult primary = createPrimary(DomainKind.ENTITY, CertaintyLevel.UNCERTAIN);
+        PrimaryClassificationResult primary = createPrimary(ElementKind.ENTITY, CertaintyLevel.UNCERTAIN);
 
         SecondaryClassificationResult result = lowerThreshold.classify(type, emptyContext, Optional.of(primary));
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+        assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
     }
 
     @Test
@@ -242,7 +242,7 @@ class WeightedMultiSignalClassifierTest {
         SecondaryClassificationResult result = classifier.classify(type, emptyContext, Optional.of(primary));
 
         assertThat(result).isNotNull();
-        assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+        assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
     }
 
     // ========== SCORING THRESHOLDS ==========
@@ -285,7 +285,7 @@ class WeightedMultiSignalClassifierTest {
         return new TypeInfo("com.example." + name, name, "com.example", kind);
     }
 
-    private PrimaryClassificationResult createPrimary(DomainKind kind, CertaintyLevel certainty) {
+    private PrimaryClassificationResult createPrimary(ElementKind kind, CertaintyLevel certainty) {
         return new PrimaryClassificationResult(
                 "TestType", kind, certainty, ClassificationStrategy.REPOSITORY, "test", List.of());
     }

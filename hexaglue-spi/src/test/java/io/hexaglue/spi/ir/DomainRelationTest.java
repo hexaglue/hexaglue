@@ -15,6 +15,7 @@ package io.hexaglue.spi.ir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,7 @@ class DomainRelationTest {
             assertThat(relation.propertyName()).isEqualTo("address");
             assertThat(relation.kind()).isEqualTo(RelationKind.EMBEDDED);
             assertThat(relation.targetTypeFqn()).isEqualTo("com.example.Address");
-            assertThat(relation.targetKind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(relation.targetKind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(relation.mappedBy()).isNull();
             assertThat(relation.cascade()).isEqualTo(CascadeType.NONE);
             assertThat(relation.fetch()).isEqualTo(FetchType.EAGER);
@@ -46,12 +47,12 @@ class DomainRelationTest {
         @Test
         @DisplayName("oneToMany should create ONE_TO_MANY relation with cascade ALL")
         void oneToManyCreatesOneToManyRelation() {
-            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
 
             assertThat(relation.propertyName()).isEqualTo("items");
             assertThat(relation.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
             assertThat(relation.targetTypeFqn()).isEqualTo("com.example.LineItem");
-            assertThat(relation.targetKind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(relation.targetKind()).isEqualTo(ElementKind.ENTITY);
             assertThat(relation.cascade()).isEqualTo(CascadeType.ALL);
             assertThat(relation.fetch()).isEqualTo(FetchType.LAZY);
             assertThat(relation.orphanRemoval()).isTrue();
@@ -65,7 +66,7 @@ class DomainRelationTest {
             assertThat(relation.propertyName()).isEqualTo("order");
             assertThat(relation.kind()).isEqualTo(RelationKind.MANY_TO_ONE);
             assertThat(relation.targetTypeFqn()).isEqualTo("com.example.Order");
-            assertThat(relation.targetKind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(relation.targetKind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(relation.cascade()).isEqualTo(CascadeType.NONE);
             assertThat(relation.fetch()).isEqualTo(FetchType.LAZY);
             assertThat(relation.orphanRemoval()).isFalse();
@@ -79,7 +80,7 @@ class DomainRelationTest {
         @Test
         @DisplayName("mappedByOpt should return empty for owning side")
         void mappedByOptEmptyForOwningSide() {
-            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.Item", DomainKind.ENTITY);
+            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.Item", ElementKind.ENTITY);
 
             assertThat(relation.mappedByOpt()).isEmpty();
             assertThat(relation.isOwning()).isTrue();
@@ -92,7 +93,7 @@ class DomainRelationTest {
                     "items",
                     RelationKind.ONE_TO_MANY,
                     "com.example.Item",
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     "order", // mappedBy
                     CascadeType.ALL,
                     FetchType.LAZY,
@@ -106,7 +107,7 @@ class DomainRelationTest {
         @Test
         @DisplayName("targetsEntity should return true for ENTITY and AGGREGATE_ROOT")
         void targetsEntityForEntityKinds() {
-            DomainRelation entityRelation = DomainRelation.oneToMany("items", "com.example.Item", DomainKind.ENTITY);
+            DomainRelation entityRelation = DomainRelation.oneToMany("items", "com.example.Item", ElementKind.ENTITY);
             DomainRelation aggregateRelation = DomainRelation.manyToOne("order", "com.example.Order");
 
             assertThat(entityRelation.targetsEntity()).isTrue();
@@ -126,7 +127,7 @@ class DomainRelationTest {
         @DisplayName("targetSimpleName should extract simple name from FQN")
         void targetSimpleNameExtractsSimpleName() {
             DomainRelation relation =
-                    DomainRelation.oneToMany("items", "com.example.domain.order.LineItem", DomainKind.ENTITY);
+                    DomainRelation.oneToMany("items", "com.example.domain.order.LineItem", ElementKind.ENTITY);
 
             assertThat(relation.targetSimpleName()).isEqualTo("LineItem");
         }

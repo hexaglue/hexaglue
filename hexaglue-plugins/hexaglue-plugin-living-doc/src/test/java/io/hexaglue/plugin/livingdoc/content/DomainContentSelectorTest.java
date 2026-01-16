@@ -26,7 +26,6 @@ import io.hexaglue.arch.domain.Identifier;
 import io.hexaglue.arch.domain.ValueObject;
 import io.hexaglue.arch.ports.ApplicationService;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -71,7 +70,7 @@ class DomainContentSelectorTest {
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("Order");
             assertThat(doc.packageName()).isEqualTo(PKG);
-            assertThat(doc.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(doc.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         }
 
         @Test
@@ -128,14 +127,15 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("OrderLineItem");
-            assertThat(doc.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(doc.kind()).isEqualTo(ElementKind.ENTITY);
         }
 
         @Test
         @DisplayName("should not include aggregate roots in entity selection")
         void shouldNotIncludeAggregateRootsInEntitySelection() {
             // Given
-            DomainEntity aggRoot = DomainEntity.aggregateRoot(PKG + ".Order", highConfidence(ElementKind.AGGREGATE_ROOT));
+            DomainEntity aggRoot =
+                    DomainEntity.aggregateRoot(PKG + ".Order", highConfidence(ElementKind.AGGREGATE_ROOT));
             DomainEntity entity = DomainEntity.entity(PKG + ".OrderLine", highConfidence(ElementKind.ENTITY));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
@@ -162,7 +162,8 @@ class DomainContentSelectorTest {
         @DisplayName("should select value objects")
         void shouldSelectValueObjects() {
             // Given
-            ValueObject money = ValueObject.of(PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
+            ValueObject money = ValueObject.of(
+                    PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
                     .add(money)
@@ -177,14 +178,15 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("Money");
-            assertThat(doc.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(doc.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
         }
 
         @Test
         @DisplayName("should have no identity for value objects")
         void shouldHaveNoIdentityForValueObjects() {
             // Given
-            ValueObject money = ValueObject.of(PKG + ".Money", List.of("amount"), highConfidence(ElementKind.VALUE_OBJECT));
+            ValueObject money =
+                    ValueObject.of(PKG + ".Money", List.of("amount"), highConfidence(ElementKind.VALUE_OBJECT));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
                     .add(money)
@@ -224,7 +226,7 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("OrderId");
-            assertThat(doc.kind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(doc.kind()).isEqualTo(ElementKind.IDENTIFIER);
         }
     }
 
@@ -251,7 +253,7 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("OrderPlaced");
-            assertThat(doc.kind()).isEqualTo(DomainKind.DOMAIN_EVENT);
+            assertThat(doc.kind()).isEqualTo(ElementKind.DOMAIN_EVENT);
         }
     }
 
@@ -263,7 +265,8 @@ class DomainContentSelectorTest {
         @DisplayName("should select domain services")
         void shouldSelectDomainServices() {
             // Given
-            DomainService pricingService = DomainService.of(PKG + ".PricingService", highConfidence(ElementKind.DOMAIN_SERVICE));
+            DomainService pricingService =
+                    DomainService.of(PKG + ".PricingService", highConfidence(ElementKind.DOMAIN_SERVICE));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
                     .add(pricingService)
@@ -278,7 +281,7 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("PricingService");
-            assertThat(doc.kind()).isEqualTo(DomainKind.DOMAIN_SERVICE);
+            assertThat(doc.kind()).isEqualTo(ElementKind.DOMAIN_SERVICE);
         }
     }
 
@@ -290,7 +293,8 @@ class DomainContentSelectorTest {
         @DisplayName("should select application services")
         void shouldSelectApplicationServices() {
             // Given
-            ApplicationService orderService = ApplicationService.of(PKG + ".OrderService", highConfidence(ElementKind.APPLICATION_SERVICE));
+            ApplicationService orderService =
+                    ApplicationService.of(PKG + ".OrderService", highConfidence(ElementKind.APPLICATION_SERVICE));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
                     .add(orderService)
@@ -305,7 +309,7 @@ class DomainContentSelectorTest {
             assertThat(results).hasSize(1);
             DomainTypeDoc doc = results.get(0);
             assertThat(doc.name()).isEqualTo("OrderService");
-            assertThat(doc.kind()).isEqualTo(DomainKind.APPLICATION_SERVICE);
+            assertThat(doc.kind()).isEqualTo(ElementKind.APPLICATION_SERVICE);
         }
     }
 
@@ -317,13 +321,15 @@ class DomainContentSelectorTest {
         @DisplayName("should select all types from model")
         void shouldSelectAllTypes() {
             // Given
-            DomainEntity aggRoot = DomainEntity.aggregateRoot(PKG + ".Order", highConfidence(ElementKind.AGGREGATE_ROOT));
+            DomainEntity aggRoot =
+                    DomainEntity.aggregateRoot(PKG + ".Order", highConfidence(ElementKind.AGGREGATE_ROOT));
             DomainEntity entity = DomainEntity.entity(PKG + ".OrderLine", highConfidence(ElementKind.ENTITY));
             ValueObject money = ValueObject.of(PKG + ".Money", List.of(), highConfidence(ElementKind.VALUE_OBJECT));
             Identifier orderId = Identifier.of(PKG + ".OrderId", highConfidence(ElementKind.IDENTIFIER));
             DomainEvent event = DomainEvent.of(PKG + ".OrderPlaced", highConfidence(ElementKind.DOMAIN_EVENT));
             DomainService svc = DomainService.of(PKG + ".PricingService", highConfidence(ElementKind.DOMAIN_SERVICE));
-            ApplicationService appSvc = ApplicationService.of(PKG + ".OrderAppService", highConfidence(ElementKind.APPLICATION_SERVICE));
+            ApplicationService appSvc =
+                    ApplicationService.of(PKG + ".OrderAppService", highConfidence(ElementKind.APPLICATION_SERVICE));
 
             ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
                     .add(aggRoot)

@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.analysis;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -20,7 +21,6 @@ import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.RelationKind;
@@ -128,18 +128,18 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        DomainKind targetKind = getDomainKind(elementId, context, targetType, query);
+        ElementKind targetKind = getElementKind(elementId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
 
         // VALUE_OBJECT in collection → ELEMENT_COLLECTION
-        if (targetKind == DomainKind.VALUE_OBJECT) {
+        if (targetKind == ElementKind.VALUE_OBJECT) {
             return Optional.of(new DomainRelation(
                     field.simpleName(),
                     RelationKind.ELEMENT_COLLECTION,
                     elementTypeFqn,
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     null,
                     CascadeType.NONE,
                     FetchType.EAGER,
@@ -149,7 +149,7 @@ public final class RelationAnalyzer {
         // AGGREGATE_ROOT in collection → MANY_TO_MANY (inter-aggregate relationship)
         // This is a DDD-semantic: each aggregate root is independently managed,
         // so a collection of them represents a many-to-many association
-        if (targetKind == DomainKind.AGGREGATE_ROOT) {
+        if (targetKind == ElementKind.AGGREGATE_ROOT) {
             String mappedBy = mappedByDetector
                     .detectMappedBy(ownerType, field, elementType, query)
                     .orElse(null);
@@ -159,7 +159,7 @@ public final class RelationAnalyzer {
                     field.simpleName(),
                     RelationKind.MANY_TO_MANY,
                     elementTypeFqn,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     mappedBy,
                     CascadeType.NONE,
                     FetchType.LAZY,
@@ -167,7 +167,7 @@ public final class RelationAnalyzer {
         }
 
         // ENTITY in collection → ONE_TO_MANY (child entities within aggregate)
-        if (targetKind == DomainKind.ENTITY) {
+        if (targetKind == ElementKind.ENTITY) {
             String mappedBy = mappedByDetector
                     .detectMappedBy(ownerType, field, elementType, query)
                     .orElse(null);
@@ -182,7 +182,7 @@ public final class RelationAnalyzer {
                     field.simpleName(),
                     RelationKind.ONE_TO_MANY,
                     elementTypeFqn,
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     mappedBy,
                     cascade,
                     FetchType.LAZY,
@@ -220,13 +220,13 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        DomainKind targetKind = getDomainKind(typeId, context, targetType, query);
+        ElementKind targetKind = getElementKind(typeId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
 
         // VALUE_OBJECT → EMBEDDED (but NOT for enums - they use @Enumerated)
-        if (targetKind == DomainKind.VALUE_OBJECT) {
+        if (targetKind == ElementKind.VALUE_OBJECT) {
             // Check if the target type is an enum - enums should not be embedded
             // They will be handled with @Enumerated(EnumType.STRING) in JPA
             boolean isEnum = targetType.map(TypeNode::isEnum).orElse(false);
@@ -238,13 +238,13 @@ public final class RelationAnalyzer {
         }
 
         // AGGREGATE_ROOT → MANY_TO_ONE (reference to another aggregate)
-        if (targetKind == DomainKind.AGGREGATE_ROOT) {
+        if (targetKind == ElementKind.AGGREGATE_ROOT) {
             // References to other aggregates should NOT cascade
             return Optional.of(new DomainRelation(
                     field.simpleName(),
                     RelationKind.MANY_TO_ONE,
                     typeFqn,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     null,
                     CascadeType.NONE,
                     FetchType.LAZY,
@@ -254,7 +254,7 @@ public final class RelationAnalyzer {
         // ENTITY → ONE_TO_ONE (child entity within aggregate)
         // In DDD, a single reference to a child entity is typically a 1:1 relationship
         // (the child is owned exclusively by this aggregate)
-        if (targetKind == DomainKind.ENTITY) {
+        if (targetKind == ElementKind.ENTITY) {
             CascadeType cascade = cascadeInference.infer(ownerType, targetType.get(), RelationKind.ONE_TO_ONE, context);
 
             // Detect mappedBy for bidirectional relationships
@@ -269,7 +269,7 @@ public final class RelationAnalyzer {
                     field.simpleName(),
                     RelationKind.ONE_TO_ONE,
                     typeFqn,
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     mappedBy,
                     cascade,
                     FetchType.LAZY,
@@ -301,18 +301,18 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        DomainKind targetKind = getDomainKind(valueId, context, targetType, query);
+        ElementKind targetKind = getElementKind(valueId, context, targetType, query);
         if (targetKind == null) {
             return Optional.empty();
         }
 
         // Map<K, VALUE_OBJECT> → ELEMENT_COLLECTION
-        if (targetKind == DomainKind.VALUE_OBJECT) {
+        if (targetKind == ElementKind.VALUE_OBJECT) {
             return Optional.of(new DomainRelation(
                     field.simpleName(),
                     RelationKind.ELEMENT_COLLECTION,
                     valueTypeFqn,
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     null,
                     CascadeType.NONE,
                     FetchType.EAGER,
@@ -320,7 +320,7 @@ public final class RelationAnalyzer {
         }
 
         // Map<K, ENTITY> → ONE_TO_MANY (indexed collection)
-        if (targetKind == DomainKind.ENTITY) {
+        if (targetKind == ElementKind.ENTITY) {
             CascadeType cascade =
                     cascadeInference.infer(ownerType, targetType.get(), RelationKind.ONE_TO_MANY, context);
 
@@ -330,7 +330,7 @@ public final class RelationAnalyzer {
                     field.simpleName(),
                     RelationKind.ONE_TO_MANY,
                     valueTypeFqn,
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     null,
                     cascade,
                     FetchType.LAZY,
@@ -338,12 +338,12 @@ public final class RelationAnalyzer {
         }
 
         // Map<K, AGGREGATE_ROOT> → MANY_TO_MANY (indexed inter-aggregate)
-        if (targetKind == DomainKind.AGGREGATE_ROOT) {
+        if (targetKind == ElementKind.AGGREGATE_ROOT) {
             return Optional.of(new DomainRelation(
                     field.simpleName(),
                     RelationKind.MANY_TO_MANY,
                     valueTypeFqn,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     null,
                     CascadeType.NONE,
                     FetchType.LAZY,
@@ -370,13 +370,13 @@ public final class RelationAnalyzer {
      * @param query the graph query for field access
      * @return the domain kind, or null if unknown
      */
-    private DomainKind getDomainKind(
+    private ElementKind getElementKind(
             NodeId typeId, ClassificationContext context, Optional<TypeNode> targetType, GraphQuery query) {
         // First try classification context
         String kind = context.getKind(typeId);
         if (kind != null) {
             try {
-                return DomainKind.valueOf(kind);
+                return ElementKind.valueOf(kind);
             } catch (IllegalArgumentException e) {
                 // Fall through to heuristics
             }
@@ -388,13 +388,13 @@ public final class RelationAnalyzer {
 
             // Records and enums are VALUE_OBJECT by convention
             if (node.isRecord() || node.isEnum()) {
-                return DomainKind.VALUE_OBJECT;
+                return ElementKind.VALUE_OBJECT;
             }
 
             // Classes without identity fields are likely VALUE_OBJECTs
             // This heuristic helps detect embedded collection elements like OrderLine
             if (node.isClass() && !node.isInterface() && !hasIdentityField(node, query)) {
-                return DomainKind.VALUE_OBJECT;
+                return ElementKind.VALUE_OBJECT;
             }
         }
 

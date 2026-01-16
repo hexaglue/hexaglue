@@ -13,13 +13,13 @@
 
 package io.hexaglue.core.classification.anomaly;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.deterministic.Classification;
 import io.hexaglue.core.graph.algorithm.Cycle;
 import io.hexaglue.core.graph.algorithm.CycleDetectionConfig;
 import io.hexaglue.core.graph.algorithm.TarjanCycleDetector;
 import io.hexaglue.core.graph.composition.CompositionEdge;
 import io.hexaglue.core.graph.composition.CompositionGraph;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -179,7 +179,7 @@ public final class AnomalyDetector {
             }
 
             Classification targetClassification = classifications.get(edge.target());
-            if (targetClassification != null && targetClassification.kind() == DomainKind.ENTITY) {
+            if (targetClassification != null && targetClassification.kind() == ElementKind.ENTITY) {
                 entityToComposers
                         .computeIfAbsent(edge.target(), k -> new HashSet<>())
                         .add(edge.source());
@@ -222,7 +222,7 @@ public final class AnomalyDetector {
             String typeName = entry.getKey();
             Classification classification = entry.getValue();
 
-            if (classification.kind() == DomainKind.AGGREGATE_ROOT
+            if (classification.kind() == ElementKind.AGGREGATE_ROOT
                     && classification.strategy() != io.hexaglue.spi.classification.ClassificationStrategy.REPOSITORY) {
 
                 String message = String.format(
@@ -254,7 +254,7 @@ public final class AnomalyDetector {
             Classification classification = entry.getValue();
 
             // Check if classified as value object but node has identity
-            if (classification.kind() == DomainKind.VALUE_OBJECT) {
+            if (classification.kind() == ElementKind.VALUE_OBJECT) {
                 graph.getNode(typeName).ifPresent(node -> {
                     if (node.hasIdentity() && !node.isIdWrapper()) {
                         String message = String.format(
@@ -280,7 +280,7 @@ public final class AnomalyDetector {
      */
     private Set<String> findAggregateRoots(Map<String, Classification> classifications) {
         return classifications.entrySet().stream()
-                .filter(e -> e.getValue().kind() == DomainKind.AGGREGATE_ROOT)
+                .filter(e -> e.getValue().kind() == ElementKind.AGGREGATE_ROOT)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toSet());
     }

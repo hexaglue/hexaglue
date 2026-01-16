@@ -16,10 +16,10 @@ package io.hexaglue.core.classification.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.port.PortDirection;
 import java.util.List;
 import java.util.Map;
@@ -44,10 +44,10 @@ class ContributionTest {
         @Test
         @DisplayName("should create contribution with minimal parameters")
         void shouldCreateWithMinimalParameters() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "test-criteria", 80, ConfidenceLevel.HIGH, "Test justification");
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.ENTITY, "test-criteria", 80, ConfidenceLevel.HIGH, "Test justification");
 
-            assertThat(contribution.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(contribution.kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(contribution.criteriaName()).isEqualTo("test-criteria");
             assertThat(contribution.priority()).isEqualTo(80);
             assertThat(contribution.confidence()).isEqualTo(ConfidenceLevel.HIGH);
@@ -60,8 +60,8 @@ class ContributionTest {
         @DisplayName("should create contribution with evidence")
         void shouldCreateWithEvidence() {
             Evidence evidence = new Evidence(EvidenceType.ANNOTATION, "Has @Entity", List.of());
-            Contribution<DomainKind> contribution = Contribution.of(
-                    DomainKind.ENTITY, "test-criteria", 100, ConfidenceLevel.EXPLICIT, "Annotated", List.of(evidence));
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.ENTITY, "test-criteria", 100, ConfidenceLevel.EXPLICIT, "Annotated", List.of(evidence));
 
             assertThat(contribution.evidence()).hasSize(1);
             assertThat(contribution.evidence().get(0).description()).isEqualTo("Has @Entity");
@@ -87,7 +87,7 @@ class ContributionTest {
         @Test
         @DisplayName("should reject null criteria name")
         void shouldRejectNullCriteriaName() {
-            assertThatThrownBy(() -> Contribution.of(DomainKind.ENTITY, null, 50, ConfidenceLevel.MEDIUM, "test"))
+            assertThatThrownBy(() -> Contribution.of(ElementKind.ENTITY, null, 50, ConfidenceLevel.MEDIUM, "test"))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("criteriaName");
         }
@@ -95,7 +95,7 @@ class ContributionTest {
         @Test
         @DisplayName("should reject null confidence")
         void shouldRejectNullConfidence() {
-            assertThatThrownBy(() -> Contribution.of(DomainKind.ENTITY, "criteria", 50, null, "test"))
+            assertThatThrownBy(() -> Contribution.of(ElementKind.ENTITY, "criteria", 50, null, "test"))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("confidence");
         }
@@ -103,8 +103,8 @@ class ContributionTest {
         @Test
         @DisplayName("should accept null evidence and convert to empty list")
         void shouldAcceptNullEvidence() {
-            Contribution<DomainKind> contribution =
-                    new Contribution<>(DomainKind.ENTITY, "test", 50, ConfidenceLevel.LOW, "test", null, Map.of());
+            Contribution<ElementKind> contribution =
+                    new Contribution<>(ElementKind.ENTITY, "test", 50, ConfidenceLevel.LOW, "test", null, Map.of());
 
             assertThat(contribution.evidence()).isEmpty();
         }
@@ -112,8 +112,8 @@ class ContributionTest {
         @Test
         @DisplayName("should accept null metadata and convert to empty map")
         void shouldAcceptNullMetadata() {
-            Contribution<DomainKind> contribution =
-                    new Contribution<>(DomainKind.ENTITY, "test", 50, ConfidenceLevel.LOW, "test", List.of(), null);
+            Contribution<ElementKind> contribution =
+                    new Contribution<>(ElementKind.ENTITY, "test", 50, ConfidenceLevel.LOW, "test", List.of(), null);
 
             assertThat(contribution.metadata()).isEmpty();
         }
@@ -131,8 +131,8 @@ class ContributionTest {
         @DisplayName("evidence list should be immutable")
         void evidenceListShouldBeImmutable() {
             Evidence evidence = new Evidence(EvidenceType.ANNOTATION, "test", List.of());
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test", List.of(evidence));
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test", List.of(evidence));
 
             assertThatThrownBy(() -> contribution.evidence().add(evidence))
                     .isInstanceOf(UnsupportedOperationException.class);
@@ -141,8 +141,8 @@ class ContributionTest {
         @Test
         @DisplayName("metadata map should be immutable")
         void metadataMapShouldBeImmutable() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                            DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
+            Contribution<ElementKind> contribution = Contribution.of(
+                            ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
                     .withMetadata("key", "value");
 
             assertThatThrownBy(() -> contribution.metadata().put("new", "value"))
@@ -152,10 +152,10 @@ class ContributionTest {
         @Test
         @DisplayName("withMetadata should return new instance")
         void withMetadataShouldReturnNewInstance() {
-            Contribution<DomainKind> original =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> original =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
-            Contribution<DomainKind> withMeta = original.withMetadata("direction", PortDirection.DRIVEN);
+            Contribution<ElementKind> withMeta = original.withMetadata("direction", PortDirection.DRIVEN);
 
             assertThat(withMeta).isNotSameAs(original);
             assertThat(original.metadata()).isEmpty();
@@ -165,11 +165,11 @@ class ContributionTest {
         @Test
         @DisplayName("withEvidence should return new instance")
         void withEvidenceShouldReturnNewInstance() {
-            Contribution<DomainKind> original =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> original =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
             Evidence newEvidence = new Evidence(EvidenceType.STRUCTURE, "Has id field", List.of());
-            Contribution<DomainKind> withEvidence = original.withEvidence(List.of(newEvidence));
+            Contribution<ElementKind> withEvidence = original.withEvidence(List.of(newEvidence));
 
             assertThat(withEvidence).isNotSameAs(original);
             assertThat(original.evidence()).isEmpty();
@@ -188,8 +188,8 @@ class ContributionTest {
         @Test
         @DisplayName("withMetadata should preserve existing metadata")
         void withMetadataShouldPreserveExisting() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                            DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
+            Contribution<ElementKind> contribution = Contribution.of(
+                            ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
                     .withMetadata("key1", "value1")
                     .withMetadata("key2", "value2");
 
@@ -199,8 +199,8 @@ class ContributionTest {
         @Test
         @DisplayName("withMetadata should reject null key")
         void withMetadataShouldRejectNullKey() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
             assertThatThrownBy(() -> contribution.withMetadata(null, "value"))
                     .isInstanceOf(NullPointerException.class)
@@ -210,8 +210,8 @@ class ContributionTest {
         @Test
         @DisplayName("withMetadata should reject null value")
         void withMetadataShouldRejectNullValue() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
             assertThatThrownBy(() -> contribution.withMetadata("key", null))
                     .isInstanceOf(NullPointerException.class)
@@ -221,8 +221,8 @@ class ContributionTest {
         @Test
         @DisplayName("metadata(key, type) should return typed value")
         void metadataShouldReturnTypedValue() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                            DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
+            Contribution<ElementKind> contribution = Contribution.of(
+                            ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
                     .withMetadata("direction", PortDirection.DRIVEN);
 
             assertThat(contribution.metadata("direction", PortDirection.class))
@@ -233,8 +233,8 @@ class ContributionTest {
         @Test
         @DisplayName("metadata(key, type) should return empty for wrong type")
         void metadataShouldReturnEmptyForWrongType() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                            DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
+            Contribution<ElementKind> contribution = Contribution.of(
+                            ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
                     .withMetadata("direction", "DRIVEN");
 
             assertThat(contribution.metadata("direction", PortDirection.class)).isEmpty();
@@ -243,8 +243,8 @@ class ContributionTest {
         @Test
         @DisplayName("metadata(key, type) should return empty for missing key")
         void metadataShouldReturnEmptyForMissingKey() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
             assertThat(contribution.metadata("missing", String.class)).isEmpty();
         }
@@ -252,8 +252,8 @@ class ContributionTest {
         @Test
         @DisplayName("hasMetadata should return true for existing key")
         void hasMetadataShouldReturnTrueForExistingKey() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                            DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
+            Contribution<ElementKind> contribution = Contribution.of(
+                            ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test")
                     .withMetadata("direction", PortDirection.DRIVING);
 
             assertThat(contribution.hasMetadata("direction")).isTrue();
@@ -262,8 +262,8 @@ class ContributionTest {
         @Test
         @DisplayName("hasMetadata should return false for missing key")
         void hasMetadataShouldReturnFalseForMissingKey() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
             assertThat(contribution.hasMetadata("direction")).isFalse();
         }
@@ -281,11 +281,11 @@ class ContributionTest {
         @DisplayName("withEvidence should add to existing evidence")
         void withEvidenceShouldAddToExisting() {
             Evidence evidence1 = new Evidence(EvidenceType.ANNOTATION, "Has @Entity", List.of());
-            Contribution<DomainKind> contribution = Contribution.of(
-                    DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test", List.of(evidence1));
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test", List.of(evidence1));
 
             Evidence evidence2 = new Evidence(EvidenceType.STRUCTURE, "Has id field", List.of());
-            Contribution<DomainKind> withMore = contribution.withEvidence(List.of(evidence2));
+            Contribution<ElementKind> withMore = contribution.withEvidence(List.of(evidence2));
 
             assertThat(withMore.evidence()).hasSize(2);
         }
@@ -293,10 +293,10 @@ class ContributionTest {
         @Test
         @DisplayName("withEvidence should return same instance for null list")
         void withEvidenceShouldReturnSameForNull() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
-            Contribution<DomainKind> result = contribution.withEvidence(null);
+            Contribution<ElementKind> result = contribution.withEvidence(null);
 
             assertThat(result).isSameAs(contribution);
         }
@@ -304,10 +304,10 @@ class ContributionTest {
         @Test
         @DisplayName("withEvidence should return same instance for empty list")
         void withEvidenceShouldReturnSameForEmpty() {
-            Contribution<DomainKind> contribution =
-                    Contribution.of(DomainKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
+            Contribution<ElementKind> contribution =
+                    Contribution.of(ElementKind.ENTITY, "criteria", 80, ConfidenceLevel.HIGH, "test");
 
-            Contribution<DomainKind> result = contribution.withEvidence(List.of());
+            Contribution<ElementKind> result = contribution.withEvidence(List.of());
 
             assertThat(result).isSameAs(contribution);
         }
@@ -332,12 +332,12 @@ class ContributionTest {
         }
 
         @Test
-        @DisplayName("should work with DomainKind")
-        void shouldWorkWithDomainKind() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                    DomainKind.AGGREGATE_ROOT, "explicit-ar", 100, ConfidenceLevel.EXPLICIT, "Has @AggregateRoot");
+        @DisplayName("should work with ElementKind")
+        void shouldWorkWithElementKind() {
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.AGGREGATE_ROOT, "explicit-ar", 100, ConfidenceLevel.EXPLICIT, "Has @AggregateRoot");
 
-            assertThat(contribution.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(contribution.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         }
     }
 }

@@ -15,11 +15,11 @@ package io.hexaglue.core.classification.domain.criteria;
 
 import static java.util.stream.Collectors.joining;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.Edge;
@@ -46,7 +46,7 @@ import java.util.Optional;
  * <p>Priority: 70 (strong heuristic, below explicit annotations)
  * <p>Confidence: HIGH
  */
-public final class EmbeddedValueObjectCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class EmbeddedValueObjectCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     @Override
     public String id() {
@@ -64,8 +64,8 @@ public final class EmbeddedValueObjectCriteria implements ClassificationCriteria
     }
 
     @Override
-    public DomainKind targetKind() {
-        return DomainKind.VALUE_OBJECT;
+    public ElementKind targetKind() {
+        return ElementKind.VALUE_OBJECT;
     }
 
     @Override

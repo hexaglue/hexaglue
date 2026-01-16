@@ -15,8 +15,8 @@ package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -77,7 +77,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Abstract class with @Entity should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).as("Should be classified as ENTITY").isEqualTo(DomainKind.ENTITY.name());
+            assertThat(result.kind()).as("Should be classified as ENTITY").isEqualTo(ElementKind.ENTITY.name());
         }
 
         @Test
@@ -102,7 +102,7 @@ class ClassificationInheritanceEdgeCasesTest {
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
             assertThat(result.kind())
                     .as("Should be classified as AGGREGATE_ROOT")
-                    .isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+                    .isEqualTo(ElementKind.AGGREGATE_ROOT.name());
         }
 
         @Test
@@ -158,7 +158,7 @@ class ClassificationInheritanceEdgeCasesTest {
             TypeNode order = query.type(PKG + ".Order").orElseThrow();
             ClassificationResult parentResult = classifier.classify(order, query);
             assertThat(parentResult.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(parentResult.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(parentResult.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
 
             // Then classify the child - should inherit AGGREGATE_ROOT classification
             TypeNode specialOrder = query.type(PKG + ".SpecialOrder").orElseThrow();
@@ -169,7 +169,7 @@ class ClassificationInheritanceEdgeCasesTest {
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
             assertThat(childResult.kind())
                     .as("Subclass of AggregateRoot should also be AGGREGATE_ROOT")
-                    .isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+                    .isEqualTo(ElementKind.AGGREGATE_ROOT.name());
         }
 
         @Test
@@ -191,7 +191,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Class implementing AggregateRoot interface should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
         }
     }
 
@@ -222,7 +222,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Record with @ValueObject should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT.name());
         }
 
         @Test
@@ -247,7 +247,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Record implementing ValueObject interface should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT.name());
         }
     }
 
@@ -295,7 +295,7 @@ class ClassificationInheritanceEdgeCasesTest {
             assertThat(result.status())
                     .as("Enum with @ValueObject should be classified")
                     .isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT.name());
         }
     }
 

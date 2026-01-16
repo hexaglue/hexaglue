@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.ir.export;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.ApplicationGraph;
@@ -22,7 +23,6 @@ import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.ParameterInfo;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.spi.ir.Cardinality;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.MethodParameter;
 import io.hexaglue.spi.ir.PortMethod;
@@ -227,10 +227,10 @@ final class PortExtractor {
                 continue;
             }
 
-            DomainKind kind = typeConverter.toDomainKind(classification.kind());
+            ElementKind kind = typeConverter.toElementKind(classification.kind());
 
             // Skip value objects and identifiers - only consider aggregates and entities
-            if (kind == DomainKind.AGGREGATE_ROOT || kind == DomainKind.ENTITY) {
+            if (kind == ElementKind.AGGREGATE_ROOT || kind == ElementKind.ENTITY) {
                 return typeName;
             }
         }

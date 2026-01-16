@@ -15,8 +15,8 @@ package io.hexaglue.core.classification.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ConfidenceLevel;
-import io.hexaglue.core.classification.domain.DomainKind;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,9 +36,9 @@ import org.junit.jupiter.api.Test;
 @DisplayName("DefaultDecisionPolicy")
 class DefaultDecisionPolicyTest {
 
-    private DefaultDecisionPolicy<DomainKind> policy;
-    private CompatibilityPolicy<DomainKind> noneCompatible;
-    private CompatibilityPolicy<DomainKind> domainCompatible;
+    private DefaultDecisionPolicy<ElementKind> policy;
+    private CompatibilityPolicy<ElementKind> noneCompatible;
+    private CompatibilityPolicy<ElementKind> domainCompatible;
 
     @BeforeEach
     void setUp() {
@@ -58,7 +58,7 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should return empty decision for null contributions")
         void shouldReturnEmptyForNull() {
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(null, noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(null, noneCompatible);
 
             assertThat(decision.isEmpty()).isTrue();
             assertThat(decision.hasWinner()).isFalse();
@@ -69,7 +69,7 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should return empty decision for empty list")
         void shouldReturnEmptyForEmptyList() {
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(), noneCompatible);
 
             assertThat(decision.isEmpty()).isTrue();
             assertThat(decision.hasWinner()).isFalse();
@@ -87,10 +87,10 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should return winner with no conflicts")
         void shouldReturnWinnerNoConflicts() {
-            Contribution<DomainKind> contribution = Contribution.of(
-                    DomainKind.AGGREGATE_ROOT, "explicit-ar", 100, ConfidenceLevel.EXPLICIT, "Has @AggregateRoot");
+            Contribution<ElementKind> contribution = Contribution.of(
+                    ElementKind.AGGREGATE_ROOT, "explicit-ar", 100, ConfidenceLevel.EXPLICIT, "Has @AggregateRoot");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(contribution), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(contribution), noneCompatible);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.winner()).isPresent().hasValue(contribution);
@@ -110,28 +110,29 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("higher priority should win regardless of confidence")
         void higherPriorityShouldWin() {
-            Contribution<DomainKind> lowPriorityExplicit =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "low-priority", 50, ConfidenceLevel.EXPLICIT, "Explicit");
-            Contribution<DomainKind> highPriorityLow =
-                    Contribution.of(DomainKind.ENTITY, "high-priority", 100, ConfidenceLevel.LOW, "Low confidence");
+            Contribution<ElementKind> lowPriorityExplicit =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "low-priority", 50, ConfidenceLevel.EXPLICIT, "Explicit");
+            Contribution<ElementKind> highPriorityLow =
+                    Contribution.of(ElementKind.ENTITY, "high-priority", 100, ConfidenceLevel.LOW, "Low confidence");
 
-            DecisionPolicy.Decision<DomainKind> decision =
+            DecisionPolicy.Decision<ElementKind> decision =
                     policy.decide(List.of(lowPriorityExplicit, highPriorityLow), noneCompatible);
 
             assertThat(decision.hasWinner()).isTrue();
-            assertThat(decision.winner().get().kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(decision.winner().get().kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(decision.winner().get().priority()).isEqualTo(100);
         }
 
         @Test
         @DisplayName("priority 100 LOW should beat priority 50 EXPLICIT")
         void priority100LowBeatsPriority50Explicit() {
-            Contribution<DomainKind> p50Explicit = Contribution.of(
-                    DomainKind.VALUE_OBJECT, "p50", 50, ConfidenceLevel.EXPLICIT, "Priority 50 EXPLICIT");
-            Contribution<DomainKind> p100Low =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "p100", 100, ConfidenceLevel.LOW, "Priority 100 LOW");
+            Contribution<ElementKind> p50Explicit = Contribution.of(
+                    ElementKind.VALUE_OBJECT, "p50", 50, ConfidenceLevel.EXPLICIT, "Priority 50 EXPLICIT");
+            Contribution<ElementKind> p100Low =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "p100", 100, ConfidenceLevel.LOW, "Priority 100 LOW");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(p50Explicit, p100Low), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision =
+                    policy.decide(List.of(p50Explicit, p100Low), noneCompatible);
 
             assertThat(decision.winner().get().criteriaName()).isEqualTo("p100");
             assertThat(decision.winner().get().confidence()).isEqualTo(ConfidenceLevel.LOW);
@@ -140,13 +141,13 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("order of contributions should not matter")
         void orderShouldNotMatter() {
-            Contribution<DomainKind> p80 =
-                    Contribution.of(DomainKind.ENTITY, "p80", 80, ConfidenceLevel.HIGH, "Priority 80");
-            Contribution<DomainKind> p100 =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "p100", 100, ConfidenceLevel.MEDIUM, "Priority 100");
+            Contribution<ElementKind> p80 =
+                    Contribution.of(ElementKind.ENTITY, "p80", 80, ConfidenceLevel.HIGH, "Priority 80");
+            Contribution<ElementKind> p100 =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "p100", 100, ConfidenceLevel.MEDIUM, "Priority 100");
 
-            DecisionPolicy.Decision<DomainKind> decision1 = policy.decide(List.of(p80, p100), noneCompatible);
-            DecisionPolicy.Decision<DomainKind> decision2 = policy.decide(List.of(p100, p80), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision1 = policy.decide(List.of(p80, p100), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision2 = policy.decide(List.of(p100, p80), noneCompatible);
 
             assertThat(decision1.winner().get().criteriaName()).isEqualTo("p100");
             assertThat(decision2.winner().get().criteriaName()).isEqualTo("p100");
@@ -165,12 +166,12 @@ class DefaultDecisionPolicyTest {
         @DisplayName("higher confidence weight should win when priority is equal")
         void higherConfidenceWeightShouldWin() {
             // Same priority, same kind - confidence should decide
-            Contribution<DomainKind> lowConfidence =
-                    Contribution.of(DomainKind.ENTITY, "low-conf", 80, ConfidenceLevel.LOW, "Low confidence");
-            Contribution<DomainKind> highConfidence =
-                    Contribution.of(DomainKind.ENTITY, "high-conf", 80, ConfidenceLevel.HIGH, "High confidence");
+            Contribution<ElementKind> lowConfidence =
+                    Contribution.of(ElementKind.ENTITY, "low-conf", 80, ConfidenceLevel.LOW, "Low confidence");
+            Contribution<ElementKind> highConfidence =
+                    Contribution.of(ElementKind.ENTITY, "high-conf", 80, ConfidenceLevel.HIGH, "High confidence");
 
-            DecisionPolicy.Decision<DomainKind> decision =
+            DecisionPolicy.Decision<ElementKind> decision =
                     policy.decide(List.of(lowConfidence, highConfidence), noneCompatible);
 
             assertThat(decision.winner().get().criteriaName()).isEqualTo("high-conf");
@@ -180,12 +181,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("EXPLICIT should beat HIGH at same priority")
         void explicitShouldBeatHigh() {
-            Contribution<DomainKind> high =
-                    Contribution.of(DomainKind.ENTITY, "high", 100, ConfidenceLevel.HIGH, "High");
-            Contribution<DomainKind> explicit =
-                    Contribution.of(DomainKind.ENTITY, "explicit", 100, ConfidenceLevel.EXPLICIT, "Explicit");
+            Contribution<ElementKind> high =
+                    Contribution.of(ElementKind.ENTITY, "high", 100, ConfidenceLevel.HIGH, "High");
+            Contribution<ElementKind> explicit =
+                    Contribution.of(ElementKind.ENTITY, "explicit", 100, ConfidenceLevel.EXPLICIT, "Explicit");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(high, explicit), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(high, explicit), noneCompatible);
 
             assertThat(decision.winner().get().criteriaName()).isEqualTo("explicit");
         }
@@ -193,18 +194,19 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("confidence ordering: EXPLICIT > HIGH > MEDIUM > LOW")
         void confidenceOrderingShouldRespectWeights() {
-            Contribution<DomainKind> low = Contribution.of(DomainKind.ENTITY, "z-low", 80, ConfidenceLevel.LOW, "Low");
-            Contribution<DomainKind> medium =
-                    Contribution.of(DomainKind.ENTITY, "z-medium", 80, ConfidenceLevel.MEDIUM, "Medium");
-            Contribution<DomainKind> high =
-                    Contribution.of(DomainKind.ENTITY, "z-high", 80, ConfidenceLevel.HIGH, "High");
-            Contribution<DomainKind> explicit =
-                    Contribution.of(DomainKind.ENTITY, "z-explicit", 80, ConfidenceLevel.EXPLICIT, "Explicit");
+            Contribution<ElementKind> low =
+                    Contribution.of(ElementKind.ENTITY, "z-low", 80, ConfidenceLevel.LOW, "Low");
+            Contribution<ElementKind> medium =
+                    Contribution.of(ElementKind.ENTITY, "z-medium", 80, ConfidenceLevel.MEDIUM, "Medium");
+            Contribution<ElementKind> high =
+                    Contribution.of(ElementKind.ENTITY, "z-high", 80, ConfidenceLevel.HIGH, "High");
+            Contribution<ElementKind> explicit =
+                    Contribution.of(ElementKind.ENTITY, "z-explicit", 80, ConfidenceLevel.EXPLICIT, "Explicit");
 
             // Test in various orders
-            List<Contribution<DomainKind>> order1 = List.of(low, medium, high, explicit);
-            List<Contribution<DomainKind>> order2 = List.of(explicit, high, medium, low);
-            List<Contribution<DomainKind>> order3 = List.of(medium, low, explicit, high);
+            List<Contribution<ElementKind>> order1 = List.of(low, medium, high, explicit);
+            List<Contribution<ElementKind>> order2 = List.of(explicit, high, medium, low);
+            List<Contribution<ElementKind>> order3 = List.of(medium, low, explicit, high);
 
             assertThat(policy.decide(order1, noneCompatible).winner().get().criteriaName())
                     .isEqualTo("z-explicit");
@@ -226,12 +228,13 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("alphabetically first name should win")
         void alphabeticallyFirstShouldWin() {
-            Contribution<DomainKind> zCriteria =
-                    Contribution.of(DomainKind.ENTITY, "z-criteria", 80, ConfidenceLevel.HIGH, "Z");
-            Contribution<DomainKind> aCriteria =
-                    Contribution.of(DomainKind.ENTITY, "a-criteria", 80, ConfidenceLevel.HIGH, "A");
+            Contribution<ElementKind> zCriteria =
+                    Contribution.of(ElementKind.ENTITY, "z-criteria", 80, ConfidenceLevel.HIGH, "Z");
+            Contribution<ElementKind> aCriteria =
+                    Contribution.of(ElementKind.ENTITY, "a-criteria", 80, ConfidenceLevel.HIGH, "A");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(zCriteria, aCriteria), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision =
+                    policy.decide(List.of(zCriteria, aCriteria), noneCompatible);
 
             assertThat(decision.winner().get().criteriaName()).isEqualTo("a-criteria");
         }
@@ -239,12 +242,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("name comparison should be case-sensitive")
         void nameComparisonShouldBeCaseSensitive() {
-            Contribution<DomainKind> upper =
-                    Contribution.of(DomainKind.ENTITY, "A-criteria", 80, ConfidenceLevel.HIGH, "Upper");
-            Contribution<DomainKind> lower =
-                    Contribution.of(DomainKind.ENTITY, "a-criteria", 80, ConfidenceLevel.HIGH, "Lower");
+            Contribution<ElementKind> upper =
+                    Contribution.of(ElementKind.ENTITY, "A-criteria", 80, ConfidenceLevel.HIGH, "Upper");
+            Contribution<ElementKind> lower =
+                    Contribution.of(ElementKind.ENTITY, "a-criteria", 80, ConfidenceLevel.HIGH, "Lower");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(upper, lower), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(upper, lower), noneCompatible);
 
             // Uppercase 'A' comes before lowercase 'a' in ASCII
             assertThat(decision.winner().get().criteriaName()).isEqualTo("A-criteria");
@@ -262,12 +265,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should detect conflicts when different kinds match")
         void shouldDetectConflicts() {
-            Contribution<DomainKind> winner =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
-            Contribution<DomainKind> loser =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "loser", 80, ConfidenceLevel.HIGH, "Loser");
+            Contribution<ElementKind> winner =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
+            Contribution<ElementKind> loser =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "loser", 80, ConfidenceLevel.HIGH, "Loser");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(winner, loser), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(winner, loser), noneCompatible);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.hasConflicts()).isTrue();
@@ -278,12 +281,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should not detect conflicts when same kinds match")
         void shouldNotDetectConflictsForSameKind() {
-            Contribution<DomainKind> winner =
-                    Contribution.of(DomainKind.ENTITY, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
-            Contribution<DomainKind> other =
-                    Contribution.of(DomainKind.ENTITY, "other", 80, ConfidenceLevel.HIGH, "Same kind");
+            Contribution<ElementKind> winner =
+                    Contribution.of(ElementKind.ENTITY, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
+            Contribution<ElementKind> other =
+                    Contribution.of(ElementKind.ENTITY, "other", 80, ConfidenceLevel.HIGH, "Same kind");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(winner, other), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(winner, other), noneCompatible);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.hasConflicts()).isFalse();
@@ -292,12 +295,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("conflicts should include correct metadata")
         void conflictsShouldIncludeMetadata() {
-            Contribution<DomainKind> winner =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
-            Contribution<DomainKind> loser =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "loser", 80, ConfidenceLevel.HIGH, "Loser reason");
+            Contribution<ElementKind> winner =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
+            Contribution<ElementKind> loser =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "loser", 80, ConfidenceLevel.HIGH, "Loser reason");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(winner, loser), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(winner, loser), noneCompatible);
 
             var conflict = decision.conflicts().get(0);
             assertThat(conflict.competingKind()).isEqualTo("VALUE_OBJECT");
@@ -318,12 +321,12 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("should return conflict decision when incompatible kinds at same priority")
         void shouldReturnConflictForIncompatibleSamePriority() {
-            Contribution<DomainKind> entity =
-                    Contribution.of(DomainKind.ENTITY, "entity", 100, ConfidenceLevel.EXPLICIT, "Entity");
-            Contribution<DomainKind> valueObject =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "vo", 100, ConfidenceLevel.EXPLICIT, "Value Object");
+            Contribution<ElementKind> entity =
+                    Contribution.of(ElementKind.ENTITY, "entity", 100, ConfidenceLevel.EXPLICIT, "Entity");
+            Contribution<ElementKind> valueObject =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "vo", 100, ConfidenceLevel.EXPLICIT, "Value Object");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(entity, valueObject), noneCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(entity, valueObject), noneCompatible);
 
             assertThat(decision.hasWinner()).isFalse();
             assertThat(decision.hasIncompatibleConflict()).isTrue();
@@ -334,12 +337,12 @@ class DefaultDecisionPolicyTest {
         @DisplayName("should not return conflict when compatible kinds at same priority")
         void shouldNotConflictForCompatibleSamePriority() {
             // AGGREGATE_ROOT and ENTITY are compatible in domain classification
-            Contribution<DomainKind> ar =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "ar", 100, ConfidenceLevel.EXPLICIT, "AR");
-            Contribution<DomainKind> entity =
-                    Contribution.of(DomainKind.ENTITY, "entity", 100, ConfidenceLevel.EXPLICIT, "Entity");
+            Contribution<ElementKind> ar =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "ar", 100, ConfidenceLevel.EXPLICIT, "AR");
+            Contribution<ElementKind> entity =
+                    Contribution.of(ElementKind.ENTITY, "entity", 100, ConfidenceLevel.EXPLICIT, "Entity");
 
-            DecisionPolicy.Decision<DomainKind> decision = policy.decide(List.of(ar, entity), domainCompatible);
+            DecisionPolicy.Decision<ElementKind> decision = policy.decide(List.of(ar, entity), domainCompatible);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.hasIncompatibleConflict()).isFalse();
@@ -348,14 +351,14 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("incompatible at lower priority should not cause hard conflict")
         void incompatibleAtLowerPriorityShouldNotCauseHardConflict() {
-            Contribution<DomainKind> winner =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
-            Contribution<DomainKind> loser1 =
-                    Contribution.of(DomainKind.ENTITY, "loser1", 80, ConfidenceLevel.HIGH, "Loser 1");
-            Contribution<DomainKind> loser2 =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "loser2", 80, ConfidenceLevel.HIGH, "Loser 2");
+            Contribution<ElementKind> winner =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "winner", 100, ConfidenceLevel.EXPLICIT, "Winner");
+            Contribution<ElementKind> loser1 =
+                    Contribution.of(ElementKind.ENTITY, "loser1", 80, ConfidenceLevel.HIGH, "Loser 1");
+            Contribution<ElementKind> loser2 =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "loser2", 80, ConfidenceLevel.HIGH, "Loser 2");
 
-            DecisionPolicy.Decision<DomainKind> decision =
+            DecisionPolicy.Decision<ElementKind> decision =
                     policy.decide(List.of(winner, loser1, loser2), noneCompatible);
 
             // Even though loser1 and loser2 are incompatible with each other,
@@ -377,19 +380,19 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("100 runs should produce identical results")
         void hundredRunsShouldProduceSameResult() {
-            Contribution<DomainKind> c1 =
-                    Contribution.of(DomainKind.AGGREGATE_ROOT, "criteria-a", 100, ConfidenceLevel.EXPLICIT, "A");
-            Contribution<DomainKind> c2 =
-                    Contribution.of(DomainKind.ENTITY, "criteria-b", 100, ConfidenceLevel.EXPLICIT, "B");
-            Contribution<DomainKind> c3 =
-                    Contribution.of(DomainKind.VALUE_OBJECT, "criteria-c", 80, ConfidenceLevel.HIGH, "C");
+            Contribution<ElementKind> c1 =
+                    Contribution.of(ElementKind.AGGREGATE_ROOT, "criteria-a", 100, ConfidenceLevel.EXPLICIT, "A");
+            Contribution<ElementKind> c2 =
+                    Contribution.of(ElementKind.ENTITY, "criteria-b", 100, ConfidenceLevel.EXPLICIT, "B");
+            Contribution<ElementKind> c3 =
+                    Contribution.of(ElementKind.VALUE_OBJECT, "criteria-c", 80, ConfidenceLevel.HIGH, "C");
 
-            List<Contribution<DomainKind>> contributions = List.of(c1, c2, c3);
+            List<Contribution<ElementKind>> contributions = List.of(c1, c2, c3);
 
-            DecisionPolicy.Decision<DomainKind> firstResult = policy.decide(contributions, noneCompatible);
+            DecisionPolicy.Decision<ElementKind> firstResult = policy.decide(contributions, noneCompatible);
 
             for (int i = 0; i < 100; i++) {
-                DecisionPolicy.Decision<DomainKind> result = policy.decide(contributions, noneCompatible);
+                DecisionPolicy.Decision<ElementKind> result = policy.decide(contributions, noneCompatible);
 
                 assertThat(result.hasWinner()).as("Run %d: hasWinner", i).isEqualTo(firstResult.hasWinner());
                 assertThat(result.hasIncompatibleConflict())
@@ -407,14 +410,15 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("different orderings should produce same result")
         void differentOrderingsShouldProduceSameResult() {
-            Contribution<DomainKind> c1 =
-                    Contribution.of(DomainKind.ENTITY, "alpha", 80, ConfidenceLevel.HIGH, "Alpha");
-            Contribution<DomainKind> c2 = Contribution.of(DomainKind.ENTITY, "beta", 80, ConfidenceLevel.HIGH, "Beta");
-            Contribution<DomainKind> c3 =
-                    Contribution.of(DomainKind.ENTITY, "gamma", 80, ConfidenceLevel.HIGH, "Gamma");
+            Contribution<ElementKind> c1 =
+                    Contribution.of(ElementKind.ENTITY, "alpha", 80, ConfidenceLevel.HIGH, "Alpha");
+            Contribution<ElementKind> c2 =
+                    Contribution.of(ElementKind.ENTITY, "beta", 80, ConfidenceLevel.HIGH, "Beta");
+            Contribution<ElementKind> c3 =
+                    Contribution.of(ElementKind.ENTITY, "gamma", 80, ConfidenceLevel.HIGH, "Gamma");
 
             // All possible orderings
-            List<List<Contribution<DomainKind>>> orderings = List.of(
+            List<List<Contribution<ElementKind>>> orderings = List.of(
                     List.of(c1, c2, c3),
                     List.of(c1, c3, c2),
                     List.of(c2, c1, c3),
@@ -424,8 +428,8 @@ class DefaultDecisionPolicyTest {
 
             String expectedWinner = "alpha"; // Alphabetically first
 
-            for (List<Contribution<DomainKind>> ordering : orderings) {
-                DecisionPolicy.Decision<DomainKind> result = policy.decide(ordering, noneCompatible);
+            for (List<Contribution<ElementKind>> ordering : orderings) {
+                DecisionPolicy.Decision<ElementKind> result = policy.decide(ordering, noneCompatible);
                 assertThat(result.winner().get().criteriaName())
                         .as(
                                 "Ordering: %s",
@@ -448,10 +452,10 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("Decision.success() should create correct decision")
         void successShouldCreateCorrectDecision() {
-            Contribution<DomainKind> winner =
-                    Contribution.of(DomainKind.ENTITY, "test", 80, ConfidenceLevel.HIGH, "Test");
+            Contribution<ElementKind> winner =
+                    Contribution.of(ElementKind.ENTITY, "test", 80, ConfidenceLevel.HIGH, "Test");
 
-            DecisionPolicy.Decision<DomainKind> decision = DecisionPolicy.Decision.success(winner);
+            DecisionPolicy.Decision<ElementKind> decision = DecisionPolicy.Decision.success(winner);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.winner()).contains(winner);
@@ -463,7 +467,7 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("Decision.empty() should create correct decision")
         void emptyShouldCreateCorrectDecision() {
-            DecisionPolicy.Decision<DomainKind> decision = DecisionPolicy.Decision.empty();
+            DecisionPolicy.Decision<ElementKind> decision = DecisionPolicy.Decision.empty();
 
             assertThat(decision.hasWinner()).isFalse();
             assertThat(decision.winner()).isEmpty();
@@ -475,7 +479,7 @@ class DefaultDecisionPolicyTest {
         @Test
         @DisplayName("Decision.conflict() should create correct decision")
         void conflictShouldCreateCorrectDecision() {
-            DecisionPolicy.Decision<DomainKind> decision =
+            DecisionPolicy.Decision<ElementKind> decision =
                     DecisionPolicy.Decision.conflict(List.of(io.hexaglue.core.classification.Conflict.error(
                             "VALUE_OBJECT", "test", ConfidenceLevel.HIGH, 80, "Conflict")));
 

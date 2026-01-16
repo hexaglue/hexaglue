@@ -20,7 +20,13 @@ import java.util.Optional;
  * The port model extracted from the application.
  *
  * @param ports all detected ports (repositories, gateways, use cases, etc.)
+ * @deprecated Use {@link io.hexaglue.arch.ArchitecturalModel} with its query API instead.
+ *             For example: {@code model.query().ports()} or {@code model.query().drivenPorts()}.
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.ArchitecturalModel
+ * @see io.hexaglue.arch.query.ArchitectureQuery
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record PortModel(List<Port> ports) {
 
     /**

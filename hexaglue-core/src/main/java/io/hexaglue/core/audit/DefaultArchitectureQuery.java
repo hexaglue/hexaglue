@@ -13,13 +13,13 @@
 
 package io.hexaglue.core.audit;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.spi.audit.*;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainModel;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.Port;
@@ -605,9 +605,9 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
             for (String memberName : members) {
                 DomainType member = typeByName.get(memberName);
                 if (member != null) {
-                    if (member.kind() == DomainKind.ENTITY) {
+                    if (member.kind() == ElementKind.ENTITY) {
                         entities.add(memberName);
-                    } else if (member.kind() == DomainKind.VALUE_OBJECT || member.kind() == DomainKind.IDENTIFIER) {
+                    } else if (member.kind() == ElementKind.VALUE_OBJECT || member.kind() == ElementKind.IDENTIFIER) {
                         valueObjects.add(memberName);
                     }
                 }
@@ -643,9 +643,9 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
             // Only include entities and value objects (not other aggregate roots)
             if (refType != null) {
-                if (refType.kind() == DomainKind.ENTITY
-                        || refType.kind() == DomainKind.VALUE_OBJECT
-                        || refType.kind() == DomainKind.IDENTIFIER) {
+                if (refType.kind() == ElementKind.ENTITY
+                        || refType.kind() == ElementKind.VALUE_OBJECT
+                        || refType.kind() == ElementKind.IDENTIFIER) {
                     members.add(refName);
                 }
             }

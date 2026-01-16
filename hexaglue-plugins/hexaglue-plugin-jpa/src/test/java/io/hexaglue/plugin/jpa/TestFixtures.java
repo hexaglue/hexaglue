@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.jpa;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.*;
 import java.util.List;
 import java.util.Optional;
@@ -112,7 +113,7 @@ final class TestFixtures {
     // ===== DomainRelation Fixtures =====
 
     static DomainRelation oneToManyRelation(String propertyName, String targetFqn) {
-        return DomainRelation.oneToMany(propertyName, targetFqn, DomainKind.ENTITY);
+        return DomainRelation.oneToMany(propertyName, targetFqn, ElementKind.ENTITY);
     }
 
     static DomainRelation embeddedRelation(String propertyName, String targetFqn) {
@@ -124,7 +125,7 @@ final class TestFixtures {
                 propertyName,
                 RelationKind.ELEMENT_COLLECTION,
                 targetFqn,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.ALL,
                 FetchType.LAZY,
@@ -142,7 +143,7 @@ final class TestFixtures {
                 pkg + "." + name,
                 name,
                 pkg,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(wrappedUuidIdentity("id", pkg + "." + name + "Id")),
@@ -184,7 +185,7 @@ final class TestFixtures {
                 pkg + "." + name,
                 name,
                 pkg,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(wrappedUuidIdentity("id", pkg + "." + name + "Id")),
@@ -199,7 +200,7 @@ final class TestFixtures {
                 pkg + "." + name,
                 name,
                 pkg,
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(rawLongIdentity("id")),
@@ -214,7 +215,7 @@ final class TestFixtures {
                 pkg + "." + name,
                 name,
                 pkg,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -229,7 +230,7 @@ final class TestFixtures {
                 pkg + ".Money",
                 "Money",
                 pkg,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -257,7 +258,7 @@ final class TestFixtures {
                 pkg + ".Order",
                 "Order",
                 pkg,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(wrappedUuidIdentity("id", pkg + ".OrderId")),
@@ -286,7 +287,7 @@ final class TestFixtures {
                 pkg + ".Customer",
                 "Customer",
                 pkg,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(wrappedUuidIdentity("id", pkg + ".CustomerId")),

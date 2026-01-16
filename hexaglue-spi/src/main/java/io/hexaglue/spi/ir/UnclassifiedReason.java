@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * Provides detailed information about why a type could not be classified.
  *
- * <p>This record is populated when a type is marked as {@link DomainKind#UNCLASSIFIED}
+ * <p>This record is populated when a type is marked as {@link ElementKind#UNCLASSIFIED}
  * and provides:
  * <ul>
  *   <li>The criteria that were attempted but did not match</li>

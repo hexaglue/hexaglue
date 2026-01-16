@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
+import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.SinglePassClassifier;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
@@ -28,11 +29,9 @@ import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.builder.GraphBuilder;
 import io.hexaglue.core.graph.model.GraphMetadata;
 import io.hexaglue.core.graph.model.TypeNode;
-import io.hexaglue.core.ir.export.IrExporter;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.syntax.SyntaxProvider;
 import io.hexaglue.syntax.spoon.SpoonSyntaxProvider;
 import java.time.Duration;
@@ -85,7 +84,6 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
     private final JavaFrontend frontend;
     private final GraphBuilder graphBuilder;
     private final SinglePassClassifier classifier;
-    private final IrExporter irExporter;
 
     /**
      * Creates an engine with custom components (for testing or customization).
@@ -95,14 +93,12 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      * @param frontend the Java frontend implementation
      * @param graphBuilder the graph builder
      * @param classifier the type classifier (can be null to use config-based profile)
-     * @param irExporter the IR exporter
+     * @since 4.0.0 - Removed IrExporter, uses ArchitecturalModel exclusively
      */
-    public DefaultHexaGlueEngine(
-            JavaFrontend frontend, GraphBuilder graphBuilder, SinglePassClassifier classifier, IrExporter irExporter) {
+    public DefaultHexaGlueEngine(JavaFrontend frontend, GraphBuilder graphBuilder, SinglePassClassifier classifier) {
         this.frontend = Objects.requireNonNull(frontend, "frontend cannot be null");
         this.graphBuilder = Objects.requireNonNull(graphBuilder, "graphBuilder cannot be null");
         this.classifier = classifier; // Can be null - will be created in analyze() with config profile
-        this.irExporter = Objects.requireNonNull(irExporter, "irExporter cannot be null");
     }
 
     /**
@@ -117,8 +113,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         return new DefaultHexaGlueEngine(
                 new SpoonFrontend(),
                 new GraphBuilder(true), // compute derived edges
-                null, // classifier created dynamically based on config profile
-                new IrExporter());
+                null); // classifier created dynamically based on config profile
     }
 
     @Override
@@ -182,20 +177,15 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                                 "Classification conflict for type: " + typeName + " - " + c.justification()));
                     });
 
-            // Step 4: Export to IR
-            log.info("Exporting to IR");
-            IrSnapshot ir = irExporter.export(graph, classifications, config.projectName(), config.projectVersion());
+            // Step 4: Build ArchitecturalModel
+            log.info("Building ArchitecturalModel");
+            ArchitecturalModel archModel = buildArchitecturalModel(config);
+            log.debug("Built ArchitecturalModel with {} elements", archModel.size());
 
             // Step 4.5: Export primary classifications for enrichment and secondary classifiers
             // These classifications are made available to plugins via the PluginOutputStore
-            List<PrimaryClassificationResult> primaryClassifications =
-                    irExporter.exportPrimaryClassifications(classifications);
+            List<PrimaryClassificationResult> primaryClassifications = exportPrimaryClassifications(classifications);
             log.debug("Exported {} primary classifications for plugin access", primaryClassifications.size());
-
-            // Step 4.6: Build v4 ArchitecturalModel for plugins
-            // This provides the unified model that plugins can use via ArchModelPluginContext
-            ArchitecturalModel archModel = buildArchitecturalModel(config);
-            log.debug("Built v4 ArchitecturalModel for plugins");
 
             // Step 5: Execute plugins (if enabled)
             // Plugins of category ANALYSIS can implement secondary classification
@@ -205,7 +195,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                 log.info("Executing plugins");
                 PluginExecutor executor = new PluginExecutor(
                         config.outputDirectory(), config.pluginConfigs(), graph, config.enabledCategories(), archModel);
-                pluginResult = executor.execute(ir, primaryClassifications);
+                pluginResult = executor.execute(primaryClassifications);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",
                         pluginResult.pluginCount(),
@@ -216,7 +206,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             log.info("Analysis complete in {}ms", elapsed.toMillis());
 
             return new EngineResult(
-                    ir,
+                    archModel,
                     diagnostics,
                     new EngineMetrics(graph.typeCount(), classifiedDomain + classifiedPorts, classifiedPorts, elapsed),
                     pluginResult,
@@ -228,11 +218,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             Duration elapsed = Duration.between(start, Instant.now());
             return new EngineResult(
-                    IrSnapshot.empty(config.basePackage()),
-                    diagnostics,
-                    new EngineMetrics(0, 0, 0, elapsed),
-                    null,
-                    List.of());
+                    buildEmptyModel(config), diagnostics, new EngineMetrics(0, 0, 0, elapsed), null, List.of());
         }
     }
 
@@ -273,6 +259,138 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         return ArchitecturalModelBuilder.builder(syntaxProvider)
                 .projectName(config.projectName())
                 .basePackage(config.basePackage())
+                .build();
+    }
+
+    /**
+     * Exports primary classifications for enrichment and secondary classifiers.
+     *
+     * <p>These classifications are made available to plugins via the PluginOutputStore.
+     *
+     * @param classifications the classification results
+     * @return the primary classification results for plugin access
+     * @since 4.0.0
+     */
+    private List<PrimaryClassificationResult> exportPrimaryClassifications(List<ClassificationResult> classifications) {
+        return classifications.stream()
+                .filter(c -> c.target() == ClassificationTarget.DOMAIN
+                        || (c.target() == null && c.status() == ClassificationStatus.UNCLASSIFIED))
+                .map(this::toPrimaryClassificationResult)
+                .sorted(java.util.Comparator.comparing(PrimaryClassificationResult::typeName))
+                .toList();
+    }
+
+    /**
+     * Converts a core ClassificationResult to an SPI PrimaryClassificationResult.
+     */
+    private PrimaryClassificationResult toPrimaryClassificationResult(ClassificationResult coreResult) {
+        // Extract the qualified type name from NodeId (format: "type:com.example.Order")
+        String nodeIdValue = coreResult.subjectId().value();
+        String typeName = nodeIdValue.startsWith("type:") ? nodeIdValue.substring(5) : nodeIdValue;
+
+        // Handle unclassified case
+        if (coreResult.status() == ClassificationStatus.UNCLASSIFIED) {
+            return PrimaryClassificationResult.unclassified(
+                    typeName, coreResult.justification() != null ? coreResult.justification() : "No criteria matched");
+        }
+
+        // Handle conflict case - mark as uncertain
+        if (coreResult.status() == ClassificationStatus.CONFLICT) {
+            return new PrimaryClassificationResult(
+                    typeName,
+                    null, // kind is null for conflicts
+                    io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN,
+                    io.hexaglue.spi.classification.ClassificationStrategy.WEIGHTED,
+                    coreResult.justification() != null ? coreResult.justification() : "Multiple conflicting criteria",
+                    List.of());
+        }
+
+        // Handle successful classification
+        io.hexaglue.arch.ElementKind elementKind = toElementKind(coreResult.kind());
+        io.hexaglue.spi.classification.CertaintyLevel certainty = toSpiCertainty(coreResult.confidence());
+        io.hexaglue.spi.classification.ClassificationStrategy strategy = deriveStrategy(coreResult);
+
+        return new PrimaryClassificationResult(
+                typeName,
+                elementKind,
+                certainty,
+                strategy,
+                coreResult.justification() != null ? coreResult.justification() : "",
+                List.of());
+    }
+
+    /**
+     * Converts kind string to ElementKind.
+     */
+    private io.hexaglue.arch.ElementKind toElementKind(String kind) {
+        if (kind == null) {
+            return null;
+        }
+        return switch (kind) {
+            case "AGGREGATE_ROOT" -> io.hexaglue.arch.ElementKind.AGGREGATE_ROOT;
+            case "ENTITY" -> io.hexaglue.arch.ElementKind.ENTITY;
+            case "VALUE_OBJECT" -> io.hexaglue.arch.ElementKind.VALUE_OBJECT;
+            case "IDENTIFIER" -> io.hexaglue.arch.ElementKind.IDENTIFIER;
+            case "DOMAIN_EVENT" -> io.hexaglue.arch.ElementKind.DOMAIN_EVENT;
+            case "DOMAIN_SERVICE" -> io.hexaglue.arch.ElementKind.DOMAIN_SERVICE;
+            case "APPLICATION_SERVICE" -> io.hexaglue.arch.ElementKind.APPLICATION_SERVICE;
+            case "INBOUND_ONLY" -> io.hexaglue.arch.ElementKind.INBOUND_ONLY;
+            case "OUTBOUND_ONLY" -> io.hexaglue.arch.ElementKind.OUTBOUND_ONLY;
+            case "SAGA" -> io.hexaglue.arch.ElementKind.SAGA;
+            case "UNCLASSIFIED" -> io.hexaglue.arch.ElementKind.UNCLASSIFIED;
+            default -> null;
+        };
+    }
+
+    /**
+     * Converts core confidence to SPI certainty level.
+     */
+    private io.hexaglue.spi.classification.CertaintyLevel toSpiCertainty(ConfidenceLevel confidence) {
+        if (confidence == null) {
+            return io.hexaglue.spi.classification.CertaintyLevel.NONE;
+        }
+        return switch (confidence) {
+            case EXPLICIT -> io.hexaglue.spi.classification.CertaintyLevel.EXPLICIT;
+            case HIGH -> io.hexaglue.spi.classification.CertaintyLevel.CERTAIN_BY_STRUCTURE;
+            case MEDIUM -> io.hexaglue.spi.classification.CertaintyLevel.INFERRED;
+            case LOW -> io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN;
+        };
+    }
+
+    /**
+     * Derives the classification strategy from the core result.
+     */
+    private io.hexaglue.spi.classification.ClassificationStrategy deriveStrategy(ClassificationResult result) {
+        if (result.matchedCriteria() == null) {
+            return io.hexaglue.spi.classification.ClassificationStrategy.UNCLASSIFIED;
+        }
+
+        String criteriaName = result.matchedCriteria().toLowerCase();
+
+        if (criteriaName.contains("annotation") || criteriaName.contains("@")) {
+            return io.hexaglue.spi.classification.ClassificationStrategy.ANNOTATION;
+        }
+        if (criteriaName.contains("repository")) {
+            return io.hexaglue.spi.classification.ClassificationStrategy.REPOSITORY;
+        }
+        if (criteriaName.contains("record")) {
+            return io.hexaglue.spi.classification.ClassificationStrategy.RECORD;
+        }
+        if (criteriaName.contains("composition")
+                || criteriaName.contains("relationship")
+                || criteriaName.contains("embedded")) {
+            return io.hexaglue.spi.classification.ClassificationStrategy.COMPOSITION;
+        }
+
+        return io.hexaglue.spi.classification.ClassificationStrategy.WEIGHTED;
+    }
+
+    /**
+     * Builds an empty ArchitecturalModel for error cases.
+     */
+    private ArchitecturalModel buildEmptyModel(EngineConfig config) {
+        return ArchitecturalModel.builder(io.hexaglue.arch.ProjectContext.forTesting(
+                        config.projectName() != null ? config.projectName() : "unknown", config.basePackage()))
                 .build();
     }
 }

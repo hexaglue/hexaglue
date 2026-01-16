@@ -136,7 +136,7 @@ public record MapperSpec(
         public static ValueObjectMappingSpec from(DomainType domainType) {
             // Accept both VALUE_OBJECT and IDENTIFIER types
             boolean isWrapperType =
-                    domainType.isValueObject() || domainType.kind() == io.hexaglue.spi.ir.DomainKind.IDENTIFIER;
+                    domainType.isValueObject() || domainType.kind() == io.hexaglue.arch.ElementKind.IDENTIFIER;
             if (!isWrapperType) {
                 return null;
             }

@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 
 /**
  * Matches types annotated with @Entity (jMolecules).
@@ -27,6 +27,6 @@ public final class ExplicitEntityCriteria extends AbstractExplicitAnnotationCrit
     public static final String ANNOTATION_QUALIFIED_NAME = "org.jmolecules.ddd.annotation.Entity";
 
     public ExplicitEntityCriteria() {
-        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, DomainKind.ENTITY);
+        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, ElementKind.ENTITY);
     }
 }

@@ -16,10 +16,10 @@ package io.hexaglue.core.classification.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -44,7 +44,7 @@ class CriteriaEngineTest {
 
     private TypeNode testNode;
     private GraphQuery mockQuery;
-    private CompatibilityPolicy<DomainKind> compatibilityPolicy;
+    private CompatibilityPolicy<ElementKind> compatibilityPolicy;
 
     @BeforeEach
     void setUp() {
@@ -63,14 +63,14 @@ class CriteriaEngineTest {
     // Helper Methods (at class level to avoid type inference issues)
     // =========================================================================
 
-    private CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> createEngine(
-            List<ClassificationCriteria<DomainKind>> criteria) {
-        return new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
+    private CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> createEngine(
+            List<ClassificationCriteria<ElementKind>> criteria) {
+        return new CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>>(
                 criteria, new DefaultDecisionPolicy<>(), compatibilityPolicy, this::buildContribution);
     }
 
-    private Contribution<DomainKind> buildContribution(
-            ClassificationCriteria<DomainKind> criteria, MatchResult result, int priority) {
+    private Contribution<ElementKind> buildContribution(
+            ClassificationCriteria<ElementKind> criteria, MatchResult result, int priority) {
         return Contribution.of(
                 criteria.targetKind(),
                 criteria.name(),
@@ -85,8 +85,8 @@ class CriteriaEngineTest {
         MatchResult evaluate(TypeNode node);
     }
 
-    private ClassificationCriteria<DomainKind> createCriteria(
-            String name, int priority, DomainKind targetKind, NodeEvaluator evaluator) {
+    private ClassificationCriteria<ElementKind> createCriteria(
+            String name, int priority, ElementKind targetKind, NodeEvaluator evaluator) {
 
         return new ClassificationCriteria<>() {
             @Override
@@ -100,7 +100,7 @@ class CriteriaEngineTest {
             }
 
             @Override
-            public DomainKind targetKind() {
+            public ElementKind targetKind() {
                 return targetKind;
             }
 
@@ -122,7 +122,7 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should reject null criteria list")
         void shouldRejectNullCriteria() {
-            assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
+            assertThatThrownBy(() -> new CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>>(
                             null,
                             new DefaultDecisionPolicy<>(),
                             compatibilityPolicy,
@@ -134,7 +134,7 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should reject null compatibility policy")
         void shouldRejectNullCompatibilityPolicy() {
-            assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
+            assertThatThrownBy(() -> new CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>>(
                             List.of(), new DefaultDecisionPolicy<>(), null, CriteriaEngineTest.this::buildContribution))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("compatibilityPolicy");
@@ -143,7 +143,7 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should reject null contribution builder")
         void shouldRejectNullContributionBuilder() {
-            assertThatThrownBy(() -> new CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>>(
+            assertThatThrownBy(() -> new CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>>(
                             List.of(), new DefaultDecisionPolicy<>(), compatibilityPolicy, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("contributionBuilder");
@@ -152,7 +152,7 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should create engine with empty criteria list")
         void shouldCreateWithEmptyCriteria() {
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of());
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine = createEngine(List.of());
 
             assertThat(engine.criteria()).isEmpty();
         }
@@ -169,13 +169,13 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should return empty list when no criteria match")
         void shouldReturnEmptyWhenNoCriteriaMatch() {
-            ClassificationCriteria<DomainKind> nonMatchingCriteria =
-                    createCriteria("non-matching", 80, DomainKind.ENTITY, node -> MatchResult.noMatch());
+            ClassificationCriteria<ElementKind> nonMatchingCriteria =
+                    createCriteria("non-matching", 80, ElementKind.ENTITY, node -> MatchResult.noMatch());
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine =
                     createEngine(List.of(nonMatchingCriteria));
 
-            List<Contribution<DomainKind>> contributions = engine.evaluate(testNode, mockQuery);
+            List<Contribution<ElementKind>> contributions = engine.evaluate(testNode, mockQuery);
 
             assertThat(contributions).isEmpty();
         }
@@ -183,35 +183,38 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should return contributions from matching criteria")
         void shouldReturnContributionsFromMatchingCriteria() {
-            ClassificationCriteria<DomainKind> matching = createCriteria(
+            ClassificationCriteria<ElementKind> matching = createCriteria(
                     "matching",
                     80,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     node -> MatchResult.match(ConfidenceLevel.HIGH, "Has repository"));
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of(matching));
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine = createEngine(List.of(matching));
 
-            List<Contribution<DomainKind>> contributions = engine.evaluate(testNode, mockQuery);
+            List<Contribution<ElementKind>> contributions = engine.evaluate(testNode, mockQuery);
 
             assertThat(contributions).hasSize(1);
-            assertThat(contributions.get(0).kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(contributions.get(0).kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(contributions.get(0).criteriaName()).isEqualTo("matching");
         }
 
         @Test
         @DisplayName("should evaluate all criteria and collect matching ones")
         void shouldEvaluateAllCriteria() {
-            ClassificationCriteria<DomainKind> match1 = createCriteria(
-                    "match1", 100, DomainKind.AGGREGATE_ROOT, node -> MatchResult.match(ConfidenceLevel.EXPLICIT, "A"));
-            ClassificationCriteria<DomainKind> noMatch =
-                    createCriteria("noMatch", 90, DomainKind.ENTITY, node -> MatchResult.noMatch());
-            ClassificationCriteria<DomainKind> match2 = createCriteria(
-                    "match2", 80, DomainKind.VALUE_OBJECT, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
+            ClassificationCriteria<ElementKind> match1 = createCriteria(
+                    "match1",
+                    100,
+                    ElementKind.AGGREGATE_ROOT,
+                    node -> MatchResult.match(ConfidenceLevel.EXPLICIT, "A"));
+            ClassificationCriteria<ElementKind> noMatch =
+                    createCriteria("noMatch", 90, ElementKind.ENTITY, node -> MatchResult.noMatch());
+            ClassificationCriteria<ElementKind> match2 = createCriteria(
+                    "match2", 80, ElementKind.VALUE_OBJECT, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine =
                     createEngine(List.of(match1, noMatch, match2));
 
-            List<Contribution<DomainKind>> contributions = engine.evaluate(testNode, mockQuery);
+            List<Contribution<ElementKind>> contributions = engine.evaluate(testNode, mockQuery);
 
             assertThat(contributions).hasSize(2);
             assertThat(contributions)
@@ -231,12 +234,12 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should return empty decision when no criteria match")
         void shouldReturnEmptyWhenNoCriteriaMatch() {
-            ClassificationCriteria<DomainKind> noMatch =
-                    createCriteria("noMatch", 80, DomainKind.ENTITY, node -> MatchResult.noMatch());
+            ClassificationCriteria<ElementKind> noMatch =
+                    createCriteria("noMatch", 80, ElementKind.ENTITY, node -> MatchResult.noMatch());
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of(noMatch));
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine = createEngine(List.of(noMatch));
 
-            DecisionPolicy.Decision<DomainKind> decision = engine.classify(testNode, mockQuery);
+            DecisionPolicy.Decision<ElementKind> decision = engine.classify(testNode, mockQuery);
 
             assertThat(decision.isEmpty()).isTrue();
             assertThat(decision.hasWinner()).isFalse();
@@ -245,39 +248,39 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("should return winner based on priority")
         void shouldReturnWinnerBasedOnPriority() {
-            ClassificationCriteria<DomainKind> highPriority = createCriteria(
+            ClassificationCriteria<ElementKind> highPriority = createCriteria(
                     "highPriority",
                     100,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     node -> MatchResult.match(ConfidenceLevel.LOW, "A"));
-            ClassificationCriteria<DomainKind> lowPriority = createCriteria(
-                    "lowPriority", 50, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.EXPLICIT, "B"));
+            ClassificationCriteria<ElementKind> lowPriority = createCriteria(
+                    "lowPriority", 50, ElementKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.EXPLICIT, "B"));
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine =
                     createEngine(List.of(lowPriority, highPriority));
 
-            DecisionPolicy.Decision<DomainKind> decision = engine.classify(testNode, mockQuery);
+            DecisionPolicy.Decision<ElementKind> decision = engine.classify(testNode, mockQuery);
 
             assertThat(decision.hasWinner()).isTrue();
-            assertThat(decision.winner().get().kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(decision.winner().get().kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(decision.winner().get().priority()).isEqualTo(100);
         }
 
         @Test
         @DisplayName("should detect conflicts with different kinds")
         void shouldDetectConflicts() {
-            ClassificationCriteria<DomainKind> criteria1 = createCriteria(
+            ClassificationCriteria<ElementKind> criteria1 = createCriteria(
                     "criteria1",
                     100,
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     node -> MatchResult.match(ConfidenceLevel.EXPLICIT, "A"));
-            ClassificationCriteria<DomainKind> criteria2 = createCriteria(
-                    "criteria2", 80, DomainKind.VALUE_OBJECT, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
+            ClassificationCriteria<ElementKind> criteria2 = createCriteria(
+                    "criteria2", 80, ElementKind.VALUE_OBJECT, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine =
                     createEngine(List.of(criteria1, criteria2));
 
-            DecisionPolicy.Decision<DomainKind> decision = engine.classify(testNode, mockQuery);
+            DecisionPolicy.Decision<ElementKind> decision = engine.classify(testNode, mockQuery);
 
             assertThat(decision.hasWinner()).isTrue();
             assertThat(decision.hasConflicts()).isTrue();
@@ -297,10 +300,10 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("criteria() should return immutable list")
         void criteriaShouldBeImmutable() {
-            ClassificationCriteria<DomainKind> criteria =
-                    createCriteria("test", 80, DomainKind.ENTITY, node -> MatchResult.noMatch());
+            ClassificationCriteria<ElementKind> criteria =
+                    createCriteria("test", 80, ElementKind.ENTITY, node -> MatchResult.noMatch());
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine = createEngine(List.of(criteria));
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine = createEngine(List.of(criteria));
 
             assertThatThrownBy(() -> engine.criteria().add(criteria)).isInstanceOf(UnsupportedOperationException.class);
         }
@@ -317,18 +320,18 @@ class CriteriaEngineTest {
         @Test
         @DisplayName("100 evaluations should produce identical results")
         void hundredEvaluationsShouldProduceSameResult() {
-            ClassificationCriteria<DomainKind> criteria1 = createCriteria(
-                    "criteria1", 80, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "A"));
-            ClassificationCriteria<DomainKind> criteria2 = createCriteria(
-                    "criteria2", 80, DomainKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
+            ClassificationCriteria<ElementKind> criteria1 = createCriteria(
+                    "criteria1", 80, ElementKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "A"));
+            ClassificationCriteria<ElementKind> criteria2 = createCriteria(
+                    "criteria2", 80, ElementKind.ENTITY, node -> MatchResult.match(ConfidenceLevel.HIGH, "B"));
 
-            CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine =
+            CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine =
                     createEngine(List.of(criteria1, criteria2));
 
-            DecisionPolicy.Decision<DomainKind> firstResult = engine.classify(testNode, mockQuery);
+            DecisionPolicy.Decision<ElementKind> firstResult = engine.classify(testNode, mockQuery);
 
             for (int i = 0; i < 100; i++) {
-                DecisionPolicy.Decision<DomainKind> result = engine.classify(testNode, mockQuery);
+                DecisionPolicy.Decision<ElementKind> result = engine.classify(testNode, mockQuery);
 
                 assertThat(result.hasWinner()).as("Run %d: hasWinner", i).isEqualTo(firstResult.hasWinner());
                 if (result.hasWinner()) {

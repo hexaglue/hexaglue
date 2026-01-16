@@ -44,9 +44,17 @@ class ElementKindTest {
         }
 
         @Test
-        @DisplayName("should return true for APPLICATION_SERVICE")
-        void shouldReturnTrueForApplicationService() {
-            assertThat(ElementKind.APPLICATION_SERVICE.isPort()).isTrue();
+        @DisplayName("should return false for APPLICATION_SERVICE (now separate from ports)")
+        void shouldReturnFalseForApplicationService() {
+            assertThat(ElementKind.APPLICATION_SERVICE.isPort()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should return false for application service variants")
+        void shouldReturnFalseForApplicationServiceVariants() {
+            assertThat(ElementKind.INBOUND_ONLY.isPort()).isFalse();
+            assertThat(ElementKind.OUTBOUND_ONLY.isPort()).isFalse();
+            assertThat(ElementKind.SAGA.isPort()).isFalse();
         }
 
         @Test
@@ -56,6 +64,49 @@ class ElementKindTest {
             assertThat(ElementKind.AGGREGATE_ROOT.isPort()).isFalse();
             assertThat(ElementKind.ENTITY.isPort()).isFalse();
             assertThat(ElementKind.VALUE_OBJECT.isPort()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("isApplicationService()")
+    class IsApplicationService {
+
+        @Test
+        @DisplayName("should return true for APPLICATION_SERVICE")
+        void shouldReturnTrueForApplicationService() {
+            assertThat(ElementKind.APPLICATION_SERVICE.isApplicationService()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return true for INBOUND_ONLY")
+        void shouldReturnTrueForInboundOnly() {
+            assertThat(ElementKind.INBOUND_ONLY.isApplicationService()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return true for OUTBOUND_ONLY")
+        void shouldReturnTrueForOutboundOnly() {
+            assertThat(ElementKind.OUTBOUND_ONLY.isApplicationService()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return true for SAGA")
+        void shouldReturnTrueForSaga() {
+            assertThat(ElementKind.SAGA.isApplicationService()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return false for ports")
+        void shouldReturnFalseForPorts() {
+            assertThat(ElementKind.DRIVING_PORT.isApplicationService()).isFalse();
+            assertThat(ElementKind.DRIVEN_PORT.isApplicationService()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should return false for domain types")
+        void shouldReturnFalseForDomainTypes() {
+            assertThat(ElementKind.AGGREGATE.isApplicationService()).isFalse();
+            assertThat(ElementKind.DOMAIN_SERVICE.isApplicationService()).isFalse();
         }
     }
 
@@ -147,6 +198,15 @@ class ElementKindTest {
         @DisplayName("should return false for UNCLASSIFIED")
         void shouldReturnFalseForUnclassified() {
             assertThat(ElementKind.UNCLASSIFIED.isDomain()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should return false for application services")
+        void shouldReturnFalseForApplicationServices() {
+            assertThat(ElementKind.APPLICATION_SERVICE.isDomain()).isFalse();
+            assertThat(ElementKind.INBOUND_ONLY.isDomain()).isFalse();
+            assertThat(ElementKind.OUTBOUND_ONLY.isDomain()).isFalse();
+            assertThat(ElementKind.SAGA.isDomain()).isFalse();
         }
     }
 }

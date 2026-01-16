@@ -58,7 +58,10 @@ class PortContentSelectorTest {
         void shouldSelectDrivingPorts() {
             // Given
             PortOperation placeOrder = new PortOperation(
-                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")), null);
+                    "placeOrder",
+                    TypeRef.of("com.example.domain.OrderId"),
+                    List.of(TypeRef.of("com.example.OrderRequest")),
+                    null);
 
             DrivingPort orderUseCase = new DrivingPort(
                     ElementId.of(PKG + ".in.OrderingProducts"),
@@ -91,9 +94,12 @@ class PortContentSelectorTest {
         void shouldTransformMethodsCorrectly() {
             // Given
             PortOperation placeOrder = new PortOperation(
-                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")), null);
-            PortOperation cancelOrder = new PortOperation(
-                    "cancelOrder", null, List.of(TypeRef.of("com.example.domain.OrderId")), null);
+                    "placeOrder",
+                    TypeRef.of("com.example.domain.OrderId"),
+                    List.of(TypeRef.of("com.example.OrderRequest")),
+                    null);
+            PortOperation cancelOrder =
+                    new PortOperation("cancelOrder", null, List.of(TypeRef.of("com.example.domain.OrderId")), null);
 
             DrivingPort orderUseCase = new DrivingPort(
                     ElementId.of(PKG + ".in.OrderingProducts"),
@@ -136,9 +142,15 @@ class PortContentSelectorTest {
         void shouldSelectDrivenPorts() {
             // Given
             PortOperation findById = new PortOperation(
-                    "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("com.example.domain.OrderId")), null);
+                    "findById",
+                    TypeRef.of("java.util.Optional"),
+                    List.of(TypeRef.of("com.example.domain.OrderId")),
+                    null);
             PortOperation save = new PortOperation(
-                    "save", TypeRef.of("com.example.domain.Order"), List.of(TypeRef.of("com.example.domain.Order")), null);
+                    "save",
+                    TypeRef.of("com.example.domain.Order"),
+                    List.of(TypeRef.of("com.example.domain.Order")),
+                    null);
 
             DrivenPort orderRepository = new DrivenPort(
                     ElementId.of(PKG + ".out.OrderRepository"),
@@ -240,7 +252,8 @@ class PortContentSelectorTest {
         @DisplayName("should transform void method")
         void shouldTransformVoidMethod() {
             // Given: void method (null return type)
-            PortOperation notify = new PortOperation("notifyCustomer", null, List.of(TypeRef.of("java.lang.String")), null);
+            PortOperation notify =
+                    new PortOperation("notifyCustomer", null, List.of(TypeRef.of("java.lang.String")), null);
 
             DrivenPort port = new DrivenPort(
                     ElementId.of(PKG + ".out.NotificationGateway"),

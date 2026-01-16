@@ -16,9 +16,9 @@ package io.hexaglue.plugin.jpa.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.Cardinality;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.JavaConstruct;
@@ -164,7 +164,7 @@ class PropertyFieldSpecTest {
                 "com.example.Email",
                 "Email",
                 "com.example",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -200,7 +200,7 @@ class PropertyFieldSpecTest {
                 "com.example.Money",
                 "Money",
                 "com.example",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -262,7 +262,7 @@ class PropertyFieldSpecTest {
                 "com.example.Person",
                 "Person",
                 "com.example",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.empty(),

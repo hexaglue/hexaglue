@@ -15,6 +15,7 @@ package io.hexaglue.spi.ir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -37,7 +38,7 @@ class DomainTypeTest {
                     "com.example.Order",
                     "Order",
                     "com.example",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.CLASS,
                     Optional.empty(),
@@ -57,13 +58,13 @@ class DomainTypeTest {
         @Test
         @DisplayName("should return true when relations list is not empty")
         void returnsTrueWhenRelationsPresent() {
-            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+            DomainRelation relation = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
 
             DomainType type = new DomainType(
                     "com.example.Order",
                     "Order",
                     "com.example",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.CLASS,
                     Optional.empty(),
@@ -82,7 +83,7 @@ class DomainTypeTest {
                     "com.example.Money",
                     "Money",
                     "com.example",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.RECORD,
                     Optional.empty(),
@@ -102,7 +103,7 @@ class DomainTypeTest {
         @Test
         @DisplayName("should filter relations by kind")
         void filtersRelationsByKind() {
-            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
             DomainRelation embedded = DomainRelation.embedded("address", "com.example.Address");
             DomainRelation manyToOne = DomainRelation.manyToOne("customer", "com.example.Customer");
 
@@ -110,7 +111,7 @@ class DomainTypeTest {
                     "com.example.Order",
                     "Order",
                     "com.example",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.CLASS,
                     Optional.empty(),
@@ -138,18 +139,18 @@ class DomainTypeTest {
                     "tags",
                     RelationKind.ELEMENT_COLLECTION,
                     "com.example.Tag",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     null,
                     CascadeType.NONE,
                     FetchType.LAZY,
                     false);
-            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
 
             DomainType type = new DomainType(
                     "com.example.Order",
                     "Order",
                     "com.example",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.CLASS,
                     Optional.empty(),
@@ -169,7 +170,7 @@ class DomainTypeTest {
         @Test
         @DisplayName("should return only relations targeting entities")
         void returnsOnlyEntityTargetingRelations() {
-            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", DomainKind.ENTITY);
+            DomainRelation oneToMany = DomainRelation.oneToMany("items", "com.example.LineItem", ElementKind.ENTITY);
             DomainRelation manyToOne = DomainRelation.manyToOne("customer", "com.example.Customer");
             DomainRelation embedded = DomainRelation.embedded("address", "com.example.Address");
 
@@ -177,7 +178,7 @@ class DomainTypeTest {
                     "com.example.Order",
                     "Order",
                     "com.example",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.CLASS,
                     Optional.empty(),
@@ -197,7 +198,7 @@ class DomainTypeTest {
         @Test
         @DisplayName("isAggregateRoot should return true for AGGREGATE_ROOT kind")
         void isAggregateRootReturnsTrue() {
-            DomainType type = createType(DomainKind.AGGREGATE_ROOT);
+            DomainType type = createType(ElementKind.AGGREGATE_ROOT);
             assertThat(type.isAggregateRoot()).isTrue();
             assertThat(type.isEntity()).isTrue(); // Aggregate roots are also entities
         }
@@ -205,7 +206,7 @@ class DomainTypeTest {
         @Test
         @DisplayName("isEntity should return true for ENTITY kind")
         void isEntityReturnsTrue() {
-            DomainType type = createType(DomainKind.ENTITY);
+            DomainType type = createType(ElementKind.ENTITY);
             assertThat(type.isEntity()).isTrue();
             assertThat(type.isAggregateRoot()).isFalse();
         }
@@ -213,7 +214,7 @@ class DomainTypeTest {
         @Test
         @DisplayName("isValueObject should return true for VALUE_OBJECT kind")
         void isValueObjectReturnsTrue() {
-            DomainType type = createType(DomainKind.VALUE_OBJECT);
+            DomainType type = createType(ElementKind.VALUE_OBJECT);
             assertThat(type.isValueObject()).isTrue();
             assertThat(type.isEntity()).isFalse();
         }
@@ -225,7 +226,7 @@ class DomainTypeTest {
                     "com.example.Money",
                     "Money",
                     "com.example",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.HIGH,
                     JavaConstruct.RECORD,
                     Optional.empty(),
@@ -236,7 +237,7 @@ class DomainTypeTest {
             assertThat(type.isRecord()).isTrue();
         }
 
-        private DomainType createType(DomainKind kind) {
+        private DomainType createType(ElementKind kind) {
             return new DomainType(
                     "com.example.Test",
                     "Test",

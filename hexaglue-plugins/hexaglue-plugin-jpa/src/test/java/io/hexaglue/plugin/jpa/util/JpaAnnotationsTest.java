@@ -18,9 +18,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.IdentityStrategy;
@@ -274,7 +274,7 @@ class JpaAnnotationsTest {
                 "lineItems",
                 ClassName.bestGuess("com.example.LineItem"),
                 RelationKind.ONE_TO_MANY,
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 "order",
                 CascadeType.ALL,
                 FetchType.LAZY,
@@ -297,7 +297,7 @@ class JpaAnnotationsTest {
                 "order",
                 ClassName.bestGuess("com.example.Order"),
                 RelationKind.MANY_TO_ONE,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.PERSIST,
                 FetchType.LAZY,
@@ -319,7 +319,7 @@ class JpaAnnotationsTest {
                 "shippingAddress",
                 ClassName.bestGuess("com.example.Address"),
                 RelationKind.ONE_TO_ONE,
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 null,
                 CascadeType.ALL,
                 FetchType.EAGER,
@@ -340,7 +340,7 @@ class JpaAnnotationsTest {
                 "categories",
                 ClassName.bestGuess("com.example.Category"),
                 RelationKind.MANY_TO_MANY,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 "products",
                 CascadeType.PERSIST,
                 FetchType.LAZY,
@@ -362,7 +362,7 @@ class JpaAnnotationsTest {
                 "address",
                 ClassName.bestGuess("com.example.Address"),
                 RelationKind.EMBEDDED,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 null,
@@ -380,7 +380,7 @@ class JpaAnnotationsTest {
                 "tags",
                 ClassName.bestGuess("com.example.Tag"),
                 RelationKind.ELEMENT_COLLECTION,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -400,7 +400,7 @@ class JpaAnnotationsTest {
                 "order",
                 ClassName.bestGuess("com.example.Order"),
                 RelationKind.MANY_TO_ONE,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.NONE,
                 null,
@@ -418,7 +418,7 @@ class JpaAnnotationsTest {
                 "order",
                 ClassName.bestGuess("com.example.Order"),
                 RelationKind.MANY_TO_ONE,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.NONE,
                 null,

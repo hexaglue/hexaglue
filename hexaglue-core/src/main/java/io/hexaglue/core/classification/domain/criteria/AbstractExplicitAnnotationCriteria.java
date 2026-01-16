@@ -13,9 +13,9 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.TypeNode;
@@ -28,14 +28,14 @@ import io.hexaglue.core.graph.query.GraphQuery;
  * and confidence EXPLICIT.
  */
 public abstract class AbstractExplicitAnnotationCriteria
-        implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+        implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     private final String annotationSimpleName;
     private final String annotationQualifiedName;
-    private final DomainKind targetKind;
+    private final ElementKind targetKind;
 
     protected AbstractExplicitAnnotationCriteria(
-            String annotationSimpleName, String annotationQualifiedName, DomainKind targetKind) {
+            String annotationSimpleName, String annotationQualifiedName, ElementKind targetKind) {
         this.annotationSimpleName = annotationSimpleName;
         this.annotationQualifiedName = annotationQualifiedName;
         this.targetKind = targetKind;
@@ -67,7 +67,7 @@ public abstract class AbstractExplicitAnnotationCriteria
     }
 
     @Override
-    public DomainKind targetKind() {
+    public ElementKind targetKind() {
         return targetKind;
     }
 

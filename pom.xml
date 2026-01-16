@@ -34,7 +34,6 @@
         <module>hexaglue-syntax</module>
         <module>hexaglue-arch</module>
         <module>hexaglue-spi</module>
-        <module>hexaglue-spi-arch</module>
         <module>hexaglue-core</module>
         <module>hexaglue-testing</module>
         <module>hexaglue-plugins</module>
@@ -116,11 +115,6 @@
             <dependency>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-spi</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>io.hexaglue</groupId>
-                <artifactId>hexaglue-spi-arch</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

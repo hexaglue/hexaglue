@@ -34,11 +34,9 @@ import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
-import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
@@ -108,38 +106,36 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Overrides default execute to capture v4 ArchitecturalModel if available.
+     * Overrides default execute to capture v4 ArchitecturalModel.
      *
      * @param context the plugin context
      * @since 4.0.0
      */
     @Override
     public void execute(PluginContext context) {
-        // Capture v4 model if available before delegating to generate()
-        this.archModel = PluginContexts.getModel(context).orElse(null);
+        // Capture v4 model before delegating to generate()
+        this.archModel = context.model();
         GeneratorPlugin.super.execute(context);
     }
 
     @Override
     public void generate(GeneratorContext context) throws Exception {
-        IrSnapshot ir = context.ir();
         PluginConfig pluginConfig = context.config();
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
-        // Require v4 ArchitecturalModel
+        // archModel is set by execute() - should never be null at this point
         if (archModel == null) {
-            diagnostics.error(
-                    "v4 ArchitecturalModel is required for JPA code generation. "
-                            + "Please ensure the model is available.");
+            diagnostics.error("v4 ArchitecturalModel is required for JPA code generation. "
+                    + "Please ensure the model is available.");
             return;
         }
 
         // Load configuration
         JpaConfig config = JpaConfig.from(pluginConfig);
 
-        // Determine packages
-        String basePackage = ir.metadata().basePackage();
+        // Determine packages from ArchitecturalModel
+        String basePackage = archModel.project().basePackage();
         String infraPackage =
                 pluginConfig.getString("infrastructurePackage").orElse(basePackage + ".infrastructure.persistence");
 

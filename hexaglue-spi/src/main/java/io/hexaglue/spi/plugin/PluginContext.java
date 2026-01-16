@@ -13,8 +13,8 @@
 
 package io.hexaglue.spi.plugin;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.Optional;
 
 /**
@@ -22,23 +22,28 @@ import java.util.Optional;
  *
  * <p>This interface provides access to:
  * <ul>
- *   <li>The analyzed application model ({@link IrSnapshot})</li>
+ *   <li>The unified architectural model ({@link ArchitecturalModel})</li>
  *   <li>Plugin-specific configuration</li>
  *   <li>Code generation facilities</li>
  *   <li>Diagnostic reporting</li>
  *   <li>Output sharing between plugins</li>
  * </ul>
+ *
+ * @since 1.0.0
+ * @since 4.0.0 - Removed deprecated ir() method, use model() instead
  */
 public interface PluginContext {
 
     /**
-     * Returns the analyzed application model.
+     * Returns the unified architectural model.
      *
-     * <p>The IR is immutable and represents the complete analysis result.
+     * <p>The model is immutable and represents the complete analysis result,
+     * including all classified domain elements, ports, and their relationships.
      *
-     * @return the IR snapshot (never null)
+     * @return the architectural model (never null)
+     * @since 4.0.0
      */
-    IrSnapshot ir();
+    ArchitecturalModel model();
 
     /**
      * Returns the plugin configuration.

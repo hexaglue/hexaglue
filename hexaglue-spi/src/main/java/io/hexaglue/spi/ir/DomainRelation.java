@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir;
 
+import io.hexaglue.arch.ElementKind;
 import java.util.Optional;
 
 /**
@@ -33,7 +34,7 @@ public record DomainRelation(
         String propertyName,
         RelationKind kind,
         String targetTypeFqn,
-        DomainKind targetKind,
+        ElementKind targetKind,
         String mappedBy,
         CascadeType cascade,
         FetchType fetch,
@@ -47,7 +48,7 @@ public record DomainRelation(
                 propertyName,
                 RelationKind.EMBEDDED,
                 targetTypeFqn,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.EAGER,
@@ -57,7 +58,7 @@ public record DomainRelation(
     /**
      * Creates a relation for a collection of entities (one-to-many).
      */
-    public static DomainRelation oneToMany(String propertyName, String targetTypeFqn, DomainKind targetKind) {
+    public static DomainRelation oneToMany(String propertyName, String targetTypeFqn, ElementKind targetKind) {
         return new DomainRelation(
                 propertyName,
                 RelationKind.ONE_TO_MANY,
@@ -77,7 +78,7 @@ public record DomainRelation(
                 propertyName,
                 RelationKind.MANY_TO_ONE,
                 targetTypeFqn,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,
@@ -116,14 +117,14 @@ public record DomainRelation(
      * Returns true if this relationship targets an entity.
      */
     public boolean targetsEntity() {
-        return targetKind == DomainKind.ENTITY || targetKind == DomainKind.AGGREGATE_ROOT;
+        return targetKind == ElementKind.ENTITY || targetKind == ElementKind.AGGREGATE_ROOT;
     }
 
     /**
      * Returns true if this relationship targets a value object.
      */
     public boolean targetsValueObject() {
-        return targetKind == DomainKind.VALUE_OBJECT;
+        return targetKind == ElementKind.VALUE_OBJECT;
     }
 
     /**

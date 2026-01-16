@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.engine;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.port.PortKind;
 import java.util.Set;
 
@@ -27,7 +27,7 @@ import java.util.Set;
  * <p>This interface is parameterized to support both domain and port
  * classification kinds.
  *
- * @param <K> the kind type (e.g., DomainKind, PortKind)
+ * @param <K> the kind type (e.g., ElementKind, PortKind)
  */
 @FunctionalInterface
 public interface CompatibilityPolicy<K> {
@@ -66,13 +66,13 @@ public interface CompatibilityPolicy<K> {
      *
      * @return the default domain compatibility policy
      */
-    static CompatibilityPolicy<DomainKind> domainDefault() {
+    static CompatibilityPolicy<ElementKind> domainDefault() {
         return (a, b) -> {
             if (a == b) {
                 return true;
             }
             // AGGREGATE_ROOT and ENTITY are compatible
-            return Set.of(a, b).equals(Set.of(DomainKind.AGGREGATE_ROOT, DomainKind.ENTITY));
+            return Set.of(a, b).equals(Set.of(ElementKind.AGGREGATE_ROOT, ElementKind.ENTITY));
         };
     }
 

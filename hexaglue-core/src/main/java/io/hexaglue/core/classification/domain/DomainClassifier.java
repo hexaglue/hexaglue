@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.classification.domain;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationTarget;
@@ -60,9 +61,9 @@ import java.util.List;
  */
 public final class DomainClassifier {
 
-    private final CriteriaEngine<DomainKind, ClassificationCriteria<DomainKind>> engine;
-    private final DecisionPolicy<DomainKind> decisionPolicy;
-    private final CompatibilityPolicy<DomainKind> compatibilityPolicy;
+    private final CriteriaEngine<ElementKind, ClassificationCriteria<ElementKind>> engine;
+    private final DecisionPolicy<ElementKind> decisionPolicy;
+    private final CompatibilityPolicy<ElementKind> compatibilityPolicy;
 
     /**
      * Creates a classifier with the default set of criteria.
@@ -76,7 +77,7 @@ public final class DomainClassifier {
      *
      * @param criteria the classification criteria to use
      */
-    public DomainClassifier(List<ClassificationCriteria<DomainKind>> criteria) {
+    public DomainClassifier(List<ClassificationCriteria<ElementKind>> criteria) {
         this.decisionPolicy = new DefaultDecisionPolicy<>();
         this.compatibilityPolicy = CompatibilityPolicy.domainDefault();
         this.engine = new CriteriaEngine<>(
@@ -89,7 +90,7 @@ public final class DomainClassifier {
      * <p>Only high-confidence criteria (priority >= 70) are included.
      * Types that don't match any criteria will be marked as UNCLASSIFIED.
      */
-    public static List<ClassificationCriteria<DomainKind>> defaultCriteria() {
+    public static List<ClassificationCriteria<ElementKind>> defaultCriteria() {
         return List.of(
                 // Explicit annotations (priority 100)
                 new ExplicitAggregateRootCriteria(),
@@ -118,14 +119,14 @@ public final class DomainClassifier {
      */
     public ClassificationResult classify(TypeNode node, GraphQuery query) {
         // Evaluate criteria and collect contributions
-        List<Contribution<DomainKind>> contributions = engine.evaluate(node, query);
+        List<Contribution<ElementKind>> contributions = engine.evaluate(node, query);
 
         if (contributions.isEmpty()) {
             return ClassificationResult.unclassifiedDomain(node.id(), null);
         }
 
         // Delegate to decision policy
-        DecisionPolicy.Decision<DomainKind> decision = decisionPolicy.decide(contributions, compatibilityPolicy);
+        DecisionPolicy.Decision<ElementKind> decision = decisionPolicy.decide(contributions, compatibilityPolicy);
 
         return toClassificationResult(node.id(), decision, contributions);
     }
@@ -134,7 +135,9 @@ public final class DomainClassifier {
      * Converts a Decision to a ClassificationResult.
      */
     private ClassificationResult toClassificationResult(
-            NodeId nodeId, DecisionPolicy.Decision<DomainKind> decision, List<Contribution<DomainKind>> contributions) {
+            NodeId nodeId,
+            DecisionPolicy.Decision<ElementKind> decision,
+            List<Contribution<ElementKind>> contributions) {
 
         if (decision.isEmpty()) {
             return ClassificationResult.unclassifiedDomain(nodeId, null);
@@ -144,7 +147,7 @@ public final class DomainClassifier {
             return ClassificationResult.conflictDomain(nodeId, decision.conflicts());
         }
 
-        Contribution<DomainKind> winner = decision.winner().orElseThrow();
+        Contribution<ElementKind> winner = decision.winner().orElseThrow();
 
         // Detect conflicts: other contributions with different kinds
         List<Conflict> conflicts = contributions.stream()
@@ -177,8 +180,8 @@ public final class DomainClassifier {
     /**
      * Builds a contribution from a criteria match result.
      */
-    private static Contribution<DomainKind> buildContribution(
-            ClassificationCriteria<DomainKind> criteria, MatchResult result, int priority) {
+    private static Contribution<ElementKind> buildContribution(
+            ClassificationCriteria<ElementKind> criteria, MatchResult result, int priority) {
         return Contribution.of(
                 criteria.targetKind(),
                 criteria.name(),

@@ -15,13 +15,13 @@ package io.hexaglue.plugin.livingdoc.renderer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.plugin.livingdoc.model.RelationDoc;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -64,7 +64,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Money",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.EXPLICIT,
                     "RECORD",
                     true,
@@ -95,7 +95,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.MEDIUM,
                     "CLASS",
                     false,
@@ -114,7 +114,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.LOW,
                     "CLASS",
                     false,
@@ -158,7 +158,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -178,7 +178,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Money",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.EXPLICIT,
                     "RECORD",
                     true,
@@ -285,7 +285,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "EmptyType",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -308,7 +308,7 @@ class DomainRendererTest {
             RelationDoc rel = new RelationDoc(
                     "lineItems",
                     "OrderLineItem",
-                    DomainKind.ENTITY.toString(),
+                    ElementKind.ENTITY.toString(),
                     "ONE_TO_MANY",
                     true,
                     false,
@@ -329,7 +329,7 @@ class DomainRendererTest {
             RelationDoc rel = new RelationDoc(
                     "order",
                     "Order",
-                    DomainKind.AGGREGATE_ROOT.toString(),
+                    ElementKind.AGGREGATE_ROOT.toString(),
                     "MANY_TO_ONE",
                     false,
                     true,
@@ -348,7 +348,7 @@ class DomainRendererTest {
             RelationDoc rel1 = new RelationDoc(
                     "customer",
                     "Customer",
-                    DomainKind.AGGREGATE_ROOT.toString(),
+                    ElementKind.AGGREGATE_ROOT.toString(),
                     "MANY_TO_ONE",
                     false,
                     false,
@@ -359,7 +359,7 @@ class DomainRendererTest {
             RelationDoc rel2 = new RelationDoc(
                     "items",
                     "Item",
-                    DomainKind.ENTITY.toString(),
+                    ElementKind.ENTITY.toString(),
                     "ONE_TO_MANY",
                     true,
                     false,
@@ -379,7 +379,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "SimpleType",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -402,7 +402,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -433,7 +433,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Synthetic",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.LOW,
                     "CLASS",
                     false,
@@ -452,7 +452,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -478,7 +478,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Plain",
                     "com.example.domain",
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -499,7 +499,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -523,7 +523,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Entity",
                     "com.example.domain",
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -554,7 +554,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Product",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -576,7 +576,7 @@ class DomainRendererTest {
             RelationDoc rel = new RelationDoc(
                     "lineItems",
                     "OrderLineItem",
-                    DomainKind.ENTITY.toString(),
+                    ElementKind.ENTITY.toString(),
                     "ONE_TO_MANY",
                     true,
                     false,
@@ -587,7 +587,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -615,7 +615,7 @@ class DomainRendererTest {
             RelationDoc rel = new RelationDoc(
                     "lineItems",
                     "OrderLineItem",
-                    DomainKind.ENTITY.toString(),
+                    ElementKind.ENTITY.toString(),
                     "ONE_TO_MANY",
                     true,
                     false,
@@ -627,7 +627,7 @@ class DomainRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -655,7 +655,7 @@ class DomainRendererTest {
         return new DomainTypeDoc(
                 "Order",
                 "com.example.domain",
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 "CLASS",
                 false,

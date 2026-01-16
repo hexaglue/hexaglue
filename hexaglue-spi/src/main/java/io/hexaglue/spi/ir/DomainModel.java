@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir;
 
+import io.hexaglue.arch.ElementKind;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +21,13 @@ import java.util.Optional;
  * The domain model extracted from the application.
  *
  * @param types all domain types (aggregates, entities, value objects, etc.)
+ * @deprecated Use {@link io.hexaglue.arch.ArchitecturalModel} with its query API instead.
+ *             For example: {@code model.query().aggregates()} or {@code model.query().valueObjects()}.
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.ArchitecturalModel
+ * @see io.hexaglue.arch.query.ArchitectureQuery
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record DomainModel(List<DomainType> types) {
 
     /**
@@ -41,7 +48,7 @@ public record DomainModel(List<DomainType> types) {
      * @param kind the domain kind to filter by
      * @return list of matching types
      */
-    public List<DomainType> typesOfKind(DomainKind kind) {
+    public List<DomainType> typesOfKind(ElementKind kind) {
         return types.stream().filter(t -> t.kind() == kind).toList();
     }
 
@@ -49,7 +56,7 @@ public record DomainModel(List<DomainType> types) {
      * Returns all aggregate roots.
      */
     public List<DomainType> aggregateRoots() {
-        return typesOfKind(DomainKind.AGGREGATE_ROOT);
+        return typesOfKind(ElementKind.AGGREGATE_ROOT);
     }
 
     /**
@@ -57,7 +64,7 @@ public record DomainModel(List<DomainType> types) {
      */
     public List<DomainType> entities() {
         return types.stream()
-                .filter(t -> t.kind() == DomainKind.ENTITY || t.kind() == DomainKind.AGGREGATE_ROOT)
+                .filter(t -> t.kind() == ElementKind.ENTITY || t.kind() == ElementKind.AGGREGATE_ROOT)
                 .toList();
     }
 
@@ -65,6 +72,6 @@ public record DomainModel(List<DomainType> types) {
      * Returns all value objects.
      */
     public List<DomainType> valueObjects() {
-        return typesOfKind(DomainKind.VALUE_OBJECT);
+        return typesOfKind(ElementKind.VALUE_OBJECT);
     }
 }

@@ -15,8 +15,8 @@ package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -100,7 +100,7 @@ class ConflictDetectionTest {
 
             assertThat(result.isClassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
 
@@ -130,7 +130,7 @@ class ConflictDetectionTest {
 
             assertThat(result.isClassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.CLASSIFIED);
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.matchedPriority()).isEqualTo(100);
         }
@@ -150,7 +150,7 @@ class ConflictDetectionTest {
             ClassificationResult result = domainClassifier.classify(productId, query);
 
             assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo(DomainKind.IDENTIFIER.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.IDENTIFIER.name());
             assertThat(result.matchedCriteria()).isEqualTo("record-single-id");
             assertThat(result.matchedPriority()).isEqualTo(80);
         }
@@ -369,7 +369,7 @@ class ConflictDetectionTest {
             ClassificationResult result = domainClassifier.classify(order, query);
 
             assertThat(result.isClassified()).isTrue();
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
 
@@ -397,7 +397,7 @@ class ConflictDetectionTest {
             TypeNode customer = graph.typeNode("com.example.Customer").orElseThrow();
             ClassificationResult result = domainClassifier.classify(customer, query);
 
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(result.matchedCriteria()).isEqualTo("explicit-aggregate-root");
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
         }

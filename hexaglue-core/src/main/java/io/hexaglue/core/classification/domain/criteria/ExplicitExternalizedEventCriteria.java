@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 
 /**
  * Matches types annotated with @Externalized (jMolecules).
@@ -30,6 +30,6 @@ public final class ExplicitExternalizedEventCriteria extends AbstractExplicitAnn
     public static final String ANNOTATION_QUALIFIED_NAME = "org.jmolecules.event.annotation.Externalized";
 
     public ExplicitExternalizedEventCriteria() {
-        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, DomainKind.EXTERNALIZED_EVENT);
+        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, ElementKind.EXTERNALIZED_EVENT);
     }
 }

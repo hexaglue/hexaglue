@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.adapter.report.model;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
@@ -27,7 +28,6 @@ import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.AuditSnapshot;
 import io.hexaglue.spi.audit.DetectedArchitectureStyle;
 import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -55,7 +55,7 @@ import java.util.Objects;
  * @param hexCompliancePercent hexagonal architecture compliance percentage (0-100)
  * @param detectedStyle        the detected architectural style
  * @param aggregateDetails     detailed information about each aggregate
- * @param irSnapshot           the IR snapshot for diagram generation (may be null)
+ * @param model                the architectural model for diagram generation (may be null)
  * @param architectureQuery    the architecture query for diagram generation (may be null)
  * @since 1.0.0
  */
@@ -76,7 +76,7 @@ public record AuditReport(
         int hexCompliancePercent,
         DetectedArchitectureStyle detectedStyle,
         List<AggregateDetails> aggregateDetails,
-        IrSnapshot irSnapshot,
+        ArchitecturalModel model,
         ArchitectureQuery architectureQuery) {
 
     public AuditReport {
@@ -114,7 +114,7 @@ public record AuditReport(
             detectedStyle = DetectedArchitectureStyle.UNKNOWN;
         }
         aggregateDetails = aggregateDetails != null ? List.copyOf(aggregateDetails) : List.of();
-        // irSnapshot and architectureQuery are intentionally nullable for diagram generation
+        // model and architectureQuery are intentionally nullable for diagram generation
     }
 
     /**
@@ -359,7 +359,7 @@ public record AuditReport(
      * <p>This factory method uses all domain services to compute:
      * <ul>
      *   <li>Health score with weighted components</li>
-     *   <li>Component inventory from IrSnapshot</li>
+     *   <li>Component inventory from ArchitecturalModel</li>
      *   <li>Port matrix with adapter coverage</li>
      *   <li>Technical debt estimation</li>
      *   <li>Actionable recommendations</li>
@@ -367,14 +367,14 @@ public record AuditReport(
      *   <li>DDD and hexagonal compliance percentages</li>
      * </ul>
      *
-     * <p>Project name and version are extracted from the IrSnapshot metadata.
+     * <p>Project name and version are extracted from the model's project context.
      *
      * @param snapshot          the audit snapshot
-     * @param projectName       the project name (overrides IR metadata if provided)
+     * @param projectName       the project name (overrides model metadata if provided)
      * @param domainMetrics     the domain metrics map
      * @param constraintIds     the list of checked constraint IDs
      * @param architectureQuery the architecture query (may be null)
-     * @param ir                the IR snapshot for inventory building and project metadata
+     * @param model             the architectural model for inventory building and project metadata
      * @param domainViolations  the domain violations for recommendations
      * @return a new complete AuditReport
      */
@@ -384,22 +384,22 @@ public record AuditReport(
             Map<String, Metric> domainMetrics,
             List<String> constraintIds,
             ArchitectureQuery architectureQuery,
-            IrSnapshot ir,
+            ArchitecturalModel model,
             List<Violation> domainViolations) {
 
         Objects.requireNonNull(snapshot, "snapshot required");
         Objects.requireNonNull(projectName, "projectName required");
         Objects.requireNonNull(domainMetrics, "domainMetrics required");
         Objects.requireNonNull(constraintIds, "constraintIds required");
-        Objects.requireNonNull(ir, "ir required");
+        Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(domainViolations, "domainViolations required");
 
-        // Build metadata - use IR metadata for project name and version
+        // Build metadata - use model's project context for project name and version
         Duration duration = snapshot.metadata().analysisDuration();
         String durationStr = formatDuration(duration);
         String effectiveProjectName =
-                ir.metadata().projectName() != null ? ir.metadata().projectName() : projectName;
-        String projectVersion = ir.metadata().projectVersion();
+                model.project().name() != null ? model.project().name() : projectName;
+        String projectVersion = model.project().version().orElse(null);
         ReportMetadata metadata = new ReportMetadata(
                 effectiveProjectName,
                 projectVersion,
@@ -441,23 +441,21 @@ public record AuditReport(
 
         // === NEW: Build enriched data using domain services ===
 
-        // Build component inventory from IR (using architecture query for bounded contexts)
+        // Build component inventory from model (using architecture query for bounded contexts)
         InventoryBuilder inventoryBuilder = new InventoryBuilder();
-        ComponentInventory inventory = inventoryBuilder.build(ir, architectureQuery);
+        ComponentInventory inventory = inventoryBuilder.build(model, architectureQuery);
 
         // Calculate compliance scores
         ComplianceCalculator complianceCalculator = new ComplianceCalculator();
-        int dddCompliance = complianceCalculator.calculateDddCompliance(domainViolations, ir);
-        int hexCompliance = complianceCalculator.calculateHexCompliance(domainViolations, ir);
+        int dddCompliance = complianceCalculator.calculateDddCompliance(domainViolations);
+        int hexCompliance = complianceCalculator.calculateHexCompliance(domainViolations);
 
         // Calculate health score
         HealthScoreCalculator healthCalculator = new HealthScoreCalculator(complianceCalculator);
-        HealthScore healthScore = healthCalculator.calculate(domainViolations, architectureQuery, ir);
+        HealthScore healthScore = healthCalculator.calculate(domainViolations, architectureQuery);
 
-        // Build port matrix
-        List<PortMatrixEntry> portMatrix = ir.ports().ports().stream()
-                .map(port -> PortMatrixEntry.from(port, false)) // hasAdapter detection not implemented yet
-                .toList();
+        // Build port matrix from model's ports
+        List<PortMatrixEntry> portMatrix = PortMatrixEntry.fromModel(model);
 
         // Generate recommendations
         RecommendationGenerator recGenerator = new RecommendationGenerator();
@@ -503,7 +501,7 @@ public record AuditReport(
                 hexCompliance,
                 snapshot.style(),
                 aggregateDetails,
-                ir,
+                model,
                 architectureQuery);
     }
 

@@ -15,6 +15,7 @@ package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.domain.DomainClassifier;
 import io.hexaglue.core.classification.port.PortClassifier;
@@ -568,7 +569,7 @@ class IrExporterIdentityEdgeCasesTest {
             IrSnapshot snapshot = exporter.export(graph, classifications);
 
             DomainType money = findDomainType(snapshot, "Money");
-            assertThat(money.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(money.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(money.hasIdentity()).isFalse();
         }
 
@@ -594,7 +595,7 @@ class IrExporterIdentityEdgeCasesTest {
                     .findFirst();
 
             if (event.isPresent()) {
-                assertThat(event.get().kind()).isEqualTo(DomainKind.DOMAIN_EVENT);
+                assertThat(event.get().kind()).isEqualTo(ElementKind.DOMAIN_EVENT);
                 assertThat(event.get().hasIdentity()).isFalse();
             }
         }

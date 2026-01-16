@@ -13,8 +13,8 @@
 
 package io.hexaglue.plugin.livingdoc.model;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.List;
 
 /**
@@ -34,7 +34,7 @@ import java.util.List;
 public record DomainTypeDoc(
         String name,
         String packageName,
-        DomainKind kind,
+        ElementKind kind,
         ConfidenceLevel confidence,
         String construct,
         boolean isRecord,

@@ -33,7 +33,7 @@ import java.util.List;
  * (according to the {@link CompatibilityPolicy}), the result is a
  * hard conflict with no winner.
  *
- * @param <K> the kind type (e.g., DomainKind, PortKind)
+ * @param <K> the kind type (e.g., ElementKind, PortKind)
  */
 public final class DefaultDecisionPolicy<K> implements DecisionPolicy<K> {
 

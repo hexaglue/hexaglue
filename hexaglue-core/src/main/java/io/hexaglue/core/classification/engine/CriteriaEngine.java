@@ -34,7 +34,7 @@ import java.util.Objects;
  *
  * <p>The engine is parameterized by:
  * <ul>
- *   <li>{@code K} - the kind enum type (e.g., DomainKind, PortKind)</li>
+ *   <li>{@code K} - the kind enum type (e.g., ElementKind, PortKind)</li>
  *   <li>{@code C} - the criteria type (must extend ClassificationCriteria)</li>
  * </ul>
  *

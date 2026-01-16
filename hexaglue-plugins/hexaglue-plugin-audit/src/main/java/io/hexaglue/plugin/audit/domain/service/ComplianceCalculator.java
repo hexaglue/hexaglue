@@ -14,7 +14,6 @@
 package io.hexaglue.plugin.audit.domain.service;
 
 import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,10 +61,9 @@ public class ComplianceCalculator {
      * Calculates the DDD compliance percentage.
      *
      * @param violations the list of violations
-     * @param ir         the IR snapshot (for context, currently unused)
      * @return DDD compliance percentage (0-100)
      */
-    public int calculateDddCompliance(List<Violation> violations, IrSnapshot ir) {
+    public int calculateDddCompliance(List<Violation> violations) {
         return calculateCompliance(violations, DDD_CATEGORY);
     }
 
@@ -73,10 +71,9 @@ public class ComplianceCalculator {
      * Calculates the hexagonal architecture compliance percentage.
      *
      * @param violations the list of violations
-     * @param ir         the IR snapshot (for context, currently unused)
      * @return hexagonal compliance percentage (0-100)
      */
-    public int calculateHexCompliance(List<Violation> violations, IrSnapshot ir) {
+    public int calculateHexCompliance(List<Violation> violations) {
         return calculateCompliance(violations, HEXAGONAL_CATEGORY);
     }
 

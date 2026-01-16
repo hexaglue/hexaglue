@@ -13,12 +13,12 @@
 
 package io.hexaglue.core.ir.export;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.spi.ir.Cardinality;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.JavaConstruct;
 import io.hexaglue.spi.ir.PortKind;
 import java.util.List;
@@ -32,13 +32,13 @@ import java.util.List;
 final class TypeConverter {
 
     /**
-     * Converts a classification kind string to a DomainKind.
+     * Converts a classification kind string to an ElementKind.
      *
      * @param kind the kind string from classification
-     * @return the corresponding DomainKind
+     * @return the corresponding ElementKind
      */
-    DomainKind toDomainKind(String kind) {
-        return DomainKind.valueOf(kind);
+    ElementKind toElementKind(String kind) {
+        return ElementKind.valueOf(kind);
     }
 
     /**
@@ -140,22 +140,27 @@ final class TypeConverter {
     }
 
     /**
-     * Determines if a domain kind should have an identity field.
+     * Determines if an element kind should have an identity field.
      *
-     * @param kind the domain kind
+     * @param kind the element kind
      * @return true if the type should have identity
      */
-    boolean shouldHaveIdentity(DomainKind kind) {
+    boolean shouldHaveIdentity(ElementKind kind) {
         return switch (kind) {
-            case AGGREGATE_ROOT, ENTITY -> true;
+            case AGGREGATE, AGGREGATE_ROOT, ENTITY -> true;
             case VALUE_OBJECT,
                     DOMAIN_EVENT,
+                    EXTERNALIZED_EVENT,
                     IDENTIFIER,
                     DOMAIN_SERVICE,
                     APPLICATION_SERVICE,
                     INBOUND_ONLY,
                     OUTBOUND_ONLY,
                     SAGA,
+                    DRIVING_PORT,
+                    DRIVEN_PORT,
+                    DRIVING_ADAPTER,
+                    DRIVEN_ADAPTER,
                     UNCLASSIFIED -> false;
         };
     }

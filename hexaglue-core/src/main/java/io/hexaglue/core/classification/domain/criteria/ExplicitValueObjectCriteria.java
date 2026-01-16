@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 
 /**
  * Matches types annotated with @ValueObject (jMolecules).
@@ -27,6 +27,6 @@ public final class ExplicitValueObjectCriteria extends AbstractExplicitAnnotatio
     public static final String ANNOTATION_QUALIFIED_NAME = "org.jmolecules.ddd.annotation.ValueObject";
 
     public ExplicitValueObjectCriteria() {
-        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, DomainKind.VALUE_OBJECT);
+        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, ElementKind.VALUE_OBJECT);
     }
 }

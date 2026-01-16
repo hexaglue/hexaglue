@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationEvidence;
 import io.hexaglue.spi.classification.ClassificationStrategy;
@@ -62,7 +63,7 @@ public record DomainTypeV3(
         String qualifiedName,
         String simpleName,
         String packageName,
-        DomainKind kind,
+        ElementKind kind,
         CertaintyLevel certainty,
         ClassificationStrategy strategy,
         String reasoning,
@@ -122,7 +123,7 @@ public record DomainTypeV3(
      * @return true if kind is AGGREGATE_ROOT
      */
     public boolean isAggregateRoot() {
-        return kind == DomainKind.AGGREGATE_ROOT;
+        return kind == ElementKind.AGGREGATE_ROOT;
     }
 
     /**
@@ -131,7 +132,7 @@ public record DomainTypeV3(
      * @return true if kind is ENTITY or AGGREGATE_ROOT
      */
     public boolean isEntity() {
-        return kind == DomainKind.ENTITY || kind == DomainKind.AGGREGATE_ROOT;
+        return kind == ElementKind.ENTITY || kind == ElementKind.AGGREGATE_ROOT;
     }
 
     /**
@@ -140,7 +141,7 @@ public record DomainTypeV3(
      * @return true if kind is VALUE_OBJECT
      */
     public boolean isValueObject() {
-        return kind == DomainKind.VALUE_OBJECT;
+        return kind == ElementKind.VALUE_OBJECT;
     }
 
     /**
@@ -149,7 +150,7 @@ public record DomainTypeV3(
      * @return true if kind is DOMAIN_SERVICE
      */
     public boolean isDomainService() {
-        return kind == DomainKind.DOMAIN_SERVICE;
+        return kind == ElementKind.DOMAIN_SERVICE;
     }
 
     /**
@@ -158,7 +159,7 @@ public record DomainTypeV3(
      * @return true if kind is APPLICATION_SERVICE
      */
     public boolean isApplicationService() {
-        return kind == DomainKind.APPLICATION_SERVICE;
+        return kind == ElementKind.APPLICATION_SERVICE;
     }
 
     /**

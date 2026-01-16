@@ -15,6 +15,7 @@ package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
@@ -24,7 +25,6 @@ import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationStrategy;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -71,7 +71,7 @@ class IrExporterPrimaryClassificationTest {
             PrimaryClassificationResult result = results.get(0);
 
             assertThat(result.typeName()).isEqualTo("com.example.Order");
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(result.certainty()).isEqualTo(CertaintyLevel.EXPLICIT);
             assertThat(result.strategy()).isEqualTo(ClassificationStrategy.ANNOTATION);
             assertThat(result.reasoning()).isEqualTo("Annotated with @AggregateRoot");
@@ -105,7 +105,7 @@ class IrExporterPrimaryClassificationTest {
             PrimaryClassificationResult result = results.get(0);
 
             assertThat(result.typeName()).isEqualTo("com.example.OrderLine");
-            assertThat(result.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(result.kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(result.certainty()).isEqualTo(CertaintyLevel.CERTAIN_BY_STRUCTURE);
             assertThat(result.strategy()).isEqualTo(ClassificationStrategy.REPOSITORY);
             assertThat(result.isReliable()).isTrue();
@@ -136,7 +136,7 @@ class IrExporterPrimaryClassificationTest {
             assertThat(results).hasSize(1);
             PrimaryClassificationResult result = results.get(0);
 
-            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(result.certainty()).isEqualTo(CertaintyLevel.INFERRED);
             assertThat(result.strategy()).isEqualTo(ClassificationStrategy.RECORD);
             assertThat(result.isReliable()).isFalse();
@@ -168,7 +168,7 @@ class IrExporterPrimaryClassificationTest {
             assertThat(results).hasSize(1);
             PrimaryClassificationResult result = results.get(0);
 
-            assertThat(result.kind()).isEqualTo(DomainKind.DOMAIN_EVENT);
+            assertThat(result.kind()).isEqualTo(ElementKind.DOMAIN_EVENT);
             assertThat(result.certainty()).isEqualTo(CertaintyLevel.UNCERTAIN);
             assertThat(result.strategy()).isEqualTo(ClassificationStrategy.WEIGHTED);
             assertThat(result.isReliable()).isFalse();

@@ -13,10 +13,10 @@
 
 package io.hexaglue.core.classification.deterministic;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationEvidence;
 import io.hexaglue.spi.classification.ClassificationStrategy;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -43,7 +43,7 @@ import java.util.Objects;
  */
 public record Classification(
         String typeName,
-        DomainKind kind,
+        ElementKind kind,
         CertaintyLevel certainty,
         ClassificationStrategy strategy,
         String reasoning,
@@ -71,7 +71,7 @@ public record Classification(
      * @param reasoning the reasoning
      * @return new classification with EXPLICIT certainty and ANNOTATION strategy
      */
-    public static Classification explicit(String typeName, DomainKind kind, String reasoning) {
+    public static Classification explicit(String typeName, ElementKind kind, String reasoning) {
         return new Classification(
                 typeName,
                 kind,
@@ -94,7 +94,7 @@ public record Classification(
             String typeName, String reasoning, List<ClassificationEvidence> evidences) {
         return new Classification(
                 typeName,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 CertaintyLevel.CERTAIN_BY_STRUCTURE,
                 ClassificationStrategy.REPOSITORY,
                 reasoning,
@@ -112,7 +112,7 @@ public record Classification(
     public static Classification fromRecord(String typeName, String reasoning, List<ClassificationEvidence> evidences) {
         return new Classification(
                 typeName,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 CertaintyLevel.CERTAIN_BY_STRUCTURE,
                 ClassificationStrategy.RECORD,
                 reasoning,
@@ -129,7 +129,7 @@ public record Classification(
      * @return new classification with COMPOSITION strategy
      */
     public static Classification fromComposition(
-            String typeName, DomainKind kind, String reasoning, List<ClassificationEvidence> evidences) {
+            String typeName, ElementKind kind, String reasoning, List<ClassificationEvidence> evidences) {
         return new Classification(
                 typeName, kind, CertaintyLevel.INFERRED, ClassificationStrategy.COMPOSITION, reasoning, evidences);
     }

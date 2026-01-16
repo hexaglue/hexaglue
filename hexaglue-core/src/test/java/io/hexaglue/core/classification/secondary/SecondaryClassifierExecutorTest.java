@@ -15,6 +15,7 @@ package io.hexaglue.core.classification.secondary;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationContext;
 import io.hexaglue.spi.classification.ClassificationException;
@@ -24,7 +25,6 @@ import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
 import io.hexaglue.spi.core.TypeInfo;
 import io.hexaglue.spi.core.TypeKind;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -70,7 +70,7 @@ class SecondaryClassifierExecutorTest {
 
         // Then
         assertThat(result).isPresent();
-        assertThat(result.get().kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+        assertThat(result.get().kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         assertThat(diagnostics.getInfoMessages()).anyMatch(m -> m.contains("succeeded"));
     }
 
@@ -182,7 +182,7 @@ class SecondaryClassifierExecutorTest {
         TypeInfo type = createTestType("Order");
         PrimaryClassificationResult primary = new PrimaryClassificationResult(
                 "Order",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 CertaintyLevel.UNCERTAIN,
                 ClassificationStrategy.WEIGHTED,
                 "test",
@@ -193,7 +193,7 @@ class SecondaryClassifierExecutorTest {
 
         // Then
         assertThat(classifier.getCapturedPrimary()).isPresent();
-        assertThat(classifier.getCapturedPrimary().get().kind()).isEqualTo(DomainKind.ENTITY);
+        assertThat(classifier.getCapturedPrimary().get().kind()).isEqualTo(ElementKind.ENTITY);
     }
 
     // ========== HELPER METHODS ==========
@@ -218,7 +218,7 @@ class SecondaryClassifierExecutorTest {
         public SecondaryClassificationResult classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             return new SecondaryClassificationResult(
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     CertaintyLevel.INFERRED,
                     ClassificationStrategy.WEIGHTED,
                     "Test success",
@@ -352,7 +352,7 @@ class SecondaryClassifierExecutorTest {
                 Thread.currentThread().interrupt();
             }
             return new SecondaryClassificationResult(
-                    DomainKind.VALUE_OBJECT,
+                    ElementKind.VALUE_OBJECT,
                     CertaintyLevel.INFERRED,
                     ClassificationStrategy.WEIGHTED,
                     "Custom timeout test",

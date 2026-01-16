@@ -16,10 +16,10 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.domain.ValueObject;
 import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
 import io.hexaglue.plugin.jpa.util.TypeMappings;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainType;
 import io.hexaglue.spi.ir.JavaConstruct;
@@ -43,7 +43,7 @@ import java.util.Map;
  * @param nullability whether the field can be null (from SPI)
  * @param columnName the database column name (typically snake_case)
  * @param isEmbedded true if this property represents an embedded value object
- * @param isValueObject true if this property's type is a Value Object (from DomainKind)
+ * @param isValueObject true if this property's type is a Value Object (from ElementKind)
  * @param isEnum true if this property's type is a Java enum
  * @param typeQualifiedName the fully qualified name of the property's type
  * @param isWrappedForeignKey true if this property is a foreign key wrapper (e.g., CustomerId)
@@ -91,7 +91,7 @@ public record PropertyFieldSpec(
      * column name transformation, Value Object detection, and enum detection.
      *
      * <p>A property is considered a Value Object if its type is classified as
-     * {@link DomainKind#VALUE_OBJECT} in the provided list of all domain types.
+     * {@link ElementKind#VALUE_OBJECT} in the provided list of all domain types.
      *
      * <p>A property is considered an enum if its type has {@link JavaConstruct#ENUM}
      * in the provided list of all domain types. Enums require special JPA handling
@@ -242,7 +242,7 @@ public record PropertyFieldSpec(
         }
         // Accept both VALUE_OBJECT and IDENTIFIER kinds
         // Both are single-property wrappers that should be unwrapped
-        boolean isWrapper = type.isValueObject() || type.kind() == DomainKind.IDENTIFIER;
+        boolean isWrapper = type.isValueObject() || type.kind() == ElementKind.IDENTIFIER;
         return isWrapper
                 && type.construct() == JavaConstruct.RECORD
                 && type.properties().size() == 1;

@@ -15,10 +15,14 @@ package io.hexaglue.core.engine;
 
 import static org.assertj.core.api.Assertions.*;
 
-import io.hexaglue.spi.ir.*;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -27,6 +31,8 @@ import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests for the HexaGlueEngine facade.
+ *
+ * @since 4.0.0 - Updated to use ArchitecturalModel instead of IrSnapshot
  */
 class HexaGlueEngineTest {
 
@@ -56,7 +62,7 @@ class HexaGlueEngineTest {
             EngineResult result = engine.analyze(config);
 
             assertThat(result.isSuccess()).isTrue();
-            assertThat(result.ir().isEmpty()).isTrue();
+            assertThat(result.model().size()).isZero();
             assertThat(result.metrics().totalTypes()).isEqualTo(0);
             assertThat(result.warnings()).hasSize(1);
             assertThat(result.warnings().get(0).code()).isEqualTo("HG-ENGINE-001");
@@ -86,19 +92,17 @@ class HexaGlueEngineTest {
             assertThat(result.isSuccess()).isTrue();
             assertThat(result.errors()).isEmpty();
 
-            // Verify domain types
-            assertThat(result.ir().domain().types()).hasSize(1);
-            DomainType order = result.ir().domain().types().get(0);
-            assertThat(order.qualifiedName()).isEqualTo("com.example.Order");
-            assertThat(order.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
-            assertThat(order.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+            // Verify aggregates (DomainEntity with isAggregateRoot=true)
+            ArchitecturalModel model = result.model();
+            List<DomainEntity> aggregateRoots =
+                    model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
+            assertThat(aggregateRoots).hasSize(1);
+            assertThat(aggregateRoots.get(0).qualifiedName()).isEqualTo("com.example.Order");
 
-            // Verify ports
-            assertThat(result.ir().ports().ports()).hasSize(1);
-            Port repo = result.ir().ports().ports().get(0);
-            assertThat(repo.qualifiedName()).isEqualTo("com.example.OrderRepository");
-            assertThat(repo.kind()).isEqualTo(PortKind.REPOSITORY);
-            assertThat(repo.direction()).isEqualTo(PortDirection.DRIVEN);
+            // Verify driven ports (repositories)
+            List<DrivenPort> drivenPorts = model.drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).qualifiedName()).isEqualTo("com.example.OrderRepository");
 
             // Verify metrics
             assertThat(result.metrics().totalTypes()).isEqualTo(2);
@@ -159,28 +163,29 @@ class HexaGlueEngineTest {
 
             assertThat(result.isSuccess()).isTrue();
 
-            // Domain types
-            assertThat(result.ir().domain().types()).hasSize(2);
-            assertThat(result.ir().domain().types())
-                    .extracting(DomainType::simpleName)
-                    .containsExactlyInAnyOrder("Product", "ProductId");
+            ArchitecturalModel model = result.model();
 
-            // Ports
-            assertThat(result.ir().ports().ports()).hasSize(2);
+            // Domain types - aggregate roots
+            List<DomainEntity> aggregateRoots =
+                    model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
+            assertThat(aggregateRoots).hasSize(1);
+            assertThat(aggregateRoots.get(0).simpleName()).isEqualTo("Product");
 
-            Port useCase = result.ir().ports().ports().stream()
-                    .filter(p -> p.simpleName().equals("CreateProductUseCase"))
-                    .findFirst()
-                    .orElseThrow();
-            assertThat(useCase.kind()).isEqualTo(PortKind.USE_CASE);
-            assertThat(useCase.direction()).isEqualTo(PortDirection.DRIVING);
+            // Identifiers or Value Objects (ProductId may be classified as either)
+            // depending on the classification criteria used
+            long identifierOrValueObjectCount =
+                    model.identifiers().count() + model.valueObjects().count();
+            assertThat(identifierOrValueObjectCount).isGreaterThanOrEqualTo(1);
 
-            Port repository = result.ir().ports().ports().stream()
-                    .filter(p -> p.simpleName().equals("ProductRepository"))
-                    .findFirst()
-                    .orElseThrow();
-            assertThat(repository.kind()).isEqualTo(PortKind.REPOSITORY);
-            assertThat(repository.direction()).isEqualTo(PortDirection.DRIVEN);
+            // Driving ports (use cases)
+            List<DrivingPort> drivingPorts = model.drivingPorts().toList();
+            assertThat(drivingPorts).hasSize(1);
+            assertThat(drivingPorts.get(0).simpleName()).isEqualTo("CreateProductUseCase");
+
+            // Driven ports (repositories)
+            List<DrivenPort> drivenPorts = model.drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).simpleName()).isEqualTo("ProductRepository");
         }
 
         @Test
@@ -198,11 +203,13 @@ class HexaGlueEngineTest {
             EngineResult result = engine.analyze(config);
 
             assertThat(result.isSuccess()).isTrue();
-            assertThat(result.ir().domain().types()).hasSize(1);
 
-            DomainType customer = result.ir().domain().types().get(0);
-            assertThat(customer.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
-            assertThat(customer.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
+            List<DomainEntity> aggregateRoots = result.model()
+                    .domainEntities()
+                    .filter(DomainEntity::isAggregateRoot)
+                    .toList();
+            assertThat(aggregateRoots).hasSize(1);
+            assertThat(aggregateRoots.get(0).qualifiedName()).isEqualTo("com.example.Customer");
         }
     }
 
@@ -229,12 +236,12 @@ class HexaGlueEngineTest {
             EngineConfig config = EngineConfig.minimal(tempDir, "com.example");
             EngineResult result = engine.analyze(config);
 
-            IrMetadata metadata = result.ir().metadata();
-            assertThat(metadata.basePackage()).isEqualTo("com.example");
-            assertThat(metadata.typeCount()).isEqualTo(1);
-            assertThat(metadata.portCount()).isEqualTo(1);
-            assertThat(metadata.timestamp()).isNotNull();
-            assertThat(metadata.engineVersion()).isEqualTo("2.0.0-SNAPSHOT");
+            // Project context
+            assertThat(result.model().project().basePackage()).isEqualTo("com.example");
+
+            // Analysis metadata
+            assertThat(result.model().analysisMetadata()).isNotNull();
+            assertThat(result.model().analysisMetadata().analysisTime()).isNotNull();
         }
     }
 

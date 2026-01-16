@@ -20,21 +20,11 @@ import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.arch.ports.DrivingPort;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocPort;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocType;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
 import java.util.List;
 import java.util.Objects;
 
 /**
- * Factory for creating {@link DocumentationModel} from various sources.
- *
- * <p>Supports building from:
- * <ul>
- *   <li>{@link IrSnapshot} - Legacy API (v3)</li>
- *   <li>{@link ArchitecturalModel} - New unified API (v4)</li>
- * </ul>
+ * Factory for creating {@link DocumentationModel} from an {@link ArchitecturalModel}.
  *
  * @since 4.0.0
  */
@@ -42,39 +32,6 @@ public final class DocumentationModelFactory {
 
     private DocumentationModelFactory() {
         // Utility class
-    }
-
-    /**
-     * Creates a DocumentationModel from an IrSnapshot (legacy API).
-     *
-     * @param ir the IR snapshot
-     * @return the documentation model
-     * @throws NullPointerException if ir is null
-     */
-    public static DocumentationModel fromIrSnapshot(IrSnapshot ir) {
-        Objects.requireNonNull(ir, "ir must not be null");
-
-        List<DocType> aggregateRoots = ir.domain().aggregateRoots().stream()
-                .map(DocumentationModelFactory::toDocType)
-                .toList();
-
-        List<DocType> entities = ir.domain().typesOfKind(DomainKind.ENTITY).stream()
-                .map(DocumentationModelFactory::toDocType)
-                .toList();
-
-        List<DocType> valueObjects = ir.domain().valueObjects().stream()
-                .map(DocumentationModelFactory::toDocType)
-                .toList();
-
-        List<DocPort> drivingPorts = ir.ports().drivingPorts().stream()
-                .map(p -> toDocPort(p, "DRIVING"))
-                .toList();
-
-        List<DocPort> drivenPorts = ir.ports().drivenPorts().stream()
-                .map(p -> toDocPort(p, "DRIVEN"))
-                .toList();
-
-        return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
     }
 
     /**
@@ -109,47 +66,7 @@ public final class DocumentationModelFactory {
         return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
     }
 
-    // === Legacy (IrSnapshot) converters ===
-
-    private static DocType toDocType(DomainType type) {
-        return new DocType(
-                type.simpleName(),
-                type.packageName(),
-                type.qualifiedName(),
-                formatKind(type.kind()),
-                type.construct().toString(),
-                type.properties().size(),
-                "Classified as " + type.kind() + " with " + type.confidence() + " confidence");
-    }
-
-    private static DocPort toDocPort(Port port, String direction) {
-        return new DocPort(
-                port.simpleName(),
-                port.packageName(),
-                port.qualifiedName(),
-                port.kind().toString(),
-                direction,
-                port.methods().size(),
-                "Classified as " + port.kind());
-    }
-
-    private static String formatKind(DomainKind kind) {
-        return switch (kind) {
-            case AGGREGATE_ROOT -> "Aggregate Root";
-            case ENTITY -> "Entity";
-            case VALUE_OBJECT -> "Value Object";
-            case DOMAIN_EVENT -> "Domain Event";
-            case DOMAIN_SERVICE -> "Domain Service";
-            case APPLICATION_SERVICE -> "Application Service";
-            case IDENTIFIER -> "Identifier";
-            case INBOUND_ONLY -> "Inbound Only";
-            case OUTBOUND_ONLY -> "Outbound Only";
-            case SAGA -> "Saga";
-            case UNCLASSIFIED -> "Unclassified";
-        };
-    }
-
-    // === v4 (ArchitecturalModel) converters ===
+    // === Converters ===
 
     private static DocType toDocType(DomainEntity entity) {
         String kind = entity.isAggregateRoot() ? "Aggregate Root" : "Entity";

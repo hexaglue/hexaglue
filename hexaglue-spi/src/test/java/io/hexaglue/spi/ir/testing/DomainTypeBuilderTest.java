@@ -16,6 +16,7 @@ package io.hexaglue.spi.ir.testing;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -34,7 +35,7 @@ class DomainTypeBuilderTest {
             DomainType type =
                     DomainTypeBuilder.aggregateRoot("com.example.Order").build();
 
-            assertThat(type.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(type.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(type.qualifiedName()).isEqualTo("com.example.Order");
             assertThat(type.simpleName()).isEqualTo("Order");
             assertThat(type.packageName()).isEqualTo("com.example");
@@ -46,7 +47,7 @@ class DomainTypeBuilderTest {
         void shouldCreateEntity() {
             DomainType type = DomainTypeBuilder.entity("com.example.LineItem").build();
 
-            assertThat(type.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(type.kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(type.isEntity()).isTrue();
         }
 
@@ -56,7 +57,7 @@ class DomainTypeBuilderTest {
             DomainType type =
                     DomainTypeBuilder.valueObject("com.example.Address").build();
 
-            assertThat(type.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(type.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(type.construct()).isEqualTo(JavaConstruct.RECORD);
             assertThat(type.isValueObject()).isTrue();
         }
@@ -67,7 +68,7 @@ class DomainTypeBuilderTest {
             DomainType type =
                     DomainTypeBuilder.identifier("com.example.OrderId").build();
 
-            assertThat(type.kind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(type.kind()).isEqualTo(ElementKind.IDENTIFIER);
             assertThat(type.construct()).isEqualTo(JavaConstruct.RECORD);
         }
     }

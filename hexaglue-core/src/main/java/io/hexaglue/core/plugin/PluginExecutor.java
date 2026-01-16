@@ -18,7 +18,6 @@ import io.hexaglue.core.audit.DefaultArchitectureQuery;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.generation.PluginCategory;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.nio.file.Path;
@@ -28,6 +27,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.ServiceLoader;
 import java.util.Set;
@@ -44,8 +44,10 @@ import org.slf4j.LoggerFactory;
  *
  * <p>If a plugin's dependency fails, the dependent plugin will be skipped.
  *
- * <p>Each plugin receives a {@link PluginContext} with the analyzed IR and
+ * <p>Each plugin receives a {@link PluginContext} with the architectural model and
  * facilities for code generation.
+ *
+ * @since 4.0.0 - Removed IrSnapshot, uses ArchitecturalModel exclusively
  */
 public final class PluginExecutor {
 
@@ -58,29 +60,13 @@ public final class PluginExecutor {
     private final ArchitecturalModel architecturalModel;
 
     /**
-     * Creates a plugin executor.
+     * Creates a plugin executor with the v4 ArchitecturalModel.
      *
      * @param outputDirectory the directory for generated sources
      * @param pluginConfigs plugin configurations keyed by plugin ID
      * @param graph the application graph for architecture analysis (may be null)
      * @param enabledCategories plugin categories to execute (null or empty for all categories)
-     */
-    public PluginExecutor(
-            Path outputDirectory,
-            Map<String, Map<String, Object>> pluginConfigs,
-            ApplicationGraph graph,
-            Set<PluginCategory> enabledCategories) {
-        this(outputDirectory, pluginConfigs, graph, enabledCategories, null);
-    }
-
-    /**
-     * Creates a plugin executor with v4 ArchitecturalModel support.
-     *
-     * @param outputDirectory the directory for generated sources
-     * @param pluginConfigs plugin configurations keyed by plugin ID
-     * @param graph the application graph for architecture analysis (may be null)
-     * @param enabledCategories plugin categories to execute (null or empty for all categories)
-     * @param architecturalModel the v4 architectural model (may be null for legacy mode)
+     * @param architecturalModel the v4 architectural model (must not be null)
      * @since 4.0.0
      */
     public PluginExecutor(
@@ -93,7 +79,7 @@ public final class PluginExecutor {
         this.pluginConfigs = pluginConfigs;
         this.graph = graph;
         this.enabledCategories = enabledCategories;
-        this.architecturalModel = architecturalModel;
+        this.architecturalModel = Objects.requireNonNull(architecturalModel, "architecturalModel must not be null");
     }
 
     /**
@@ -102,13 +88,13 @@ public final class PluginExecutor {
      * <p>Plugins are sorted topologically based on their declared dependencies.
      * If a plugin fails, any plugins depending on it will be skipped.
      *
-     * @param ir the analyzed IR
      * @return the execution result
      * @throws PluginDependencyException if a plugin depends on an unknown plugin
      * @throws PluginCyclicDependencyException if cyclic dependencies are detected
+     * @since 4.0.0
      */
-    public PluginExecutionResult execute(IrSnapshot ir) {
-        return execute(ir, List.of());
+    public PluginExecutionResult execute() {
+        return execute(List.of());
     }
 
     /**
@@ -121,15 +107,14 @@ public final class PluginExecutor {
      * <p>Plugins are sorted topologically based on their declared dependencies.
      * If a plugin fails, any plugins depending on it will be skipped.
      *
-     * @param ir the analyzed IR
      * @param primaryClassifications the primary classification results from the engine
      * @return the execution result
      * @throws PluginDependencyException if a plugin depends on an unknown plugin
      * @throws PluginCyclicDependencyException if cyclic dependencies are detected
-     * @since 3.0.0
+     * @since 4.0.0
      */
     public PluginExecutionResult execute(
-            IrSnapshot ir, List<io.hexaglue.spi.classification.PrimaryClassificationResult> primaryClassifications) {
+            List<io.hexaglue.spi.classification.PrimaryClassificationResult> primaryClassifications) {
         List<HexaGluePlugin> plugins = discoverPlugins();
         log.info("Discovered {} plugins", plugins.size());
 
@@ -183,7 +168,7 @@ public final class PluginExecutor {
                 continue;
             }
 
-            PluginResult result = executePlugin(plugin, ir, outputStore, graph);
+            PluginResult result = executePlugin(plugin, outputStore, graph);
             results.add(result);
 
             if (!result.success()) {
@@ -276,8 +261,7 @@ public final class PluginExecutor {
         return sorted;
     }
 
-    private PluginResult executePlugin(
-            HexaGluePlugin plugin, IrSnapshot ir, PluginOutputStore outputStore, ApplicationGraph graph) {
+    private PluginResult executePlugin(HexaGluePlugin plugin, PluginOutputStore outputStore, ApplicationGraph graph) {
         String pluginId = plugin.id();
         log.info("Executing plugin: {}", pluginId);
 
@@ -285,14 +269,13 @@ public final class PluginExecutor {
         FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDirectory);
         MapPluginConfig config = new MapPluginConfig(pluginConfigs.getOrDefault(pluginId, Map.of()));
 
-        // Create ArchitectureQuery from graph if available, with port and domain information
-        ArchitectureQuery architectureQuery = graph != null
-                ? new DefaultArchitectureQuery(graph, ir != null ? ir.ports() : null, ir != null ? ir.domain() : null)
-                : null;
+        // Create ArchitectureQuery from graph if available
+        // Note: PortModel and DomainModel are no longer used (v4 uses ArchitecturalModel)
+        ArchitectureQuery architectureQuery = graph != null ? new DefaultArchitectureQuery(graph) : null;
 
-        // Create context with v4 ArchitecturalModel support
+        // Create context with v4 ArchitecturalModel
         PluginContext context = new DefaultPluginContext(
-                pluginId, ir, architecturalModel, config, writer, diagnostics, outputStore, architectureQuery);
+                pluginId, architecturalModel, config, writer, diagnostics, outputStore, architectureQuery);
 
         try {
             long start = System.currentTimeMillis();

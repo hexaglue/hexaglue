@@ -45,7 +45,7 @@ import java.util.regex.Pattern;
  * }</pre>
  *
  * @param excludePatterns glob patterns for types to exclude from classification
- * @param explicitClassifications explicit type-to-kind mappings (FQN to DomainKind name)
+ * @param explicitClassifications explicit type-to-kind mappings (FQN to ElementKind name)
  * @param validationConfig validation settings
  * @since 3.0.0
  */
@@ -236,7 +236,7 @@ public record ClassificationConfig(
         /**
          * Sets the explicit classifications.
          *
-         * @param classifications map of FQN to DomainKind name
+         * @param classifications map of FQN to ElementKind name
          * @return this builder
          */
         public Builder explicitClassifications(Map<String, String> classifications) {

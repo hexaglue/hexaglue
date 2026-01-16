@@ -31,7 +31,7 @@ import io.hexaglue.core.graph.query.GraphQuery;
  *   <li>ImmutableNoIdCriteria - matches immutable types without id field (VALUE_OBJECT)</li>
  * </ul>
  *
- * @param <K> the kind enum type (e.g., DomainKind, PortKind)
+ * @param <K> the kind enum type (e.g., ElementKind, PortKind)
  */
 public interface ClassificationCriteria<K extends Enum<K>> {
 
@@ -62,7 +62,7 @@ public interface ClassificationCriteria<K extends Enum<K>> {
     /**
      * Returns the classification kind this criteria targets.
      *
-     * <p>Examples: DomainKind.AGGREGATE_ROOT, PortKind.REPOSITORY
+     * <p>Examples: ElementKind.AGGREGATE_ROOT, PortKind.REPOSITORY
      */
     K targetKind();
 

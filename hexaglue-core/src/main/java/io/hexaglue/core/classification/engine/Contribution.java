@@ -30,7 +30,7 @@ import java.util.Optional;
  *
  * <p>Metadata can be used to attach additional information like port direction.
  *
- * @param <K> the kind type (e.g., DomainKind, PortKind)
+ * @param <K> the kind type (e.g., ElementKind, PortKind)
  * @param kind the classification kind this contribution votes for
  * @param criteriaName the name of the criteria that produced this contribution
  * @param priority the priority of the criteria (higher wins)

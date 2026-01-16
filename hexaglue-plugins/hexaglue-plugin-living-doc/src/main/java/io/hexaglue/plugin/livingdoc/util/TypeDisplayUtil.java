@@ -13,8 +13,8 @@
 
 package io.hexaglue.plugin.livingdoc.util;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortKind;
 
@@ -66,23 +66,29 @@ public final class TypeDisplayUtil {
     }
 
     /**
-     * Formats a DomainKind for human-readable display.
+     * Formats a ElementKind for human-readable display.
      *
      * @param kind the domain kind to format
      * @return formatted kind name
      */
-    public static String formatKind(DomainKind kind) {
+    public static String formatKind(ElementKind kind) {
         return switch (kind) {
+            case AGGREGATE -> "Aggregate";
             case AGGREGATE_ROOT -> "Aggregate Root";
             case ENTITY -> "Entity";
             case VALUE_OBJECT -> "Value Object";
             case IDENTIFIER -> "Identifier";
             case DOMAIN_EVENT -> "Domain Event";
+            case EXTERNALIZED_EVENT -> "Externalized Event";
             case DOMAIN_SERVICE -> "Domain Service";
             case APPLICATION_SERVICE -> "Application Service";
             case INBOUND_ONLY -> "Inbound Only";
             case OUTBOUND_ONLY -> "Outbound Only";
             case SAGA -> "Saga";
+            case DRIVING_PORT -> "Driving Port";
+            case DRIVEN_PORT -> "Driven Port";
+            case DRIVING_ADAPTER -> "Driving Adapter";
+            case DRIVEN_ADAPTER -> "Driven Adapter";
             case UNCLASSIFIED -> "Unclassified";
         };
     }
@@ -141,17 +147,17 @@ public final class TypeDisplayUtil {
     /**
      * Formats a domain kind string for human-readable display.
      *
-     * <p>Delegates to {@link #formatKind(DomainKind)} after parsing the string.
+     * <p>Delegates to {@link #formatKind(ElementKind)} after parsing the string.
      *
      * @param kind the domain kind string (e.g., "AGGREGATE_ROOT")
      * @return formatted kind name, or "Unknown" if null, or the original string if not a valid enum value
      */
-    public static String formatDomainKind(String kind) {
+    public static String formatElementKind(String kind) {
         if (kind == null) {
             return "Unknown";
         }
         try {
-            return formatKind(DomainKind.valueOf(kind));
+            return formatKind(ElementKind.valueOf(kind));
         } catch (IllegalArgumentException e) {
             return kind;
         }
@@ -222,18 +228,24 @@ public final class TypeDisplayUtil {
      * @param kind the domain kind
      * @return stereotype label for UML diagrams
      */
-    public static String getStereotype(DomainKind kind) {
+    public static String getStereotype(ElementKind kind) {
         return switch (kind) {
+            case AGGREGATE -> "Aggregate";
             case AGGREGATE_ROOT -> "Aggregate Root";
             case ENTITY -> "Entity";
             case VALUE_OBJECT -> "Value Object";
             case IDENTIFIER -> "Identifier";
             case DOMAIN_EVENT -> "Event";
+            case EXTERNALIZED_EVENT -> "Externalized Event";
             case DOMAIN_SERVICE -> "Domain Service";
             case APPLICATION_SERVICE -> "Application Service";
             case INBOUND_ONLY -> "Inbound Only";
             case OUTBOUND_ONLY -> "Outbound Only";
             case SAGA -> "Saga";
+            case DRIVING_PORT -> "Driving Port";
+            case DRIVEN_PORT -> "Driven Port";
+            case DRIVING_ADAPTER -> "Driving Adapter";
+            case DRIVEN_ADAPTER -> "Driven Adapter";
             case UNCLASSIFIED -> "Unclassified";
         };
     }
@@ -241,7 +253,7 @@ public final class TypeDisplayUtil {
     /**
      * Gets a stereotype label for domain types in diagrams.
      *
-     * <p>Delegates to {@link #getStereotype(DomainKind)} after parsing the string.
+     * <p>Delegates to {@link #getStereotype(ElementKind)} after parsing the string.
      *
      * @param kind the domain kind string
      * @return stereotype label for UML diagrams, or null if null/invalid
@@ -251,7 +263,7 @@ public final class TypeDisplayUtil {
             return null;
         }
         try {
-            return getStereotype(DomainKind.valueOf(kind));
+            return getStereotype(ElementKind.valueOf(kind));
         } catch (IllegalArgumentException e) {
             return null;
         }

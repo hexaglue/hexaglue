@@ -13,11 +13,11 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -35,7 +35,7 @@ import java.util.List;
  * <p>Priority: 100 (explicit declaration)
  * <p>Confidence: EXPLICIT
  */
-public final class ExplicitIdentifierCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class ExplicitIdentifierCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     public static final String INTERFACE_QUALIFIED_NAME = "org.jmolecules.ddd.types.Identifier";
     public static final String ANNOTATION_SIMPLE_NAME = "Identifier";
@@ -56,8 +56,8 @@ public final class ExplicitIdentifierCriteria implements ClassificationCriteria<
     }
 
     @Override
-    public DomainKind targetKind() {
-        return DomainKind.IDENTIFIER;
+    public ElementKind targetKind() {
+        return ElementKind.IDENTIFIER;
     }
 
     @Override

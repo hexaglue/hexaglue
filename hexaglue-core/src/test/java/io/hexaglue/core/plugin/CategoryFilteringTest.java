@@ -15,8 +15,9 @@ package io.hexaglue.core.plugin;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.spi.generation.PluginCategory;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
@@ -31,14 +32,18 @@ class CategoryFilteringTest {
     @TempDir
     Path tempDir;
 
+    private ArchitecturalModel emptyModel() {
+        return ArchitecturalModel.builder(ProjectContext.forTesting("test-project", "com.example"))
+                .build();
+    }
+
     @Test
     void executeWithNullCategories_executesAllPlugins() {
         // Given: null categories means execute all plugins
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, null);
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, null, emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Should attempt to execute all discovered plugins (if any)
         assertThat(result).isNotNull();
@@ -48,11 +53,10 @@ class CategoryFilteringTest {
     @Test
     void executeWithEmptyCategories_executesAllPlugins() {
         // Given: empty set means execute all plugins
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of());
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of(), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Should attempt to execute all discovered plugins (if any)
         assertThat(result).isNotNull();
@@ -62,11 +66,11 @@ class CategoryFilteringTest {
     @Test
     void executeWithGeneratorCategory_filtersPlugins() {
         // Given: only GENERATOR plugins should run
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.GENERATOR));
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor =
+                new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Successfully filtered (even if no generator plugins are found in test env)
         assertThat(result).isNotNull();
@@ -76,11 +80,11 @@ class CategoryFilteringTest {
     @Test
     void executeWithAuditCategory_filtersPlugins() {
         // Given: only AUDIT plugins should run
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.AUDIT));
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor =
+                new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.AUDIT), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Successfully filtered
         assertThat(result).isNotNull();
@@ -90,12 +94,11 @@ class CategoryFilteringTest {
     @Test
     void executeWithMultipleCategories_filtersPlugins() {
         // Given: both GENERATOR and AUDIT plugins should run
-        PluginExecutor executor =
-                new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.GENERATOR, PluginCategory.AUDIT));
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor = new PluginExecutor(
+                tempDir, Map.of(), null, Set.of(PluginCategory.GENERATOR, PluginCategory.AUDIT), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Successfully filtered
         assertThat(result).isNotNull();
@@ -105,11 +108,11 @@ class CategoryFilteringTest {
     @Test
     void executeWithEnrichmentCategory_filtersPlugins() {
         // Given: only ENRICHMENT plugins should run
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.ENRICHMENT));
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor =
+                new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.ENRICHMENT), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Successfully filtered
         assertThat(result).isNotNull();
@@ -119,11 +122,11 @@ class CategoryFilteringTest {
     @Test
     void executeWithAnalysisCategory_filtersPlugins() {
         // Given: only ANALYSIS plugins should run
-        PluginExecutor executor = new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.ANALYSIS));
-        IrSnapshot ir = IrSnapshot.empty("com.example");
+        PluginExecutor executor =
+                new PluginExecutor(tempDir, Map.of(), null, Set.of(PluginCategory.ANALYSIS), emptyModel());
 
         // When
-        PluginExecutionResult result = executor.execute(ir);
+        PluginExecutionResult result = executor.execute();
 
         // Then: Successfully filtered
         assertThat(result).isNotNull();
