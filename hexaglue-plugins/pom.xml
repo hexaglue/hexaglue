@@ -40,13 +40,7 @@
                 <artifactId>hexaglue-spi</artifactId>
                 <version>${hexaglue.version}</version>
             </dependency>
-            <!-- HexaGlue SPI v4 extension (for ArchitecturalModel support) -->
-            <dependency>
-                <groupId>io.hexaglue</groupId>
-                <artifactId>hexaglue-spi-arch</artifactId>
-                <version>${hexaglue.version}</version>
-            </dependency>
-            <!-- HexaGlue Arch (transitive from spi-arch) -->
+            <!-- HexaGlue Arch -->
             <dependency>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-arch</artifactId>

@@ -15,9 +15,9 @@ package io.hexaglue.core.classification.domain.criteria;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -78,7 +78,7 @@ class DomainCriteriaTest {
             assertThat(result.matched()).isTrue();
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.justification()).contains("@AggregateRoot");
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(criteria.priority()).isEqualTo(100);
         }
 
@@ -121,7 +121,7 @@ class DomainCriteriaTest {
 
             assertThat(result.matched()).isTrue();
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.ENTITY);
         }
     }
 
@@ -146,7 +146,7 @@ class DomainCriteriaTest {
 
             assertThat(result.matched()).isTrue();
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.VALUE_OBJECT);
         }
     }
 
@@ -171,7 +171,7 @@ class DomainCriteriaTest {
             assertThat(result.matched()).isTrue();
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.justification()).contains("Identifier");
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.IDENTIFIER);
         }
     }
 
@@ -209,7 +209,7 @@ class DomainCriteriaTest {
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(result.justification()).contains("repository");
             assertThat(result.justification()).contains("id");
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(criteria.priority()).isEqualTo(80);
         }
 
@@ -284,7 +284,7 @@ class DomainCriteriaTest {
             assertThat(result.matched()).isTrue();
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(result.justification()).contains("OrderId");
-            assertThat(criteria.targetKind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.IDENTIFIER);
             assertThat(criteria.priority()).isEqualTo(80);
         }
 

@@ -19,14 +19,10 @@ import io.hexaglue.plugin.livingdoc.mermaid.MermaidBuilder;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocPort;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocType;
-import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.List;
 
 /**
  * Generates the architecture overview documentation.
- *
- * <p>This generator supports both legacy {@code IrSnapshot} and v4 {@code DocumentationModel}.
  *
  * @since 4.0.0 - Migrated to DocumentationModel abstraction
  */
@@ -41,18 +37,6 @@ public final class OverviewGenerator {
      */
     public OverviewGenerator(DocumentationModel model) {
         this.model = model;
-    }
-
-    /**
-     * Creates an OverviewGenerator from an IrSnapshot (legacy).
-     *
-     * @param ir the IR snapshot
-     * @deprecated Use {@link #OverviewGenerator(DocumentationModel)} with
-     * {@link DocumentationModelFactory#fromIrSnapshot(IrSnapshot)}
-     */
-    @Deprecated(since = "4.0.0")
-    public OverviewGenerator(IrSnapshot ir) {
-        this(DocumentationModelFactory.fromIrSnapshot(ir));
     }
 
     public String generate(boolean includeDiagram) {

@@ -21,12 +21,20 @@
     </properties>
 
     <!--
-        This module has ZERO external dependencies by design.
-        Plugins should depend ONLY on this module.
+        Since v4.0.0, this module depends on hexaglue-arch for ArchitecturalModel.
+        The previous "ZERO dependencies" constraint was for v3 backward compatibility
+        which is no longer needed since all plugins now require ArchitecturalModel.
     -->
 
     <dependencies>
-        <!-- Test dependencies only -->
+        <!-- Architectural model (v4) -->
+        <dependency>
+            <groupId>io.hexaglue</groupId>
+            <artifactId>hexaglue-arch</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Test dependencies -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

@@ -13,23 +13,24 @@
 
 package io.hexaglue.core.engine;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.nio.file.Path;
 import java.util.List;
 
 /**
  * Result of the HexaGlue analysis.
  *
- * @param ir the intermediate representation (never null)
+ * @param model the architectural model (never null)
  * @param diagnostics any warnings or errors encountered during analysis
  * @param metrics analysis metrics
  * @param pluginResult results from plugin execution (null if plugins not enabled)
  * @param primaryClassifications the primary classification results for validation (since 3.0.0)
+ * @since 4.0.0 - Changed from IrSnapshot to ArchitecturalModel
  */
 public record EngineResult(
-        IrSnapshot ir,
+        ArchitecturalModel model,
         List<Diagnostic> diagnostics,
         EngineMetrics metrics,
         PluginExecutionResult pluginResult,
@@ -39,11 +40,11 @@ public record EngineResult(
      * Creates a result without plugin execution.
      */
     public static EngineResult withoutPlugins(
-            IrSnapshot ir,
+            ArchitecturalModel model,
             List<Diagnostic> diagnostics,
             EngineMetrics metrics,
             List<PrimaryClassificationResult> primaryClassifications) {
-        return new EngineResult(ir, diagnostics, metrics, null, primaryClassifications);
+        return new EngineResult(model, diagnostics, metrics, null, primaryClassifications);
     }
 
     /**

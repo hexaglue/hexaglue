@@ -38,7 +38,6 @@ import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.plugin.audit.domain.service.AuditOrchestrator;
 import io.hexaglue.plugin.audit.domain.service.ConstraintEngine;
 import io.hexaglue.plugin.audit.domain.service.MetricAggregator;
-import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.audit.ArchitectureMetrics;
 import io.hexaglue.spi.audit.AuditContext;
 import io.hexaglue.spi.audit.AuditMetadata;
@@ -55,7 +54,6 @@ import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.audit.QualityMetrics;
 import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
@@ -117,14 +115,14 @@ public class DddAuditPlugin implements AuditPlugin {
      * @param domainResult the domain audit result (for metrics and violations)
      * @param config the audit configuration (for constraint IDs)
      * @param architectureQuery the architecture query from core (may be null)
-     * @param ir the IR snapshot for inventory building
+     * @param model the architectural model for inventory building
      */
     private record AuditExecutionResult(
             AuditSnapshot snapshot,
             AuditResult domainResult,
             AuditConfiguration config,
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery,
-            IrSnapshot ir) {}
+            ArchitecturalModel model) {}
 
     /**
      * Default constructor for ServiceLoader.
@@ -330,14 +328,8 @@ public class DddAuditPlugin implements AuditPlugin {
     @Override
     public void execute(PluginContext context) {
         try {
-            // Capture v4 ArchitecturalModel if available
-            this.archModel = PluginContexts.getModel(context).orElse(null);
-
-            // Require v4 ArchitecturalModel for audit
-            if (archModel == null) {
-                context.diagnostics().error("v4 ArchitecturalModel is required for audit. Please ensure the model is available.");
-                return;
-            }
+            // Capture v4 ArchitecturalModel
+            this.archModel = context.model();
             Codebase codebase = buildCodebaseFromModel(archModel);
 
             // Get architecture query from core if available
@@ -349,7 +341,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
             // Execute audit (returns snapshot, result, and query for report generation)
             AuditExecutionResult executionResult =
-                    executeDomainAudit(codebase, coreQuery, config, context.diagnostics(), context.ir());
+                    executeDomainAudit(codebase, coreQuery, config, context.diagnostics(), archModel);
 
             // Generate reports using the execution result
             generateReports(executionResult, context);
@@ -432,7 +424,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * @param coreQuery the architecture query from core (may be null)
      * @param config the audit configuration
      * @param diagnostics the diagnostics handler
-     * @param ir the IR snapshot for inventory building
+     * @param model the architectural model for inventory building
      * @return the audit execution result containing snapshot and domain data
      * @throws Exception if audit fails
      */
@@ -441,7 +433,7 @@ public class DddAuditPlugin implements AuditPlugin {
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery,
             AuditConfiguration config,
             io.hexaglue.spi.plugin.DiagnosticReporter diagnostics,
-            IrSnapshot ir)
+            ArchitecturalModel model)
             throws Exception {
 
         Instant startTime = Instant.now();
@@ -475,7 +467,7 @@ public class DddAuditPlugin implements AuditPlugin {
         AuditSnapshot snapshot = convertToAuditSnapshot(result, codebase, duration, coreQuery, config);
 
         // Return all data needed for report generation
-        return new AuditExecutionResult(snapshot, result, config, coreQuery, ir);
+        return new AuditExecutionResult(snapshot, result, config, coreQuery, model);
     }
 
     /**
@@ -496,13 +488,13 @@ public class DddAuditPlugin implements AuditPlugin {
             AuditResult domainResult = executionResult.domainResult();
             AuditConfiguration config = executionResult.config();
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
-            IrSnapshot ir = executionResult.ir();
+            ArchitecturalModel model = executionResult.model();
 
             // Build unified report model
             List<String> constraintIds = new ArrayList<>(config.enabledConstraints());
 
-            // Extract project name from IR or use codebase name
-            String projectName = inferProjectName(ir);
+            // Extract project name from model
+            String projectName = inferProjectName(model);
 
             // Build complete report with all enriched data
             AuditReport report = AuditReport.fromComplete(
@@ -511,7 +503,7 @@ public class DddAuditPlugin implements AuditPlugin {
                     domainResult.metrics(),
                     constraintIds,
                     architectureQuery,
-                    ir,
+                    model,
                     domainResult.violations());
 
             // Always generate console output
@@ -565,18 +557,19 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Gets project name from IR metadata.
+     * Gets project name from architectural model.
      *
-     * <p>Uses the project name from IrMetadata which is populated by the Maven plugin
-     * from the project's pom.xml. Falls back to the inferred name from metadata
+     * <p>Uses the project name from the model's project context which is populated
+     * by the Maven plugin from the project's pom.xml. Falls back to "Unknown Project"
      * if not explicitly set.
      *
-     * @param ir the IR snapshot
+     * @param model the architectural model
      * @return the project name
      */
-    private String inferProjectName(IrSnapshot ir) {
-        // Use project name from IR metadata (set by Maven plugin)
-        return ir.metadata().projectName();
+    private String inferProjectName(ArchitecturalModel model) {
+        // Use project name from model's project context (set by Maven plugin)
+        String name = model.project().name();
+        return name != null ? name : "Unknown Project";
     }
 
     /**
@@ -605,7 +598,6 @@ public class DddAuditPlugin implements AuditPlugin {
         }
         return formats;
     }
-
 
     /**
      * Checks if a type is primitive or a standard library type.

@@ -15,6 +15,7 @@ package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.domain.DomainClassifier;
 import io.hexaglue.core.classification.port.PortClassifier;
@@ -119,7 +120,7 @@ class IrExporterTest {
             DomainType order = snapshot.domain().types().get(0);
             assertThat(order.qualifiedName()).isEqualTo("com.example.Order");
             assertThat(order.simpleName()).isEqualTo("Order");
-            assertThat(order.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(order.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(order.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(order.construct()).isEqualTo(JavaConstruct.CLASS);
 
@@ -211,7 +212,7 @@ class IrExporterTest {
             assertThat(snapshot.domain().types()).hasSize(1);
             DomainType money = snapshot.domain().types().get(0);
             assertThat(money.qualifiedName()).isEqualTo("com.example.Money");
-            assertThat(money.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(money.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(money.construct()).isEqualTo(JavaConstruct.RECORD);
             assertThat(money.hasIdentity()).isFalse();
 
@@ -238,7 +239,7 @@ class IrExporterTest {
             assertThat(snapshot.domain().types()).hasSize(1);
             DomainType orderId = snapshot.domain().types().get(0);
             assertThat(orderId.qualifiedName()).isEqualTo("com.example.OrderId");
-            assertThat(orderId.kind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(orderId.kind()).isEqualTo(ElementKind.IDENTIFIER);
             assertThat(orderId.construct()).isEqualTo(JavaConstruct.RECORD);
         }
 
@@ -262,7 +263,7 @@ class IrExporterTest {
 
             assertThat(snapshot.domain().types()).hasSize(1);
             DomainType lineItem = snapshot.domain().types().get(0);
-            assertThat(lineItem.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(lineItem.kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(lineItem.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
 
             // Verify annotations are captured

@@ -26,10 +26,6 @@
             <groupId>io.hexaglue</groupId>
             <artifactId>hexaglue-spi</artifactId>
         </dependency>
-        <dependency>
-            <groupId>io.hexaglue</groupId>
-            <artifactId>hexaglue-spi-arch</artifactId>
-        </dependency>
 
         <!-- Spoon for Java source analysis -->
         <dependency>

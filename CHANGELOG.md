@@ -7,6 +7,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.0.0] - 2026-01-16
+
+### Breaking Changes
+
+- **`PluginContext.ir()` removed** - Plugins must now use `context.model()` to access the `ArchitecturalModel`.
+  Migration: Replace `context.ir()` with `context.model()` and adapt to the new API.
+
+- **`EngineResult.ir()` removed** - Engine results now provide `model()` instead.
+  Migration: Use `result.model()` to access the unified architectural model.
+
+- **`PluginExecutor` no longer accepts `IrSnapshot`** - The executor now works exclusively with `ArchitecturalModel`.
+
+### Deprecated
+
+- **`io.hexaglue.spi.ir` package** - The entire IR package is deprecated and scheduled for removal in v5.0.0.
+  - `IrSnapshot` - Use `ArchitecturalModel` instead
+  - `DomainModel` - Use `model.query().aggregates()`, `model.query().valueObjects()`, etc.
+  - `DomainType` - Use `ArchElement` subtypes (`Aggregate`, `DomainEntity`, `ValueObject`, etc.)
+  - `PortModel` - Use `model.query().ports()`, `model.query().drivenPorts()`, etc.
+  - `Port` - Use `DrivingPort` or `DrivenPort` from `ArchitecturalModel`
+  - `IrMetadata` - Use `ProjectContext` via `model.project()`
+
+- **`hexaglue-spi-arch` module** - Will be merged into `hexaglue-spi` in v5.0.0.
+  - `ArchModelPluginContext` - No longer needed, use `PluginContext.model()` directly
+  - `PluginContexts` - No longer needed, use `context.model()` directly
+
+### Added
+
+- **`PluginContext.model()`** - Direct access to `ArchitecturalModel` from plugin context
+- **`ElementKind` enhancements** - New classification kinds:
+  - `INBOUND_ONLY` - ApplicationService that receives commands
+  - `OUTBOUND_ONLY` - ApplicationService that emits events
+  - `SAGA` - ApplicationService that orchestrates
+  - `isApplicationService()` helper method
+
+### Changed
+
+- **Unified architectural model** - All plugins now use the unified `ArchitecturalModel` instead of the legacy IR.
+- **`DefaultPluginContext`** - Rewritten to work directly with `ArchitecturalModel`, no longer maintains IR reference.
+- **`DefaultHexaGlueEngine`** - No longer uses `IrExporter` in the main pipeline.
+
+### Migration Guide
+
+```java
+// Before (v3.x)
+IrSnapshot ir = context.ir();
+String basePackage = ir.metadata().basePackage();
+ir.domain().aggregateRoots().forEach(type -> {
+    String name = type.simpleName();
+    // ...
+});
+
+// After (v4.x)
+ArchitecturalModel model = context.model();
+String basePackage = model.project().basePackage();
+model.query().aggregates().forEach(agg -> {
+    String name = agg.simpleName();
+    // ...
+});
+```
+
+---
+
+## [3.x] - Previous Releases
+
 ### Added
 
 - **Audit rules implementation** - Graph-aware code quality rules

@@ -13,29 +13,28 @@
 
 package io.hexaglue.plugin.audit.domain.service;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.DomainEvent;
+import io.hexaglue.arch.domain.DomainService;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.ports.ApplicationService;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
-import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.BoundedContextInfo;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.SourceRef;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
- * Builds component inventory from the IR snapshot.
+ * Builds component inventory from the architectural model.
  *
- * <p>This service analyzes the IrSnapshot to count and categorize all domain
+ * <p>This service analyzes the ArchitecturalModel to count and categorize all domain
  * types and ports, producing a ComponentInventory for reporting.
  *
  * <p>Bounded contexts are obtained from the core's {@link ArchitectureQuery#findBoundedContexts()},
@@ -43,58 +42,62 @@ import java.util.stream.Collectors;
  * principle: "the core generates data, plugins consume it".
  *
  * @since 1.0.0
+ * @since 4.0.0 - Migrated from IrSnapshot to ArchitecturalModel
  */
 public class InventoryBuilder {
 
     private static final int MAX_EXAMPLES = 3;
 
     /**
-     * Builds a component inventory from the IR snapshot using the architecture query.
+     * Builds a component inventory from the architectural model using the architecture query.
      *
      * <p>Bounded contexts are obtained from {@link ArchitectureQuery#findBoundedContexts()},
      * ensuring consistency with the core's analysis.
      *
-     * @param ir                the IR snapshot to analyze
+     * @param model             the architectural model to analyze
      * @param architectureQuery the architecture query for bounded context detection
      * @return a ComponentInventory with counts by type
-     * @throws NullPointerException if ir or architectureQuery is null
+     * @throws NullPointerException if model or architectureQuery is null
      */
-    public ComponentInventory build(IrSnapshot ir, ArchitectureQuery architectureQuery) {
-        Objects.requireNonNull(ir, "ir required");
+    public ComponentInventory build(ArchitecturalModel model, ArchitectureQuery architectureQuery) {
+        Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(architectureQuery, "architectureQuery required");
 
-        // Group domain types by kind
-        Map<DomainKind, List<DomainType>> typesByKind =
-                ir.domain().types().stream().collect(Collectors.groupingBy(DomainType::kind));
-
-        // Group ports by direction
-        Map<PortDirection, List<Port>> portsByDirection =
-                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
+        // Collect domain elements from model
+        List<DomainEntity> aggregates =
+                model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
+        List<DomainEntity> entities =
+                model.domainEntities().filter(e -> !e.isAggregateRoot()).toList();
+        List<ValueObject> valueObjects = model.valueObjects().toList();
+        List<DomainEvent> domainEvents = model.domainEvents().toList();
+        List<DomainService> domainServices = model.domainServices().toList();
+        List<ApplicationService> appServices = model.applicationServices().toList();
+        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
 
         // Extract examples (simple names, limited)
-        List<String> aggregateExamples = extractTypeExamples(typesByKind.get(DomainKind.AGGREGATE_ROOT));
-        List<String> entityExamples = extractTypeExamples(typesByKind.get(DomainKind.ENTITY));
-        List<String> voExamples = extractTypeExamples(typesByKind.get(DomainKind.VALUE_OBJECT));
-        List<String> eventExamples = extractTypeExamples(typesByKind.get(DomainKind.DOMAIN_EVENT));
-        List<String> serviceExamples = extractTypeExamples(typesByKind.get(DomainKind.DOMAIN_SERVICE));
-        List<String> drivingExamples = extractPortExamples(portsByDirection.get(PortDirection.DRIVING));
-        List<String> drivenExamples = extractPortExamples(portsByDirection.get(PortDirection.DRIVEN));
+        List<String> aggregateExamples = extractExamples(aggregates.stream().map(e -> e.id().simpleName()));
+        List<String> entityExamples = extractExamples(entities.stream().map(e -> e.id().simpleName()));
+        List<String> voExamples =
+                extractExamples(valueObjects.stream().map(vo -> vo.id().simpleName()));
+        List<String> eventExamples =
+                extractExamples(domainEvents.stream().map(ev -> ev.id().simpleName()));
+        List<String> serviceExamples = extractExamples(domainServices.stream().map(s -> s.id().simpleName()));
+        List<String> drivingExamples = extractExamples(drivingPorts.stream().map(p -> p.id().simpleName()));
+        List<String> drivenExamples = extractExamples(drivenPorts.stream().map(p -> p.id().simpleName()));
 
         // Build bounded context statistics from architecture query
-        List<BoundedContextStats> bcStats = buildBoundedContextStats(ir, architectureQuery);
+        List<BoundedContextStats> bcStats = buildBoundedContextStats(model, architectureQuery);
 
         return ComponentInventory.builder()
-                .aggregateRoots(countTypes(typesByKind, DomainKind.AGGREGATE_ROOT))
-                .entities(countTypes(typesByKind, DomainKind.ENTITY))
-                .valueObjects(countTypes(typesByKind, DomainKind.VALUE_OBJECT))
-                .domainEvents(countTypes(typesByKind, DomainKind.DOMAIN_EVENT))
-                .domainServices(countTypes(typesByKind, DomainKind.DOMAIN_SERVICE))
-                .applicationServices(countTypes(typesByKind, DomainKind.APPLICATION_SERVICE)
-                        + countTypes(typesByKind, DomainKind.INBOUND_ONLY)
-                        + countTypes(typesByKind, DomainKind.OUTBOUND_ONLY)
-                        + countTypes(typesByKind, DomainKind.SAGA))
-                .drivingPorts(countPorts(portsByDirection, PortDirection.DRIVING))
-                .drivenPorts(countPorts(portsByDirection, PortDirection.DRIVEN))
+                .aggregateRoots(aggregates.size())
+                .entities(entities.size())
+                .valueObjects(valueObjects.size())
+                .domainEvents(domainEvents.size())
+                .domainServices(domainServices.size())
+                .applicationServices(appServices.size())
+                .drivingPorts(drivingPorts.size())
+                .drivenPorts(drivenPorts.size())
                 .aggregateExamples(aggregateExamples)
                 .entityExamples(entityExamples)
                 .valueObjectExamples(voExamples)
@@ -107,94 +110,59 @@ public class InventoryBuilder {
     }
 
     /**
-     * Builds a port matrix with adapter coverage information.
-     *
-     * @param ir              the IR snapshot to analyze
-     * @param portsWithAdapter set of port qualified names that have adapters
-     * @return list of port matrix entries
+     * Extracts up to MAX_EXAMPLES simple names from a stream.
      */
-    public List<PortMatrixEntry> buildPortMatrix(IrSnapshot ir, Set<String> portsWithAdapter) {
-        Objects.requireNonNull(ir, "ir required");
-        Set<String> adapters = portsWithAdapter != null ? portsWithAdapter : Set.of();
-
-        return ir.ports().ports().stream()
-                .map(port -> PortMatrixEntry.from(port, adapters.contains(port.qualifiedName())))
-                .toList();
-    }
-
-    /**
-     * Extracts up to MAX_EXAMPLES simple names from a list of domain types.
-     */
-    private List<String> extractTypeExamples(List<DomainType> types) {
-        if (types == null || types.isEmpty()) {
-            return List.of();
-        }
-        return types.stream()
-                .map(DomainType::simpleName)
-                .sorted()
-                .limit(MAX_EXAMPLES)
-                .toList();
-    }
-
-    /**
-     * Extracts up to MAX_EXAMPLES simple names from a list of ports.
-     */
-    private List<String> extractPortExamples(List<Port> ports) {
-        if (ports == null || ports.isEmpty()) {
-            return List.of();
-        }
-        return ports.stream().map(Port::simpleName).sorted().limit(MAX_EXAMPLES).toList();
+    private List<String> extractExamples(Stream<String> names) {
+        return names.sorted().limit(MAX_EXAMPLES).toList();
     }
 
     /**
      * Builds bounded context statistics using the core's ArchitectureQuery.
      *
      * <p>This method obtains bounded contexts from {@link ArchitectureQuery#findBoundedContexts()}
-     * and correlates them with domain types and ports from the IR snapshot.
+     * and correlates them with domain elements from the architectural model.
      *
-     * @param ir                the IR snapshot
+     * @param model             the architectural model
      * @param architectureQuery the architecture query
      * @return list of bounded context statistics
      */
-    private List<BoundedContextStats> buildBoundedContextStats(IrSnapshot ir, ArchitectureQuery architectureQuery) {
+    private List<BoundedContextStats> buildBoundedContextStats(
+            ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         List<BoundedContextInfo> boundedContexts = architectureQuery.findBoundedContexts();
-
-        // Create a lookup map: qualified type name -> DomainType
-        Map<String, DomainType> typeByName =
-                ir.domain().types().stream().collect(Collectors.toMap(DomainType::qualifiedName, t -> t, (a, b) -> a));
 
         List<BoundedContextStats> stats = new ArrayList<>();
 
         for (BoundedContextInfo bcInfo : boundedContexts) {
-            // Collect domain types that belong to this bounded context
-            List<DomainType> bcTypes = bcInfo.typeNames().stream()
-                    .map(typeByName::get)
-                    .filter(Objects::nonNull)
-                    .toList();
-
-            // Collect ports that belong to this bounded context (by package)
-            List<Port> bcPorts = ir.ports().ports().stream()
-                    .filter(port -> bcInfo.containsPackage(port.packageName()))
-                    .toList();
-
-            int aggregates = (int) bcTypes.stream()
-                    .filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT)
+            // Count aggregates in this bounded context
+            int aggregateCount = (int) model.domainEntities()
+                    .filter(DomainEntity::isAggregateRoot)
+                    .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
                     .count();
-            int entities = (int)
-                    bcTypes.stream().filter(t -> t.kind() == DomainKind.ENTITY).count();
-            int vos = (int) bcTypes.stream()
-                    .filter(t -> t.kind() == DomainKind.VALUE_OBJECT)
-                    .count();
-            int ports = bcPorts.size();
 
-            // Calculate actual LOC from SourceRef
-            int typesLoc = bcTypes.stream().mapToInt(this::calculateLoc).sum();
-            int portsLoc = bcPorts.stream().mapToInt(this::calculatePortLoc).sum();
-            int totalLoc = typesLoc + portsLoc;
+            // Count entities (non-aggregate roots)
+            int entityCount = (int) model.domainEntities()
+                    .filter(e -> !e.isAggregateRoot())
+                    .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
+                    .count();
+
+            // Count value objects
+            int voCount = (int) model.valueObjects()
+                    .filter(vo -> bcInfo.typeNames().contains(vo.id().qualifiedName()))
+                    .count();
+
+            // Count ports in this bounded context (by package)
+            int portCount = (int) Stream.concat(
+                            model.drivingPorts().map(p -> p.id().qualifiedName()),
+                            model.drivenPorts().map(p -> p.id().qualifiedName()))
+                    .filter(name -> bcInfo.containsPackage(extractPackage(name)))
+                    .count();
+
+            // LOC calculation (simplified - use 0 for now as TypeSyntax doesn't expose source location)
+            int totalLoc = 0;
 
             // Capitalize the context name for display
             String displayName = capitalize(bcInfo.name());
-            stats.add(new BoundedContextStats(displayName, aggregates, entities, vos, ports, totalLoc));
+            stats.add(new BoundedContextStats(displayName, aggregateCount, entityCount, voCount, portCount, totalLoc));
         }
 
         // Sort by name for deterministic output
@@ -203,25 +171,11 @@ public class InventoryBuilder {
     }
 
     /**
-     * Calculates lines of code for a domain type from its SourceRef.
+     * Extracts the package name from a qualified name.
      */
-    private int calculateLoc(DomainType type) {
-        SourceRef ref = type.sourceRef();
-        if (ref == null || ref.isUnknown()) {
-            return 0;
-        }
-        return Math.max(0, ref.lineEnd() - ref.lineStart() + 1);
-    }
-
-    /**
-     * Calculates lines of code for a port from its SourceRef.
-     */
-    private int calculatePortLoc(Port port) {
-        SourceRef ref = port.sourceRef();
-        if (ref == null || ref.isUnknown()) {
-            return 0;
-        }
-        return Math.max(0, ref.lineEnd() - ref.lineStart() + 1);
+    private String extractPackage(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot > 0 ? qualifiedName.substring(0, lastDot) : "";
     }
 
     /**
@@ -232,15 +186,5 @@ public class InventoryBuilder {
             return s;
         }
         return Character.toUpperCase(s.charAt(0)) + s.substring(1);
-    }
-
-    private int countTypes(Map<DomainKind, List<DomainType>> map, DomainKind kind) {
-        List<DomainType> list = map.get(kind);
-        return list != null ? list.size() : 0;
-    }
-
-    private int countPorts(Map<PortDirection, List<Port>> map, PortDirection direction) {
-        List<Port> list = map.get(direction);
-        return list != null ? list.size() : 0;
     }
 }

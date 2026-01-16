@@ -13,19 +13,21 @@
 
 package io.hexaglue.plugin.audit.adapter.diagram;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.ports.PortClassification;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.BoundedContextInfo;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortDirection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Builds C4 Model diagrams using Mermaid syntax.
@@ -42,6 +44,7 @@ import java.util.stream.Collectors;
  * as Mermaid doesn't have native C4 support but can render similar structures.
  *
  * @since 1.0.0
+ * @since 4.0.0 - Migrated from IrSnapshot to ArchitecturalModel
  */
 public class C4DiagramBuilder {
 
@@ -116,11 +119,12 @@ public class C4DiagramBuilder {
      * Generates a C4 Container diagram showing bounded contexts and their ports.
      *
      * @param projectName the name of the project
-     * @param ir the IR snapshot
+     * @param model the architectural model
      * @param architectureQuery the architecture query for bounded context info
      * @return Mermaid diagram code
      */
-    public String buildContainerDiagram(String projectName, IrSnapshot ir, ArchitectureQuery architectureQuery) {
+    public String buildContainerDiagram(
+            String projectName, ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         StringBuilder diagram = new StringBuilder();
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
@@ -128,23 +132,20 @@ public class C4DiagramBuilder {
         List<BoundedContextInfo> contexts =
                 architectureQuery != null ? architectureQuery.findBoundedContexts() : List.of();
 
-        // Group ports by direction
-        Map<PortDirection, List<Port>> portsByDirection =
-                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
-
-        List<Port> drivingPorts = portsByDirection.getOrDefault(PortDirection.DRIVING, List.of());
-        List<Port> drivenPorts = portsByDirection.getOrDefault(PortDirection.DRIVEN, List.of());
+        // Collect ports from model
+        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
 
         // Driving adapters (left side)
         if (!drivingPorts.isEmpty()) {
             diagram.append("    subgraph DRIVING[\"<b>Driving Adapters</b><br/>Primary/Inbound\"]\n");
             diagram.append("        direction TB\n");
-            for (Port port : drivingPorts.stream().limit(5).toList()) {
-                String portId = sanitizeId(port.simpleName());
+            for (DrivingPort port : drivingPorts.stream().limit(5).toList()) {
+                String portId = sanitizeId(port.id().simpleName());
                 diagram.append("        ")
                         .append(portId)
                         .append("_D[\"")
-                        .append(port.simpleName())
+                        .append(port.id().simpleName())
                         .append("\"]\n");
             }
             if (drivingPorts.size() > 5) {
@@ -176,12 +177,12 @@ public class C4DiagramBuilder {
         if (!drivenPorts.isEmpty()) {
             diagram.append("    subgraph DRIVEN[\"<b>Driven Adapters</b><br/>Secondary/Outbound\"]\n");
             diagram.append("        direction TB\n");
-            for (Port port : drivenPorts.stream().limit(5).toList()) {
-                String portId = sanitizeId(port.simpleName());
+            for (DrivenPort port : drivenPorts.stream().limit(5).toList()) {
+                String portId = sanitizeId(port.id().simpleName());
                 diagram.append("        ")
                         .append(portId)
                         .append("_V[\"")
-                        .append(port.simpleName())
+                        .append(port.id().simpleName())
                         .append("\"]\n");
             }
             if (drivenPorts.size() > 5) {
@@ -208,18 +209,18 @@ public class C4DiagramBuilder {
     /**
      * Generates an Aggregate graph showing domain aggregates and their relationships.
      *
-     * @param ir the IR snapshot
+     * @param model the architectural model
      * @return Mermaid diagram code
      */
-    public String buildAggregateDiagram(IrSnapshot ir) {
+    public String buildAggregateDiagram(ArchitecturalModel model) {
         StringBuilder diagram = new StringBuilder();
         diagram.append("```mermaid\n");
         diagram.append("flowchart TB\n");
 
-        // Find aggregates
-        List<DomainType> aggregates = ir.domain().types().stream()
-                .filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT)
-                .sorted(Comparator.comparing(DomainType::simpleName))
+        // Find aggregates (DomainEntity with isAggregateRoot)
+        List<DomainEntity> aggregates = model.domainEntities()
+                .filter(DomainEntity::isAggregateRoot)
+                .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
 
         if (aggregates.isEmpty()) {
@@ -229,30 +230,39 @@ public class C4DiagramBuilder {
         }
 
         // Build aggregate nodes with their entities
-        Map<String, List<DomainType>> aggregateChildren = findAggregateChildren(ir);
+        Map<String, List<Object>> aggregateChildren = findAggregateChildren(model);
 
-        for (DomainType aggregate : aggregates) {
-            String aggId = sanitizeId(aggregate.simpleName());
+        for (DomainEntity aggregate : aggregates) {
+            String aggId = sanitizeId(aggregate.id().simpleName());
             diagram.append("    subgraph ")
                     .append(aggId)
                     .append("_AGG[\"<b>")
-                    .append(aggregate.simpleName())
+                    .append(aggregate.id().simpleName())
                     .append("</b><br/>Aggregate Root\"]\n");
 
             // Add root
             diagram.append("        ")
                     .append(aggId)
                     .append("((")
-                    .append(aggregate.simpleName())
+                    .append(aggregate.id().simpleName())
                     .append("))\n");
 
             // Add child entities
-            List<DomainType> children = aggregateChildren.getOrDefault(aggregate.qualifiedName(), List.of());
-            for (DomainType child : children.stream().limit(4).toList()) {
-                String childId = sanitizeId(child.simpleName());
-                String shape = child.kind() == DomainKind.ENTITY
-                        ? "[" + child.simpleName() + "]"
-                        : "(" + child.simpleName() + ")";
+            List<Object> children =
+                    aggregateChildren.getOrDefault(aggregate.id().qualifiedName(), List.of());
+            for (Object child : children.stream().limit(4).toList()) {
+                String childName;
+                String shape;
+                if (child instanceof DomainEntity entity) {
+                    childName = entity.id().simpleName();
+                    shape = "[" + childName + "]";
+                } else if (child instanceof ValueObject vo) {
+                    childName = vo.id().simpleName();
+                    shape = "(" + childName + ")";
+                } else {
+                    continue;
+                }
+                String childId = sanitizeId(childName);
                 diagram.append("        ").append(childId).append(shape).append("\n");
                 diagram.append("        ")
                         .append(aggId)
@@ -271,30 +281,11 @@ public class C4DiagramBuilder {
             diagram.append("    end\n\n");
         }
 
-        // Add cross-aggregate relationships from domain relations
-        for (DomainType aggregate : aggregates) {
-            for (var relation : aggregate.relations()) {
-                String targetFqn = relation.targetTypeFqn();
-                // Check if target is another aggregate
-                for (DomainType otherAgg : aggregates) {
-                    if (otherAgg.qualifiedName().equals(targetFqn)) {
-                        String fromId = sanitizeId(aggregate.simpleName());
-                        String toId = sanitizeId(otherAgg.simpleName());
-                        diagram.append("    ")
-                                .append(fromId)
-                                .append(" -.-> ")
-                                .append(toId)
-                                .append("\n");
-                    }
-                }
-            }
-        }
-
         // Styles
         diagram.append("\n");
-        for (DomainType aggregate : aggregates) {
+        for (DomainEntity aggregate : aggregates) {
             diagram.append("    style ")
-                    .append(sanitizeId(aggregate.simpleName()))
+                    .append(sanitizeId(aggregate.id().simpleName()))
                     .append(" fill:#ff9800,stroke:#e65100\n");
         }
 
@@ -305,32 +296,26 @@ public class C4DiagramBuilder {
     /**
      * Generates a Port Matrix diagram showing driving and driven ports.
      *
-     * @param ir the IR snapshot
+     * @param model the architectural model
      * @return Mermaid diagram code
      */
-    public String buildPortMatrixDiagram(IrSnapshot ir) {
+    public String buildPortMatrixDiagram(ArchitecturalModel model) {
         StringBuilder diagram = new StringBuilder();
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
 
-        Map<PortDirection, List<Port>> portsByDirection =
-                ir.ports().ports().stream().collect(Collectors.groupingBy(Port::direction));
-
-        List<Port> drivingPorts = portsByDirection.getOrDefault(PortDirection.DRIVING, List.of());
-        List<Port> drivenPorts = portsByDirection.getOrDefault(PortDirection.DRIVEN, List.of());
+        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
 
         // Driving ports
         diagram.append("    subgraph DRIVING[\"🔵 DRIVING PORTS<br/>(Primary/Inbound)\"]\n");
         diagram.append("        direction TB\n");
-        for (Port port : drivingPorts) {
-            String id = sanitizeId(port.simpleName()) + "_IN";
-            String icon = port.isRepository() ? "📦" : "🔌";
+        for (DrivingPort port : drivingPorts) {
+            String id = sanitizeId(port.id().simpleName()) + "_IN";
             diagram.append("        ")
                     .append(id)
-                    .append("[\"")
-                    .append(icon)
-                    .append(" ")
-                    .append(port.simpleName())
+                    .append("[\"🔌 ")
+                    .append(port.id().simpleName())
                     .append("\"]\n");
         }
         if (drivingPorts.isEmpty()) {
@@ -344,15 +329,15 @@ public class C4DiagramBuilder {
         // Driven ports
         diagram.append("    subgraph DRIVEN[\"🟠 DRIVEN PORTS<br/>(Secondary/Outbound)\"]\n");
         diagram.append("        direction TB\n");
-        for (Port port : drivenPorts) {
-            String id = sanitizeId(port.simpleName()) + "_OUT";
-            String icon = port.isRepository() ? "📦" : "🔌";
+        for (DrivenPort port : drivenPorts) {
+            String id = sanitizeId(port.id().simpleName()) + "_OUT";
+            String icon = port.classification() == PortClassification.REPOSITORY ? "📦" : "🔌";
             diagram.append("        ")
                     .append(id)
                     .append("[\"")
                     .append(icon)
                     .append(" ")
-                    .append(port.simpleName())
+                    .append(port.id().simpleName())
                     .append("\"]\n");
         }
         if (drivenPorts.isEmpty()) {
@@ -376,28 +361,44 @@ public class C4DiagramBuilder {
     /**
      * Finds child entities and value objects for each aggregate.
      */
-    private Map<String, List<DomainType>> findAggregateChildren(IrSnapshot ir) {
-        Map<String, List<DomainType>> result = new HashMap<>();
+    private Map<String, List<Object>> findAggregateChildren(ArchitecturalModel model) {
+        Map<String, List<Object>> result = new HashMap<>();
 
-        List<DomainType> aggregates = ir.domain().types().stream()
-                .filter(t -> t.kind() == DomainKind.AGGREGATE_ROOT)
-                .toList();
+        List<DomainEntity> aggregates =
+                model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
 
-        List<DomainType> entities = ir.domain().types().stream()
-                .filter(t -> t.kind() == DomainKind.ENTITY || t.kind() == DomainKind.VALUE_OBJECT)
-                .toList();
+        List<DomainEntity> entities =
+                model.domainEntities().filter(e -> !e.isAggregateRoot()).toList();
 
-        // Simple heuristic: entities in same package as aggregate are children
-        for (DomainType aggregate : aggregates) {
-            String aggPackage = aggregate.packageName();
-            List<DomainType> children = entities.stream()
-                    .filter(e -> e.packageName().equals(aggPackage)
-                            || e.packageName().startsWith(aggPackage + "."))
+        List<ValueObject> valueObjects = model.valueObjects().toList();
+
+        // Simple heuristic: entities/VOs in same package as aggregate are children
+        for (DomainEntity aggregate : aggregates) {
+            String aggPackage = extractPackage(aggregate.id().qualifiedName());
+            List<Object> children = Stream.concat(
+                            entities.stream()
+                                    .filter(e -> extractPackage(e.id().qualifiedName())
+                                                    .equals(aggPackage)
+                                            || extractPackage(e.id().qualifiedName())
+                                                    .startsWith(aggPackage + ".")),
+                            valueObjects.stream()
+                                    .filter(vo -> extractPackage(vo.id().qualifiedName())
+                                                    .equals(aggPackage)
+                                            || extractPackage(vo.id().qualifiedName())
+                                                    .startsWith(aggPackage + ".")))
                     .collect(Collectors.toList());
-            result.put(aggregate.qualifiedName(), children);
+            result.put(aggregate.id().qualifiedName(), children);
         }
 
         return result;
+    }
+
+    /**
+     * Extracts the package name from a qualified name.
+     */
+    private String extractPackage(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot > 0 ? qualifiedName.substring(0, lastDot) : "";
     }
 
     /**

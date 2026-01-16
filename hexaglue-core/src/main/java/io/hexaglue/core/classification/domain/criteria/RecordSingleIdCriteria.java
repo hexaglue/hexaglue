@@ -13,11 +13,11 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -39,7 +39,7 @@ import java.util.List;
  * <p>Priority: 80 (strong heuristic)
  * <p>Confidence: HIGH
  */
-public final class RecordSingleIdCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class RecordSingleIdCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     @Override
     public String id() {
@@ -57,8 +57,8 @@ public final class RecordSingleIdCriteria implements ClassificationCriteria<Doma
     }
 
     @Override
-    public DomainKind targetKind() {
-        return DomainKind.IDENTIFIER;
+    public ElementKind targetKind() {
+        return ElementKind.IDENTIFIER;
     }
 
     @Override

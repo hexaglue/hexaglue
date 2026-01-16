@@ -13,10 +13,10 @@
 
 package io.hexaglue.core.classification;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.anchor.AnchorContext;
 import io.hexaglue.core.classification.anchor.AnchorDetector;
 import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.domain.criteria.FlexibleInboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleOutboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleSagaCriteria;
@@ -195,7 +195,7 @@ public final class SinglePassClassifier {
      * Creates a DomainClassifier with semantic criteria added.
      */
     private DomainClassifier createDomainClassifierWithSemanticCriteria(SemanticIndexes indexes) {
-        List<ClassificationCriteria<DomainKind>> criteria = new ArrayList<>(DomainClassifier.defaultCriteria());
+        List<ClassificationCriteria<ElementKind>> criteria = new ArrayList<>(DomainClassifier.defaultCriteria());
 
         // Add flexible actor criteria (priority 68-72)
         criteria.add(new FlexibleSagaCriteria(indexes.coreAppClassIndex()));

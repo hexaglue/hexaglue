@@ -728,7 +728,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
      */
     private void appendC4Diagrams(StringBuilder md, AuditReport report, SectionNumbering numbering) {
         // Only generate if IR snapshot is available
-        if (report.irSnapshot() == null) {
+        if (report.model() == null) {
             return;
         }
 
@@ -744,17 +744,17 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
         // Container Diagram
         md.append(numbering.h4("Container View (C4 Level 2)")).append("\n\n");
-        md.append(c4.buildContainerDiagram(projectName, report.irSnapshot(), report.architectureQuery()));
+        md.append(c4.buildContainerDiagram(projectName, report.model(), report.architectureQuery()));
         md.append("\n");
 
         // Aggregate Diagram
         md.append(numbering.h4("Aggregate Model")).append("\n\n");
-        md.append(c4.buildAggregateDiagram(report.irSnapshot()));
+        md.append(c4.buildAggregateDiagram(report.model()));
         md.append("\n");
 
         // Port Matrix Diagram
         md.append(numbering.h4("Port Matrix")).append("\n\n");
-        md.append(c4.buildPortMatrixDiagram(report.irSnapshot()));
+        md.append(c4.buildPortMatrixDiagram(report.model()));
         md.append("\n");
     }
 

@@ -13,11 +13,11 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.graph.model.*;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -49,7 +49,7 @@ import java.util.stream.Collectors;
  * <p>Priority: 80 (strong heuristic)
  * <p>Confidence: HIGH
  */
-public final class RepositoryDominantCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class RepositoryDominantCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     @Override
     public String id() {
@@ -67,8 +67,8 @@ public final class RepositoryDominantCriteria implements ClassificationCriteria<
     }
 
     @Override
-    public DomainKind targetKind() {
-        return DomainKind.AGGREGATE_ROOT;
+    public ElementKind targetKind() {
+        return ElementKind.AGGREGATE_ROOT;
     }
 
     @Override

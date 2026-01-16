@@ -20,7 +20,6 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.jpa.extraction.RelationInfo;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.RelationKind;
@@ -52,7 +51,7 @@ public record RelationFieldSpec(
         String fieldName,
         TypeName targetType,
         RelationKind kind,
-        DomainKind targetKind,
+        ElementKind targetKind,
         String mappedBy,
         CascadeType cascade,
         FetchType fetch,
@@ -174,7 +173,7 @@ public record RelationFieldSpec(
      * @return true if targetKind is AGGREGATE_ROOT or ENTITY
      */
     public boolean targetsEntity() {
-        return targetKind == DomainKind.AGGREGATE_ROOT || targetKind == DomainKind.ENTITY;
+        return targetKind == ElementKind.AGGREGATE_ROOT || targetKind == ElementKind.ENTITY;
     }
 
     /**
@@ -183,14 +182,14 @@ public record RelationFieldSpec(
      * @return true if targetKind is VALUE_OBJECT
      */
     public boolean targetsValueObject() {
-        return targetKind == DomainKind.VALUE_OBJECT;
+        return targetKind == ElementKind.VALUE_OBJECT;
     }
 
     /**
      * Creates a RelationFieldSpec from v4 RelationInfo extracted from annotations.
      *
      * <p>This factory method converts the v4 extraction model to the generation model.
-     * It uses the ArchitecturalModel to determine the target type's DomainKind.
+     * It uses the ArchitecturalModel to determine the target type's ElementKind.
      *
      * @param info the relation info from JpaAnnotationExtractor
      * @param model the architectural model for type resolution
@@ -211,7 +210,7 @@ public record RelationFieldSpec(
 
         RelationKind kind = mapRelationKind(info.relationKind());
         TypeName targetType = resolveTargetType(kind, targetFqn);
-        DomainKind targetKind = findDomainKindV4(model, info.targetType().qualifiedName());
+        ElementKind targetKind = findElementKindV4(model, info.targetType().qualifiedName());
         CascadeType cascade = mapCascadeType(info.cascade());
         FetchType fetch = mapFetchType(info.fetch());
 
@@ -272,27 +271,27 @@ public record RelationFieldSpec(
     }
 
     /**
-     * Finds the DomainKind for a type using v4 model.
+     * Finds the ElementKind for a type using v4 model.
      */
-    private static DomainKind findDomainKindV4(ArchitecturalModel model, String qualifiedName) {
+    private static ElementKind findElementKindV4(ArchitecturalModel model, String qualifiedName) {
         // Check if it's an aggregate root
         if (model.domainEntities()
                 .filter(e -> e.entityKind() == ElementKind.AGGREGATE_ROOT)
                 .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
-            return DomainKind.AGGREGATE_ROOT;
+            return ElementKind.AGGREGATE_ROOT;
         }
         // Check if it's an entity
         if (model.domainEntities()
                 .filter(e -> e.entityKind() == ElementKind.ENTITY)
                 .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
-            return DomainKind.ENTITY;
+            return ElementKind.ENTITY;
         }
         // Check if it's a value object
         if (model.valueObjects().anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
-            return DomainKind.VALUE_OBJECT;
+            return ElementKind.VALUE_OBJECT;
         }
         // Default to VALUE_OBJECT for unknown types
-        return DomainKind.VALUE_OBJECT;
+        return ElementKind.VALUE_OBJECT;
     }
 
     /**

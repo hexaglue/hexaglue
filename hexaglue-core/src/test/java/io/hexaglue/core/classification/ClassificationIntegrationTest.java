@@ -15,8 +15,8 @@ package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
@@ -99,7 +99,7 @@ class ClassificationIntegrationTest {
             ClassificationResult orderResult = domainClassifier.classify(order, query);
 
             assertThat(orderResult.isClassified()).isTrue();
-            assertThat(orderResult.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(orderResult.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(orderResult.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(orderResult.matchedCriteria()).isEqualTo("repository-dominant");
             assertThat(orderResult.target()).isEqualTo(ClassificationTarget.DOMAIN);
@@ -166,7 +166,7 @@ class ClassificationIntegrationTest {
 
             // AGGREGATE_ROOT via repository-dominant - no conflicts expected
             // (has-identity criteria was removed as weak heuristic)
-            assertThat(result.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(result.hasConflicts()).isFalse();
             assertThat(result.matchedCriteria()).isEqualTo("repository-dominant");
         }
@@ -239,27 +239,27 @@ class ClassificationIntegrationTest {
             // Classify Order - should be AGGREGATE_ROOT (explicit annotation)
             TypeNode order = graph.typeNode("com.coffeeshop.order.Order").orElseThrow();
             ClassificationResult orderResult = domainClassifier.classify(order, query);
-            assertThat(orderResult.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT.name());
+            assertThat(orderResult.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT.name());
             assertThat(orderResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(orderResult.matchedCriteria()).isEqualTo("explicit-aggregate-root");
 
             // Classify OrderId - should be IDENTIFIER (record with *Id name)
             TypeNode orderId = graph.typeNode("com.coffeeshop.order.OrderId").orElseThrow();
             ClassificationResult orderIdResult = domainClassifier.classify(orderId, query);
-            assertThat(orderIdResult.kind()).isEqualTo(DomainKind.IDENTIFIER.name());
+            assertThat(orderIdResult.kind()).isEqualTo(ElementKind.IDENTIFIER.name());
             assertThat(orderIdResult.matchedCriteria()).isEqualTo("record-single-id");
 
             // Classify LineItem - should be ENTITY (explicit annotation)
             TypeNode lineItem = graph.typeNode("com.coffeeshop.order.LineItem").orElseThrow();
             ClassificationResult lineItemResult = domainClassifier.classify(lineItem, query);
-            assertThat(lineItemResult.kind()).isEqualTo(DomainKind.ENTITY.name());
+            assertThat(lineItemResult.kind()).isEqualTo(ElementKind.ENTITY.name());
             assertThat(lineItemResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(lineItemResult.matchedCriteria()).isEqualTo("explicit-entity");
 
             // Classify Location - should be VALUE_OBJECT (explicit annotation)
             TypeNode location = graph.typeNode("com.coffeeshop.order.Location").orElseThrow();
             ClassificationResult locationResult = domainClassifier.classify(location, query);
-            assertThat(locationResult.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(locationResult.kind()).isEqualTo(ElementKind.VALUE_OBJECT.name());
             assertThat(locationResult.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(locationResult.matchedCriteria()).isEqualTo("explicit-value-object");
 
@@ -383,7 +383,7 @@ class ClassificationIntegrationTest {
 
             // @ValueObject (EXPLICIT, priority 100) is the only match
             // has-identity criteria was removed as weak heuristic
-            assertThat(result.kind()).isEqualTo(DomainKind.VALUE_OBJECT.name());
+            assertThat(result.kind()).isEqualTo(ElementKind.VALUE_OBJECT.name());
             assertThat(result.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(result.matchedCriteria()).isEqualTo("explicit-value-object");
 

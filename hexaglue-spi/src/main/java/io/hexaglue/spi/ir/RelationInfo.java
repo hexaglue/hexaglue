@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir;
 
+import io.hexaglue.arch.ElementKind;
 import java.util.Optional;
 
 /**
@@ -35,12 +36,12 @@ public record RelationInfo(
         boolean owning,
         CascadeType cascade,
         FetchType fetch,
-        DomainKind targetKind) {
+        ElementKind targetKind) {
 
     /**
      * Creates a relation info for a unidirectional relationship (owning by default).
      *
-     * @deprecated Use {@link #unidirectional(RelationKind, String, CascadeType, FetchType, DomainKind)} instead.
+     * @deprecated Use {@link #unidirectional(RelationKind, String, CascadeType, FetchType, ElementKind)} instead.
      */
     @Deprecated
     public static RelationInfo unidirectional(RelationKind kind, String targetType) {
@@ -59,14 +60,14 @@ public record RelationInfo(
      * @since 3.0.0
      */
     public static RelationInfo unidirectional(
-            RelationKind kind, String targetType, CascadeType cascade, FetchType fetch, DomainKind targetKind) {
+            RelationKind kind, String targetType, CascadeType cascade, FetchType fetch, ElementKind targetKind) {
         return new RelationInfo(kind, targetType, null, true, cascade, fetch, targetKind);
     }
 
     /**
      * Creates a relation info for the owning side of a bidirectional relationship.
      *
-     * @deprecated Use {@link #owning(RelationKind, String, CascadeType, FetchType, DomainKind)} instead.
+     * @deprecated Use {@link #owning(RelationKind, String, CascadeType, FetchType, ElementKind)} instead.
      */
     @Deprecated
     public static RelationInfo owning(RelationKind kind, String targetType) {
@@ -85,14 +86,14 @@ public record RelationInfo(
      * @since 3.0.0
      */
     public static RelationInfo owning(
-            RelationKind kind, String targetType, CascadeType cascade, FetchType fetch, DomainKind targetKind) {
+            RelationKind kind, String targetType, CascadeType cascade, FetchType fetch, ElementKind targetKind) {
         return new RelationInfo(kind, targetType, null, true, cascade, fetch, targetKind);
     }
 
     /**
      * Creates a relation info for the inverse side of a bidirectional relationship.
      *
-     * @deprecated Use {@link #inverse(RelationKind, String, String, CascadeType, FetchType, DomainKind)} instead.
+     * @deprecated Use {@link #inverse(RelationKind, String, String, CascadeType, FetchType, ElementKind)} instead.
      */
     @Deprecated
     public static RelationInfo inverse(RelationKind kind, String targetType, String mappedBy) {
@@ -117,7 +118,7 @@ public record RelationInfo(
             String mappedBy,
             CascadeType cascade,
             FetchType fetch,
-            DomainKind targetKind) {
+            ElementKind targetKind) {
         return new RelationInfo(kind, targetType, mappedBy, false, cascade, fetch, targetKind);
     }
 

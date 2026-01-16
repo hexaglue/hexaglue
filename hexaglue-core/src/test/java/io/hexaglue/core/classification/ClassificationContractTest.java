@@ -15,8 +15,8 @@ package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.domain.DomainClassifier;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -236,7 +236,7 @@ class ClassificationContractTest {
                     """);
 
             // Create custom criteria with controlled priorities
-            ClassificationCriteria<DomainKind> lowPriorityExplicit = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> lowPriorityExplicit = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "low-priority-explicit";
@@ -248,8 +248,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.VALUE_OBJECT;
+                public ElementKind targetKind() {
+                    return ElementKind.VALUE_OBJECT;
                 }
 
                 @Override
@@ -258,7 +258,7 @@ class ClassificationContractTest {
                 }
             };
 
-            ClassificationCriteria<DomainKind> highPriorityLow = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> highPriorityLow = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "high-priority-low";
@@ -270,8 +270,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.ENTITY;
+                public ElementKind targetKind() {
+                    return ElementKind.ENTITY;
                 }
 
                 @Override
@@ -322,7 +322,7 @@ class ClassificationContractTest {
                     """);
 
             // Create criteria with same priority and SAME KIND but different confidence
-            ClassificationCriteria<DomainKind> samePriorityLow = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> samePriorityLow = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "same-priority-low";
@@ -334,8 +334,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.ENTITY;
+                public ElementKind targetKind() {
+                    return ElementKind.ENTITY;
                 }
 
                 @Override
@@ -344,7 +344,7 @@ class ClassificationContractTest {
                 }
             };
 
-            ClassificationCriteria<DomainKind> samePriorityHigh = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> samePriorityHigh = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "same-priority-high";
@@ -356,8 +356,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.ENTITY;
+                public ElementKind targetKind() {
+                    return ElementKind.ENTITY;
                 }
 
                 @Override
@@ -409,7 +409,7 @@ class ClassificationContractTest {
 
             // Create criteria with same priority, confidence, AND kind - only name differs
             // Using the same kind avoids CONFLICT
-            ClassificationCriteria<DomainKind> criteriaZ = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> criteriaZ = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "z-criteria";
@@ -421,8 +421,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.ENTITY; // Same kind
+                public ElementKind targetKind() {
+                    return ElementKind.ENTITY; // Same kind
                 }
 
                 @Override
@@ -431,7 +431,7 @@ class ClassificationContractTest {
                 }
             };
 
-            ClassificationCriteria<DomainKind> criteriaA = new ClassificationCriteria<>() {
+            ClassificationCriteria<ElementKind> criteriaA = new ClassificationCriteria<>() {
                 @Override
                 public String name() {
                     return "a-criteria";
@@ -443,8 +443,8 @@ class ClassificationContractTest {
                 }
 
                 @Override
-                public DomainKind targetKind() {
-                    return DomainKind.ENTITY; // Same kind
+                public ElementKind targetKind() {
+                    return ElementKind.ENTITY; // Same kind
                 }
 
                 @Override

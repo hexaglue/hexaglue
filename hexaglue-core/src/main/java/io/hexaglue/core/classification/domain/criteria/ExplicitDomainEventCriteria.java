@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 
 /**
  * Matches types annotated with @DomainEvent (jMolecules).
@@ -27,6 +27,6 @@ public final class ExplicitDomainEventCriteria extends AbstractExplicitAnnotatio
     public static final String ANNOTATION_QUALIFIED_NAME = "org.jmolecules.event.annotation.DomainEvent";
 
     public ExplicitDomainEventCriteria() {
-        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, DomainKind.DOMAIN_EVENT);
+        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, ElementKind.DOMAIN_EVENT);
     }
 }

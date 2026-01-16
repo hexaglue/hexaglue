@@ -19,7 +19,6 @@ import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.CouplingMetrics;
 import io.hexaglue.spi.audit.DependencyCycle;
 import io.hexaglue.spi.audit.LakosMetrics;
-import io.hexaglue.spi.ir.IrSnapshot;
 import java.util.List;
 import java.util.Objects;
 
@@ -65,15 +64,13 @@ public class HealthScoreCalculator {
      *
      * @param violations        the list of violations found
      * @param architectureQuery the architecture query interface (may be null)
-     * @param ir                the IR snapshot
      * @return the computed health score
      */
-    public HealthScore calculate(List<Violation> violations, ArchitectureQuery architectureQuery, IrSnapshot ir) {
+    public HealthScore calculate(List<Violation> violations, ArchitectureQuery architectureQuery) {
         Objects.requireNonNull(violations, "violations required");
-        Objects.requireNonNull(ir, "ir required");
 
-        int dddCompliance = complianceCalculator.calculateDddCompliance(violations, ir);
-        int hexCompliance = complianceCalculator.calculateHexCompliance(violations, ir);
+        int dddCompliance = complianceCalculator.calculateDddCompliance(violations);
+        int hexCompliance = complianceCalculator.calculateHexCompliance(violations);
         int dependencyQuality = calculateDependencyQuality(architectureQuery);
         int coupling = calculateCouplingScore(architectureQuery);
         int cohesion = calculateCohesionScore(architectureQuery);

@@ -66,15 +66,14 @@ class LivingDocPluginTest {
                 null,
                 highConfidence(ElementKind.AGGREGATE_ROOT));
 
-        ValueObject moneyVo = ValueObject.of(PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
+        ValueObject moneyVo =
+                ValueObject.of(PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
 
         // Create test ports
         PortOperation findById = new PortOperation(
-                "findById",
-                TypeRef.of("java.util.Optional"),
-                List.of(TypeRef.of(PKG + ".OrderId")),
-                null);
-        PortOperation save = new PortOperation("save", TypeRef.of(PKG + ".Order"), List.of(TypeRef.of(PKG + ".Order")), null);
+                "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of(PKG + ".OrderId")), null);
+        PortOperation save =
+                new PortOperation("save", TypeRef.of(PKG + ".Order"), List.of(TypeRef.of(PKG + ".Order")), null);
 
         DrivenPort orderRepository = new DrivenPort(
                 ElementId.of("com.example.ports.out.OrderRepository"),

@@ -30,7 +30,13 @@ import java.util.List;
  * @param annotations the annotation qualified names present on this interface
  * @param sourceRef source location for diagnostics
  * @since 2.0.0
+ * @deprecated Use {@link io.hexaglue.arch.element.DrivingPort} or
+ *             {@link io.hexaglue.arch.element.DrivenPort} from ArchitecturalModel instead.
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.element.DrivingPort
+ * @see io.hexaglue.arch.element.DrivenPort
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record Port(
         String qualifiedName,
         String simpleName,

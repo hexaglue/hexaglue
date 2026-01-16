@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 
 /**
  * Matches types annotated with @AggregateRoot (jMolecules).
@@ -27,6 +27,6 @@ public final class ExplicitAggregateRootCriteria extends AbstractExplicitAnnotat
     public static final String ANNOTATION_QUALIFIED_NAME = "org.jmolecules.ddd.annotation.AggregateRoot";
 
     public ExplicitAggregateRootCriteria() {
-        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, DomainKind.AGGREGATE_ROOT);
+        super(ANNOTATION_SIMPLE_NAME, ANNOTATION_QUALIFIED_NAME, ElementKind.AGGREGATE_ROOT);
     }
 }

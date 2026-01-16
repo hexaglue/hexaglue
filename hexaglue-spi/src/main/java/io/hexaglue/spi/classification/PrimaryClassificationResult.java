@@ -13,7 +13,7 @@
 
 package io.hexaglue.spi.classification;
 
-import io.hexaglue.spi.ir.DomainKind;
+import io.hexaglue.arch.ElementKind;
 import java.util.List;
 import java.util.Objects;
 
@@ -52,16 +52,17 @@ import java.util.Objects;
  * }</pre>
  *
  * @param typeName  the fully qualified type name
- * @param kind      the classified domain kind (may be null if unclassified)
+ * @param kind      the classified element kind (may be null if unclassified)
  * @param certainty the certainty level of the classification
  * @param strategy  the strategy used to produce this classification
  * @param reasoning human-readable explanation of the classification
  * @param evidences list of evidence supporting this classification
  * @since 3.0.0
+ * @since 4.0.0 Changed kind type from ElementKind to ElementKind
  */
 public record PrimaryClassificationResult(
         String typeName,
-        DomainKind kind,
+        ElementKind kind,
         CertaintyLevel certainty,
         ClassificationStrategy strategy,
         String reasoning,

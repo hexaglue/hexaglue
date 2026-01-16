@@ -15,6 +15,7 @@ package io.hexaglue.plugin.livingdoc.renderer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
@@ -22,7 +23,6 @@ import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.plugin.livingdoc.model.RelationDoc;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortKind;
 import java.util.HashMap;
@@ -69,7 +69,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -92,7 +92,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -122,7 +122,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -153,7 +153,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "Product",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -189,7 +189,7 @@ class DiagramRendererTest {
             RelationDoc rel = new RelationDoc(
                     "lineItems",
                     "OrderLineItem",
-                    DomainKind.ENTITY.toString(),
+                    ElementKind.ENTITY.toString(),
                     "ONE_TO_MANY",
                     true,
                     false,
@@ -201,7 +201,7 @@ class DiagramRendererTest {
             DomainTypeDoc order = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -222,7 +222,7 @@ class DiagramRendererTest {
             RelationDoc rel = new RelationDoc(
                     "order",
                     "Order",
-                    DomainKind.AGGREGATE_ROOT.toString(),
+                    ElementKind.AGGREGATE_ROOT.toString(),
                     "MANY_TO_ONE",
                     false,
                     true,
@@ -234,7 +234,7 @@ class DiagramRendererTest {
             DomainTypeDoc lineItem = new DomainTypeDoc(
                     "OrderLineItem",
                     "com.example.domain",
-                    DomainKind.ENTITY,
+                    ElementKind.ENTITY,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -255,7 +255,7 @@ class DiagramRendererTest {
             RelationDoc rel = new RelationDoc(
                     "address",
                     "Address",
-                    DomainKind.VALUE_OBJECT.toString(),
+                    ElementKind.VALUE_OBJECT.toString(),
                     "EMBEDDED",
                     true,
                     false,
@@ -267,7 +267,7 @@ class DiagramRendererTest {
             DomainTypeDoc customer = new DomainTypeDoc(
                     "Customer",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -300,7 +300,7 @@ class DiagramRendererTest {
             DomainTypeDoc order = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -337,7 +337,7 @@ class DiagramRendererTest {
             DomainTypeDoc order = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -389,7 +389,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "OrderId",
                     "com.example.domain",
-                    DomainKind.IDENTIFIER,
+                    ElementKind.IDENTIFIER,
                     ConfidenceLevel.HIGH,
                     "RECORD",
                     true,
@@ -408,7 +408,7 @@ class DiagramRendererTest {
             DomainTypeDoc type = new DomainTypeDoc(
                     "OrderCreated",
                     "com.example.domain",
-                    DomainKind.DOMAIN_EVENT,
+                    ElementKind.DOMAIN_EVENT,
                     ConfidenceLevel.HIGH,
                     "RECORD",
                     true,
@@ -443,7 +443,7 @@ class DiagramRendererTest {
             DomainTypeDoc order = new DomainTypeDoc(
                     "Order",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -484,7 +484,7 @@ class DiagramRendererTest {
             DomainTypeDoc customer = new DomainTypeDoc(
                     "Customer",
                     "com.example.domain",
-                    DomainKind.AGGREGATE_ROOT,
+                    ElementKind.AGGREGATE_ROOT,
                     ConfidenceLevel.HIGH,
                     "CLASS",
                     false,
@@ -646,7 +646,7 @@ class DiagramRendererTest {
         return new DomainTypeDoc(
                 name,
                 "com.example.domain",
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 "CLASS",
                 false,
@@ -660,7 +660,7 @@ class DiagramRendererTest {
         return new DomainTypeDoc(
                 name,
                 "com.example.domain",
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 ConfidenceLevel.HIGH,
                 "CLASS",
                 false,
@@ -674,7 +674,7 @@ class DiagramRendererTest {
         return new DomainTypeDoc(
                 name,
                 "com.example.domain",
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.EXPLICIT,
                 "RECORD",
                 true,

@@ -20,7 +20,6 @@ import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
-import io.hexaglue.spi.arch.PluginContexts;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
@@ -46,7 +45,7 @@ import io.hexaglue.spi.plugin.PluginContext;
  * </ul>
  *
  * <p>This plugin requires a v4 {@code ArchitecturalModel}. The documentation models
- * use SPI classification types ({@code DomainKind}, {@code ConfidenceLevel}) for output.
+ * use SPI classification types ({@code ElementKind}, {@code ConfidenceLevel}) for output.
  *
  * @since 4.0.0
  */
@@ -73,7 +72,7 @@ public final class LivingDocPlugin implements GeneratorPlugin {
      */
     @Override
     public void execute(PluginContext context) {
-        this.archModel = PluginContexts.getModel(context).orElse(null);
+        this.archModel = context.model();
         GeneratorPlugin.super.execute(context);
     }
 
@@ -85,14 +84,13 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
         // Require v4 ArchitecturalModel
         if (archModel == null) {
-            diagnostics.error(
-                    "v4 ArchitecturalModel is required for living documentation generation. "
-                            + "Please ensure the model is available.");
+            diagnostics.error("v4 ArchitecturalModel is required for living documentation generation. "
+                    + "Please ensure the model is available.");
             return;
         }
 
         // Build documentation model from ArchitecturalModel
-        // Note: DocumentationModel uses SPI classification types (DomainKind, ConfidenceLevel)
+        // Note: DocumentationModel uses SPI classification types (ElementKind, ConfidenceLevel)
         DocumentationModel docModel = DocumentationModelFactory.fromArchModel(archModel);
 
         if (docModel.isEmpty()) {

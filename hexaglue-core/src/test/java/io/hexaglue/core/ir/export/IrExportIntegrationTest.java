@@ -15,6 +15,7 @@ package io.hexaglue.core.ir.export;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.domain.DomainClassifier;
 import io.hexaglue.core.classification.port.PortClassifier;
@@ -132,7 +133,7 @@ class IrExportIntegrationTest {
 
             // Order should be AGGREGATE_ROOT
             DomainType order = findDomainType(snapshot, "Order");
-            assertThat(order.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(order.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(order.confidence()).isEqualTo(ConfidenceLevel.HIGH);
             assertThat(order.hasIdentity()).isTrue();
             assertThat(order.identity().get().fieldName()).isEqualTo("id");
@@ -142,18 +143,18 @@ class IrExportIntegrationTest {
 
             // OrderId should be IDENTIFIER
             DomainType orderId = findDomainType(snapshot, "OrderId");
-            assertThat(orderId.kind()).isEqualTo(DomainKind.IDENTIFIER);
+            assertThat(orderId.kind()).isEqualTo(ElementKind.IDENTIFIER);
             assertThat(orderId.construct()).isEqualTo(JavaConstruct.RECORD);
 
             // LineItem should be ENTITY (explicit annotation)
             DomainType lineItem = findDomainType(snapshot, "LineItem");
-            assertThat(lineItem.kind()).isEqualTo(DomainKind.ENTITY);
+            assertThat(lineItem.kind()).isEqualTo(ElementKind.ENTITY);
             assertThat(lineItem.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(lineItem.hasIdentity()).isTrue();
 
             // Location should be VALUE_OBJECT (explicit annotation)
             DomainType location = findDomainType(snapshot, "Location");
-            assertThat(location.kind()).isEqualTo(DomainKind.VALUE_OBJECT);
+            assertThat(location.kind()).isEqualTo(ElementKind.VALUE_OBJECT);
             assertThat(location.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(location.construct()).isEqualTo(JavaConstruct.RECORD);
             assertThat(location.hasIdentity()).isFalse();
@@ -258,7 +259,7 @@ class IrExportIntegrationTest {
             assertThat(snapshot.domain().types()).hasSize(1);
             DomainType product = snapshot.domain().types().get(0);
             assertThat(product.simpleName()).isEqualTo("Product");
-            assertThat(product.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(product.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
 
             // Verify ports
             assertThat(snapshot.ports().ports()).hasSize(3);
@@ -489,7 +490,7 @@ class IrExportIntegrationTest {
 
             assertThat(snapshot.domain().types()).hasSize(1);
             DomainType customer = snapshot.domain().types().get(0);
-            assertThat(customer.kind()).isEqualTo(DomainKind.AGGREGATE_ROOT);
+            assertThat(customer.kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
             assertThat(customer.confidence()).isEqualTo(ConfidenceLevel.EXPLICIT);
             assertThat(customer.annotations()).contains("org.jmolecules.ddd.annotation.AggregateRoot");
         }
@@ -568,7 +569,7 @@ class IrExportIntegrationTest {
             IrSnapshot snapshot = analyzeAndExport("com.example");
 
             assertThat(snapshot.domain().types()).hasSize(3);
-            assertThat(snapshot.domain().types()).allMatch(t -> t.kind() == DomainKind.AGGREGATE_ROOT);
+            assertThat(snapshot.domain().types()).allMatch(t -> t.kind() == ElementKind.AGGREGATE_ROOT);
 
             assertThat(snapshot.ports().ports()).hasSize(3);
             assertThat(snapshot.ports().ports()).allMatch(p -> p.kind() == PortKind.REPOSITORY);

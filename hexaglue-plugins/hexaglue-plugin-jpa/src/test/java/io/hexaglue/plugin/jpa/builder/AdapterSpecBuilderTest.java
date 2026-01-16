@@ -163,8 +163,16 @@ class AdapterSpecBuilderTest {
             DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null),
-                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null),
+                            new PortOperation(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Order"),
+                                    List.of(TypeRef.of(TEST_PKG + ".Order")),
+                                    null),
+                            new PortOperation(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.util.UUID")),
+                                    null),
                             new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
             // When
@@ -193,13 +201,25 @@ class AdapterSpecBuilderTest {
             // Given: Two ports with the same findById method (common in sample-pokedex)
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null)));
+                    List.of(new PortOperation(
+                            "findById",
+                            TypeRef.of("java.util.Optional"),
+                            List.of(TypeRef.of("java.util.UUID")),
+                            null)));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
                     List.of(
-                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null),
-                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
+                            new PortOperation(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.util.UUID")),
+                                    null),
+                            new PortOperation(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Order"),
+                                    List.of(TypeRef.of(TEST_PKG + ".Order")),
+                                    null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -228,11 +248,16 @@ class AdapterSpecBuilderTest {
             // Given
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")), null)));
+                    List.of(new PortOperation(
+                            "findById",
+                            TypeRef.of("java.util.Optional"),
+                            List.of(TypeRef.of("java.util.UUID")),
+                            null)));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
-                    List.of(new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
+                    List.of(new PortOperation(
+                            "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -408,14 +433,26 @@ class AdapterSpecBuilderTest {
             DrivenPort readPort = createPortWithOperations(
                     "PokemonReadRepository",
                     List.of(
-                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")), null),
+                            new PortOperation(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.lang.Integer")),
+                                    null),
                             new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
 
             DrivenPort writePort = createPortWithOperations(
                     "PokemonWriteRepository",
                     List.of(
-                            new PortOperation("save", TypeRef.of(TEST_PKG + ".Pokemon"), List.of(TypeRef.of(TEST_PKG + ".Pokemon")), null),
-                            new PortOperation("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")), null)));
+                            new PortOperation(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Pokemon"),
+                                    List.of(TypeRef.of(TEST_PKG + ".Pokemon")),
+                                    null),
+                            new PortOperation(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.lang.Integer")),
+                                    null)));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -456,7 +493,8 @@ class AdapterSpecBuilderTest {
         return new DrivenPort(
                 ElementId.of(TEST_PKG + ".ports.out." + name),
                 PortClassification.REPOSITORY,
-                List.of(new PortOperation("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)),
+                List.of(new PortOperation(
+                        "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)),
                 Optional.empty(),
                 List.of(),
                 null,

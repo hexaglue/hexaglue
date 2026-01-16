@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.classification.deterministic;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.anomaly.Anomaly;
 import io.hexaglue.core.classification.anomaly.AnomalyDetector;
 import io.hexaglue.core.classification.discriminator.IdWrapperDiscriminator;
@@ -25,7 +26,6 @@ import io.hexaglue.core.graph.composition.CompositionGraph;
 import io.hexaglue.core.graph.composition.CompositionGraphBuilder;
 import io.hexaglue.core.graph.composition.CompositionNode;
 import io.hexaglue.spi.classification.ClassificationEvidence;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -208,7 +208,7 @@ public final class DeterministicClassifier {
                             type.qualifiedName(),
                             new Classification(
                                     type.qualifiedName(),
-                                    DomainKind.IDENTIFIER,
+                                    ElementKind.IDENTIFIER,
                                     io.hexaglue.spi.classification.CertaintyLevel.CERTAIN_BY_STRUCTURE,
                                     io.hexaglue.spi.classification.ClassificationStrategy.RECORD,
                                     reasoning,
@@ -252,7 +252,7 @@ public final class DeterministicClassifier {
 
                 result.put(
                         rootType,
-                        Classification.fromComposition(rootType, DomainKind.AGGREGATE_ROOT, reasoning, evidences));
+                        Classification.fromComposition(rootType, ElementKind.AGGREGATE_ROOT, reasoning, evidences));
             }
         }
 
@@ -282,7 +282,7 @@ public final class DeterministicClassifier {
 
                     result.put(
                             typeName,
-                            Classification.fromComposition(typeName, DomainKind.ENTITY, reasoning, evidences));
+                            Classification.fromComposition(typeName, ElementKind.ENTITY, reasoning, evidences));
 
                 } else if (!node.hasIdentity()) {
                     // No identity and is composed -> VALUE_OBJECT
@@ -296,7 +296,7 @@ public final class DeterministicClassifier {
 
                     result.put(
                             typeName,
-                            Classification.fromComposition(typeName, DomainKind.VALUE_OBJECT, reasoning, evidences));
+                            Classification.fromComposition(typeName, ElementKind.VALUE_OBJECT, reasoning, evidences));
                 }
             }
         }

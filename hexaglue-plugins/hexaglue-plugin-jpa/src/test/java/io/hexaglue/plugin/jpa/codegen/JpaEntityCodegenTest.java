@@ -20,12 +20,12 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.IdFieldSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.IdentityStrategy;
 import io.hexaglue.spi.ir.IdentityWrapperKind;
@@ -134,7 +134,7 @@ class JpaEntityCodegenTest {
                 fieldName,
                 ParameterizedTypeName.get(com.palantir.javapoet.ClassName.get(List.class), targetClass),
                 RelationKind.ONE_TO_MANY,
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 null,
                 CascadeType.ALL,
                 FetchType.LAZY,
@@ -149,7 +149,7 @@ class JpaEntityCodegenTest {
                 fieldName,
                 targetClass,
                 RelationKind.MANY_TO_ONE,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 null,
                 CascadeType.NONE,
                 FetchType.LAZY,

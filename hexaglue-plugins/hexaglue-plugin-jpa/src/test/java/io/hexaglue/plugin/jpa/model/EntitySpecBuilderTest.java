@@ -18,8 +18,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.IdentityStrategy;
 import io.hexaglue.spi.ir.IdentityWrapperKind;
@@ -75,7 +75,7 @@ class EntitySpecBuilderTest {
                 "address",
                 ClassName.get("com.example", "Address"),
                 RelationKind.EMBEDDED,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 null,
                 CascadeType.NONE,
                 FetchType.EAGER,

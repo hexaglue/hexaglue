@@ -13,12 +13,12 @@
 
 package io.hexaglue.core.classification.domain.criteria;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.ClassificationCriteria;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.Evidence;
 import io.hexaglue.core.classification.EvidenceType;
 import io.hexaglue.core.classification.MatchResult;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.classification.engine.IdentifiedCriteria;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.AnnotationRef;
@@ -45,25 +45,25 @@ import java.util.stream.Collectors;
  * <p>Priority: 75 (between strong heuristics 80 and medium heuristics 70)
  * <p>Confidence: HIGH (inherited from explicit parent classification)
  */
-public final class InheritedClassificationCriteria implements ClassificationCriteria<DomainKind>, IdentifiedCriteria {
+public final class InheritedClassificationCriteria implements ClassificationCriteria<ElementKind>, IdentifiedCriteria {
 
     @Override
     public String id() {
         return "domain.structural.inheritedClassification";
     }
 
-    private static final Map<String, DomainKind> ANNOTATION_TO_KIND = Map.of(
-            "org.jmolecules.ddd.annotation.AggregateRoot", DomainKind.AGGREGATE_ROOT,
-            "org.jmolecules.ddd.annotation.Entity", DomainKind.ENTITY,
-            "org.jmolecules.ddd.annotation.ValueObject", DomainKind.VALUE_OBJECT);
+    private static final Map<String, ElementKind> ANNOTATION_TO_KIND = Map.of(
+            "org.jmolecules.ddd.annotation.AggregateRoot", ElementKind.AGGREGATE_ROOT,
+            "org.jmolecules.ddd.annotation.Entity", ElementKind.ENTITY,
+            "org.jmolecules.ddd.annotation.ValueObject", ElementKind.VALUE_OBJECT);
 
-    private static final Map<String, DomainKind> INTERFACE_TO_KIND = Map.of(
-            "org.jmolecules.ddd.types.AggregateRoot", DomainKind.AGGREGATE_ROOT,
-            "org.jmolecules.ddd.types.Entity", DomainKind.ENTITY,
-            "org.jmolecules.ddd.types.ValueObject", DomainKind.VALUE_OBJECT);
+    private static final Map<String, ElementKind> INTERFACE_TO_KIND = Map.of(
+            "org.jmolecules.ddd.types.AggregateRoot", ElementKind.AGGREGATE_ROOT,
+            "org.jmolecules.ddd.types.Entity", ElementKind.ENTITY,
+            "org.jmolecules.ddd.types.ValueObject", ElementKind.VALUE_OBJECT);
 
     // Track the matched kind for proper targetKind() return
-    private DomainKind matchedKind = DomainKind.AGGREGATE_ROOT;
+    private ElementKind matchedKind = ElementKind.AGGREGATE_ROOT;
 
     @Override
     public String name() {
@@ -76,7 +76,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
     }
 
     @Override
-    public DomainKind targetKind() {
+    public ElementKind targetKind() {
         return matchedKind;
     }
 
@@ -116,7 +116,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
 
             // Check if interface has jMolecules annotation
             for (AnnotationRef annotation : iface.annotations()) {
-                DomainKind kind = ANNOTATION_TO_KIND.get(annotation.qualifiedName());
+                ElementKind kind = ANNOTATION_TO_KIND.get(annotation.qualifiedName());
                 if (kind != null) {
                     matchedKind = kind;
                     return createInheritedMatch(kind, iface, "annotation @" + annotation.simpleName());
@@ -158,7 +158,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
 
         // Check if parent has jMolecules annotation
         for (AnnotationRef annotation : parent.annotations()) {
-            DomainKind kind = ANNOTATION_TO_KIND.get(annotation.qualifiedName());
+            ElementKind kind = ANNOTATION_TO_KIND.get(annotation.qualifiedName());
             if (kind != null) {
                 matchedKind = kind;
                 return createInheritedMatch(kind, parent, "annotation @" + annotation.simpleName());
@@ -167,7 +167,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
 
         // Check if parent implements jMolecules interface
         for (TypeRef interfaceRef : parent.interfaces()) {
-            DomainKind kind = INTERFACE_TO_KIND.get(interfaceRef.rawQualifiedName());
+            ElementKind kind = INTERFACE_TO_KIND.get(interfaceRef.rawQualifiedName());
             if (kind != null) {
                 matchedKind = kind;
                 return createInheritedMatch(kind, parent, "interface " + interfaceRef.simpleName());
@@ -213,7 +213,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
         }
 
         // Parent is repository-managed and has identity -> AGGREGATE_ROOT
-        matchedKind = DomainKind.AGGREGATE_ROOT;
+        matchedKind = ElementKind.AGGREGATE_ROOT;
         String repoNames = repositories.stream().map(TypeNode::simpleName).collect(Collectors.joining(", "));
         return MatchResult.match(
                 ConfidenceLevel.HIGH,
@@ -276,7 +276,7 @@ public final class InheritedClassificationCriteria implements ClassificationCrit
         return fields.stream().filter(f -> f.simpleName().endsWith("Id")).findFirst();
     }
 
-    private MatchResult createInheritedMatch(DomainKind kind, TypeNode parent, String reason) {
+    private MatchResult createInheritedMatch(ElementKind kind, TypeNode parent, String reason) {
         return MatchResult.match(
                 ConfidenceLevel.HIGH,
                 "Inherits " + kind.name() + " classification from parent " + parent.simpleName(),

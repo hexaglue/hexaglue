@@ -16,6 +16,7 @@ package io.hexaglue.plugin.livingdoc.content;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ConfidenceLevel;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.arch.domain.DomainEvent;
 import io.hexaglue.arch.domain.DomainService;
@@ -26,7 +27,6 @@ import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
-import io.hexaglue.spi.ir.DomainKind;
 import io.hexaglue.syntax.FieldSyntax;
 import io.hexaglue.syntax.TypeForm;
 import io.hexaglue.syntax.TypeRef;
@@ -115,7 +115,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                entity.isAggregateRoot() ? DomainKind.AGGREGATE_ROOT : DomainKind.ENTITY,
+                entity.isAggregateRoot() ? ElementKind.AGGREGATE_ROOT : ElementKind.ENTITY,
                 toSpiConfidenceLevel(entity.classificationTrace()),
                 construct,
                 isRecord,
@@ -135,7 +135,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 toSpiConfidenceLevel(vo.classificationTrace()),
                 construct,
                 isRecord,
@@ -155,7 +155,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                DomainKind.IDENTIFIER,
+                ElementKind.IDENTIFIER,
                 toSpiConfidenceLevel(id.classificationTrace()),
                 construct,
                 isRecord,
@@ -175,7 +175,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                DomainKind.DOMAIN_EVENT,
+                ElementKind.DOMAIN_EVENT,
                 toSpiConfidenceLevel(event.classificationTrace()),
                 construct,
                 isRecord,
@@ -194,7 +194,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                DomainKind.DOMAIN_SERVICE,
+                ElementKind.DOMAIN_SERVICE,
                 toSpiConfidenceLevel(service.classificationTrace()),
                 construct,
                 false,
@@ -213,7 +213,7 @@ public final class DomainContentSelector {
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                DomainKind.APPLICATION_SERVICE,
+                ElementKind.APPLICATION_SERVICE,
                 toSpiConfidenceLevel(service.classificationTrace()),
                 construct,
                 false,
@@ -253,9 +253,7 @@ public final class DomainContentSelector {
         TypeRef type = field.type();
         String typeName = type != null ? type.qualifiedName() : "Object";
         List<String> typeArguments = type != null && !type.typeArguments().isEmpty()
-                ? type.typeArguments().stream()
-                        .map(TypeRef::qualifiedName)
-                        .collect(Collectors.toList())
+                ? type.typeArguments().stream().map(TypeRef::qualifiedName).collect(Collectors.toList())
                 : List.of();
 
         return new PropertyDoc(

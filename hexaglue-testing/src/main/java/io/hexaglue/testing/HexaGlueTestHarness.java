@@ -15,16 +15,16 @@ package io.hexaglue.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchElement;
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ConfidenceLevel;
+import io.hexaglue.arch.ElementId;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.IrSnapshot;
-import io.hexaglue.spi.ir.Port;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,9 +51,11 @@ import java.util.Optional;
  *         }
  *         """)
  *     .analyze()
- *     .assertDomainType("com.example.Order", DomainKind.AGGREGATE_ROOT)
- *     .assertPort("com.example.Orders", PortKind.REPOSITORY, PortDirection.DRIVEN);
+ *     .assertDomainType("com.example.Order", ElementKind.AGGREGATE_ROOT)
+ *     .assertPort("com.example.Orders", ElementKind.DRIVEN_PORT);
  * }</pre>
+ *
+ * @since 4.0.0 Updated to use ArchitecturalModel instead of IrSnapshot
  */
 public final class HexaGlueTestHarness {
 
@@ -115,55 +117,103 @@ public final class HexaGlueTestHarness {
     }
 
     /**
-     * Returns the IR snapshot.
+     * Returns the architectural model.
+     *
+     * @return the model from the analysis result
+     * @since 4.0.0
      */
-    public IrSnapshot ir() {
+    public ArchitecturalModel model() {
         requireAnalyzed();
-        return result.ir();
+        return result.model();
     }
 
     /**
      * Asserts that a domain type exists with the given kind.
+     *
+     * @param qualifiedName the fully qualified class name
+     * @param expectedKind the expected element kind
+     * @return this harness for chaining
+     * @since 4.0.0 Changed parameter from ElementKind to ElementKind
      */
-    public HexaGlueTestHarness assertDomainType(String qualifiedName, DomainKind expectedKind) {
+    public HexaGlueTestHarness assertDomainType(String qualifiedName, ElementKind expectedKind) {
         requireAnalyzed();
-        Optional<DomainType> type = result.ir().domain().findByQualifiedName(qualifiedName);
-        assertThat(type).as("Domain type '%s' should exist", qualifiedName).isPresent();
-        assertThat(type.get().kind())
+        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
+        assertThat(element).as("Domain type '%s' should exist", qualifiedName).isPresent();
+        assertThat(element.get().kind())
                 .as("Domain type '%s' should be %s", qualifiedName, expectedKind)
                 .isEqualTo(expectedKind);
         return this;
     }
 
     /**
-     * Asserts that a domain type has at least the given confidence level.
+     * Asserts that an element has at least the given confidence level.
+     *
+     * @param qualifiedName the fully qualified class name
+     * @param minConfidence the minimum required confidence level
+     * @return this harness for chaining
+     * @since 4.0.0 Changed parameter from spi.ir.ConfidenceLevel to arch.ConfidenceLevel
      */
     public HexaGlueTestHarness assertConfidenceAtLeast(String qualifiedName, ConfidenceLevel minConfidence) {
         requireAnalyzed();
-        Optional<DomainType> type = result.ir().domain().findByQualifiedName(qualifiedName);
-        assertThat(type).isPresent();
-        assertThat(type.get().confidence().isAtLeast(minConfidence))
-                .as(
-                        "'%s' confidence should be at least %s but was %s",
-                        qualifiedName, minConfidence, type.get().confidence())
-                .isTrue();
+        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
+        assertThat(element).isPresent();
+        ConfidenceLevel actual = element.get().classificationTrace().confidence();
+        // Compare by ordinal (HIGH=0, MEDIUM=1, LOW=2, so lower is better)
+        assertThat(actual.ordinal())
+                .as("'%s' confidence should be at least %s but was %s", qualifiedName, minConfidence, actual)
+                .isLessThanOrEqualTo(minConfidence.ordinal());
         return this;
     }
 
     /**
-     * Asserts that a port exists with the given kind and direction.
+     * Asserts that a port exists with the given kind.
+     *
+     * @param qualifiedName the fully qualified interface name
+     * @param expectedKind the expected element kind (DRIVING_PORT or DRIVEN_PORT)
+     * @return this harness for chaining
+     * @since 4.0.0 Simplified to use ElementKind instead of PortKind and PortDirection
      */
-    public HexaGlueTestHarness assertPort(
-            String qualifiedName, PortKind expectedKind, PortDirection expectedDirection) {
+    public HexaGlueTestHarness assertPort(String qualifiedName, ElementKind expectedKind) {
         requireAnalyzed();
-        Optional<Port> port = result.ir().ports().findByQualifiedName(qualifiedName);
-        assertThat(port).as("Port '%s' should exist", qualifiedName).isPresent();
-        assertThat(port.get().kind())
+        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
+        assertThat(element).as("Port '%s' should exist", qualifiedName).isPresent();
+        assertThat(element.get().kind())
                 .as("Port '%s' should be %s", qualifiedName, expectedKind)
                 .isEqualTo(expectedKind);
-        assertThat(port.get().direction())
-                .as("Port '%s' should be %s", qualifiedName, expectedDirection)
-                .isEqualTo(expectedDirection);
+        return this;
+    }
+
+    /**
+     * Asserts that a driving port exists.
+     *
+     * @param qualifiedName the fully qualified interface name
+     * @return this harness for chaining
+     * @since 4.0.0
+     */
+    public HexaGlueTestHarness assertDrivingPort(String qualifiedName) {
+        requireAnalyzed();
+        Optional<DrivingPort> port = result.model()
+                .drivingPorts()
+                .filter(p -> p.qualifiedName().equals(qualifiedName))
+                .findFirst();
+        assertThat(port).as("Driving port '%s' should exist", qualifiedName).isPresent();
+        return this;
+    }
+
+    /**
+     * Asserts that a driven port exists.
+     *
+     * @param qualifiedName the fully qualified interface name
+     * @return this harness for chaining
+     * @since 4.0.0
+     */
+    public HexaGlueTestHarness assertDrivenPort(String qualifiedName) {
+        requireAnalyzed();
+        Optional<DrivenPort> port = result.model()
+                .drivenPorts()
+                .filter(p -> p.qualifiedName().equals(qualifiedName))
+                .findFirst();
+        assertThat(port).as("Driven port '%s' should exist", qualifiedName).isPresent();
         return this;
     }
 

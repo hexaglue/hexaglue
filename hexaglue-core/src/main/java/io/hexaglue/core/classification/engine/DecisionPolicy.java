@@ -28,7 +28,7 @@ import java.util.Optional;
  *   <li>Whether the result is a hard conflict (incompatible kinds)</li>
  * </ul>
  *
- * @param <K> the kind type (e.g., DomainKind, PortKind)
+ * @param <K> the kind type (e.g., ElementKind, PortKind)
  */
 public interface DecisionPolicy<K> {
 

@@ -13,11 +13,10 @@
 
 package io.hexaglue.plugin.livingdoc;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.ir.Cardinality;
 import io.hexaglue.spi.ir.CascadeType;
 import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.DomainKind;
-import io.hexaglue.spi.ir.DomainModel;
 import io.hexaglue.spi.ir.DomainProperty;
 import io.hexaglue.spi.ir.DomainRelation;
 import io.hexaglue.spi.ir.DomainType;
@@ -25,20 +24,16 @@ import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.Identity;
 import io.hexaglue.spi.ir.IdentityStrategy;
 import io.hexaglue.spi.ir.IdentityWrapperKind;
-import io.hexaglue.spi.ir.IrMetadata;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.ir.JavaConstruct;
 import io.hexaglue.spi.ir.Nullability;
 import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortKind;
 import io.hexaglue.spi.ir.PortMethod;
-import io.hexaglue.spi.ir.PortModel;
 import io.hexaglue.spi.ir.RelationInfo;
 import io.hexaglue.spi.ir.RelationKind;
 import io.hexaglue.spi.ir.SourceRef;
 import io.hexaglue.spi.ir.TypeRef;
-import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -107,7 +102,7 @@ public final class TestFixtures {
 
     // ============ Relation Builders ============
 
-    public static DomainRelation oneToManyRelation(String propertyName, String targetType, DomainKind targetKind) {
+    public static DomainRelation oneToManyRelation(String propertyName, String targetType, ElementKind targetKind) {
         return new DomainRelation(
                 propertyName,
                 RelationKind.ONE_TO_MANY,
@@ -120,7 +115,7 @@ public final class TestFixtures {
     }
 
     public static DomainRelation manyToOneRelation(
-            String propertyName, String targetType, DomainKind targetKind, String mappedBy) {
+            String propertyName, String targetType, ElementKind targetKind, String mappedBy) {
         return new DomainRelation(
                 propertyName,
                 RelationKind.MANY_TO_ONE,
@@ -132,7 +127,7 @@ public final class TestFixtures {
                 false);
     }
 
-    public static DomainRelation embeddedRelation(String propertyName, String targetType, DomainKind targetKind) {
+    public static DomainRelation embeddedRelation(String propertyName, String targetType, ElementKind targetKind) {
         return new DomainRelation(
                 propertyName,
                 RelationKind.EMBEDDED,
@@ -156,7 +151,7 @@ public final class TestFixtures {
                 packageName + "." + name,
                 name,
                 packageName,
-                DomainKind.AGGREGATE_ROOT,
+                ElementKind.AGGREGATE_ROOT,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(identity),
@@ -172,7 +167,7 @@ public final class TestFixtures {
                 packageName + "." + name,
                 name,
                 packageName,
-                DomainKind.ENTITY,
+                ElementKind.ENTITY,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.CLASS,
                 Optional.of(identity),
@@ -187,7 +182,7 @@ public final class TestFixtures {
                 packageName + "." + name,
                 name,
                 packageName,
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.EXPLICIT,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -202,7 +197,7 @@ public final class TestFixtures {
                 packageName + "." + name,
                 name,
                 packageName,
-                DomainKind.IDENTIFIER,
+                ElementKind.IDENTIFIER,
                 ConfidenceLevel.HIGH,
                 JavaConstruct.RECORD,
                 Optional.empty(),
@@ -254,23 +249,6 @@ public final class TestFixtures {
 
     public static PortMethod voidMethod(String name, String... parameters) {
         return PortMethod.legacy(name, "void", List.of(parameters));
-    }
-
-    // ============ IrSnapshot Builders ============
-
-    public static IrSnapshot createIrSnapshot(List<DomainType> domainTypes, List<Port> ports) {
-        DomainModel domain = new DomainModel(domainTypes);
-        PortModel portModel = new PortModel(ports);
-        IrMetadata metadata = IrMetadata.withDefaults(
-                "com.example", Instant.now(), "1.0.0-SNAPSHOT", domainTypes.size(), ports.size());
-        return new IrSnapshot(domain, portModel, metadata);
-    }
-
-    public static IrSnapshot emptyIrSnapshot() {
-        DomainModel domain = new DomainModel(List.of());
-        PortModel portModel = new PortModel(List.of());
-        IrMetadata metadata = IrMetadata.withDefaults("com.example", Instant.now(), "1.0.0-SNAPSHOT", 0, 0);
-        return new IrSnapshot(domain, portModel, metadata);
     }
 
     // ============ Helper Methods ============

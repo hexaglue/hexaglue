@@ -15,7 +15,7 @@ package io.hexaglue.core.classification.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.core.classification.domain.DomainKind;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.port.PortKind;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,26 +38,26 @@ class CompatibilityPolicyTest {
         @Test
         @DisplayName("identical kinds should be compatible")
         void identicalKindsShouldBeCompatible() {
-            CompatibilityPolicy<DomainKind> policy = CompatibilityPolicy.noneCompatible();
+            CompatibilityPolicy<ElementKind> policy = CompatibilityPolicy.noneCompatible();
 
-            assertThat(policy.areCompatible(DomainKind.ENTITY, DomainKind.ENTITY))
+            assertThat(policy.areCompatible(ElementKind.ENTITY, ElementKind.ENTITY))
                     .isTrue();
-            assertThat(policy.areCompatible(DomainKind.AGGREGATE_ROOT, DomainKind.AGGREGATE_ROOT))
+            assertThat(policy.areCompatible(ElementKind.AGGREGATE_ROOT, ElementKind.AGGREGATE_ROOT))
                     .isTrue();
-            assertThat(policy.areCompatible(DomainKind.VALUE_OBJECT, DomainKind.VALUE_OBJECT))
+            assertThat(policy.areCompatible(ElementKind.VALUE_OBJECT, ElementKind.VALUE_OBJECT))
                     .isTrue();
         }
 
         @Test
         @DisplayName("different kinds should not be compatible")
         void differentKindsShouldNotBeCompatible() {
-            CompatibilityPolicy<DomainKind> policy = CompatibilityPolicy.noneCompatible();
+            CompatibilityPolicy<ElementKind> policy = CompatibilityPolicy.noneCompatible();
 
-            assertThat(policy.areCompatible(DomainKind.ENTITY, DomainKind.VALUE_OBJECT))
+            assertThat(policy.areCompatible(ElementKind.ENTITY, ElementKind.VALUE_OBJECT))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.AGGREGATE_ROOT, DomainKind.ENTITY))
+            assertThat(policy.areCompatible(ElementKind.AGGREGATE_ROOT, ElementKind.ENTITY))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.DOMAIN_SERVICE, DomainKind.APPLICATION_SERVICE))
+            assertThat(policy.areCompatible(ElementKind.DOMAIN_SERVICE, ElementKind.APPLICATION_SERVICE))
                     .isFalse();
         }
 
@@ -79,12 +79,12 @@ class CompatibilityPolicyTest {
     @DisplayName("domainDefault()")
     class DomainDefaultTest {
 
-        private final CompatibilityPolicy<DomainKind> policy = CompatibilityPolicy.domainDefault();
+        private final CompatibilityPolicy<ElementKind> policy = CompatibilityPolicy.domainDefault();
 
         @Test
         @DisplayName("identical kinds should be compatible")
         void identicalKindsShouldBeCompatible() {
-            for (DomainKind kind : DomainKind.values()) {
+            for (ElementKind kind : ElementKind.values()) {
                 assertThat(policy.areCompatible(kind, kind))
                         .as("Same kind %s should be compatible with itself", kind)
                         .isTrue();
@@ -94,54 +94,54 @@ class CompatibilityPolicyTest {
         @Test
         @DisplayName("AGGREGATE_ROOT and ENTITY should be compatible")
         void aggregateRootAndEntityShouldBeCompatible() {
-            assertThat(policy.areCompatible(DomainKind.AGGREGATE_ROOT, DomainKind.ENTITY))
+            assertThat(policy.areCompatible(ElementKind.AGGREGATE_ROOT, ElementKind.ENTITY))
                     .isTrue();
-            assertThat(policy.areCompatible(DomainKind.ENTITY, DomainKind.AGGREGATE_ROOT))
+            assertThat(policy.areCompatible(ElementKind.ENTITY, ElementKind.AGGREGATE_ROOT))
                     .isTrue();
         }
 
         @Test
         @DisplayName("VALUE_OBJECT should not be compatible with ENTITY")
         void valueObjectAndEntityShouldNotBeCompatible() {
-            assertThat(policy.areCompatible(DomainKind.VALUE_OBJECT, DomainKind.ENTITY))
+            assertThat(policy.areCompatible(ElementKind.VALUE_OBJECT, ElementKind.ENTITY))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.ENTITY, DomainKind.VALUE_OBJECT))
+            assertThat(policy.areCompatible(ElementKind.ENTITY, ElementKind.VALUE_OBJECT))
                     .isFalse();
         }
 
         @Test
         @DisplayName("VALUE_OBJECT should not be compatible with AGGREGATE_ROOT")
         void valueObjectAndAggregateRootShouldNotBeCompatible() {
-            assertThat(policy.areCompatible(DomainKind.VALUE_OBJECT, DomainKind.AGGREGATE_ROOT))
+            assertThat(policy.areCompatible(ElementKind.VALUE_OBJECT, ElementKind.AGGREGATE_ROOT))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.AGGREGATE_ROOT, DomainKind.VALUE_OBJECT))
+            assertThat(policy.areCompatible(ElementKind.AGGREGATE_ROOT, ElementKind.VALUE_OBJECT))
                     .isFalse();
         }
 
         @Test
         @DisplayName("DOMAIN_SERVICE and APPLICATION_SERVICE should not be compatible")
         void domainServiceAndApplicationServiceShouldNotBeCompatible() {
-            assertThat(policy.areCompatible(DomainKind.DOMAIN_SERVICE, DomainKind.APPLICATION_SERVICE))
+            assertThat(policy.areCompatible(ElementKind.DOMAIN_SERVICE, ElementKind.APPLICATION_SERVICE))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.APPLICATION_SERVICE, DomainKind.DOMAIN_SERVICE))
+            assertThat(policy.areCompatible(ElementKind.APPLICATION_SERVICE, ElementKind.DOMAIN_SERVICE))
                     .isFalse();
         }
 
         @Test
         @DisplayName("IDENTIFIER should not be compatible with VALUE_OBJECT")
         void identifierAndValueObjectShouldNotBeCompatible() {
-            assertThat(policy.areCompatible(DomainKind.IDENTIFIER, DomainKind.VALUE_OBJECT))
+            assertThat(policy.areCompatible(ElementKind.IDENTIFIER, ElementKind.VALUE_OBJECT))
                     .isFalse();
-            assertThat(policy.areCompatible(DomainKind.VALUE_OBJECT, DomainKind.IDENTIFIER))
+            assertThat(policy.areCompatible(ElementKind.VALUE_OBJECT, ElementKind.IDENTIFIER))
                     .isFalse();
         }
 
         @Test
         @DisplayName("DOMAIN_EVENT should not be compatible with any other kind")
         void domainEventShouldNotBeCompatibleWithOthers() {
-            for (DomainKind kind : DomainKind.values()) {
-                if (kind != DomainKind.DOMAIN_EVENT) {
-                    assertThat(policy.areCompatible(DomainKind.DOMAIN_EVENT, kind))
+            for (ElementKind kind : ElementKind.values()) {
+                if (kind != ElementKind.DOMAIN_EVENT) {
+                    assertThat(policy.areCompatible(ElementKind.DOMAIN_EVENT, kind))
                             .as("DOMAIN_EVENT should not be compatible with %s", kind)
                             .isFalse();
                 }
@@ -151,8 +151,8 @@ class CompatibilityPolicyTest {
         @Test
         @DisplayName("compatibility should be symmetric")
         void compatibilityShouldBeSymmetric() {
-            for (DomainKind a : DomainKind.values()) {
-                for (DomainKind b : DomainKind.values()) {
+            for (ElementKind a : ElementKind.values()) {
+                for (ElementKind b : ElementKind.values()) {
                     assertThat(policy.areCompatible(a, b))
                             .as("Compatibility of %s and %s should be symmetric", a, b)
                             .isEqualTo(policy.areCompatible(b, a));
@@ -233,26 +233,26 @@ class CompatibilityPolicyTest {
         @DisplayName("custom domain policy can extend default compatibility")
         void customDomainPolicyCanExtendDefault() {
             // Extend default: also make VALUE_OBJECT compatible with IDENTIFIER
-            CompatibilityPolicy<DomainKind> extended = (a, b) -> {
+            CompatibilityPolicy<ElementKind> extended = (a, b) -> {
                 if (a == b) return true;
                 if (CompatibilityPolicy.domainDefault().areCompatible(a, b)) return true;
                 // Custom extension
-                return (a == DomainKind.VALUE_OBJECT && b == DomainKind.IDENTIFIER)
-                        || (a == DomainKind.IDENTIFIER && b == DomainKind.VALUE_OBJECT);
+                return (a == ElementKind.VALUE_OBJECT && b == ElementKind.IDENTIFIER)
+                        || (a == ElementKind.IDENTIFIER && b == ElementKind.VALUE_OBJECT);
             };
 
             // Original domain compatibility
-            assertThat(extended.areCompatible(DomainKind.AGGREGATE_ROOT, DomainKind.ENTITY))
+            assertThat(extended.areCompatible(ElementKind.AGGREGATE_ROOT, ElementKind.ENTITY))
                     .isTrue();
 
             // Extended compatibility
-            assertThat(extended.areCompatible(DomainKind.VALUE_OBJECT, DomainKind.IDENTIFIER))
+            assertThat(extended.areCompatible(ElementKind.VALUE_OBJECT, ElementKind.IDENTIFIER))
                     .isTrue();
-            assertThat(extended.areCompatible(DomainKind.IDENTIFIER, DomainKind.VALUE_OBJECT))
+            assertThat(extended.areCompatible(ElementKind.IDENTIFIER, ElementKind.VALUE_OBJECT))
                     .isTrue();
 
             // Still incompatible
-            assertThat(extended.areCompatible(DomainKind.ENTITY, DomainKind.VALUE_OBJECT))
+            assertThat(extended.areCompatible(ElementKind.ENTITY, ElementKind.VALUE_OBJECT))
                     .isFalse();
         }
     }

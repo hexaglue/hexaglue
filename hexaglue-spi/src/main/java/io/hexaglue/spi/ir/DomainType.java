@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.ir;
 
+import io.hexaglue.arch.ElementKind;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,12 +32,19 @@ import java.util.Optional;
  * @param annotations the annotation qualified names present on this type
  * @param sourceRef source location for diagnostics
  * @param unclassifiedReason reason for UNCLASSIFIED status, present only when kind is UNCLASSIFIED
+ * @deprecated Use {@link io.hexaglue.arch.element.ArchElement} subtypes instead
+ *             (Aggregate, DomainEntity, ValueObject, etc.).
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.element.ArchElement
+ * @see io.hexaglue.arch.element.Aggregate
+ * @see io.hexaglue.arch.element.ValueObject
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record DomainType(
         String qualifiedName,
         String simpleName,
         String packageName,
-        DomainKind kind,
+        ElementKind kind,
         ConfidenceLevel confidence,
         JavaConstruct construct,
         Optional<Identity> identity,
@@ -55,7 +63,7 @@ public record DomainType(
             String qualifiedName,
             String simpleName,
             String packageName,
-            DomainKind kind,
+            ElementKind kind,
             ConfidenceLevel confidence,
             JavaConstruct construct,
             Optional<Identity> identity,
@@ -86,7 +94,7 @@ public record DomainType(
             String qualifiedName,
             String simpleName,
             String packageName,
-            DomainKind kind,
+            ElementKind kind,
             ConfidenceLevel confidence,
             JavaConstruct construct,
             Optional<Identity> identity,
@@ -120,21 +128,21 @@ public record DomainType(
      * Returns true if this type is an aggregate root.
      */
     public boolean isAggregateRoot() {
-        return kind == DomainKind.AGGREGATE_ROOT;
+        return kind == ElementKind.AGGREGATE_ROOT;
     }
 
     /**
      * Returns true if this type is an entity (including aggregate roots).
      */
     public boolean isEntity() {
-        return kind == DomainKind.ENTITY || kind == DomainKind.AGGREGATE_ROOT;
+        return kind == ElementKind.ENTITY || kind == ElementKind.AGGREGATE_ROOT;
     }
 
     /**
      * Returns true if this type is a value object.
      */
     public boolean isValueObject() {
-        return kind == DomainKind.VALUE_OBJECT;
+        return kind == ElementKind.VALUE_OBJECT;
     }
 
     /**
@@ -143,7 +151,7 @@ public record DomainType(
      * @since 3.0.0
      */
     public boolean isUnclassified() {
-        return kind == DomainKind.UNCLASSIFIED;
+        return kind == ElementKind.UNCLASSIFIED;
     }
 
     /**

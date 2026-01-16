@@ -13,9 +13,9 @@
 
 package io.hexaglue.core.classification;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.analysis.AnalysisBudget;
 import io.hexaglue.core.analysis.PublicApiPrioritizer;
-import io.hexaglue.core.classification.domain.DomainKind;
 import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.GeneratedCodeFilter;
 import io.hexaglue.core.frontend.JavaForm;
@@ -301,17 +301,17 @@ public final class ProgressiveClassifier {
         // Check for DDD annotations
         if (type.hasAnnotation("org.springframework.data.annotation.Aggregate")
                 || type.hasAnnotation("io.hexaglue.domain.Aggregate")) {
-            return new PassResult(DomainKind.AGGREGATE_ROOT.name(), ConfidenceLevel.EXPLICIT, 1);
+            return new PassResult(ElementKind.AGGREGATE_ROOT.name(), ConfidenceLevel.EXPLICIT, 1);
         }
 
         if (type.hasAnnotation("javax.persistence.Entity") || type.hasAnnotation("jakarta.persistence.Entity")) {
             // JPA Entity - could be ENTITY or AGGREGATE_ROOT, need further analysis
-            return new PassResult(DomainKind.ENTITY.name(), ConfidenceLevel.HIGH, 1);
+            return new PassResult(ElementKind.ENTITY.name(), ConfidenceLevel.HIGH, 1);
         }
 
         if (type.hasAnnotation("javax.persistence.Embeddable")
                 || type.hasAnnotation("jakarta.persistence.Embeddable")) {
-            return new PassResult(DomainKind.VALUE_OBJECT.name(), ConfidenceLevel.EXPLICIT, 1);
+            return new PassResult(ElementKind.VALUE_OBJECT.name(), ConfidenceLevel.EXPLICIT, 1);
         }
 
         // Records without ID are likely VALUE_OBJECTs
@@ -320,7 +320,7 @@ public final class ProgressiveClassifier {
                     query.fieldsOf(type).stream().anyMatch(f -> f.simpleName().equalsIgnoreCase("id"));
 
             if (!hasIdField) {
-                return new PassResult(DomainKind.VALUE_OBJECT.name(), ConfidenceLevel.HIGH, 1);
+                return new PassResult(ElementKind.VALUE_OBJECT.name(), ConfidenceLevel.HIGH, 1);
             }
         }
 
@@ -346,15 +346,15 @@ public final class ProgressiveClassifier {
             boolean implementsRepository = interfaces.stream().anyMatch(TypeNode::hasRepositorySuffix);
 
             if (implementsRepository) {
-                return new PassResult(DomainKind.AGGREGATE_ROOT.name(), ConfidenceLevel.HIGH, 2);
+                return new PassResult(ElementKind.AGGREGATE_ROOT.name(), ConfidenceLevel.HIGH, 2);
             } else {
-                return new PassResult(DomainKind.ENTITY.name(), ConfidenceLevel.MEDIUM, 2);
+                return new PassResult(ElementKind.ENTITY.name(), ConfidenceLevel.MEDIUM, 2);
             }
         }
 
         // Check for value object patterns (immutable, no ID)
         if (type.form() == JavaForm.RECORD || isImmutableClass(type, query)) {
-            return new PassResult(DomainKind.VALUE_OBJECT.name(), ConfidenceLevel.MEDIUM, 2);
+            return new PassResult(ElementKind.VALUE_OBJECT.name(), ConfidenceLevel.MEDIUM, 2);
         }
 
         return PassResult.uncertain(2);
@@ -446,13 +446,13 @@ public final class ProgressiveClassifier {
                     .anyMatch(f -> f.simpleName().equalsIgnoreCase("id") || f.looksLikeIdentity());
 
             if (hasIdField) {
-                return new PassResult(DomainKind.ENTITY.name(), ConfidenceLevel.MEDIUM, 3);
+                return new PassResult(ElementKind.ENTITY.name(), ConfidenceLevel.MEDIUM, 3);
             }
         }
 
         // Value object pattern: Only field reads, no writes (immutable behavior)
         if (totalFieldReads > 0 && totalFieldWrites == 0) {
-            return new PassResult(DomainKind.VALUE_OBJECT.name(), ConfidenceLevel.MEDIUM, 3);
+            return new PassResult(ElementKind.VALUE_OBJECT.name(), ConfidenceLevel.MEDIUM, 3);
         }
 
         return PassResult.uncertain(3);

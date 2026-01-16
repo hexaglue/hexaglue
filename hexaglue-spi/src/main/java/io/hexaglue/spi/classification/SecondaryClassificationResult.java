@@ -13,7 +13,7 @@
 
 package io.hexaglue.spi.classification;
 
-import io.hexaglue.spi.ir.DomainKind;
+import io.hexaglue.arch.ElementKind;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,7 +45,7 @@ import java.util.Objects;
  *
  * // Override with new classification
  * return new SecondaryClassificationResult(
- *     DomainKind.AGGREGATE_ROOT,
+ *     ElementKind.AGGREGATE_ROOT,
  *     CertaintyLevel.INFERRED,
  *     ClassificationStrategy.WEIGHTED,
  *     "Name matches aggregate pattern",
@@ -64,7 +64,7 @@ import java.util.Objects;
  * @since 3.0.0
  */
 public record SecondaryClassificationResult(
-        DomainKind kind,
+        ElementKind kind,
         CertaintyLevel certainty,
         ClassificationStrategy strategy,
         String reasoning,

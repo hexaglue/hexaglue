@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.classification.secondary;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.spi.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.ClassificationContext;
 import io.hexaglue.spi.classification.ClassificationEvidence;
@@ -22,7 +23,6 @@ import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
 import io.hexaglue.spi.core.TypeInfo;
 import io.hexaglue.spi.core.TypeKind;
-import io.hexaglue.spi.ir.DomainKind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -126,13 +126,13 @@ public class WeightedMultiSignalClassifier implements HexaglueClassifier {
             return SecondaryClassificationResult.unclassified();
         }
 
-        DomainKind kind;
+        ElementKind kind;
         if (aggregateScore == maxScore) {
-            kind = DomainKind.AGGREGATE_ROOT;
+            kind = ElementKind.AGGREGATE_ROOT;
         } else if (entityScore == maxScore) {
-            kind = DomainKind.ENTITY;
+            kind = ElementKind.ENTITY;
         } else {
-            kind = DomainKind.VALUE_OBJECT;
+            kind = ElementKind.VALUE_OBJECT;
         }
 
         return new SecondaryClassificationResult(

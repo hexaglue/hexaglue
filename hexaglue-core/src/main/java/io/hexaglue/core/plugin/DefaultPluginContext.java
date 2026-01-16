@@ -14,30 +14,27 @@
 package io.hexaglue.core.plugin;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.spi.arch.ArchModelPluginContext;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.ir.IrSnapshot;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
+import io.hexaglue.spi.plugin.PluginContext;
 import io.hexaglue.spi.plugin.SimpleTemplateEngine;
 import io.hexaglue.spi.plugin.TemplateEngine;
 import java.util.Objects;
 import java.util.Optional;
 
 /**
- * Default implementation of {@link ArchModelPluginContext}.
+ * Default implementation of {@link PluginContext}.
  *
- * <p>This implementation supports both the legacy {@link IrSnapshot} API and the
- * v4 {@link ArchitecturalModel} API. Plugins can use {@code instanceof ArchModelPluginContext}
- * to check for v4 support and access the model via {@link #model()}.
+ * <p>This implementation provides plugins with access to the unified
+ * {@link ArchitecturalModel} and all necessary facilities for code generation.
  *
  * @since 4.0.0
  */
-final class DefaultPluginContext implements ArchModelPluginContext {
+final class DefaultPluginContext implements PluginContext {
 
     private final String pluginId;
-    private final IrSnapshot ir;
     private final ArchitecturalModel model;
     private final PluginConfig config;
     private final CodeWriter writer;
@@ -47,11 +44,10 @@ final class DefaultPluginContext implements ArchModelPluginContext {
     private final ArchitectureQuery architectureQuery;
 
     /**
-     * Creates a context with both legacy IR and v4 model support.
+     * Creates a plugin context with the v4 architectural model.
      *
      * @param pluginId the plugin identifier
-     * @param ir the legacy IR snapshot (for backward compatibility)
-     * @param model the v4 architectural model (may be null in legacy mode)
+     * @param model the v4 architectural model (never null)
      * @param config the plugin configuration
      * @param writer the code writer
      * @param diagnostics the diagnostic reporter
@@ -60,7 +56,6 @@ final class DefaultPluginContext implements ArchModelPluginContext {
      */
     DefaultPluginContext(
             String pluginId,
-            IrSnapshot ir,
             ArchitecturalModel model,
             PluginConfig config,
             CodeWriter writer,
@@ -68,8 +63,7 @@ final class DefaultPluginContext implements ArchModelPluginContext {
             PluginOutputStore outputStore,
             ArchitectureQuery architectureQuery) {
         this.pluginId = Objects.requireNonNull(pluginId, "pluginId must not be null");
-        this.ir = Objects.requireNonNull(ir, "ir must not be null");
-        this.model = model; // May be null in legacy mode
+        this.model = Objects.requireNonNull(model, "model must not be null");
         this.config = Objects.requireNonNull(config, "config must not be null");
         this.writer = Objects.requireNonNull(writer, "writer must not be null");
         this.diagnostics = Objects.requireNonNull(diagnostics, "diagnostics must not be null");
@@ -78,23 +72,9 @@ final class DefaultPluginContext implements ArchModelPluginContext {
         this.architectureQuery = architectureQuery;
     }
 
-    /**
-     * Creates a context with legacy IR only (backward compatibility).
-     */
-    DefaultPluginContext(
-            String pluginId,
-            IrSnapshot ir,
-            PluginConfig config,
-            CodeWriter writer,
-            DiagnosticReporter diagnostics,
-            PluginOutputStore outputStore,
-            ArchitectureQuery architectureQuery) {
-        this(pluginId, ir, null, config, writer, diagnostics, outputStore, architectureQuery);
-    }
-
     @Override
-    public IrSnapshot ir() {
-        return ir;
+    public ArchitecturalModel model() {
+        return model;
     }
 
     @Override
@@ -135,24 +115,5 @@ final class DefaultPluginContext implements ArchModelPluginContext {
     @Override
     public Optional<ArchitectureQuery> architectureQuery() {
         return Optional.ofNullable(architectureQuery);
-    }
-
-    @Override
-    public ArchitecturalModel model() {
-        if (model == null) {
-            throw new IllegalStateException(
-                    "ArchitecturalModel not available. This context was created in legacy mode. "
-                            + "Use ir() for backward compatibility or ensure the context was created with a model.");
-        }
-        return model;
-    }
-
-    /**
-     * Returns true if this context has an {@link ArchitecturalModel}.
-     *
-     * @return true if model() will return a valid model
-     */
-    public boolean hasModel() {
-        return model != null;
     }
 }

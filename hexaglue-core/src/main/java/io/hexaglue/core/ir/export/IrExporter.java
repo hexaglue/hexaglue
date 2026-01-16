@@ -13,6 +13,7 @@
 
 package io.hexaglue.core.ir.export;
 
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.analysis.RelationAnalyzer;
 import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.classification.ClassificationResult;
@@ -279,7 +280,7 @@ public final class IrExporter {
                 node.qualifiedName(),
                 node.simpleName(),
                 node.packageName(),
-                DomainKind.VALUE_OBJECT,
+                ElementKind.VALUE_OBJECT,
                 ConfidenceLevel.LOW, // Low confidence since inferred, not classified
                 typeConverter.toJavaConstruct(node.form()),
                 Optional.empty(), // No identity for VALUE_OBJECT
@@ -323,7 +324,7 @@ public final class IrExporter {
         // Extract relations using the RelationAnalyzer
         List<DomainRelation> relations = relationAnalyzer.analyzeRelations(node, query, context);
 
-        DomainKind domainKind = typeConverter.toDomainKind(classification.kind());
+        ElementKind domainKind = typeConverter.toElementKind(classification.kind());
 
         // Extract identity first to know the actual identity field name
         // Domain events and value objects do NOT have identity
@@ -527,13 +528,13 @@ public final class IrExporter {
         }
 
         // Handle successful classification
-        DomainKind domainKind = typeConverter.toDomainKind(coreResult.kind());
+        io.hexaglue.arch.ElementKind elementKind = typeConverter.toElementKind(coreResult.kind());
         io.hexaglue.spi.classification.CertaintyLevel certainty = typeConverter.toSpiCertainty(coreResult.confidence());
         ClassificationStrategy strategy = deriveStrategy(coreResult);
 
         return new PrimaryClassificationResult(
                 typeName,
-                domainKind,
+                elementKind,
                 certainty,
                 strategy,
                 coreResult.justification() != null ? coreResult.justification() : "",

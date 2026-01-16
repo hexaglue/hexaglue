@@ -26,7 +26,11 @@ import java.util.List;
  * @param domain the domain model (entities, value objects, aggregates, etc.)
  * @param ports the port model (repositories, gateways, use cases, etc.)
  * @param metadata analysis metadata (timestamp, version, etc.)
+ * @deprecated Use {@link io.hexaglue.arch.ArchitecturalModel} via {@code PluginContext.model()}.
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.ArchitecturalModel
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record IrSnapshot(DomainModel domain, PortModel ports, IrMetadata metadata) {
 
     /**

@@ -27,7 +27,11 @@ import java.util.Objects;
  * @param typeCount total number of types analyzed
  * @param portCount total number of ports detected
  * @since 3.0.0
+ * @deprecated Use {@link io.hexaglue.arch.ProjectContext} instead.
+ *             Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.ProjectContext
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public record IrMetadata(
         String basePackage,
         String projectName,

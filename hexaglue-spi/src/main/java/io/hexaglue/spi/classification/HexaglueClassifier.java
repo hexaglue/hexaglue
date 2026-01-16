@@ -65,7 +65,7 @@ import java.util.Optional;
  *         // Apply custom logic
  *         if (type.simpleName().endsWith("Aggregate")) {
  *             return new SecondaryClassificationResult(
- *                 DomainKind.AGGREGATE_ROOT,
+ *                 ElementKind.AGGREGATE_ROOT,
  *                 CertaintyLevel.INFERRED,
  *                 ClassificationStrategy.WEIGHTED,
  *                 "Name ends with 'Aggregate'",
