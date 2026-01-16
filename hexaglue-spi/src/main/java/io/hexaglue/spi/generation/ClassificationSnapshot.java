@@ -18,30 +18,43 @@ import io.hexaglue.spi.ir.IrSnapshot;
 /**
  * Alias for IrSnapshot to clarify usage in generation context.
  *
- * <p>This type alias provides semantic clarity when passing the analyzed
- * application model to generator plugins. It emphasizes that the snapshot
- * contains <b>classification results</b> rather than raw intermediate
- * representation.
+ * <p><strong>This interface is deprecated since HexaGlue 4.0.</strong>
+ * Use {@link io.hexaglue.arch.ArchitecturalModel} via {@code PluginContext.model()} instead.
  *
- * <p>In HexaGlue 3.0, "ClassificationSnapshot" and "IrSnapshot" are
- * interchangeable terms. This alias exists purely for API clarity and
- * may evolve into a distinct type in future versions.
+ * <h2>Migration Guide</h2>
  *
- * <p>Usage in generator plugins:
+ * <p>Before (v3):
  * <pre>{@code
  * public void generate(GeneratorContext context) {
  *     ClassificationSnapshot snapshot = context.snapshot();
- *
- *     // Access classified domain types
  *     snapshot.domain().aggregateRoots().forEach(this::generateEntity);
+ * }
+ * }</pre>
  *
- *     // Access classified ports
- *     snapshot.ports().ports().forEach(this::generateAdapter);
+ * <p>After (v4):
+ * <pre>{@code
+ * public class MyPlugin implements GeneratorPlugin {
+ *     private ArchitecturalModel model;
+ *
+ *     @Override
+ *     public void execute(PluginContext context) {
+ *         this.model = context.model();
+ *         super.execute(context);
+ *     }
+ *
+ *     @Override
+ *     public void generate(GeneratorContext context) {
+ *         model.aggregates().forEach(this::generateEntity);
+ *     }
  * }
  * }</pre>
  *
  * @since 3.0.0
+ * @deprecated Since 4.0.0. Use {@link io.hexaglue.arch.ArchitecturalModel} via
+ *             {@code PluginContext.model()} instead. Scheduled for removal in v5.0.0.
+ * @see io.hexaglue.arch.ArchitecturalModel
  */
+@Deprecated(forRemoval = true, since = "4.0.0")
 public interface ClassificationSnapshot {
 
     /**
