@@ -15,7 +15,7 @@
     <description>my-hexagonal-pokedex</description>
     <properties>
         <java.version>17</java.version>
-        <hexaglue.version>4.0.0-SNAPSHOT</hexaglue.version>
+        <hexaglue.version>4.0.0</hexaglue.version>
     </properties>
     <dependencies>
         <dependency>
@@ -102,19 +102,19 @@
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-living-doc</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>1.0.0</version>
                     </dependency>
                     <!-- JPA Plugin -->
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-jpa</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>1.0.0</version>
                     </dependency>
                     <!-- DDD Audit Plugin -->
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-audit</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>1.0.0</version>
                     </dependency>
                     <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
                     <dependency>

@@ -100,7 +100,7 @@ This example uses the simplest configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>1.0.0</version>
         </dependency>
     </dependencies>
 </plugin>

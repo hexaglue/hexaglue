@@ -20,7 +20,7 @@
         <maven.compiler.source>${java.version}</maven.compiler.source>
         <maven.compiler.target>${java.version}</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hexaglue.version>4.0.0-SNAPSHOT</hexaglue.version>
+        <hexaglue.version>4.0.0</hexaglue.version>
     </properties>
 
     <build>
@@ -37,7 +37,7 @@
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-living-doc</artifactId>
-                        <version>1.0.0-SNAPSHOT</version>
+                        <version>1.0.0</version>
                     </dependency>
                 </dependencies>
             </plugin>

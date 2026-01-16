@@ -20,7 +20,7 @@ import java.util.Objects;
  * Metadata about the audit report generation.
  *
  * @param projectName     the name of the project audited
- * @param projectVersion  the version of the project audited (e.g., "1.0.0-SNAPSHOT")
+ * @param projectVersion  the version of the project audited (e.g., "1.0.0")
  * @param timestamp       when the audit was performed
  * @param duration        how long the audit took (formatted string like "1.23s")
  * @param hexaglueVersion the HexaGlue version used

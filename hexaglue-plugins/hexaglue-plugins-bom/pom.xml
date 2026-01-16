@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.hexaglue.plugins</groupId>
         <artifactId>hexaglue-plugins</artifactId>
-        <version>4.0.0-SNAPSHOT</version>
+        <version>4.0.0</version>
     </parent>
 
     <artifactId>hexaglue-plugins-bom</artifactId>
@@ -18,8 +18,9 @@
 
     <properties>
         <!-- Each plugin has its own version -->
-        <hexaglue-plugin-jpa.version>1.0.0-SNAPSHOT</hexaglue-plugin-jpa.version>
-        <hexaglue-plugin-living-doc.version>1.0.0-SNAPSHOT</hexaglue-plugin-living-doc.version>
+        <hexaglue-plugin-jpa.version>1.0.0</hexaglue-plugin-jpa.version>
+        <hexaglue-plugin-living-doc.version>1.0.0</hexaglue-plugin-living-doc.version>
+        <hexaglue-plugin-audit.version>1.0.0</hexaglue-plugin-audit.version>
     </properties>
 
     <dependencyManagement>
@@ -33,6 +34,11 @@
                 <groupId>io.hexaglue.plugins</groupId>
                 <artifactId>hexaglue-plugin-living-doc</artifactId>
                 <version>${hexaglue-plugin-living-doc.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.hexaglue.plugins</groupId>
+                <artifactId>hexaglue-plugin-audit</artifactId>
+                <version>${hexaglue-plugin-audit.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
