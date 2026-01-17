@@ -37,8 +37,10 @@ import java.util.Set;
  * architecture where the application cannot interact with external systems.
  *
  * <p>This validator checks that every port interface has at least one adapter
- * (infrastructure implementation) that depends on it. A port is considered
- * implemented if:
+ * (infrastructure implementation) that depends on it. Both driving ports
+ * (use cases) and driven ports (repositories, gateways) are verified.
+ *
+ * <p>A port is considered implemented if:
  * <ul>
  *   <li>An adapter in the INFRASTRUCTURE layer depends on the port</li>
  *   <li>The adapter is classified with role ADAPTER</li>
@@ -70,8 +72,10 @@ public class PortCoverageValidator implements ConstraintValidator {
     public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all ports
-        List<CodeUnit> ports = codebase.unitsWithRole(RoleClassification.PORT);
+        // Find all ports (including repositories, which are driven ports)
+        List<CodeUnit> ports = new ArrayList<>();
+        ports.addAll(codebase.unitsWithRole(RoleClassification.PORT));
+        ports.addAll(codebase.unitsWithRole(RoleClassification.REPOSITORY));
 
         // Find all adapters in the infrastructure layer
         List<CodeUnit> adapters = codebase.units().stream()

@@ -1,0 +1,51 @@
+---
+import SectionCopy from '../SectionCopy.astro';
+import FeatureCard from './feature-cards/FeatureCard.astro';
+import ClassificationCard from './feature-cards/ClassificationCard.astro';
+import JPAGenerationCard from './feature-cards/JPAGenerationCard.astro';
+import LivingDocCard from './feature-cards/LivingDocCard.astro';
+import AuditCard from './feature-cards/AuditCard.astro';
+import ValidationCard from './feature-cards/ValidationCard.astro';
+import PortsCard from './feature-cards/PortsCard.astro';
+import ExtensibleCard from './feature-cards/ExtensibleCard.astro';
+---
+
+<section
+	class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 relative w-full max-w-screen-xl mx-auto px-4 sm:px-8"
+>
+	<SectionCopy
+		label="Tout ce dont vous avez besoin"
+		title="Une Couverture Fonctionnelle Complète"
+		description="HexaGlue transforme le code métier en infrastructure prête pour la production."
+	/>
+
+	<div class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4 auto-rows-fr">
+		<!-- Row 1 -->
+		<ClassificationCard />
+		<JPAGenerationCard />
+
+		<!-- Row 2 -->
+		<LivingDocCard />
+
+		<AuditCard />
+
+		<ValidationCard />
+
+		<!-- Row 3 -->
+		<FeatureCard
+			icon="ri/layout-masonry-line"
+			title="Clean Architecture"
+			description="Supporte les patterns de la Clean architecture avec séparations des préoccupations."
+		/>
+
+		<PortsCard />
+
+		<FeatureCard
+			icon="ri/plug-line"
+			title="Plugin Maven"
+			description="Intégration simple à l'aide d'un plugin Maven pour générer, valider et auditer votre application."
+		/>
+
+		<ExtensibleCard />
+	</div>
+</section>

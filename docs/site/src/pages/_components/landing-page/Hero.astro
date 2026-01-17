@@ -1,0 +1,141 @@
+---
+import CodeBlock from '~/components/CodeBlock.astro';
+import PageTitleBlock from '~/components/PageTitleBlock.astro';
+import Link from '../Link.astro';
+import PillLink from '../PillLink.astro';
+import HeroBackground from './HeroBackground.astro';
+import UsedBy from './UsedBy.astro';
+import versions from '~/data/versions';
+---
+
+<section class="relative">
+	<div
+		class="mt-16 md:mt-20 lg:mt-24 px-4 sm:px-8 mx-auto w-full sm:max-w-screen-md flex flex-col items-center justify-center gap-5 md:gap-6 lg:gap-8"
+	>
+		<PillLink
+			href="/getting-started/"
+			title="Nouveau"
+			subtitle={`HexaGlue v${versions.hexaglue} disponible`}
+		/>
+		<PageTitleBlock
+			wide
+			lg
+			body="Sans framework imposé - Sans lock-in éditeur - Sans impact sur le runtime"
+		>
+			<h1
+				slot="title"
+				class="text-balance mb-4 text-center text-5xl/[1.1] font-bold font-heading sm:max-w-[24ch] md:text-6xl/[1.1] xl:text-7xl/[1.1]"
+			>
+				Compilez l'architecture, pas seulement le code.
+			</h1>
+			<div slot="body" class="text-astro-gray-200 text-center text-balance font-light max-w-2xl">
+				<p class="mb-4 text-lg md:text-xl lg:text-2xl">
+					<strong class="text-white font-medium">La Gouvernance de votre Architecture Java à la Compilation.</strong>
+				</p>
+				<div class="slogan-container h-10 flex items-center justify-center">
+					<div id="typewriter-wrapper" class="typewriter-wrapper">
+						<span id="typewriter" class="typewriter font-heading text-lg md:text-xl bg-clip-text text-transparent bg-blue-purple-gradient"></span><span class="cursor">▌</span>
+					</div>
+				</div>
+			</div>
+		</PageTitleBlock>
+
+		<div class="grid grid-rows-2 gap-2">
+			<Link href="/getting-started/" class="primary">
+				<span
+					class="bg-clip-text text-transparent bg-blue-green-gradient group-hover:text-[#1a7a4c] transition-all ease-in-out duration-500"
+				>
+					Démarrer maintenant
+				</span>
+			</Link>
+			<CodeBlock>mvn hexaglue:generate</CodeBlock>
+		</div>
+	</div>
+
+	<HeroBackground />
+
+	<UsedBy />
+</section>
+
+<style>
+	.cursor {
+		animation: blink 1s step-end infinite;
+		color: #BC52EE;
+		font-weight: 300;
+	}
+
+	@keyframes blink {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0; }
+	}
+
+	.typewriter-wrapper {
+		text-align: left;
+		display: inline-block;
+		white-space: nowrap;
+	}
+
+	.typewriter {
+		min-width: 1ch;
+	}
+</style>
+
+<script>
+	const slogans = [
+		"Sans framework imposé",
+		"Sans vendor lock-in",
+		"Sans impact sur le runtime"
+	];
+
+	const typewriter = document.getElementById('typewriter');
+	const wrapper = document.getElementById('typewriter-wrapper');
+
+	// Calculer la largeur du slogan le plus large (en pixels)
+	function setWrapperWidth() {
+		if (!typewriter || !wrapper) return;
+		let maxWidth = 0;
+		for (const slogan of slogans) {
+			typewriter.textContent = slogan;
+			maxWidth = Math.max(maxWidth, wrapper.offsetWidth);
+		}
+		wrapper.style.width = `${maxWidth}px`;
+		typewriter.textContent = '';
+	}
+	setWrapperWidth();
+
+	let sloganIndex = 0;
+	let charIndex = 0;
+	let isDeleting = false;
+	const typingSpeed = 80;
+	const deletingSpeed = 40;
+	const pauseBeforeDelete = 2000;
+	const pauseBeforeType = 500;
+
+	function type() {
+		if (!typewriter) return;
+		const currentSlogan = slogans[sloganIndex];
+
+		if (isDeleting) {
+			typewriter.textContent = currentSlogan.substring(0, charIndex - 1);
+			charIndex--;
+		} else {
+			typewriter.textContent = currentSlogan.substring(0, charIndex + 1);
+			charIndex++;
+		}
+
+		let timeout = isDeleting ? deletingSpeed : typingSpeed;
+
+		if (!isDeleting && charIndex === currentSlogan.length) {
+			timeout = pauseBeforeDelete;
+			isDeleting = true;
+		} else if (isDeleting && charIndex === 0) {
+			isDeleting = false;
+			sloganIndex = (sloganIndex + 1) % slogans.length;
+			timeout = pauseBeforeType;
+		}
+
+		setTimeout(type, timeout);
+	}
+
+	type();
+</script>

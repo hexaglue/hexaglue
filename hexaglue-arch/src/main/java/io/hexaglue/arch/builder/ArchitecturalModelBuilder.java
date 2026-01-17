@@ -154,8 +154,8 @@ public final class ArchitecturalModelBuilder {
         ElementKind kind = trace.classifiedAs();
 
         return switch (kind) {
-            case AGGREGATE_ROOT -> DomainEntity.aggregateRoot(type.qualifiedName(), trace);
-            case ENTITY -> DomainEntity.entity(type.qualifiedName(), trace);
+            case AGGREGATE_ROOT -> createDomainEntity(type, trace, ElementKind.AGGREGATE_ROOT);
+            case ENTITY -> createDomainEntity(type, trace, ElementKind.ENTITY);
             case VALUE_OBJECT -> createValueObject(type, trace);
             case IDENTIFIER -> createIdentifier(type, trace);
             case DOMAIN_EVENT -> createDomainEvent(type, trace);
@@ -163,6 +163,31 @@ public final class ArchitecturalModelBuilder {
             case DRIVEN_PORT -> createDrivenPort(type, trace);
             default -> new UnclassifiedType(ElementId.of(type.qualifiedName()), "Unhandled kind: " + kind, type, trace);
         };
+    }
+
+    private DomainEntity createDomainEntity(TypeSyntax type, ClassificationTrace trace, ElementKind entityKind) {
+        // Find identity field - look for field named "id" or ending with "Id" that uses a value object type
+        String identityField = null;
+        io.hexaglue.syntax.TypeRef identityType = null;
+
+        for (var field : type.fields()) {
+            String fieldName = field.name().toLowerCase();
+            if (fieldName.equals("id") || fieldName.endsWith("id")) {
+                identityField = field.name();
+                identityType = field.type();
+                break;
+            }
+        }
+
+        return new DomainEntity(
+                ElementId.of(type.qualifiedName()),
+                entityKind,
+                identityField,
+                identityType,
+                Optional.empty(),
+                List.of(),
+                type,
+                trace);
     }
 
     private ValueObject createValueObject(TypeSyntax type, ClassificationTrace trace) {

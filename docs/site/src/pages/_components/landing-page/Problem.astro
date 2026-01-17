@@ -1,0 +1,39 @@
+---
+import SectionCopy from '../SectionCopy.astro';
+import ProblemCard from './ProblemCard.astro';
+---
+
+<section
+	class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 relative w-full max-w-screen-xl mx-auto px-4 sm:px-8"
+>
+	<SectionCopy
+		label="Le problème"
+		title="Le Coût Caché des Architectures Implicites"
+	/>
+
+	<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+		<ProblemCard
+			icon="ri/file-copy-2-line"
+			title="Une prolifération de code d'intégration"
+			description="Adapters et câblage répétés dans chaque projet génèrent un surcoût structurel qui ralentit durablement le delivery."
+		/>
+
+		<ProblemCard
+			icon="ri/file-damage-line"
+			title="Une documentation non synchronisée"
+			description="La documentation n'est pas alignée avec le code réel, ce qui la rend obsolète et peu fiable pour l'onboarding et la gouvernance."
+		/>
+
+		<ProblemCard
+			icon="ri/error-warning-line"
+			title="Des modifications à haut risque"
+			description="Dépendances implicites et règles non vérifiées rendent chaque évolution imprévisible et coûteuse."
+		/>
+
+		<ProblemCard
+			icon="ri/eye-off-line"
+			title="Des revues de code à faible valeur"
+			description="L'essentiel de l'effort porte sur le câblage et l'intégration, au détriment des règles métier et des décisions architecturales."
+		/>
+	</div>
+</section>

@@ -23,11 +23,14 @@ import org.apache.maven.model.PluginExecution;
 import org.apache.maven.project.MavenProject;
 
 /**
- * Maven lifecycle participant that automatically binds hexaglue:generate to generate-sources.
+ * Maven lifecycle participant that automatically binds HexaGlue goals to Maven phases.
  *
  * <p>When the HexaGlue Maven Plugin is declared with {@code <extensions>true</extensions>},
- * this participant automatically adds a default execution that binds the {@code generate}
- * goal to the {@code generate-sources} phase.
+ * this participant automatically adds default executions:
+ * <ul>
+ *   <li>{@code generate} goal bound to {@code generate-sources} phase</li>
+ *   <li>{@code audit} goal bound to {@code verify} phase</li>
+ * </ul>
  *
  * <p>This eliminates the need for users to explicitly declare an {@code <executions>}
  * block in their pom.xml:
@@ -51,44 +54,54 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
 
     private static final String GROUP_ID = "io.hexaglue";
     private static final String ARTIFACT_ID = "hexaglue-maven-plugin";
-    private static final String GOAL = "generate";
-    private static final String PHASE = "generate-sources";
-    private static final String EXECUTION_ID = "default-hexaglue-generate";
+
+    private static final String GENERATE_GOAL = "generate";
+    private static final String GENERATE_PHASE = "generate-sources";
+    private static final String GENERATE_EXECUTION_ID = "default-hexaglue-generate";
+
+    private static final String AUDIT_GOAL = "audit";
+    private static final String AUDIT_PHASE = "verify";
+    private static final String AUDIT_EXECUTION_ID = "default-hexaglue-audit";
 
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
         for (MavenProject project : session.getProjects()) {
-            injectExecutionIfNeeded(project);
+            injectExecutionsIfNeeded(project);
         }
     }
 
-    private void injectExecutionIfNeeded(MavenProject project) {
+    private void injectExecutionsIfNeeded(MavenProject project) {
         Plugin hexagluePlugin = findHexaGluePlugin(project);
         if (hexagluePlugin == null) {
             return;
         }
 
-        // Check if there's already an execution with the generate goal
-        boolean hasGenerateExecution = hexagluePlugin.getExecutions().stream()
-                .anyMatch(exec -> exec.getGoals().contains(GOAL));
+        injectGoalIfNeeded(hexagluePlugin, GENERATE_GOAL, GENERATE_PHASE, GENERATE_EXECUTION_ID);
+        injectGoalIfNeeded(hexagluePlugin, AUDIT_GOAL, AUDIT_PHASE, AUDIT_EXECUTION_ID);
+    }
 
-        if (hasGenerateExecution) {
-            // User has explicitly configured executions, don't interfere
+    private void injectGoalIfNeeded(Plugin plugin, String goal, String phase, String executionId) {
+        // Check if there's already an execution with this goal
+        boolean hasExecution = plugin.getExecutions().stream()
+                .anyMatch(exec -> exec.getGoals().contains(goal));
+
+        if (hasExecution) {
+            // User has explicitly configured this execution, don't interfere
             return;
         }
 
         // Add default execution
         PluginExecution execution = new PluginExecution();
-        execution.setId(EXECUTION_ID);
-        execution.setPhase(PHASE);
-        execution.addGoal(GOAL);
+        execution.setId(executionId);
+        execution.setPhase(phase);
+        execution.addGoal(goal);
 
         // Inherit configuration from plugin level
-        if (hexagluePlugin.getConfiguration() != null) {
-            execution.setConfiguration(hexagluePlugin.getConfiguration());
+        if (plugin.getConfiguration() != null) {
+            execution.setConfiguration(plugin.getConfiguration());
         }
 
-        hexagluePlugin.addExecution(execution);
+        plugin.addExecution(execution);
     }
 
     private Plugin findHexaGluePlugin(MavenProject project) {

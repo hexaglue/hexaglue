@@ -1,0 +1,221 @@
+---
+import FeatureCard from './FeatureCard.astro';
+---
+
+<FeatureCard
+	icon="hexaglue/aggregate"
+	title="Classification du Domaine"
+	description="Identification automatique des blocs de construction DDD : Aggregates, Entities, Value Objects, Domain Events et Identifiers."
+	layout="tall"
+>
+	<div slot="illustration" class="classification-illustration mt-4 pt-4 border-t border-astro-dark-100/10">
+		<!-- Background grid lines -->
+		<div class="grid-container">
+			<!-- Horizontal lines -->
+			<div class="grid-line-h line-h-1"></div>
+			<div class="grid-line-h line-h-2"></div>
+			<div class="grid-line-h line-h-3"></div>
+			<!-- Vertical lines -->
+			<div class="grid-line-v line-v-1"></div>
+			<div class="grid-line-v line-v-2"></div>
+			<div class="grid-line-v line-v-3"></div>
+			<div class="grid-line-v line-v-4"></div>
+
+			<!-- Component boxes -->
+			<div class="component-grid">
+				<!-- Row 1 -->
+				<div class="component comp-1 comp-aggregate">
+					<span class="comp-tag">&lt;Aggregate&gt;</span>
+				</div>
+				<div class="component comp-2 comp-entity">
+					<span class="comp-tag">&lt;Entity&gt;</span>
+				</div>
+
+				<!-- Row 2 -->
+				<div class="component comp-3 comp-value-object">
+					<span class="comp-tag">&lt;ValueObject&gt;</span>
+				</div>
+				<div class="component comp-4 comp-identifier">
+					<span class="comp-tag">&lt;Identifier&gt;</span>
+				</div>
+
+				<!-- Row 3 -->
+				<div class="component comp-5 comp-event">
+					<span class="comp-tag">&lt;DomainEvent&gt;</span>
+				</div>
+				<div class="component comp-6 comp-service">
+					<span class="comp-tag">&lt;Service&gt;</span>
+				</div>
+
+				<!-- Row 4 -->
+				<div class="component comp-7 comp-driving">
+					<span class="comp-tag">&lt;Driving&gt;</span>
+				</div>
+				<div class="component comp-8 comp-driven">
+					<span class="comp-tag">&lt;Driven&gt;</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</FeatureCard>
+
+<style>
+	.classification-illustration {
+		position: relative;
+		overflow: hidden;
+		min-height: 160px;
+	}
+
+	.grid-container {
+		position: relative;
+		height: 160px;
+		padding: 8px;
+	}
+
+	/* Grid lines */
+	.grid-line-h {
+		position: absolute;
+		left: 8px;
+		right: 8px;
+		height: 1px;
+		background: linear-gradient(to right, transparent 0%, rgba(255,255,255,0.06) 10%, rgba(255,255,255,0.06) 90%, transparent 100%);
+	}
+
+	.grid-line-v {
+		position: absolute;
+		top: 8px;
+		bottom: 8px;
+		width: 1px;
+		background: linear-gradient(to bottom, transparent 0%, rgba(255,255,255,0.06) 10%, rgba(255,255,255,0.06) 90%, transparent 100%);
+	}
+
+	.line-h-1 { top: 25%; }
+	.line-h-2 { top: 50%; }
+	.line-h-3 { top: 75%; }
+
+	.line-v-1 { left: 25%; }
+	.line-v-2 { left: 50%; }
+	.line-v-3 { left: 75%; }
+	.line-v-4 { left: 100%; }
+
+	/* Component grid */
+	.component-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		grid-template-rows: repeat(4, 1fr);
+		gap: 6px;
+		height: 100%;
+		position: relative;
+		z-index: 10;
+	}
+
+	/* Component boxes */
+	.component {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		padding: 4px 8px;
+		border-radius: 6px;
+		background: linear-gradient(135deg, rgba(23, 25, 30, 0.9), rgba(40, 44, 52, 0.9));
+		border: 1px solid rgba(255, 255, 255, 0.1);
+		opacity: 0;
+		transform: scale(1.5) translateY(-40px);
+		transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	.comp-tag {
+		font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+		font-size: 9px;
+		white-space: nowrap;
+		transition: all 0.3s ease-out;
+	}
+
+	/* Color variants */
+	.comp-aggregate { border-color: rgba(64, 222, 191, 0.2); }
+	.comp-aggregate .comp-tag { color: rgba(64, 222, 191, 0.7); }
+
+	.comp-entity { border-color: rgba(50, 69, 255, 0.2); }
+	.comp-entity .comp-tag { color: rgba(50, 69, 255, 0.7); }
+
+	.comp-value-object { border-color: rgba(188, 82, 238, 0.2); }
+	.comp-value-object .comp-tag { color: rgba(188, 82, 238, 0.7); }
+
+	.comp-identifier { border-color: rgba(238, 82, 136, 0.2); }
+	.comp-identifier .comp-tag { color: rgba(238, 82, 136, 0.7); }
+
+	.comp-event { border-color: rgba(255, 135, 50, 0.2); }
+	.comp-event .comp-tag { color: rgba(255, 135, 50, 0.7); }
+
+	.comp-service { border-color: rgba(16, 185, 129, 0.2); }
+	.comp-service .comp-tag { color: rgba(16, 185, 129, 0.7); }
+
+	.comp-driving { border-color: rgba(6, 182, 212, 0.2); }
+	.comp-driving .comp-tag { color: rgba(6, 182, 212, 0.7); }
+
+	.comp-driven { border-color: rgba(245, 158, 11, 0.2); }
+	.comp-driven .comp-tag { color: rgba(245, 158, 11, 0.7); }
+
+	/* Hover animations - cascade effect */
+	:global(.group:hover) .component {
+		opacity: 1;
+		transform: scale(1) translateY(0);
+	}
+
+	.comp-1 { transition-delay: 0ms; }
+	.comp-2 { transition-delay: 80ms; }
+	.comp-3 { transition-delay: 160ms; }
+	.comp-4 { transition-delay: 240ms; }
+	.comp-5 { transition-delay: 320ms; }
+	.comp-6 { transition-delay: 400ms; }
+	.comp-7 { transition-delay: 480ms; }
+	.comp-8 { transition-delay: 560ms; }
+
+	/* Hover glow effects */
+	:global(.group:hover) .comp-aggregate {
+		border-color: rgba(64, 222, 191, 0.5);
+		box-shadow: 0 0 12px rgba(64, 222, 191, 0.3);
+	}
+	:global(.group:hover) .comp-aggregate .comp-tag { color: rgba(64, 222, 191, 1); }
+
+	:global(.group:hover) .comp-entity {
+		border-color: rgba(50, 69, 255, 0.5);
+		box-shadow: 0 0 12px rgba(50, 69, 255, 0.3);
+	}
+	:global(.group:hover) .comp-entity .comp-tag { color: rgba(129, 140, 248, 1); }
+
+	:global(.group:hover) .comp-value-object {
+		border-color: rgba(188, 82, 238, 0.5);
+		box-shadow: 0 0 12px rgba(188, 82, 238, 0.3);
+	}
+	:global(.group:hover) .comp-value-object .comp-tag { color: rgba(216, 180, 254, 1); }
+
+	:global(.group:hover) .comp-identifier {
+		border-color: rgba(238, 82, 136, 0.5);
+		box-shadow: 0 0 12px rgba(238, 82, 136, 0.3);
+	}
+	:global(.group:hover) .comp-identifier .comp-tag { color: rgba(251, 113, 133, 1); }
+
+	:global(.group:hover) .comp-event {
+		border-color: rgba(255, 135, 50, 0.5);
+		box-shadow: 0 0 12px rgba(255, 135, 50, 0.3);
+	}
+	:global(.group:hover) .comp-event .comp-tag { color: rgba(253, 186, 116, 1); }
+
+	:global(.group:hover) .comp-service {
+		border-color: rgba(16, 185, 129, 0.5);
+		box-shadow: 0 0 12px rgba(16, 185, 129, 0.3);
+	}
+	:global(.group:hover) .comp-service .comp-tag { color: rgba(52, 211, 153, 1); }
+
+	:global(.group:hover) .comp-driving {
+		border-color: rgba(6, 182, 212, 0.5);
+		box-shadow: 0 0 12px rgba(6, 182, 212, 0.3);
+	}
+	:global(.group:hover) .comp-driving .comp-tag { color: rgba(34, 211, 238, 1); }
+
+	:global(.group:hover) .comp-driven {
+		border-color: rgba(245, 158, 11, 0.5);
+		box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+	}
+	:global(.group:hover) .comp-driven .comp-tag { color: rgba(251, 191, 36, 1); }
+</style>

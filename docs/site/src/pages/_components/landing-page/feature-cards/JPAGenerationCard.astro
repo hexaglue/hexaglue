@@ -1,0 +1,118 @@
+---
+import FeatureCard from './FeatureCard.astro';
+---
+
+<FeatureCard
+	icon="hexaglue/layers"
+	title="Génération JPA"
+	description="Génère automatiquement les entités JPA, les repositories et le code de mapping à partir du modèle du Domaine."
+	layout="wide"
+>
+	<div slot="illustration" class="jpa-illustration mt-4 pt-4 border-t border-astro-dark-100/10">
+		<div class="flex gap-4 items-center">
+			<!-- Source: Domain -->
+			<div class="code-block source flex-1 bg-astro-dark-900/50 rounded-lg p-3 font-mono text-xs">
+				<div class="text-astro-gray-300">
+					<span class="text-astro-green">@Aggregate</span>
+					<br />
+					<span class="text-astro-blue">public class</span>
+					<span class="text-astro-orange"> Order</span>
+					<span class="text-astro-gray-200"> {</span>
+					<br />
+					<span class="text-astro-gray-400">  // Domain model</span>
+					<br />
+					<span class="text-astro-gray-200">}</span>
+				</div>
+			</div>
+
+			<!-- Arrow -->
+			<div class="arrow-container flex flex-col items-center gap-1">
+				<div class="arrow">→</div>
+				<div class="arrow-label text-[10px] text-astro-gray-400">HexaGlue</div>
+			</div>
+
+			<!-- Target: JPA Entity -->
+			<div class="code-block target flex-1 bg-astro-dark-900/50 rounded-lg p-3 font-mono text-xs">
+				<div class="text-astro-gray-300">
+					<span class="text-astro-purple">@Entity</span>
+					<br />
+					<span class="text-astro-blue">public class</span>
+					<span class="text-astro-green"> OrderEntity</span>
+					<span class="text-astro-gray-200"> {</span>
+					<br />
+					<span class="text-astro-gray-400">  // Generated</span>
+					<br />
+					<span class="text-astro-gray-200">}</span>
+				</div>
+			</div>
+		</div>
+	</div>
+</FeatureCard>
+
+<style>
+	.jpa-illustration {
+		position: relative;
+	}
+
+	.code-block {
+		transition: all 0.3s ease-out;
+		border: 1px solid transparent;
+	}
+
+	.source {
+		opacity: 0.7;
+	}
+
+	.target {
+		opacity: 0.3;
+		transform: translateX(-5px);
+		clip-path: inset(0 100% 0 0);
+	}
+
+	:global(.group:hover) .source {
+		opacity: 1;
+		border-color: rgba(255, 135, 50, 0.3);
+		box-shadow: 0 0 20px rgba(255, 135, 50, 0.1);
+	}
+
+	:global(.group:hover) .target {
+		opacity: 1;
+		transform: translateX(0);
+		border-color: rgba(188, 82, 238, 0.3);
+		box-shadow: 0 0 20px rgba(188, 82, 238, 0.1);
+		animation: reveal-left-to-right 0.5s ease-out forwards;
+	}
+
+	@keyframes reveal-left-to-right {
+		0% {
+			clip-path: inset(0 100% 0 0);
+		}
+		100% {
+			clip-path: inset(0 0 0 0);
+		}
+	}
+
+	.arrow-container {
+		color: rgba(64, 222, 191, 0.5);
+		transition: all 0.3s ease-out;
+	}
+
+	.arrow {
+		font-size: 1.5rem;
+		font-weight: bold;
+	}
+
+	:global(.group:hover) .arrow-container {
+		color: rgba(64, 222, 191, 1);
+		transform: scale(1.1);
+	}
+
+	:global(.group:hover) .arrow {
+		animation: pulse-arrow 1s ease-in-out infinite;
+	}
+
+	@keyframes pulse-arrow {
+		0%, 100% { transform: translateX(0); }
+		50% { transform: translateX(3px); }
+	}
+</style>
