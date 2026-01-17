@@ -17,6 +17,10 @@
 		@apply my-8 border-astro-gray-500;
 	}
 
+	.prose > h1 {
+		@apply font-heading heading-1 mb-6 mt-0 text-4xl md:text-5xl font-bold leading-tight text-white;
+	}
+
 	.prose > h2 {
 		@apply font-heading heading-2 mb-4 mt-10 text-[32px] font-normal leading-[38px] text-white;
 	}

@@ -27,11 +27,14 @@ import UsedBy from './UsedBy.astro';
 			>
 				Compilez l'architecture, pas seulement le code.
 			</h1>
-			<p slot="body" class="text-astro-gray-200 text-center text-balance font-light max-w-2xl">
-				<strong class="text-white font-medium">Votre Architecture Java Gouvernée à la Compilation.</strong>
-				<br />
-				Sans framework imposé - Sans lock-in éditeur - Sans impact sur le runtime
-			</p>
+			<div slot="body" class="text-astro-gray-200 text-center text-balance font-light max-w-2xl">
+				<p class="mb-4">
+					<strong class="text-white font-medium">La Gouvernance de votre Architecture Java à la Compilation.</strong>
+				</p>
+				<div class="slogan-container h-10 flex items-center justify-center">
+					<span id="typewriter" class="typewriter font-heading text-lg md:text-xl bg-clip-text text-transparent bg-blue-purple-gradient"></span><span class="cursor">|</span>
+				</div>
+			</div>
 		</PageTitleBlock>
 
 		<div class="grid grid-rows-2 gap-2">
@@ -50,3 +53,64 @@ import UsedBy from './UsedBy.astro';
 
 	<UsedBy />
 </section>
+
+<style>
+	.cursor {
+		animation: blink 1s step-end infinite;
+		color: #BC52EE;
+		font-weight: 300;
+	}
+
+	@keyframes blink {
+		0%, 100% { opacity: 1; }
+		50% { opacity: 0; }
+	}
+
+	.typewriter {
+		min-width: 1ch;
+	}
+</style>
+
+<script>
+	const slogans = [
+		"Sans framework imposé",
+		"Sans lock-in éditeur",
+		"Sans impact sur le runtime"
+	];
+
+	const typewriter = document.getElementById('typewriter');
+	let sloganIndex = 0;
+	let charIndex = 0;
+	let isDeleting = false;
+	const typingSpeed = 80;
+	const deletingSpeed = 40;
+	const pauseBeforeDelete = 2000;
+	const pauseBeforeType = 500;
+
+	function type() {
+		const currentSlogan = slogans[sloganIndex];
+
+		if (isDeleting) {
+			typewriter.textContent = currentSlogan.substring(0, charIndex - 1);
+			charIndex--;
+		} else {
+			typewriter.textContent = currentSlogan.substring(0, charIndex + 1);
+			charIndex++;
+		}
+
+		let timeout = isDeleting ? deletingSpeed : typingSpeed;
+
+		if (!isDeleting && charIndex === currentSlogan.length) {
+			timeout = pauseBeforeDelete;
+			isDeleting = true;
+		} else if (isDeleting && charIndex === 0) {
+			isDeleting = false;
+			sloganIndex = (sloganIndex + 1) % slogans.length;
+			timeout = pauseBeforeType;
+		}
+
+		setTimeout(type, timeout);
+	}
+
+	type();
+</script>

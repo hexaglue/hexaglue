@@ -14,14 +14,16 @@ import heroBackground from './_assets/HeroBackground.svg';
 		loading="eager"
 		decoding="async"
 	/>
+	<div class="hero-bg-fade"></div>
 </div>
 
 <style>
 	.hero-bg-container {
 		position: absolute;
 		inset: 0;
+		bottom: -200px;
 		z-index: -50;
-		overflow: hidden;
+		overflow: visible;
 		pointer-events: none;
 	}
 
@@ -33,10 +35,19 @@ import heroBackground from './_assets/HeroBackground.svg';
 		width: 150%;
 		max-width: none;
 		height: auto;
-		min-height: 120%;
+		min-height: 140%;
 		object-fit: cover;
-		opacity: 0.9;
-		filter: blur(1px);
+		opacity: 1;
+	}
+
+	.hero-bg-fade {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		height: 300px;
+		background: linear-gradient(to bottom, transparent 0%, #0d0f14 100%);
+		pointer-events: none;
 	}
 
 	@media (max-width: 768px) {

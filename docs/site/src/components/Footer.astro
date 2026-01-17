@@ -45,7 +45,7 @@ const groups: LinkGroup[] = [
 	{
 		title: 'Legal',
 		links: [
-			{ label: 'Licence MIT', href: 'https://github.com/hexaglue/hexaglue/blob/main/LICENSE' },
+			{ label: 'Licence MPL 2.0', href: 'https://github.com/hexaglue/hexaglue/blob/main/LICENSE' },
 		],
 	},
 ];
@@ -53,7 +53,7 @@ const groups: LinkGroup[] = [
 const socialLinks = siteInfo.socialLinks;
 ---
 
-<footer class:list={['w-full border-t border-astro-dark-100/20', bgClass]}>
+<footer class:list={['w-full border-t border-astro-dark-100/20 relative z-10', bgClass]}>
 	<div class="w-full max-w-screen-2xl mx-auto px-4 sm:px-8">
 		<nav
 			aria-label="Secondary"
@@ -96,12 +96,10 @@ const socialLinks = siteInfo.socialLinks;
 			aria-label="Legal"
 			class="py-8 flex flex-col-reverse lg:flex-row items-center justify-between gap-4"
 		>
-			<div class="flex items-center gap-2 text-sm md:gap-4 md:text-base flex-wrap justify-center">
-				<Icon name="hexaglue/hexagon" size="20" aria-hidden="true" />
-				<a target="_blank" class="link" href="https://github.com/hexaglue/hexaglue/blob/main/LICENSE">
-					MIT License &copy; {new Date().getFullYear()}&nbsp;
-				</a>
-				<span class="text-astro-gray-300">HexaGlue Contributors</span>
+			<div class="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-base text-astro-gray-300">
+				<Icon name="hexaglue/hexagon" size="24" aria-hidden="true" />
+				<span>Copyright {new Date().getFullYear()} Scalastic</span>
+				<span>Released under <a href="https://github.com/hexaglue/hexaglue/blob/main/LICENSE" target="_blank" class="link">MPL-2.0</a></span>
 			</div>
 			<SocialLinks links={socialLinks} />
 		</nav>
