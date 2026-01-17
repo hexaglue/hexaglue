@@ -75,8 +75,26 @@ import AdoptionPanel from './AdoptionPanel.astro';
 <script>
 	const tabs = document.querySelectorAll('.adoption-tab');
 	let activeTabIndex = 0;
+	let autoPlayInterval: ReturnType<typeof setInterval> | null = null;
+	const AUTO_PLAY_DELAY = 4000; // 4 seconds per tab
 
-	function updateTabSelection(index: number) {
+	function updateTabStyles(tab: Element, isActive: boolean) {
+		const numberBadge = tab.querySelector('span:first-child');
+
+		if (isActive) {
+			tab.classList.remove('bg-astro-dark-800/30', 'border-astro-dark-100/20', 'text-astro-gray-200');
+			tab.classList.add('bg-blue-green-gradient/10', 'border-astro-green/30', 'text-white');
+			numberBadge?.classList.remove('bg-astro-dark-100/30', 'text-astro-gray-200');
+			numberBadge?.classList.add('bg-astro-green', 'text-black');
+		} else {
+			tab.classList.remove('bg-blue-green-gradient/10', 'border-astro-green/30', 'text-white');
+			tab.classList.add('bg-astro-dark-800/30', 'border-astro-dark-100/20', 'text-astro-gray-200');
+			numberBadge?.classList.remove('bg-astro-green', 'text-black');
+			numberBadge?.classList.add('bg-astro-dark-100/30', 'text-astro-gray-200');
+		}
+	}
+
+	function updateTabSelection(index: number, shouldFocus: boolean = false) {
 		const nextTab = tabs[index];
 		const activeTab = tabs[activeTabIndex];
 		const nextTabContent = document.querySelector(`#adoption-panel-${index + 1}`);
@@ -84,6 +102,7 @@ import AdoptionPanel from './AdoptionPanel.astro';
 
 		if (!nextTab || !activeTab || !nextTabContent || !activeTabContent) return;
 
+		// Update ARIA attributes
 		activeTab.setAttribute('aria-selected', 'false');
 		activeTab.setAttribute('tabindex', '-1');
 		activeTabContent.classList.add('hidden');
@@ -92,23 +111,57 @@ import AdoptionPanel from './AdoptionPanel.astro';
 		nextTab.setAttribute('tabindex', '0');
 		nextTabContent.classList.remove('hidden');
 
-		(tabs[index] as HTMLElement).focus();
+		// Update visual styles
+		updateTabStyles(activeTab, false);
+		updateTabStyles(nextTab, true);
+
+		if (shouldFocus) {
+			(tabs[index] as HTMLElement).focus();
+		}
 		activeTabIndex = index;
 	}
 
+	function startAutoPlay() {
+		if (autoPlayInterval) return;
+		autoPlayInterval = setInterval(() => {
+			const nextIndex = (activeTabIndex + 1) % tabs.length;
+			updateTabSelection(nextIndex, false);
+		}, AUTO_PLAY_DELAY);
+	}
+
+	function stopAutoPlay() {
+		if (autoPlayInterval) {
+			clearInterval(autoPlayInterval);
+			autoPlayInterval = null;
+		}
+	}
+
+	function restartAutoPlay() {
+		stopAutoPlay();
+		startAutoPlay();
+	}
+
 	tabs.forEach((tab, index) => {
-		tab.addEventListener('click', () => updateTabSelection(index));
+		tab.addEventListener('click', () => {
+			updateTabSelection(index, true);
+			restartAutoPlay(); // Reset timer on manual interaction
+		});
 
 		tab.addEventListener('keydown', (event) => {
 			if (event.key === 'ArrowRight') {
 				event.preventDefault();
 				const nextIndex = (activeTabIndex + 1) % tabs.length;
-				updateTabSelection(nextIndex);
+				updateTabSelection(nextIndex, true);
+				restartAutoPlay();
 			} else if (event.key === 'ArrowLeft') {
 				event.preventDefault();
 				const prevIndex = (activeTabIndex - 1 + tabs.length) % tabs.length;
-				updateTabSelection(prevIndex);
+				updateTabSelection(prevIndex, true);
+				restartAutoPlay();
 			}
 		});
 	});
+
+	// Start auto-play
+	startAutoPlay();
 </script>

@@ -9,6 +9,8 @@ import FeatureCard from './FeatureCard.astro';
 >
 	<div slot="illustration" class="audit-illustration mt-4 pt-4 border-t border-astro-dark-100/10">
 		<div class="graph-container relative h-24">
+			<!-- Dot pattern background -->
+			<div class="dot-pattern absolute inset-0"></div>
 			<!-- Nodes -->
 			<div class="node node-1 absolute" style="top: 10%; left: 15%;">
 				<div class="node-inner bg-astro-green/20 border border-astro-green/30"></div>
@@ -44,6 +46,17 @@ import FeatureCard from './FeatureCard.astro';
 <style>
 	.audit-illustration {
 		position: relative;
+	}
+
+	.dot-pattern {
+		background: radial-gradient(rgba(188, 82, 238, 0.15) 0.5px, transparent 0.5px);
+		background-size: 8px 8px;
+		opacity: 0.4;
+		transition: opacity 0.5s ease-out;
+	}
+
+	:global(.group:hover) .dot-pattern {
+		opacity: 0.8;
 	}
 
 	.node {

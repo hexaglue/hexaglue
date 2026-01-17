@@ -5,6 +5,9 @@ import ClassificationCard from './feature-cards/ClassificationCard.astro';
 import JPAGenerationCard from './feature-cards/JPAGenerationCard.astro';
 import LivingDocCard from './feature-cards/LivingDocCard.astro';
 import AuditCard from './feature-cards/AuditCard.astro';
+import ValidationCard from './feature-cards/ValidationCard.astro';
+import PortsCard from './feature-cards/PortsCard.astro';
+import ExtensibleCard from './feature-cards/ExtensibleCard.astro';
 ---
 
 <section
@@ -26,11 +29,7 @@ import AuditCard from './feature-cards/AuditCard.astro';
 
 		<AuditCard />
 
-		<FeatureCard
-			icon="ri/shield-check-line"
-			title="Validation au Build-time"
-			description="Capture les violations d'architecture avant les déploiements avec l'intégration d'un plugin Maven."
-		/>
+		<ValidationCard />
 
 		<!-- Row 3 -->
 		<FeatureCard
@@ -39,11 +38,7 @@ import AuditCard from './feature-cards/AuditCard.astro';
 			description="Supporte les patterns de la Clean architecture avec séparations des préoccupations."
 		/>
 
-		<FeatureCard
-			icon="hexaglue/pipeline"
-			title="Détection des Ports et Adapteurs"
-			description="Identifie automatiquement les ports driving et driven de votre architecture hexagonale."
-		/>
+		<PortsCard />
 
 		<FeatureCard
 			icon="hexaglue/domain"
@@ -51,10 +46,6 @@ import AuditCard from './feature-cards/AuditCard.astro';
 			description="Intégration simple à l'aide d'un plugin Maven pour générer, valider et auditer votre application."
 		/>
 
-		<FeatureCard
-			icon="ri/dashboard-line"
-			title="Architecture Extensible"
-			description="Son système de plugin permet de construire des générateurs et des validations pour vos besoins spécifiques."
-		/>
+		<ExtensibleCard />
 	</div>
 </section>
