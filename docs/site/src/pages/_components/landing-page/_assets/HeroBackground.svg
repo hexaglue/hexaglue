@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Gradient principal -->
+    <radialGradient id="heroGradient" cx="50%" cy="0%" r="80%" fx="50%" fy="0%">
+      <stop offset="0%" stop-color="#1a7a4c" stop-opacity="0.3"/>
+      <stop offset="30%" stop-color="#2563eb" stop-opacity="0.15"/>
+      <stop offset="60%" stop-color="#1e1b4b" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Gradient pour les hexagones -->
+    <linearGradient id="hexGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#40debf" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#334ba9" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Pattern hexagonal -->
+    <pattern id="hexPattern" width="60" height="52" patternUnits="userSpaceOnUse" patternTransform="rotate(30)">
+      <polygon points="30,0 60,15 60,37 30,52 0,37 0,15" fill="none" stroke="url(#hexGradient)" stroke-width="0.5" opacity="0.3"/>
+    </pattern>
+
+    <!-- Glow filter -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Blur filter for orbs -->
+    <filter id="blur" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="60"/>
+    </filter>
+  </defs>
+
+  <!-- Fond principal -->
+  <rect width="100%" height="100%" fill="url(#heroGradient)"/>
+
+  <!-- Pattern hexagonal subtil -->
+  <rect width="100%" height="100%" fill="url(#hexPattern)" opacity="0.4"/>
+
+  <!-- Orbes lumineux -->
+  <ellipse cx="960" cy="-100" rx="600" ry="400" fill="#1a7a4c" opacity="0.15" filter="url(#blur)"/>
+  <ellipse cx="400" cy="200" rx="300" ry="200" fill="#2563eb" opacity="0.1" filter="url(#blur)"/>
+  <ellipse cx="1500" cy="300" rx="350" ry="250" fill="#40debf" opacity="0.08" filter="url(#blur)"/>
+
+  <!-- Hexagones décoratifs flottants -->
+  <g opacity="0.15" filter="url(#glow)">
+    <polygon points="200,150 230,165 230,195 200,210 170,195 170,165" fill="none" stroke="#40debf" stroke-width="1"/>
+    <polygon points="1700,250 1730,265 1730,295 1700,310 1670,295 1670,265" fill="none" stroke="#2563eb" stroke-width="1"/>
+    <polygon points="300,400 340,420 340,460 300,480 260,460 260,420" fill="none" stroke="#1a7a4c" stroke-width="1.5"/>
+    <polygon points="1600,500 1640,520 1640,560 1600,580 1560,560 1560,520" fill="none" stroke="#40debf" stroke-width="1"/>
+    <polygon points="150,600 175,615 175,645 150,660 125,645 125,615" fill="none" stroke="#334ba9" stroke-width="0.8"/>
+    <polygon points="1750,100 1780,115 1780,145 1750,160 1720,145 1720,115" fill="none" stroke="#1a7a4c" stroke-width="1"/>
+  </g>
+
+  <!-- Points lumineux (étoiles) -->
+  <g fill="#ffffff" opacity="0.4">
+    <circle cx="100" cy="100" r="1"/>
+    <circle cx="300" cy="200" r="0.8"/>
+    <circle cx="500" cy="80" r="1.2"/>
+    <circle cx="700" cy="150" r="0.6"/>
+    <circle cx="900" cy="50" r="1"/>
+    <circle cx="1100" cy="180" r="0.8"/>
+    <circle cx="1300" cy="90" r="1.1"/>
+    <circle cx="1500" cy="160" r="0.7"/>
+    <circle cx="1700" cy="70" r="0.9"/>
+    <circle cx="1800" cy="200" r="1"/>
+    <circle cx="250" cy="350" r="0.5"/>
+    <circle cx="450" cy="280" r="0.8"/>
+    <circle cx="650" cy="320" r="0.6"/>
+    <circle cx="850" cy="250" r="1"/>
+    <circle cx="1050" cy="300" r="0.7"/>
+    <circle cx="1250" cy="220" r="0.9"/>
+    <circle cx="1450" cy="350" r="0.5"/>
+    <circle cx="1650" cy="280" r="0.8"/>
+  </g>
+
+  <!-- Lignes de connexion subtiles -->
+  <g stroke="url(#hexGradient)" stroke-width="0.5" opacity="0.2">
+    <line x1="200" y1="180" x2="300" y2="440"/>
+    <line x1="1700" y1="280" x2="1600" y2="540"/>
+    <line x1="500" y1="80" x2="650" y2="320"/>
+    <line x1="1300" y1="90" x2="1450" y2="350"/>
+  </g>
+</svg>

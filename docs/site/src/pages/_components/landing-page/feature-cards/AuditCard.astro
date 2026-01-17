@@ -1,0 +1,162 @@
+---
+import FeatureCard from './FeatureCard.astro';
+---
+
+<FeatureCard
+	icon="hexaglue/validation"
+	title="Audit d'Architecture"
+	description="Valide votre architecture hexagonale et DDD à la compilation."
+>
+	<div slot="illustration" class="audit-illustration mt-4 pt-4 border-t border-astro-dark-100/10">
+		<div class="graph-container relative h-24">
+			<!-- Dot pattern background -->
+			<div class="dot-pattern absolute inset-0"></div>
+			<!-- Nodes -->
+			<div class="node node-1 absolute" style="top: 10%; left: 15%;">
+				<div class="node-inner bg-astro-green/20 border border-astro-green/30"></div>
+				<span class="node-label">Domain</span>
+			</div>
+			<div class="node node-2 absolute" style="top: 10%; left: 75%;">
+				<div class="node-inner bg-astro-blue/20 border border-astro-blue/30"></div>
+				<span class="node-label">Port</span>
+			</div>
+			<div class="node node-3 absolute" style="top: 70%; left: 45%;">
+				<div class="node-inner bg-astro-purple/20 border border-astro-purple/30"></div>
+				<span class="node-label">Adapter</span>
+			</div>
+
+			<!-- Connections (SVG) -->
+			<svg class="connections absolute inset-0 w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="none">
+				<line class="connection conn-1" x1="21" y1="16" x2="72" y2="16" />
+				<line class="connection conn-2" x1="21" y1="20" x2="43" y2="74" />
+				<line class="connection conn-3" x1="72" y1="20" x2="50" y2="74" />
+			</svg>
+
+			<!-- Check mark -->
+			<div class="check-mark absolute" style="top: 35%; left: 45%;">
+				<svg class="w-5 h-5" viewBox="0 0 20 20" fill="none">
+					<circle class="check-circle" cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.5"/>
+					<path class="check-path" d="M6 10l3 3 5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+				</svg>
+			</div>
+		</div>
+	</div>
+</FeatureCard>
+
+<style>
+	.audit-illustration {
+		position: relative;
+	}
+
+	.dot-pattern {
+		background: radial-gradient(rgba(188, 82, 238, 0.25) 0.75px, transparent 0.75px);
+		background-size: 8px 8px;
+		opacity: 0.5;
+		transition: opacity 0.5s ease-out;
+	}
+
+	:global(.group:hover) .dot-pattern {
+		opacity: 0.9;
+	}
+
+	.node {
+		z-index: 10;
+		transition: all 0.3s ease-out;
+	}
+
+	.node-inner {
+		width: 12px;
+		height: 12px;
+		border-radius: 50%;
+		transition: all 0.3s ease-out;
+	}
+
+	.node-label {
+		position: absolute;
+		top: 14px;
+		left: 50%;
+		transform: translateX(-50%);
+		font-size: 8px;
+		color: rgba(255, 255, 255, 0.5);
+		white-space: nowrap;
+		transition: all 0.3s ease-out;
+	}
+
+	:global(.group:hover) .node-inner {
+		transform: scale(1.3);
+	}
+
+	:global(.group:hover) .node-1 .node-inner {
+		box-shadow: 0 0 12px rgba(64, 222, 191, 0.5);
+		background-color: rgba(64, 222, 191, 0.4);
+	}
+
+	:global(.group:hover) .node-2 .node-inner {
+		box-shadow: 0 0 12px rgba(50, 69, 255, 0.5);
+		background-color: rgba(50, 69, 255, 0.4);
+	}
+
+	:global(.group:hover) .node-3 .node-inner {
+		box-shadow: 0 0 12px rgba(188, 82, 238, 0.5);
+		background-color: rgba(188, 82, 238, 0.4);
+	}
+
+	:global(.group:hover) .node-label {
+		color: rgba(255, 255, 255, 0.8);
+	}
+
+	.connections {
+		z-index: 1;
+	}
+
+	.connection {
+		stroke: rgba(255, 255, 255, 0.1);
+		stroke-width: 0.5;
+		stroke-dasharray: 100;
+		stroke-dashoffset: 100;
+		transition: all 0.5s ease-out;
+	}
+
+	:global(.group:hover) .connection {
+		stroke: rgba(64, 222, 191, 0.4);
+		stroke-dashoffset: 0;
+	}
+
+	.conn-1 { transition-delay: 0ms; }
+	.conn-2 { transition-delay: 150ms; }
+	.conn-3 { transition-delay: 300ms; }
+
+	.check-mark {
+		color: rgba(64, 222, 191, 0.3);
+		transform: scale(0.8);
+		opacity: 0.5;
+		transition: all 0.4s ease-out;
+		z-index: 20;
+	}
+
+	:global(.group:hover) .check-mark {
+		color: rgba(64, 222, 191, 1);
+		transform: scale(1);
+		opacity: 1;
+	}
+
+	.check-circle {
+		stroke-dasharray: 60;
+		stroke-dashoffset: 60;
+		transition: stroke-dashoffset 0.5s ease-out 0.3s;
+	}
+
+	.check-path {
+		stroke-dasharray: 20;
+		stroke-dashoffset: 20;
+		transition: stroke-dashoffset 0.3s ease-out 0.6s;
+	}
+
+	:global(.group:hover) .check-circle {
+		stroke-dashoffset: 0;
+	}
+
+	:global(.group:hover) .check-path {
+		stroke-dashoffset: 0;
+	}
+</style>

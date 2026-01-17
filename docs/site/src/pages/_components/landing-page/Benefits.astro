@@ -1,0 +1,62 @@
+---
+import GemIcon from '~/components/GemIcon.astro';
+import IntroPoint from '../IntroPoint.astro';
+---
+
+<section class="benefits-section mt-20 sm:mt-36 xs:p-6 mx-auto w-full max-w-screen-xl space-y-8 p-4 sm:p-8 relative">
+	<div class="space-y-1">
+		<span class="bg-clip-text text-transparent bg-orange-yellow-gradient font-semibold">
+			Ce que Produit HexaGlue
+		</span>
+		<h2
+			class="section-title max-w-screen-lg text-balance text-[30px] font-heading md:leading-tight"
+		>
+			Des résultats concrets et mesurables
+		</h2>
+	</div>
+
+	<div class="grid grid-cols-1 gap-8 md:grid-cols-2 md:gap-12 lg:grid-cols-3">
+		<IntroPoint title="Compile-time">
+			<GemIcon slot="icon" icon="ri/timer-flash-line" gradient="blue-green" />
+			<Fragment slot="description">
+				Feedback architectural en CI : l'architecture devient un signal, pas un document statique.
+			</Fragment>
+		</IntroPoint>
+
+		<IntroPoint title="Déterministe">
+			<GemIcon slot="icon" icon="ri/checkbox-circle-line" gradient="red-pink" />
+			<Fragment slot="description">
+				Classification traçable : ce qui est ambigu est signalé, jamais supposé.
+			</Fragment>
+		</IntroPoint>
+
+		<IntroPoint title="At Scale">
+			<GemIcon slot="icon" icon="fluentui/scale-fill" gradient="orange-yellow" />
+			<Fragment slot="description">
+				Standardisation des patterns et réduction de la dette d'intégration à l'échelle de
+				l'entreprise.
+			</Fragment>
+		</IntroPoint>
+	</div>
+</section>
+
+<style>
+	.section-title {
+		font-variation-settings: 'wght' 700;
+	}
+
+	.benefits-section::after {
+		content: '';
+		position: absolute;
+		bottom: -50px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 80%;
+		height: 200px;
+		background: linear-gradient(135deg, rgba(255, 135, 50, 0.15) 0%, rgba(255, 200, 50, 0.1) 100%);
+		border-radius: 50%;
+		filter: blur(60px);
+		z-index: -1;
+		pointer-events: none;
+	}
+</style>

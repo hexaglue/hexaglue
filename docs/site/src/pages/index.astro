@@ -1,0 +1,31 @@
+---
+import MainLayout from '~/layouts/MainLayout.astro';
+import Hero from './_components/landing-page/Hero.astro';
+import Intro from './_components/landing-page/Intro.astro';
+import Principle from './_components/landing-page/Principle.astro';
+import Problem from './_components/landing-page/Problem.astro';
+import Solution from './_components/landing-page/Solution.astro';
+import Personas from './_components/landing-page/Personas.astro';
+import Features from './_components/landing-page/Features.astro';
+import Benefits from './_components/landing-page/Benefits.astro';
+import WhyHexaGlue from './_components/landing-page/WhyHexaGlue.astro';
+import Adoption from './_components/landing-page/Adoption.astro';
+import FinalCTA from './_components/landing-page/FinalCTA.astro';
+---
+
+<MainLayout
+	title="HexaGlue - Compilez l'architecture, pas seulement le code"
+	description="HexaGlue est un moteur d’analyse et d’automatisation architecturale qui s'active à la compilation des applications Java. Sans framework imposé, sans vendor lock-in, sans impact sur le runtime."
+>
+	<Hero />
+	<Intro />
+	<Problem />
+	<Solution />
+	<Principle />
+	<Personas />
+	<Features />
+	<Benefits />
+	<WhyHexaGlue />
+	<Adoption />
+	<FinalCTA />
+</MainLayout>

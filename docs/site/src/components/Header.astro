@@ -1,0 +1,45 @@
+---
+import { Icon } from 'astro-icon/components';
+---
+
+<header class="shadow">
+	<nav aria-label="Primary" class="container flex h-header items-center">
+		<slot />
+		<button id="hexaglue-header-drawer-button" type="button" class="link ml-6 lg:hidden">
+			<Icon name="menu-hamburger" class="s-6" aria-hidden="true" />
+			<span class="sr-only">Afficher le menu</span>
+		</button>
+	</nav>
+	<div
+		id="hexaglue-header-drawer"
+		class="-translate-x-4 border-t border-astro-gray-500 opacity-0 transition data-[open]:translate-x-0 data-[open]:opacity-100"
+		style="display: none;"
+	>
+		<slot name="drawer" />
+	</div>
+</header>
+
+<script>
+	import { createDisclosure } from '~/helpers/disclosure.js';
+
+	const main = document.querySelector('main');
+	const footer = document.querySelector('footer');
+
+	const emitter = createDisclosure({
+		button: document.querySelector('#hexaglue-header-drawer-button') as HTMLElement,
+		content: document.querySelector('#hexaglue-header-drawer') as HTMLElement,
+		animated: true,
+		/** matches the `lg:hidden` class above */
+		closeAt: 1024,
+	});
+
+	emitter.on('toggle', ({ visible }) => {
+		// Possible that these elements don't exist (but they almost always do)
+		if (main) {
+			main.inert = visible;
+		}
+		if (footer) {
+			footer.inert = visible;
+		}
+	});
+</script>

@@ -1,0 +1,68 @@
+---
+import SectionCopy from '../SectionCopy.astro';
+---
+
+<section
+	class="why-section mt-20 md:mt-24 lg:mt-28 xl:mt-36 py-12 md:py-16 lg:py-20 relative overflow-hidden w-full max-w-screen-xl mx-auto rounded-2xl md:rounded-3xl border border-astro-dark-100/20"
+>
+
+	<div class="relative text-center px-4 sm:px-8">
+		<span class="text-lg md:text-xl bg-clip-text text-transparent bg-blue-purple-gradient font-semibold">
+			Pour quoi faire ?
+		</span>
+
+		<h2 class="section-title mt-2 font-heading text-[48px] text-white text-balance">
+			Pourquoi HexaGlue
+		</h2>
+
+		<p class="mt-4 text-lg md:text-xl text-astro-gray-200 font-light max-w-2xl mx-auto">
+			Pour piloter la transformation et fiabiliser l'architecture, à la compilation.
+		</p>
+	</div>
+
+	<div class="relative mt-10 flex flex-wrap items-center justify-center gap-6 md:gap-8 px-4 sm:px-8">
+		<span class="why-tag px-5 py-2.5 rounded-full text-lg md:text-xl font-heading text-astro-gray-200">
+			Sans contrainte de runtime
+		</span>
+		<span class="why-tag px-5 py-2.5 rounded-full text-lg md:text-xl font-heading text-astro-gray-200">
+			Sans framework imposé
+		</span>
+		<span class="why-tag px-5 py-2.5 rounded-full text-lg md:text-xl font-heading text-astro-gray-200">
+			Sans vendor lock-in
+		</span>
+	</div>
+</section>
+
+<style>
+	.section-title {
+		font-variation-settings: 'wght' 700;
+	}
+
+	.why-tag {
+		position: relative;
+	}
+
+	.why-tag::before {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: 9999px;
+		padding: 1px;
+		background: linear-gradient(90deg, #3245FF, #BC52EE, #3245FF);
+		background-size: 200% 100%;
+		-webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+		-webkit-mask-composite: xor;
+		mask-composite: exclude;
+		animation: gradient-shift 3s ease-in-out infinite;
+	}
+
+	@keyframes gradient-shift {
+		0%, 100% {
+			background-position: 0% 50%;
+		}
+		50% {
+			background-position: 100% 50%;
+		}
+	}
+</style>

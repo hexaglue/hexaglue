@@ -115,7 +115,7 @@ Add this to your `pom.xml`:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
+    <version>4.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -131,7 +131,7 @@ mvn compile
 HexaGlue analyzes your domain and outputs a classification summary:
 
 ```
-[INFO] --- hexaglue:3.0.0-SNAPSHOT:generate (default-cli) @ my-project ---
+[INFO] --- hexaglue:4.0.0:generate (default-cli) @ my-project ---
 [INFO]
 [INFO] CLASSIFICATION SUMMARY
 [INFO] --------------------------------------------------------------
@@ -159,7 +159,7 @@ To generate JPA entities and repositories, add the plugin dependency:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
+    <version>4.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -168,7 +168,13 @@ To generate JPA entities and repositories, add the plugin dependency:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>${hexaglue-plugin-jpa.version}</version>
+            <version>1.0.0</version>
+        </dependency>
+        <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
+        <dependency>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>3.2.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -254,7 +260,9 @@ You've successfully generated JPA infrastructure from your domain model.
 - [JPA Generation](JPA_GENERATION.md) - Deep dive into JPA generation options
 - [Validation](VALIDATION.md) - Validate classification before generation
 
-**Full example:** See [sample-basic](../examples/sample-basic/) for the complete working project.
+**Full examples:**
+- [sample-basic](../examples/sample-basic/) - Minimal example with classification and living documentation
+- [sample-multi-aggregate](../examples/sample-multi-aggregate/) - Complete JPA generation with multiple aggregates
 
 ---
 

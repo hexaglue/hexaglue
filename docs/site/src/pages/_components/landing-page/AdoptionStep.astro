@@ -1,0 +1,31 @@
+---
+interface Props {
+	number: number;
+	label: string;
+	isActive?: boolean;
+}
+
+const { number, label, isActive = false } = Astro.props;
+---
+
+<button
+	role="tab"
+	aria-selected={isActive ? 'true' : 'false'}
+	tabindex={isActive ? 0 : -1}
+	class:list={[
+		'adoption-tab px-4 py-2 flex items-center gap-3 rounded-full border transition-all duration-300',
+		isActive
+			? 'bg-blue-green-gradient/10 border-astro-green/30 text-white'
+			: 'bg-astro-dark-800/30 border-astro-dark-100/20 text-astro-gray-200 hover:border-astro-dark-100/40 hover:text-astro-gray-100',
+	]}
+>
+	<span
+		class:list={[
+			'size-6 flex items-center justify-center rounded-full text-xs font-semibold',
+			isActive ? 'bg-astro-green text-black' : 'bg-astro-dark-100/30 text-astro-gray-200',
+		]}
+	>
+		{number}
+	</span>
+	<span class="text-sm font-medium">{label}</span>
+</button>

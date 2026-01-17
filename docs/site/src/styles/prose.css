@@ -1,0 +1,109 @@
+@layer components {
+	.prose {
+		@apply body mx-auto w-full max-w-prose tracking-wide text-astro-gray-200 lg:text-lg;
+		line-height: 1.75em;
+	}
+
+	.prose > p,
+	.prose > blockquote > p {
+		@apply my-4;
+	}
+	.prose > blockquote {
+		padding-left: 2rem;
+		border-left: 1px solid;
+	}
+
+	.prose > hr {
+		@apply my-8 border-astro-gray-500;
+	}
+
+	.prose > h1 {
+		@apply font-heading heading-1 mb-6 mt-0 text-4xl md:text-5xl font-bold leading-tight text-white;
+	}
+
+	.prose > h2 {
+		@apply font-heading heading-2 mb-4 mt-10 text-[32px] font-bold leading-[38px] text-white;
+	}
+
+	.prose > h3 {
+		@apply font-heading heading-3 mb-4 mt-10 text-2xl font-bold leading-tight text-white;
+	}
+
+	.prose > img {
+		@apply my-4;
+	}
+
+	.prose strong {
+		@apply font-medium text-white;
+	}
+
+	.prose ul {
+		@apply my-4 pl-8;
+	}
+
+	/* the ::marker selector doesn't allow customizing the spacing around the marker as easily */
+	.prose ul li::before {
+		content: '';
+		background: url('../icons/star.svg') center no-repeat;
+		display: inline-block;
+		width: 10px;
+		height: 10px;
+		margin-right: 8px;
+		margin-left: -18px;
+	}
+
+	.prose ol {
+		@apply my-4 list-inside list-decimal pl-4;
+	}
+	.prose ol ::marker {
+		@apply font-mono inline-block font-bold text-astro-pink-light;
+	}
+
+	/* Workaround for when li first node is wrapped in a p */
+	.prose li > p:first-child {
+		@apply inline-block;
+	}
+
+	.prose li {
+		@apply my-0.5;
+	}
+
+	.prose :where(a) {
+		@apply text-astro-pink-light underline underline-offset-2 hover:no-underline;
+	}
+
+	.prose :where(code):not(:where(pre, h1, h2, h3, h4, h5, h6) code) {
+		@apply mx-0.5 inline-block rounded-lg bg-astro-gray-500 px-2 align-baseline text-sm leading-6 text-astro-gray-100;
+	}
+
+	.prose > p a > code {
+		@apply text-inherit;
+		text-decoration: inherit;
+	}
+
+	.prose .expressive-code {
+		@apply my-6;
+	}
+
+	.prose table {
+		@apply overflow-auto border-spacing-0 text-sm sm:text-base w-full;
+	}
+	.prose tr {
+		@apply w-full;
+	}
+	.prose :is(th, td) {
+		@apply border-b border-astro-gray-500 py-2 px-4 align-baseline;
+	}
+	.prose :is(th, td):first-child {
+		@apply pl-0;
+	}
+	.prose :is(th, td):last-child {
+		@apply pr-0;
+	}
+	.prose th {
+		@apply text-white font-medium;
+	}
+	.prose th:not([align]) {
+		@apply text-start;
+	}
+}

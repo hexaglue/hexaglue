@@ -1,0 +1,44 @@
+---
+import siteInfo from '~/data/site-info.js';
+import HexaGlueLogo from './HexaGlueLogo.astro';
+import HeaderDropDown from './HeaderDropDown.astro';
+import SocialLinks from './SocialLinks.astro';
+
+const socialLinks = siteInfo.socialLinks.filter((link) => link.showInHeader);
+---
+
+<nav class="w-full flex items-center justify-between">
+	<a href="/" data-astro-prefetch title="Accueil" data-home-link>
+		<span class="sr-only">HexaGlue Logo</span>
+		<HexaGlueLogo aria-hidden="true" />
+	</a>
+
+	<div class="hidden shrink flex-row items-center gap-12 lg:flex text-base">
+		<HeaderDropDown
+			label="Ressources"
+			items={[
+				{ href: '/getting-started/', label: 'Documentation', icon: 'file-alt', prefetch: true },
+				{ href: 'https://github.com/hexaglue/hexaglue/tree/main/examples', label: 'Exemples', icon: 'ri/code-box-line' },
+				{ href: 'https://github.com/hexaglue/hexaglue', label: 'GitHub', icon: 'logos/github' },
+			]}
+		/>
+		<HeaderDropDown
+			label="Entreprise"
+			items={[
+				{ href: '/case-studies/', label: 'Etude de cas', icon: 'file-alt', prefetch: true },
+				{ href: '/contact/', label: 'Contact', icon: 'email', prefetch: true },
+			]}
+		/>
+		<HeaderDropDown
+			label="Communauté"
+			items={[
+				{ href: 'https://github.com/hexaglue/hexaglue/discussions', label: 'GitHub Discussions', icon: 'logos/github' },
+				{ href: 'https://github.com/hexaglue/hexaglue/blob/main/CONTRIBUTING.md', label: 'Contribuer', icon: 'ri/code-s-slash-line' },
+			]}
+		/>
+	</div>
+
+	<div class="hidden gap-4 lg:flex">
+		<SocialLinks links={socialLinks} />
+	</div>
+</nav>

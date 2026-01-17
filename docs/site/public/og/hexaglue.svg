@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background gradient -->
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0a0a"/>
+      <stop offset="50%" stop-color="#0d1117"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+
+    <!-- Accent gradient -->
+    <linearGradient id="accentGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a7a4c"/>
+      <stop offset="100%" stop-color="#2563eb"/>
+    </linearGradient>
+
+    <!-- Glow effect -->
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Hexagon pattern -->
+    <pattern id="hexPattern" width="60" height="52" patternUnits="userSpaceOnUse">
+      <polygon points="30,0 60,15 60,37 30,52 0,37 0,15" fill="none" stroke="#1a7a4c" stroke-width="0.5" opacity="0.15"/>
+    </pattern>
+  </defs>
+
+  <!-- Background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)"/>
+
+  <!-- Hex pattern overlay -->
+  <rect width="100%" height="100%" fill="url(#hexPattern)" opacity="0.5"/>
+
+  <!-- Glow orbs -->
+  <ellipse cx="200" cy="315" rx="300" ry="200" fill="#1a7a4c" opacity="0.1" filter="url(#glow)"/>
+  <ellipse cx="1000" cy="315" rx="300" ry="200" fill="#2563eb" opacity="0.08" filter="url(#glow)"/>
+
+  <!-- Logo hexagon -->
+  <g transform="translate(600, 200)">
+    <!-- Outer hexagon -->
+    <polygon points="0,-80 69,-40 69,40 0,80 -69,40 -69,-40" fill="none" stroke="url(#accentGradient)" stroke-width="3" opacity="0.8"/>
+    <!-- Inner hexagon -->
+    <polygon points="0,-50 43,-25 43,25 0,50 -43,25 -43,-25" fill="none" stroke="#40debf" stroke-width="2" opacity="0.6"/>
+    <!-- Center hexagon -->
+    <polygon points="0,-25 22,-12 22,12 0,25 -22,12 -22,-12" fill="url(#accentGradient)" opacity="0.3"/>
+  </g>
+
+  <!-- Title -->
+  <text x="600" y="340" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" fill="white">
+    HexaGlue
+  </text>
+
+  <!-- Tagline -->
+  <text x="600" y="400" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="28" font-weight="300" fill="#9ca3af">
+    Compilez l'architecture, pas seulement le code.
+  </text>
+
+  <!-- Subtitle -->
+  <text x="600" y="450" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="20" font-weight="400" fill="#6b7280">
+    Architecture Java Gouvernée à la Compilation
+  </text>
+
+  <!-- Bottom accent line -->
+  <rect x="400" y="520" width="400" height="3" rx="1.5" fill="url(#accentGradient)" opacity="0.6"/>
+
+  <!-- Decorative hexagons -->
+  <g opacity="0.2">
+    <polygon transform="translate(100, 100)" points="0,-30 26,-15 26,15 0,30 -26,15 -26,-15" fill="none" stroke="#40debf" stroke-width="1"/>
+    <polygon transform="translate(1100, 150)" points="0,-25 22,-12 22,12 0,25 -22,12 -22,-12" fill="none" stroke="#2563eb" stroke-width="1"/>
+    <polygon transform="translate(150, 500)" points="0,-20 17,-10 17,10 0,20 -17,10 -17,-10" fill="none" stroke="#1a7a4c" stroke-width="1"/>
+    <polygon transform="translate(1050, 480)" points="0,-35 30,-17 30,17 0,35 -30,17 -30,-17" fill="none" stroke="#40debf" stroke-width="1"/>
+  </g>
+</svg>
