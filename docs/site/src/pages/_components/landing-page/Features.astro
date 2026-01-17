@@ -4,6 +4,7 @@ import FeatureCard from './feature-cards/FeatureCard.astro';
 import ClassificationCard from './feature-cards/ClassificationCard.astro';
 import JPAGenerationCard from './feature-cards/JPAGenerationCard.astro';
 import LivingDocCard from './feature-cards/LivingDocCard.astro';
+import AuditCard from './feature-cards/AuditCard.astro';
 ---
 
 <section
@@ -23,11 +24,7 @@ import LivingDocCard from './feature-cards/LivingDocCard.astro';
 		<!-- Row 2 -->
 		<LivingDocCard />
 
-		<FeatureCard
-			icon="hexaglue/validation"
-			title="Audit d'Architecture"
-			description="Valide votre architecture hexagonale et DDD à la compilation."
-		/>
+		<AuditCard />
 
 		<FeatureCard
 			icon="ri/shield-check-line"

@@ -257,7 +257,11 @@ export default {
 				},
 
 				'.panel': {
-					'@apply border border-astro-gray-500 bg-astro-gray-600 shadow-xl': {},
+					'@apply border border-astro-gray-500 bg-astro-gray-600 shadow-xl transition-all duration-300': {},
+					'&:hover': {
+						'@apply border-astro-gray-400 shadow-2xl': {},
+						boxShadow: '0 0 30px rgba(188, 82, 238, 0.15), 0 0 60px rgba(50, 69, 255, 0.1)',
+					},
 				},
 			});
 		}),

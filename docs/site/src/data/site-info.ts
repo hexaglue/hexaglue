@@ -28,7 +28,7 @@ const siteInfo: SiteInfo = {
 	name: 'HexaGlue',
 	title: 'Compilez l\'architecture, pas seulement le code',
 	description:
-		'HexaGlue est un moteur de generation de code a la compilation pour les applications Java suivant l\'Architecture Hexagonale. Sans framework impose. Sans lock-in editeur. Sans impact sur le runtime.',
+		'HexaGlue est un moteur d\'analyse et d\'automatisation architecturale qui s\'active à la compilation des applications Java. Sans framework impose. Sans lock-in editeur. Sans impact sur le runtime.',
 	image: {
 		src: '/og/hexaglue.jpg',
 		alt: 'HexaGlue - Compilez l\'architecture, pas seulement le code',

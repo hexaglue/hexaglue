@@ -8,23 +8,58 @@ import FeatureCard from './FeatureCard.astro';
 	description="Identification automatique des blocs de construction DDD : Aggregates, Entities, Value Objects, Domain Events et Identifiers."
 	layout="tall"
 >
-	<div slot="illustration" class="mt-4 pt-4 border-t border-astro-dark-100/10">
-		<div class="flex flex-wrap gap-2">
-			<span class="px-2 py-1 text-xs rounded-full bg-astro-green/10 text-astro-green border border-astro-green/20">
+	<div slot="illustration" class="classification-illustration mt-4 pt-4 border-t border-astro-dark-100/10">
+		<div class="badges-container flex flex-wrap gap-2 justify-center">
+			<span class="badge badge-1 px-2 py-1 text-xs rounded-full bg-astro-green/10 text-astro-green border border-astro-green/20">
 				Aggregate
 			</span>
-			<span class="px-2 py-1 text-xs rounded-full bg-astro-blue/10 text-astro-blue border border-astro-blue/20">
+			<span class="badge badge-2 px-2 py-1 text-xs rounded-full bg-astro-blue/10 text-astro-blue border border-astro-blue/20">
 				Entity
 			</span>
-			<span class="px-2 py-1 text-xs rounded-full bg-astro-purple/10 text-astro-purple border border-astro-purple/20">
+			<span class="badge badge-3 px-2 py-1 text-xs rounded-full bg-astro-purple/10 text-astro-purple border border-astro-purple/20">
 				Value Object
 			</span>
-			<span class="px-2 py-1 text-xs rounded-full bg-astro-orange/10 text-astro-orange border border-astro-orange/20">
+			<span class="badge badge-4 px-2 py-1 text-xs rounded-full bg-astro-orange/10 text-astro-orange border border-astro-orange/20">
 				Domain Event
 			</span>
-			<span class="px-2 py-1 text-xs rounded-full bg-astro-pink/10 text-astro-pink border border-astro-pink/20">
+			<span class="badge badge-5 px-2 py-1 text-xs rounded-full bg-astro-pink/10 text-astro-pink border border-astro-pink/20">
 				Identifier
 			</span>
 		</div>
 	</div>
 </FeatureCard>
+
+<style>
+	.classification-illustration {
+		position: relative;
+		overflow: hidden;
+		min-height: 80px;
+	}
+
+	.badges-container {
+		position: relative;
+	}
+
+	.badge {
+		opacity: 0;
+		transform: translateY(-30px);
+		transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+	}
+
+	:global(.group:hover) .badge {
+		opacity: 1;
+		transform: translateY(0);
+	}
+
+	.badge-1 { transition-delay: 0ms; }
+	.badge-2 { transition-delay: 100ms; }
+	.badge-3 { transition-delay: 200ms; }
+	.badge-4 { transition-delay: 300ms; }
+	.badge-5 { transition-delay: 400ms; }
+
+	:global(.group:hover) .badge-1 { box-shadow: 0 0 12px rgba(64, 222, 191, 0.4); }
+	:global(.group:hover) .badge-2 { box-shadow: 0 0 12px rgba(50, 69, 255, 0.4); }
+	:global(.group:hover) .badge-3 { box-shadow: 0 0 12px rgba(188, 82, 238, 0.4); }
+	:global(.group:hover) .badge-4 { box-shadow: 0 0 12px rgba(255, 135, 50, 0.4); }
+	:global(.group:hover) .badge-5 { box-shadow: 0 0 12px rgba(238, 82, 136, 0.4); }
+</style>
