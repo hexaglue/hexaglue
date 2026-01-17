@@ -1,0 +1,27 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	icon: string;
+	title: string;
+	description: string;
+}
+
+const { icon, title, description } = Astro.props;
+---
+
+<div
+	class="p-6 bg-astro-dark-800/50 border border-astro-dark-100/20 rounded-xl hover:border-astro-dark-100/40 transition-colors duration-300"
+>
+	<div class="flex items-start gap-4">
+		<div class="shrink-0 p-2 rounded-lg bg-red-pink-gradient/10 text-astro-pink">
+			<Icon name={icon} class="size-6" aria-hidden="true" />
+		</div>
+		<div class="space-y-2">
+			<h3 class="text-lg font-semibold text-white">{title}</h3>
+			<p class="text-sm text-astro-gray-200 font-light leading-relaxed">
+				{description}
+			</p>
+		</div>
+	</div>
+</div>

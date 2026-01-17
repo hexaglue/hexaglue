@@ -1,0 +1,42 @@
+---
+import { Icon } from 'astro-icon/components';
+
+interface Props {
+	icon?: string;
+	title: string;
+	description: string;
+	layout?: 'default' | 'tall' | 'wide';
+}
+
+const { icon, title, description, layout = 'default' } = Astro.props;
+
+const layoutClasses = {
+	default: '',
+	tall: 'md:row-span-2',
+	wide: 'md:col-span-2',
+};
+---
+
+<div
+	class:list={[
+		'group p-6 bg-astro-dark-800/40 border border-astro-dark-100/15 rounded-xl hover:border-astro-dark-100/30 transition-all duration-300',
+		layoutClasses[layout],
+	]}
+>
+	<div class="h-full flex flex-col">
+		{
+			icon && (
+				<div class="mb-4 p-2 w-fit rounded-lg bg-blue-green-gradient/10 text-astro-green group-hover:scale-110 transition-transform duration-300">
+					<Icon name={icon} class="size-5" aria-hidden="true" />
+				</div>
+			)
+		}
+
+		<h3 class="text-lg font-semibold text-white mb-2">{title}</h3>
+		<p class="text-sm text-astro-gray-200 font-light leading-relaxed flex-1">
+			{description}
+		</p>
+
+		<slot name="illustration" />
+	</div>
+</div>

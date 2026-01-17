@@ -1,0 +1,48 @@
+---
+/**
+ * Hero background with hexagonal pattern and gradient overlay.
+ */
+import { Image } from 'astro:assets';
+import heroBackground from './_assets/HeroBackground.svg';
+---
+
+<div class="hero-bg-container">
+	<Image
+		src={heroBackground}
+		alt=""
+		class="hero-bg-image"
+		loading="eager"
+		decoding="async"
+	/>
+</div>
+
+<style>
+	.hero-bg-container {
+		position: absolute;
+		inset: 0;
+		z-index: -50;
+		overflow: hidden;
+		pointer-events: none;
+	}
+
+	.hero-bg-image {
+		position: absolute;
+		top: -20%;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 150%;
+		max-width: none;
+		height: auto;
+		min-height: 120%;
+		object-fit: cover;
+		opacity: 0.9;
+		filter: blur(1px);
+	}
+
+	@media (max-width: 768px) {
+		.hero-bg-image {
+			width: 200%;
+			top: -10%;
+		}
+	}
+</style>

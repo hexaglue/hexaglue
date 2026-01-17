@@ -1,0 +1,52 @@
+---
+import CodeBlock from '~/components/CodeBlock.astro';
+import PageTitleBlock from '~/components/PageTitleBlock.astro';
+import Link from '../Link.astro';
+import PillLink from '../PillLink.astro';
+import HeroBackground from './HeroBackground.astro';
+import UsedBy from './UsedBy.astro';
+---
+
+<section class="relative">
+	<div
+		class="mt-16 md:mt-20 lg:mt-24 px-4 sm:px-8 mx-auto w-full sm:max-w-screen-md flex flex-col items-center justify-center gap-5 md:gap-6 lg:gap-8"
+	>
+		<PillLink
+			href="/docs/getting-started/"
+			title="Nouveau"
+			subtitle="HexaGlue v4.0.0 disponible"
+		/>
+		<PageTitleBlock
+			wide
+			lg
+			body="Sans framework imposé - Sans lock-in éditeur - Sans impact sur le runtime"
+		>
+			<h1
+				slot="title"
+				class="text-balance mb-4 text-center text-3xl/[1.1] font-bold font-heading sm:max-w-[24ch] md:text-4xl/[1.1] xl:text-5xl/[1.1]"
+			>
+				Compilez l'architecture, pas seulement le code.
+			</h1>
+			<p slot="body" class="text-astro-gray-200 text-center text-balance font-light max-w-2xl">
+				<strong class="text-white font-medium">Votre Architecture Java Gouvernée à la Compilation.</strong>
+				<br />
+				Sans framework imposé - Sans lock-in éditeur - Sans impact sur le runtime
+			</p>
+		</PageTitleBlock>
+
+		<div class="grid grid-rows-2 gap-2">
+			<Link href="/docs/getting-started/" class="primary">
+				<span
+					class="bg-clip-text text-transparent bg-blue-green-gradient group-hover:text-[#1a7a4c] transition-all ease-in-out duration-500"
+				>
+					Démarrer maintenant
+				</span>
+			</Link>
+			<CodeBlock>mvn hexaglue:generate</CodeBlock>
+		</div>
+	</div>
+
+	<HeroBackground />
+
+	<UsedBy />
+</section>

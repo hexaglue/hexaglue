@@ -1,0 +1,30 @@
+---
+import siteInfo from '~/data/site-info.js';
+import HexaGlueLogo from './HexaGlueLogo.astro';
+import HeaderDropDown from './HeaderDropDown.astro';
+import SocialLinks from './SocialLinks.astro';
+
+const socialLinks = siteInfo.socialLinks.filter((link) => link.showInHeader);
+---
+
+<nav class="w-full flex items-center justify-between">
+	<a href="/" data-astro-prefetch title="Accueil" data-home-link>
+		<span class="sr-only">HexaGlue Logo</span>
+		<HexaGlueLogo aria-hidden="true" />
+	</a>
+
+	<div class="hidden shrink flex-row items-center gap-12 lg:flex text-base">
+		<a href="/getting-started/" data-astro-prefetch class="link">Documentation</a>
+		<HeaderDropDown
+			label="Entreprise"
+			items={[
+				{ href: '/case-studies/', label: 'Etude de cas', icon: 'file-alt', prefetch: true },
+				{ href: '/contact/', label: 'Contact', icon: 'email', prefetch: true },
+			]}
+		/>
+	</div>
+
+	<div class="hidden gap-4 lg:flex">
+		<SocialLinks links={socialLinks} />
+	</div>
+</nav>

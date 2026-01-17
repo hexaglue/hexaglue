@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none">
+  <defs>
+    <linearGradient id="hexaglue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3245FF"/>
+      <stop offset="100%" style="stop-color:#BC52EE"/>
+    </linearGradient>
+  </defs>
+  <path
+    d="M12 2 L21 7 L21 17 L12 22 L3 17 L3 7 Z"
+    fill="none"
+    stroke="url(#hexaglue-gradient)"
+    stroke-width="1.5"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M12 6 L18 9.5 L18 16.5 L12 20 L6 16.5 L6 9.5 Z"
+    fill="url(#hexaglue-gradient)"
+    opacity="0.3"
+  />
+  <circle cx="12" cy="12" r="3" fill="url(#hexaglue-gradient)"/>
+  <circle cx="12" cy="12" r="1.5" fill="#0D0F14"/>
+</svg>

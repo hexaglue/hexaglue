@@ -1,0 +1,42 @@
+---
+import SectionCopy from '../SectionCopy.astro';
+import GreenishStardust from './GreenishStardust.astro';
+import SolutionCard from './SolutionCard.astro';
+---
+
+<section
+	class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 relative w-full max-w-screen-xl mx-auto px-4 sm:px-8"
+>
+	<SectionCopy
+		label="La solution"
+		title="Quand l'Architecture Devient une Donnée Exploitable"
+	/>
+
+	<GreenishStardust height="h-56 md:h-72 lg:h-80" />
+
+	<div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+		<SolutionCard
+			icon="hexaglue/layers"
+			title="Modélisation"
+			description="Le code est transformé en un modèle architectural exploitable. L'architecture cachée dans le code devient visible."
+		/>
+
+		<SolutionCard
+			icon="hexaglue/aggregate"
+			title="Classification"
+			description="Les concepts architecturaux sont détectés de manière fiable et traçable. Votre architecture devient lisible et explicable."
+		/>
+
+		<SolutionCard
+			icon="ri/shield-check-line"
+			title="Validation"
+			description="Les règles architecturales sont vérifiées automatiquement. Leur conformité peut enfin être contrôlée en continue (CI/CD)."
+		/>
+
+		<SolutionCard
+			icon="ri/terminal-box-line"
+			title="Génération"
+			description="L'architecture devient un levier d'automatisation et alimente des usages concrets. Production de documentation, d'audits et de code d'infrastructure alignés sur l'architecture réelle."
+		/>
+	</div>
+</section>

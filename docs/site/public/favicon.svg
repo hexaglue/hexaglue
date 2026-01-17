@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="hexaglue-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3245FF"/>
+      <stop offset="100%" style="stop-color:#BC52EE"/>
+    </linearGradient>
+  </defs>
+  <!-- Hexagon outline -->
+  <path
+    d="M64 8 L112 36 L112 92 L64 120 L16 92 L16 36 Z"
+    fill="none"
+    stroke="url(#hexaglue-gradient)"
+    stroke-width="6"
+    stroke-linejoin="round"
+  />
+  <!-- Inner hexagon -->
+  <path
+    d="M64 28 L96 46 L96 82 L64 100 L32 82 L32 46 Z"
+    fill="url(#hexaglue-gradient)"
+    opacity="0.3"
+  />
+  <!-- Center gear/connection symbol -->
+  <circle cx="64" cy="64" r="12" fill="url(#hexaglue-gradient)"/>
+  <circle cx="64" cy="64" r="6" fill="#0D0F14"/>
+  <!-- Connection lines -->
+  <line x1="64" y1="52" x2="64" y2="28" stroke="url(#hexaglue-gradient)" stroke-width="3"/>
+  <line x1="74" y1="69" x2="96" y2="82" stroke="url(#hexaglue-gradient)" stroke-width="3"/>
+  <line x1="54" y1="69" x2="32" y2="82" stroke="url(#hexaglue-gradient)" stroke-width="3"/>
+</svg>

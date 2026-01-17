@@ -1,0 +1,30 @@
+---
+import FeatureCard from './FeatureCard.astro';
+---
+
+<FeatureCard
+	icon="hexaglue/aggregate"
+	title="Classification du Domaine"
+	description="Identification automatique des blocs de construction DDD : Aggregates, Entities, Value Objects, Domain Events et Identifiers."
+	layout="tall"
+>
+	<div slot="illustration" class="mt-4 pt-4 border-t border-astro-dark-100/10">
+		<div class="flex flex-wrap gap-2">
+			<span class="px-2 py-1 text-xs rounded-full bg-astro-green/10 text-astro-green border border-astro-green/20">
+				Aggregate
+			</span>
+			<span class="px-2 py-1 text-xs rounded-full bg-astro-blue/10 text-astro-blue border border-astro-blue/20">
+				Entity
+			</span>
+			<span class="px-2 py-1 text-xs rounded-full bg-astro-purple/10 text-astro-purple border border-astro-purple/20">
+				Value Object
+			</span>
+			<span class="px-2 py-1 text-xs rounded-full bg-astro-orange/10 text-astro-orange border border-astro-orange/20">
+				Domain Event
+			</span>
+			<span class="px-2 py-1 text-xs rounded-full bg-astro-pink/10 text-astro-pink border border-astro-pink/20">
+				Identifier
+			</span>
+		</div>
+	</div>
+</FeatureCard>

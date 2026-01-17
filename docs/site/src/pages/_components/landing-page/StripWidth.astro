@@ -1,0 +1,16 @@
+---
+/**
+ * Utility component to strip the default width from icons.
+ * Used to allow icons to be sized by their parent container.
+ */
+---
+
+<div class="strip-width contents">
+	<slot />
+</div>
+
+<style>
+	.strip-width :global(svg) {
+		width: unset;
+	}
+</style>

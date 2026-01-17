@@ -1,0 +1,114 @@
+---
+import SectionCopy from '../SectionCopy.astro';
+import PurpleStardust from './PurpleStardust.astro';
+import AdoptionStep from './AdoptionStep.astro';
+import AdoptionPanel from './AdoptionPanel.astro';
+---
+
+<section class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 relative">
+	<div class="w-full max-w-screen-xl mx-auto px-4 sm:px-8">
+		<SectionCopy
+			label="Adoption"
+			title="Une Adoption Progressive, Sans Risque"
+			description="Commencez par observer, puis verrouiller, puis automatiser."
+		/>
+	</div>
+
+	<div class="mx-auto w-full max-w-screen-xl">
+		<div
+			role="tablist"
+			aria-label="Étapes d'adoption"
+			class="mt-4 py-1 sm:mt-8 px-4 sm:px-8 w-full flex items-center overflow-x-auto whitespace-nowrap no-scrollbar gap-4"
+		>
+			<AdoptionStep number={1} label="Observer" isActive />
+			<AdoptionStep number={2} label="Gouverner" />
+			<AdoptionStep number={3} label="Accélérer" />
+		</div>
+	</div>
+
+	<PurpleStardust height="h-64 lg:h-80 xl:h-96" />
+
+	<div class="my-4 w-full border-t border-t-astro-gray-600"></div>
+
+	<div class="mx-auto w-full max-w-screen-xl px-4 sm:px-8">
+		<AdoptionPanel
+			id="1"
+			tab="observer"
+			icon="ri/eye-line"
+			title="Observer"
+			description="Construisez le modèle, obtenez la classification, générez la living documentation."
+			features={[
+				'Classification automatique du domaine',
+				'Génération de documentation synchronisée',
+				'Visualisation de l\'architecture existante',
+			]}
+		/>
+		<AdoptionPanel
+			id="2"
+			tab="gouverner"
+			class="hidden"
+			icon="ri/shield-fill"
+			title="Gouverner"
+			description="Activez l'audit et la validation en CI : les invariants deviennent des contrôles."
+			features={[
+				'Validation des règles architecturales',
+				'Audit automatique en CI/CD',
+				'Détection des violations avant déploiement',
+			]}
+		/>
+		<AdoptionPanel
+			id="3"
+			tab="accelerer"
+			class="hidden"
+			icon="hexaglue/pipeline"
+			title="Accélérer"
+			description="Branchez la génération d'infrastructure : standardisez et industrialisez."
+			features={[
+				'Génération automatique des entités JPA',
+				'Création des repositories',
+				'Production de code d\'infrastructure aligné',
+			]}
+		/>
+	</div>
+</section>
+
+<script>
+	const tabs = document.querySelectorAll('.adoption-tab');
+	let activeTabIndex = 0;
+
+	function updateTabSelection(index: number) {
+		const nextTab = tabs[index];
+		const activeTab = tabs[activeTabIndex];
+		const nextTabContent = document.querySelector(`#adoption-panel-${index + 1}`);
+		const activeTabContent = document.querySelector(`#adoption-panel-${activeTabIndex + 1}`);
+
+		if (!nextTab || !activeTab || !nextTabContent || !activeTabContent) return;
+
+		activeTab.setAttribute('aria-selected', 'false');
+		activeTab.setAttribute('tabindex', '-1');
+		activeTabContent.classList.add('hidden');
+
+		nextTab.setAttribute('aria-selected', 'true');
+		nextTab.setAttribute('tabindex', '0');
+		nextTabContent.classList.remove('hidden');
+
+		(tabs[index] as HTMLElement).focus();
+		activeTabIndex = index;
+	}
+
+	tabs.forEach((tab, index) => {
+		tab.addEventListener('click', () => updateTabSelection(index));
+
+		tab.addEventListener('keydown', (event) => {
+			if (event.key === 'ArrowRight') {
+				event.preventDefault();
+				const nextIndex = (activeTabIndex + 1) % tabs.length;
+				updateTabSelection(nextIndex);
+			} else if (event.key === 'ArrowLeft') {
+				event.preventDefault();
+				const prevIndex = (activeTabIndex - 1 + tabs.length) % tabs.length;
+				updateTabSelection(prevIndex);
+			}
+		});
+	});
+</script>
