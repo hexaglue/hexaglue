@@ -8,7 +8,7 @@ import ctaBackground from './_assets/CTABackground.svg';
 ---
 
 <section
-	class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 mb-20 relative w-full max-w-screen-xl mx-auto px-4 sm:px-8"
+	class="mt-20 md:mt-24 lg:mt-28 xl:mt-36 mb-20 py-12 md:py-16 lg:py-20 relative overflow-hidden w-full max-w-screen-xl mx-auto rounded-2xl md:rounded-3xl border border-astro-dark-100/20"
 >
 	<!-- Background image -->
 	<div class="cta-bg-container">
@@ -23,9 +23,9 @@ import ctaBackground from './_assets/CTABackground.svg';
 
 	<GreenishStardust height="h-64 md:h-80 lg:h-96" />
 
-	<div class="relative text-center space-y-8">
+	<div class="relative text-center space-y-8 px-4 sm:px-8">
 		<div class="space-y-4">
-			<h2 class="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white text-balance">
+			<h2 class="section-title font-heading text-[48px] text-white text-balance">
 				Prêt à Compiler votre Architecture ?
 			</h2>
 			<p class="text-astro-gray-200 font-light max-w-2xl mx-auto text-balance">
@@ -77,6 +77,10 @@ import ctaBackground from './_assets/CTABackground.svg';
 </section>
 
 <style>
+	.section-title {
+		font-variation-settings: 'wght' 700;
+	}
+
 	.cta-bg-container {
 		position: absolute;
 		inset: -50% -25%;

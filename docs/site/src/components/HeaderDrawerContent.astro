@@ -4,12 +4,26 @@ import siteInfo from '~/data/site-info.js';
 import SocialLinks from './SocialLinks.astro';
 
 const nav: Nav = [
-	{ href: '/getting-started/', label: 'Documentation', prefetch: true },
+	{
+		label: 'Ressources',
+		items: [
+			{ href: '/getting-started/', label: 'Documentation', icon: 'file-alt', prefetch: true },
+			{ href: 'https://github.com/hexaglue/hexaglue/tree/main/examples', label: 'Exemples', icon: 'ri/code-box-line' },
+			{ href: 'https://github.com/hexaglue/hexaglue', label: 'GitHub', icon: 'logos/github' },
+		],
+	},
 	{
 		label: 'Entreprise',
 		items: [
 			{ href: '/case-studies/', label: 'Etude de cas', icon: 'file-alt', prefetch: true },
 			{ href: '/contact/', label: 'Contact', icon: 'email', prefetch: true },
+		],
+	},
+	{
+		label: 'Communauté',
+		items: [
+			{ href: 'https://github.com/hexaglue/hexaglue/discussions', label: 'GitHub Discussions', icon: 'logos/github' },
+			{ href: 'https://github.com/hexaglue/hexaglue/blob/main/CONTRIBUTING.md', label: 'Contribuer', icon: 'ri/code-s-slash-line' },
 		],
 	},
 ];

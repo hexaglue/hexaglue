@@ -64,8 +64,9 @@ import FeatureCard from './FeatureCard.astro';
 	}
 
 	.target {
-		opacity: 0.5;
+		opacity: 0.3;
 		transform: translateX(-5px);
+		clip-path: inset(0 100% 0 0);
 	}
 
 	:global(.group:hover) .source {
@@ -79,6 +80,16 @@ import FeatureCard from './FeatureCard.astro';
 		transform: translateX(0);
 		border-color: rgba(188, 82, 238, 0.3);
 		box-shadow: 0 0 20px rgba(188, 82, 238, 0.1);
+		animation: reveal-left-to-right 0.5s ease-out forwards;
+	}
+
+	@keyframes reveal-left-to-right {
+		0% {
+			clip-path: inset(0 100% 0 0);
+		}
+		100% {
+			clip-path: inset(0 0 0 0);
+		}
 	}
 
 	.arrow-container {

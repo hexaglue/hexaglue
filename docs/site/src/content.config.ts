@@ -26,6 +26,7 @@ export const collections = {
 		schema: z.object({
 			seo: seoSchema,
 			locale: z.enum(['fr', 'en']).default('fr'),
+			section: z.enum(['ressources', 'entreprise']).default('ressources'),
 			updated_date: z.date().optional().describe('Date de dernière mise à jour du contenu.'),
 		}),
 	}),

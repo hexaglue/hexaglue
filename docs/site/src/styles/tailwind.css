@@ -56,30 +56,14 @@
 		--mono-style: var(--mono-style-normal);
 		--mono-ital: var(--mono-style);
 
-		--heading-style-normal: 'slnt' 0;
-		--heading-style-italic: 'slnt' 8;
-		--heading-weight-light: 290;
-		--heading-weight-normal: 380;
-		--heading-weight-bold: 475;
-		--heading-weight: var(--heading-weight-light);
-		--heading-style: var(--heading-style-normal);
-		--heading-wght: 'wght' var(--heading-weight);
-		--heading-salt: 'salt' on;
-		--heading-ss06: 'ss06' on;
-		--heading-ss11: 'ss11' on;
-		--heading-cv09: 'cv09' on;
-		--heading-liga: 'liga' on;
-		--heading-calt: 'calt' on;
 	}
 
 	.font-italic {
 		--mono-style: var(--mono-style-italic);
-		--heading-style: var(--mono-style-normal);
 	}
 
 	.font-strong {
 		--sans-weight: var(--sans-weight-bold);
-		--heading-weight: var(--heading-weight-bold);
 	}
 
 	.font-sans {
@@ -97,10 +81,10 @@
 	}
 
 	.font-heading {
-		font-family: Obviously, obviously-fallback, system-ui, sans-serif;
-		font-variation-settings: var(--heading-wdth), var(--heading-wght), var(--heading-slnt);
-		font-feature-settings:
-			var(--heading-salt), var(--heading-ss06), var(--heading-ss11), var(--heading-cv09),
-			var(--heading-liga), var(--heading-calt);
+		font-family: 'Degular', degular-fallback, system-ui, sans-serif;
+	}
+
+	.font-title {
+		font-family: 'Degular', system-ui, sans-serif;
 	}
 }

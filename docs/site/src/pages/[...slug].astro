@@ -1,6 +1,7 @@
 ---
 import { type CollectionEntry, getCollection, render } from 'astro:content';
 import MainLayout from '~/layouts/MainLayout.astro';
+import PageBackground from '~/components/PageBackground.astro';
 
 export type Props = {
 	page: CollectionEntry<'pages'>;
@@ -23,7 +24,8 @@ const { Content } = await render(page);
 	title={data.seo.title}
 	description={data.seo.description}
 >
-	<section class="mx-auto max-w-screen-lg px-4 py-12 sm:px-8 sm:py-16 md:py-20 lg:py-24">
+	<section class="relative mx-auto max-w-screen-lg px-4 py-12 sm:px-8 sm:py-16 md:py-20 lg:py-24">
+		<PageBackground section={data.section} />
 		<article class="prose prose-invert prose-lg max-w-none">
 			<Content />
 		</article>

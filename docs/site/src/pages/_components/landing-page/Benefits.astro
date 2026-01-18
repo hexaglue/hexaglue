@@ -3,15 +3,15 @@ import GemIcon from '~/components/GemIcon.astro';
 import IntroPoint from '../IntroPoint.astro';
 ---
 
-<section class="mt-20 sm:mt-36 xs:p-6 mx-auto w-full max-w-screen-xl space-y-8 p-4 sm:p-8">
+<section class="benefits-section mt-20 sm:mt-36 xs:p-6 mx-auto w-full max-w-screen-xl space-y-8 p-4 sm:p-8 relative">
 	<div class="space-y-1">
 		<span class="bg-clip-text text-transparent bg-orange-yellow-gradient font-semibold">
 			Ce que Produit HexaGlue
 		</span>
 		<h2
-			class="max-w-screen-lg text-balance text-2xl font-light font-heading md:text-3xl xl:text-4xl md:leading-tight"
+			class="section-title max-w-screen-lg text-balance text-[30px] font-heading md:leading-tight"
 		>
-			Des résultats <strong>concrets</strong> et <strong>mesurables</strong>
+			Des résultats concrets et mesurables
 		</h2>
 	</div>
 
@@ -41,15 +41,22 @@ import IntroPoint from '../IntroPoint.astro';
 </section>
 
 <style>
-	h2 {
-		font-variation-settings:
-			'wght' 290,
-			'wdth' 490 !important;
+	.section-title {
+		font-variation-settings: 'wght' 700;
 	}
 
-	h2 strong {
-		font-variation-settings:
-			'wght' 475,
-			'wdth' 490;
+	.benefits-section::after {
+		content: '';
+		position: absolute;
+		bottom: -50px;
+		left: 50%;
+		transform: translateX(-50%);
+		width: 80%;
+		height: 200px;
+		background: linear-gradient(135deg, rgba(255, 135, 50, 0.15) 0%, rgba(255, 200, 50, 0.1) 100%);
+		border-radius: 50%;
+		filter: blur(60px);
+		z-index: -1;
+		pointer-events: none;
 	}
 </style>

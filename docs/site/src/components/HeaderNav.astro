@@ -14,12 +14,26 @@ const socialLinks = siteInfo.socialLinks.filter((link) => link.showInHeader);
 	</a>
 
 	<div class="hidden shrink flex-row items-center gap-12 lg:flex text-base">
-		<a href="/getting-started/" data-astro-prefetch class="link">Documentation</a>
+		<HeaderDropDown
+			label="Ressources"
+			items={[
+				{ href: '/getting-started/', label: 'Documentation', icon: 'file-alt', prefetch: true },
+				{ href: 'https://github.com/hexaglue/hexaglue/tree/main/examples', label: 'Exemples', icon: 'ri/code-box-line' },
+				{ href: 'https://github.com/hexaglue/hexaglue', label: 'GitHub', icon: 'logos/github' },
+			]}
+		/>
 		<HeaderDropDown
 			label="Entreprise"
 			items={[
 				{ href: '/case-studies/', label: 'Etude de cas', icon: 'file-alt', prefetch: true },
 				{ href: '/contact/', label: 'Contact', icon: 'email', prefetch: true },
+			]}
+		/>
+		<HeaderDropDown
+			label="Communauté"
+			items={[
+				{ href: 'https://github.com/hexaglue/hexaglue/discussions', label: 'GitHub Discussions', icon: 'logos/github' },
+				{ href: 'https://github.com/hexaglue/hexaglue/blob/main/CONTRIBUTING.md', label: 'Contribuer', icon: 'ri/code-s-slash-line' },
 			]}
 		/>
 	</div>

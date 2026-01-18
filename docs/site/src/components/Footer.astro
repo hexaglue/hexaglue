@@ -36,14 +36,14 @@ const groups: LinkGroup[] = [
 		],
 	},
 	{
-		title: 'Communaute',
+		title: 'Communauté',
 		links: [
 			{ label: 'GitHub Discussions', href: 'https://github.com/hexaglue/hexaglue/discussions' },
 			{ label: 'Contribuer', href: 'https://github.com/hexaglue/hexaglue/blob/main/CONTRIBUTING.md' },
 		],
 	},
 	{
-		title: 'Legal',
+		title: 'Légal',
 		links: [
 			{ label: 'Licence MPL 2.0', href: 'https://github.com/hexaglue/hexaglue/blob/main/LICENSE' },
 		],
@@ -57,7 +57,7 @@ const socialLinks = siteInfo.socialLinks;
 	<div class="w-full max-w-screen-2xl mx-auto px-4 sm:px-8">
 		<nav
 			aria-label="Secondary"
-			class="flex flex-col lg:flex-row justify-between gap-20 py-8 md:py-12"
+			class="flex flex-col lg:flex-row justify-between gap-8 lg:gap-20 py-8 md:py-12"
 		>
 			<div class="flex flex-col gap-4 max-w-sm">
 				<p class="text-white font-semibold text-lg">HexaGlue</p>
@@ -93,12 +93,13 @@ const socialLinks = siteInfo.socialLinks;
 		<hr class="border-astro-gray-500" />
 		<nav
 			aria-label="Legal"
-			class="py-8 flex flex-col-reverse lg:flex-row items-center justify-between gap-4"
+			class="py-6 flex flex-col-reverse lg:flex-row items-center justify-between gap-4"
 		>
 			<div class="flex flex-col md:flex-row items-center gap-2 md:gap-6 text-base text-astro-gray-300">
 				<Icon name="hexaglue/hexagon" size="24" aria-hidden="true" />
-				<span>Copyright {new Date().getFullYear()} Scalastic</span>
-				<span>Released under <a href="https://github.com/hexaglue/hexaglue/blob/main/LICENSE" target="_blank" class="link">MPL-2.0</a></span>
+				<span>© {new Date().getFullYear()} Scalastic</span>
+				<span>Publié sous licence <a href="https://github.com/hexaglue/hexaglue/blob/main/LICENSE" target="_blank" class="link">MPL-2.0</a></span>
+				<span>Propulsé par <a href="https://astro.build" target="_blank" class="link">Astro</a></span>
 			</div>
 			<SocialLinks links={socialLinks} />
 		</nav>
