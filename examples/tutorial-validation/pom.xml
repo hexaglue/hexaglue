@@ -21,7 +21,6 @@
     <properties>
         <maven.compiler.release>17</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hexaglue.version>4.0.0</hexaglue.version>
     </properties>
 
     <dependencies>
@@ -45,44 +44,12 @@
             <plugin>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>${hexaglue.version}</version>
+                <version>5.0.0-SNAPSHOT</version>
                 <extensions>true</extensions>
-                <executions>
-                    <!--
-                        Phase: VALIDATE (1st phase in Maven lifecycle)
-                        Run with: mvn hexaglue:validate
-                        Validates classification without generating code.
-                    -->
-                    <execution>
-                        <id>validate</id>
-                        <goals>
-                            <goal>validate</goal>
-                        </goals>
-                        <configuration>
-                            <!--
-                                Set to true to fail build on UNCLASSIFIED types.
-                                For this demo, we keep it false to show the warning behavior.
-                            -->
-                            <failOnUnclassified>false</failOnUnclassified>
-                        </configuration>
-                    </execution>
-
-                    <!--
-                        Phase: GENERATE_SOURCES (after VALIDATE)
-                        Run with: mvn compile
-                        Generates infrastructure code from domain model.
-                    -->
-                    <execution>
-                        <id>generate</id>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
                 <configuration>
-                    <basePackage>com.example.validation</basePackage>
-                    <!-- Skip validation during generate (already done in validate goal) -->
+                    <basePackage>com.example</basePackage>
                     <skipValidation>false</skipValidation>
+                    <failOnUnclassified>false</failOnUnclassified>
                 </configuration>
                 <dependencies>
                     <dependency>
@@ -99,26 +66,4 @@
             </plugin>
         </plugins>
     </build>
-
-    <profiles>
-        <!--
-            DEMO 3: Strict validation profile
-            Run with: mvn compile -Pstrict
-            This fails the build if any UNCLASSIFIED types remain.
-        -->
-        <profile>
-            <id>strict</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>io.hexaglue</groupId>
-                        <artifactId>hexaglue-maven-plugin</artifactId>
-                        <configuration>
-                            <failOnUnclassified>true</failOnUnclassified>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-    </profiles>
 </project>

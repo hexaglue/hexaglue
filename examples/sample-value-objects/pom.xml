@@ -25,7 +25,6 @@
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <hexaglue.version>4.0.0</hexaglue.version>
     </properties>
 
     <dependencies>
@@ -62,11 +61,10 @@
             <plugin>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>${hexaglue.version}</version>
+                <version>5.0.0-SNAPSHOT</version>
                 <extensions>true</extensions>
                 <configuration>
                     <basePackage>com.coffeeshop</basePackage>
-                    <classificationProfile>repository-aware</classificationProfile>
                 </configuration>
                 <dependencies>
                     <!-- Living Documentation Plugin -->
@@ -87,7 +85,7 @@
                         <artifactId>hexaglue-plugin-audit</artifactId>
                         <version>2.0.0-SNAPSHOT</version>
                     </dependency>
-                    <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
+                    <!-- jakarta.persistence-api -->
                     <dependency>
                         <groupId>jakarta.persistence</groupId>
                         <artifactId>jakarta.persistence-api</artifactId>
