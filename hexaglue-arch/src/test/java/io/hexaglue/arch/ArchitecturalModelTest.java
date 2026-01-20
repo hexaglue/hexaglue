@@ -360,6 +360,55 @@ class ArchitecturalModelTest {
         }
     }
 
+    @Nested
+    @DisplayName("New v4.1.0 API")
+    class NewApiTest {
+
+        @Test
+        @DisplayName("should support null new components (backward compatibility)")
+        void shouldSupportNullNewComponents() {
+            // given
+            ProjectContext ctx = ProjectContext.forTesting("app", PKG);
+
+            // when - legacy builder usage
+            ArchitecturalModel model = ArchitecturalModel.builder(ctx).build();
+
+            // then
+            assertThat(model.typeRegistry()).isEmpty();
+            assertThat(model.classificationReport()).isEmpty();
+            assertThat(model.domainIndex()).isEmpty();
+            assertThat(model.portIndex()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should return false for hasClassificationIssues when report is null")
+        void shouldReturnFalseForHasClassificationIssuesWhenNull() {
+            // given
+            ProjectContext ctx = ProjectContext.forTesting("app", PKG);
+            ArchitecturalModel model = ArchitecturalModel.builder(ctx).build();
+
+            // when
+            boolean hasIssues = model.hasClassificationIssues();
+
+            // then
+            assertThat(hasIssues).isFalse();
+        }
+
+        @Test
+        @DisplayName("should return empty list for topRemediations when report is null")
+        void shouldReturnEmptyTopRemediationsWhenNull() {
+            // given
+            ProjectContext ctx = ProjectContext.forTesting("app", PKG);
+            ArchitecturalModel model = ArchitecturalModel.builder(ctx).build();
+
+            // when
+            var remediations = model.topRemediations(5);
+
+            // then
+            assertThat(remediations).isEmpty();
+        }
+    }
+
     // === Test Helpers ===
 
     private ArchitecturalModel createTestModel() {

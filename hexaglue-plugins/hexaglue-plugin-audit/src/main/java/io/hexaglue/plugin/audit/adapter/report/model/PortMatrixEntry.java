@@ -102,11 +102,23 @@ public record PortMatrixEntry(
      * @return list of port matrix entries
      * @since 4.0.0
      */
+    /**
+     * Creates a list of PortMatrixEntry from an ArchitecturalModel.
+     *
+     * <p>This method extracts all driving and driven ports from the model
+     * and converts them to PortMatrixEntry records for the port matrix report.
+     *
+     * @param model the architectural model
+     * @return list of port matrix entries
+     * @since 4.0.0
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+     */
     public static List<PortMatrixEntry> fromModel(ArchitecturalModel model) {
         Objects.requireNonNull(model, "model required");
 
-        Stream<PortMatrixEntry> drivingEntries = model.drivingPorts().map(PortMatrixEntry::fromDrivingPort);
-        Stream<PortMatrixEntry> drivenEntries = model.drivenPorts().map(PortMatrixEntry::fromDrivenPort);
+        var registry = model.registry();
+        Stream<PortMatrixEntry> drivingEntries = registry.all(DrivingPort.class).map(PortMatrixEntry::fromDrivingPort);
+        Stream<PortMatrixEntry> drivenEntries = registry.all(DrivenPort.class).map(PortMatrixEntry::fromDrivenPort);
 
         return Stream.concat(drivingEntries, drivenEntries).toList();
     }

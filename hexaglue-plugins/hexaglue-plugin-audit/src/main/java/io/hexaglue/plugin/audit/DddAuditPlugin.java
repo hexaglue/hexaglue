@@ -15,6 +15,9 @@ package io.hexaglue.plugin.audit;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
@@ -66,6 +69,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -88,8 +92,15 @@ import java.util.Set;
  * audit.severity.ddd:entity-identity=BLOCKER
  * </pre>
  *
+ * <h2>v4.1.0 Migration</h2>
+ * <p>Since v4.1.0, this plugin supports the new {@link DomainIndex}, {@link PortIndex},
+ * and {@link ClassificationReport} APIs for improved classification insights and
+ * quality metrics. When available, the plugin logs detailed classification
+ * statistics and uses the classification report for actionable remediation.</p>
+ *
  * @since 1.0.0
  * @since 4.0.0 - Added support for v4 ArchitecturalModel
+ * @since 4.1.0 - Added support for new classification report and indices
  */
 public class DddAuditPlugin implements AuditPlugin {
 
@@ -364,53 +375,87 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Logs a detailed summary of the v4 architectural model including unclassified types.
+     * Logs a detailed summary of the v4.1 architectural model including unclassified types.
      *
-     * <p>When v4 model is available, this provides:
-     * <ul>
-     *   <li>Element counts by type</li>
-     *   <li>Unclassified type warnings with remediation hints</li>
-     *   <li>Classification confidence information</li>
-     * </ul>
+     * <p>Uses the v4.1.0 {@link DomainIndex}, {@link PortIndex}, and {@link ClassificationReport}
+     * APIs for element counts and classification quality metrics.</p>
      *
      * @param model the architectural model
      * @param diagnostics the diagnostic reporter
      * @since 4.0.0
+     * @since 4.1.0 - Migrated to use new indices and classification report exclusively
      */
     private void logV4ModelSummary(ArchitecturalModel model, io.hexaglue.spi.plugin.DiagnosticReporter diagnostics) {
-        // Note: Use domainEntities().filter(isAggregateRoot) instead of aggregates()
-        // because ArchitecturalModelBuilder creates DomainEntity with kind=AGGREGATE_ROOT,
-        // but does not create Aggregate objects (which are higher-level constructs).
-        long aggregateCount =
-                model.domainEntities().filter(DomainEntity::isAggregateRoot).count();
-        long entityCount =
-                model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
-        long valueObjectCount = model.valueObjects().count();
-        long drivingPortCount = model.drivingPorts().count();
-        long drivenPortCount = model.drivenPorts().count();
-        long unclassifiedCount = model.unclassifiedCount();
+        // v4.1.0: Use new indices and classification report
+        Optional<DomainIndex> domainIndexOpt = model.domainIndex();
+        Optional<PortIndex> portIndexOpt = model.portIndex();
+        Optional<ClassificationReport> reportOpt = model.classificationReport();
 
-        diagnostics.info(String.format(
-                "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
-                aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
+        if (domainIndexOpt.isPresent() && portIndexOpt.isPresent()) {
+            DomainIndex domain = domainIndexOpt.get();
+            PortIndex ports = portIndexOpt.get();
 
-        // Warn about unclassified types with remediation hints
-        if (unclassifiedCount > 0) {
-            diagnostics.warn(String.format("Found %d unclassified types:", unclassifiedCount));
-            model.unclassifiedTypes().limit(5).forEach(unclassified -> {
-                String hint = unclassified.classificationTrace().remediationHints().stream()
-                        .findFirst()
-                        .map(h -> " - Hint: " + h.description())
-                        .orElse("");
-                diagnostics.warn(String.format(
-                        "  - %s: %s%s",
-                        unclassified.id().simpleName(),
-                        unclassified.classificationTrace().explain(),
-                        hint));
+            long aggregateCount = domain.aggregateRoots().count();
+            long entityCount = domain.entities().count();
+            long valueObjectCount = domain.valueObjects().count();
+            long identifierCount = domain.identifiers().count();
+            long eventCount = domain.domainEvents().count();
+            long drivingPortCount = ports.drivingPorts().count();
+            long drivenPortCount = ports.drivenPorts().count();
+
+            diagnostics.info(String.format(
+                    "v4.1 Model: %d aggregates, %d entities, %d value objects, %d identifiers, %d events",
+                    aggregateCount, entityCount, valueObjectCount, identifierCount, eventCount));
+            diagnostics.info(String.format(
+                    "Ports: %d driving ports, %d driven ports (%d repositories)",
+                    drivingPortCount, drivenPortCount, ports.repositories().count()));
+
+            // v4.1.0: Use ClassificationReport for quality metrics
+            reportOpt.ifPresent(report -> {
+                diagnostics.info(String.format(
+                        "Classification rate: %.1f%% (total: %d, classified: %d)",
+                        report.stats().classificationRate(),
+                        report.stats().totalTypes(),
+                        report.stats().classifiedTypes()));
+
+                if (report.hasIssues()) {
+                    diagnostics.warn(String.format(
+                            "%d types need attention:", report.actionRequired().size()));
+                    report.actionRequired().stream().limit(5).forEach(unclassified -> {
+                        String hint = unclassified.classification().remediationHints().stream()
+                                .findFirst()
+                                .map(h -> " - Hint: " + h.description())
+                                .orElse("");
+                        diagnostics.warn(String.format(
+                                "  - %s [%s]: %s%s",
+                                unclassified.simpleName(),
+                                unclassified.category(),
+                                unclassified.classification().explain(),
+                                hint));
+                    });
+                    if (report.actionRequired().size() > 5) {
+                        diagnostics.warn(String.format(
+                                "  ... and %d more types need attention",
+                                report.actionRequired().size() - 5));
+                    }
+                }
             });
-            if (unclassifiedCount > 5) {
-                diagnostics.warn(String.format("  ... and %d more unclassified types", unclassifiedCount - 5));
-            }
+        } else {
+            // Fallback to registry if indices not available
+            var registry = model.registry();
+            long aggregateCount = registry.all(DomainEntity.class)
+                    .filter(DomainEntity::isAggregateRoot)
+                    .count();
+            long entityCount = registry.all(DomainEntity.class)
+                    .filter(e -> !e.isAggregateRoot())
+                    .count();
+            long valueObjectCount = registry.all(io.hexaglue.arch.domain.ValueObject.class).count();
+            long drivingPortCount = registry.all(io.hexaglue.arch.ports.DrivingPort.class).count();
+            long drivenPortCount = registry.all(io.hexaglue.arch.ports.DrivenPort.class).count();
+
+            diagnostics.info(String.format(
+                    "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
+                    aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
         }
     }
 
@@ -661,70 +706,74 @@ public class DddAuditPlugin implements AuditPlugin {
     // ===== v4 Model Support =====
 
     /**
-     * Builds a Codebase from v4 ArchitecturalModel.
+     * Builds a Codebase from v4.1 ArchitecturalModel.
      *
      * <p>This converts the v4 model elements (DomainEntity, ValueObject, DrivenPort, etc.)
-     * into code units that can be audited.
+     * into code units that can be audited. Uses {@link ArchitecturalModel#registry()} instead
+     * of deprecated convenience methods.</p>
      *
      * @param model the v4 architectural model
      * @return the codebase for auditing
      * @since 4.0.0
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     private Codebase buildCodebaseFromModel(ArchitecturalModel model) {
         List<CodeUnit> units = new ArrayList<>();
         Map<String, Set<String>> dependencies = new HashMap<>();
 
+        var registry = model.registry();
+
         // Convert domain entities to code units
-        model.domainEntities().forEach(entity -> {
+        registry.all(io.hexaglue.arch.domain.DomainEntity.class).forEach(entity -> {
             CodeUnit unit = toCodeUnitV4(entity);
             units.add(unit);
             dependencies.put(entity.id().qualifiedName(), extractDependenciesV4(entity));
         });
 
         // Convert value objects to code units
-        model.valueObjects().forEach(vo -> {
+        registry.all(io.hexaglue.arch.domain.ValueObject.class).forEach(vo -> {
             CodeUnit unit = toCodeUnitV4(vo);
             units.add(unit);
             dependencies.put(vo.id().qualifiedName(), extractDependenciesV4(vo));
         });
 
         // Convert identifiers to code units
-        model.identifiers().forEach(id -> {
+        registry.all(io.hexaglue.arch.domain.Identifier.class).forEach(id -> {
             CodeUnit unit = toCodeUnitV4(id);
             units.add(unit);
             dependencies.put(id.id().qualifiedName(), extractDependenciesV4(id));
         });
 
         // Convert domain events to code units
-        model.domainEvents().forEach(event -> {
+        registry.all(io.hexaglue.arch.domain.DomainEvent.class).forEach(event -> {
             CodeUnit unit = toCodeUnitV4(event);
             units.add(unit);
             dependencies.put(event.id().qualifiedName(), extractDependenciesV4(event));
         });
 
         // Convert domain services to code units
-        model.domainServices().forEach(service -> {
+        registry.all(io.hexaglue.arch.domain.DomainService.class).forEach(service -> {
             CodeUnit unit = toCodeUnitV4(service);
             units.add(unit);
             dependencies.put(service.id().qualifiedName(), extractDependenciesV4(service));
         });
 
         // Convert application services to code units
-        model.applicationServices().forEach(appService -> {
+        registry.all(io.hexaglue.arch.ports.ApplicationService.class).forEach(appService -> {
             CodeUnit unit = toCodeUnitV4(appService);
             units.add(unit);
             dependencies.put(appService.id().qualifiedName(), extractDependenciesV4(appService));
         });
 
         // Convert driving ports to code units
-        model.drivingPorts().forEach(port -> {
+        registry.all(io.hexaglue.arch.ports.DrivingPort.class).forEach(port -> {
             CodeUnit unit = toCodeUnitV4(port);
             units.add(unit);
             dependencies.put(port.id().qualifiedName(), extractDependenciesV4(port));
         });
 
         // Convert driven ports to code units
-        model.drivenPorts().forEach(port -> {
+        registry.all(io.hexaglue.arch.ports.DrivenPort.class).forEach(port -> {
             CodeUnit unit = toCodeUnitV4(port);
             units.add(unit);
             dependencies.put(port.id().qualifiedName(), extractDependenciesV4(port));

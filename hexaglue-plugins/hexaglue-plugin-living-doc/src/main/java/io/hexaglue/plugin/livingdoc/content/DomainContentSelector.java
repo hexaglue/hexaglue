@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
  * Selects domain content from ArchitecturalModel and converts it to documentation models.
  *
  * @since 4.0.0
+ * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
  */
 public final class DomainContentSelector {
 
@@ -55,37 +56,37 @@ public final class DomainContentSelector {
     }
 
     public List<DomainTypeDoc> selectAggregateRoots() {
-        return model.domainEntities()
+        return model.registry().all(DomainEntity.class)
                 .filter(DomainEntity::isAggregateRoot)
                 .map(this::toDoc)
                 .toList();
     }
 
     public List<DomainTypeDoc> selectEntities() {
-        return model.domainEntities()
+        return model.registry().all(DomainEntity.class)
                 .filter(e -> !e.isAggregateRoot())
                 .map(this::toDoc)
                 .toList();
     }
 
     public List<DomainTypeDoc> selectValueObjects() {
-        return model.valueObjects().map(this::toDoc).toList();
+        return model.registry().all(ValueObject.class).map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectIdentifiers() {
-        return model.identifiers().map(this::toDoc).toList();
+        return model.registry().all(Identifier.class).map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainEvents() {
-        return model.domainEvents().map(this::toDoc).toList();
+        return model.registry().all(DomainEvent.class).map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainServices() {
-        return model.domainServices().map(this::toDoc).toList();
+        return model.registry().all(DomainService.class).map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectApplicationServices() {
-        return model.applicationServices().map(this::toDoc).toList();
+        return model.registry().all(ApplicationService.class).map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectAllTypes() {

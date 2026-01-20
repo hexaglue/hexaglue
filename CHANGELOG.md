@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [4.1.0] - 2026-01-20
+
+### Added
+
+- **`ElementRegistry` API** - New unified registry for type access
+  - `registry.all(DomainEntity.class)` - Stream all domain entities
+  - `registry.all(ValueObject.class)` - Stream all value objects
+  - `registry.all(DrivenPort.class)` - Stream all driven ports
+  - `registry.all(DrivingPort.class)` - Stream all driving ports
+  - Type-safe element querying via `model.registry()`
+
+- **`DomainIndex` and `PortIndex`** - New v4.1.0 enriched type indices
+  - `model.domainIndex()` - Optional access to enriched domain types
+  - `model.portIndex()` - Optional access to enriched port types
+  - Part of the new sealed `ArchType` hierarchy
+
+- **`ClassificationReport`** - New classification report accessible via `model.classificationReport()`
+  - Classification statistics with `stats()`
+  - Prioritized remediations with `actionRequired()`
+
+- **`GeneratorContext.withPluginContext()`** - New factory for v4.1.0 contexts
+
+### Deprecated
+
+The following methods in `ArchitecturalModel` are deprecated since 4.1.0 and scheduled for removal in v5.0.0:
+
+- `domainEntities()` - Use `registry().all(DomainEntity.class)` instead
+- `valueObjects()` - Use `registry().all(ValueObject.class)` instead
+- `identifiers()` - Use `registry().all(Identifier.class)` instead
+- `domainEvents()` - Use `registry().all(DomainEvent.class)` instead
+- `domainServices()` - Use `registry().all(DomainService.class)` instead
+- `applicationServices()` - Use `registry().all(ApplicationService.class)` instead
+- `drivingPorts()` - Use `registry().all(DrivingPort.class)` instead
+- `drivenPorts()` - Use `registry().all(DrivenPort.class)` instead
+- `drivingAdapters()` - Use `registry().all(DrivingAdapter.class)` instead
+- `drivenAdapters()` - Use `registry().all(DrivenAdapter.class)` instead
+- `unclassifiedTypes()` - Use `classificationReport().stats().unclassifiedCount()` instead
+- `unclassifiedCount()` - Use `classificationReport().stats().unclassifiedCount()` instead
+- `hasUnclassified()` - Use `classificationReport().hasActionRequired()` instead
+
+### Changed
+
+- **Plugin migration** - All plugins now use `model.registry().all(Type.class)` pattern
+  - `hexaglue-plugin-jpa` - Migrated to registry pattern
+  - `hexaglue-plugin-audit` - Migrated to registry pattern
+  - `hexaglue-plugin-living-doc` - Migrated to registry pattern
+
+- **Javadoc annotations** - Added `@since 4.1.0` annotations to new API methods
+
+### Migration Guide
+
+```java
+// Before (v4.0.x) - deprecated
+model.domainEntities()
+        .filter(DomainEntity::isAggregateRoot)
+        .forEach(this::processAggregate);
+
+// After (v4.1.0) - preferred
+model.registry().all(DomainEntity.class)
+        .filter(DomainEntity::isAggregateRoot)
+        .forEach(this::processAggregate);
+
+// Or using new indices (for enriched types)
+model.domainIndex().ifPresent(domain -> {
+    domain.aggregateRoots().forEach(this::processEnrichedAggregate);
+});
+```
+
+---
+
 ## [4.0.0] - 2026-01-16
 
 ### Breaking Changes

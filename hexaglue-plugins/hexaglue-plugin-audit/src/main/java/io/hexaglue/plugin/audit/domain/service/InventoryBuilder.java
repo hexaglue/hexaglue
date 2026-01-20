@@ -52,28 +52,34 @@ public class InventoryBuilder {
      * Builds a component inventory from the architectural model using the architecture query.
      *
      * <p>Bounded contexts are obtained from {@link ArchitectureQuery#findBoundedContexts()},
-     * ensuring consistency with the core's analysis.
+     * ensuring consistency with the core's analysis. Uses {@link ArchitecturalModel#registry()}
+     * instead of deprecated convenience methods.</p>
      *
      * @param model             the architectural model to analyze
      * @param architectureQuery the architecture query for bounded context detection
      * @return a ComponentInventory with counts by type
      * @throws NullPointerException if model or architectureQuery is null
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     public ComponentInventory build(ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(architectureQuery, "architectureQuery required");
 
-        // Collect domain elements from model
-        List<DomainEntity> aggregates =
-                model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
-        List<DomainEntity> entities =
-                model.domainEntities().filter(e -> !e.isAggregateRoot()).toList();
-        List<ValueObject> valueObjects = model.valueObjects().toList();
-        List<DomainEvent> domainEvents = model.domainEvents().toList();
-        List<DomainService> domainServices = model.domainServices().toList();
-        List<ApplicationService> appServices = model.applicationServices().toList();
-        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
-        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
+        var registry = model.registry();
+
+        // Collect domain elements from registry
+        List<DomainEntity> aggregates = registry.all(DomainEntity.class)
+                .filter(DomainEntity::isAggregateRoot)
+                .toList();
+        List<DomainEntity> entities = registry.all(DomainEntity.class)
+                .filter(e -> !e.isAggregateRoot())
+                .toList();
+        List<ValueObject> valueObjects = registry.all(ValueObject.class).toList();
+        List<DomainEvent> domainEvents = registry.all(DomainEvent.class).toList();
+        List<DomainService> domainServices = registry.all(DomainService.class).toList();
+        List<ApplicationService> appServices = registry.all(ApplicationService.class).toList();
+        List<DrivingPort> drivingPorts = registry.all(DrivingPort.class).toList();
+        List<DrivenPort> drivenPorts = registry.all(DrivenPort.class).toList();
 
         // Extract examples (simple names, limited)
         List<String> aggregateExamples = extractExamples(aggregates.stream().map(e -> e.id().simpleName()));
@@ -121,39 +127,42 @@ public class InventoryBuilder {
      *
      * <p>This method obtains bounded contexts from {@link ArchitectureQuery#findBoundedContexts()}
      * and correlates them with domain elements from the architectural model.
+     * Uses {@link ArchitecturalModel#registry()} instead of deprecated convenience methods.</p>
      *
      * @param model             the architectural model
      * @param architectureQuery the architecture query
      * @return list of bounded context statistics
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     private List<BoundedContextStats> buildBoundedContextStats(
             ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         List<BoundedContextInfo> boundedContexts = architectureQuery.findBoundedContexts();
 
         List<BoundedContextStats> stats = new ArrayList<>();
+        var registry = model.registry();
 
         for (BoundedContextInfo bcInfo : boundedContexts) {
             // Count aggregates in this bounded context
-            int aggregateCount = (int) model.domainEntities()
+            int aggregateCount = (int) registry.all(DomainEntity.class)
                     .filter(DomainEntity::isAggregateRoot)
                     .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
                     .count();
 
             // Count entities (non-aggregate roots)
-            int entityCount = (int) model.domainEntities()
+            int entityCount = (int) registry.all(DomainEntity.class)
                     .filter(e -> !e.isAggregateRoot())
                     .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
                     .count();
 
             // Count value objects
-            int voCount = (int) model.valueObjects()
+            int voCount = (int) registry.all(ValueObject.class)
                     .filter(vo -> bcInfo.typeNames().contains(vo.id().qualifiedName()))
                     .count();
 
             // Count ports in this bounded context (by package)
             int portCount = (int) Stream.concat(
-                            model.drivingPorts().map(p -> p.id().qualifiedName()),
-                            model.drivenPorts().map(p -> p.id().qualifiedName()))
+                            registry.all(DrivingPort.class).map(p -> p.id().qualifiedName()),
+                            registry.all(DrivenPort.class).map(p -> p.id().qualifiedName()))
                     .filter(name -> bcInfo.containsPackage(extractPackage(name)))
                     .count();
 

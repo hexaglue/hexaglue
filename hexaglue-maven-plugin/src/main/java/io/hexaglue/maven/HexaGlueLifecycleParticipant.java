@@ -82,8 +82,8 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
 
     private void injectGoalIfNeeded(Plugin plugin, String goal, String phase, String executionId) {
         // Check if there's already an execution with this goal
-        boolean hasExecution = plugin.getExecutions().stream()
-                .anyMatch(exec -> exec.getGoals().contains(goal));
+        boolean hasExecution =
+                plugin.getExecutions().stream().anyMatch(exec -> exec.getGoals().contains(goal));
 
         if (hasExecution) {
             // User has explicitly configured this execution, don't interfere

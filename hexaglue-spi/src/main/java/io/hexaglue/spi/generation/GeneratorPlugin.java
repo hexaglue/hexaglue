@@ -124,21 +124,23 @@ public interface GeneratorPlugin extends HexaGluePlugin {
      * <p>This method adapts the generic {@link PluginContext} to the specialized
      * {@link GeneratorContext} required by generator plugins.
      *
-     * <p>Since v4, plugins should use {@link PluginContext#model()} directly
-     * instead of accessing the classification snapshot.
+     * <p>Since v4.1.0, the GeneratorContext includes a reference to the PluginContext,
+     * allowing direct access to the model via {@link GeneratorContext#model()}.
      *
      * @param context the generic plugin context
      * @since 4.0.0 - Updated to use ArchitecturalModel instead of IrSnapshot
+     * @since 4.1.0 - GeneratorContext now includes PluginContext for model access
      */
     @Override
     default void execute(PluginContext context) {
         try {
-            // v4: snapshot is deprecated, plugins should use context.model() directly
+            // v4.1.0: pass pluginContext to enable model access from GeneratorContext
             GeneratorContext generatorContext = new GeneratorContext(
-                    null, // snapshot no longer used, use context.model() instead
+                    null, // snapshot deprecated since v4.0, use context.model() instead
                     ArtifactWriter.of(context.writer()),
                     context.diagnostics(),
-                    context.config());
+                    context.config(),
+                    context); // v4.1.0: include pluginContext for model access
             generate(generatorContext);
         } catch (Exception e) {
             context.diagnostics().error("Generator plugin execution failed: " + id(), e);

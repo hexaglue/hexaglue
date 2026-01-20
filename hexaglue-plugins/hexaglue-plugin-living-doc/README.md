@@ -109,6 +109,19 @@ The generated diagrams use [Mermaid](https://mermaid.js.org/) syntax, which is s
 
 `io.hexaglue.plugin.livingdoc`
 
+## Version History
+
+### v4.1.0 (2026-01-20)
+
+- Migrated to use `model.registry().all(Type.class)` pattern
+- Improved documentation generation with enriched type metadata
+- Enhanced Mermaid diagram generation for aggregate relationships
+
+### v4.0.0 (2026-01-16)
+
+- Migrated from `IrSnapshot` to `ArchitecturalModel`
+- Updated documentation generators to use new model
+
 ---
 
 **HexaGlue - Focus on business code, not infrastructure glue.**

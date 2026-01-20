@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
  * Selects port content from ArchitecturalModel and converts it to documentation models.
  *
  * @since 4.0.0
+ * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
  */
 public final class PortContentSelector {
 
@@ -48,11 +49,11 @@ public final class PortContentSelector {
     }
 
     public List<PortDoc> selectDrivingPorts() {
-        return model.drivingPorts().map(this::toDoc).toList();
+        return model.registry().all(DrivingPort.class).map(this::toDoc).toList();
     }
 
     public List<PortDoc> selectDrivenPorts() {
-        return model.drivenPorts().map(this::toDoc).toList();
+        return model.registry().all(DrivenPort.class).map(this::toDoc).toList();
     }
 
     private PortDoc toDoc(DrivingPort port) {

@@ -14,6 +14,9 @@
 package io.hexaglue.plugin.livingdoc;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
@@ -26,6 +29,7 @@ import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
+import java.util.Optional;
 
 /**
  * Living Documentation plugin for HexaGlue.
@@ -47,7 +51,13 @@ import io.hexaglue.spi.plugin.PluginContext;
  * <p>This plugin requires a v4 {@code ArchitecturalModel}. The documentation models
  * use SPI classification types ({@code ElementKind}, {@code ConfidenceLevel}) for output.
  *
+ * <h2>v4.1.0 Migration</h2>
+ * <p>Since v4.1.0, this plugin supports the new {@link DomainIndex}, {@link PortIndex},
+ * and {@link ClassificationReport} APIs for improved classification insights. When
+ * available, the plugin logs additional information about classification quality.</p>
+ *
  * @since 4.0.0
+ * @since 4.1.0 - Added support for new classification report logging
  */
 public final class LivingDocPlugin implements GeneratorPlugin {
 
@@ -139,5 +149,48 @@ public final class LivingDocPlugin implements GeneratorPlugin {
                 docModel.valueObjects().size(),
                 docModel.drivingPorts().size(),
                 docModel.drivenPorts().size()));
+
+        // v4.1.0: Log classification quality information if available
+        logClassificationInfo(archModel, diagnostics);
+    }
+
+    /**
+     * Logs classification information using the new v4.1.0 API if available.
+     *
+     * @param model the architectural model
+     * @param diagnostics the diagnostic reporter
+     * @since 4.1.0
+     */
+    private void logClassificationInfo(ArchitecturalModel model, DiagnosticReporter diagnostics) {
+        Optional<DomainIndex> domainIndexOpt = model.domainIndex();
+        Optional<ClassificationReport> reportOpt = model.classificationReport();
+
+        // v4.1.0: Use new indices for type counts
+        if (domainIndexOpt.isPresent()) {
+            DomainIndex domain = domainIndexOpt.get();
+            long idCount = domain.identifiers().count();
+            long eventCount = domain.domainEvents().count();
+            long serviceCount = domain.domainServices().count();
+
+            if (idCount > 0 || eventCount > 0 || serviceCount > 0) {
+                diagnostics.info(String.format(
+                        "Additional types: %d identifiers, %d domain events, %d domain services",
+                        idCount, eventCount, serviceCount));
+            }
+        }
+
+        // v4.1.0: Log classification quality
+        reportOpt.ifPresent(report -> {
+            if (report.hasIssues()) {
+                diagnostics.warn(String.format(
+                        "Classification quality: %.1f%% (%d types may need review)",
+                        report.stats().classificationRate(),
+                        report.actionRequired().size()));
+            } else {
+                diagnostics.info(String.format(
+                        "Classification quality: %.1f%% (all types classified)",
+                        report.stats().classificationRate()));
+            }
+        });
     }
 }

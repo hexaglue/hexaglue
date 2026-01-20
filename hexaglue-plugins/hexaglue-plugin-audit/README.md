@@ -22,7 +22,7 @@ Add the plugin dependency to your `pom.xml`:
 <dependency>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-plugin-audit</artifactId>
-    <version>4.0.0</version>
+    <version>4.1.0</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -39,7 +39,7 @@ Add to your HexaGlue Maven plugin configuration:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>4.0.0</version>
+    <version>4.1.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -254,7 +254,20 @@ See LICENSE file for details.
 
 ## Version History
 
-### 3.0.0 (2026-01-09)
+### v4.1.0 (2026-01-20)
+
+- Migrated to use `model.registry().all(Type.class)` pattern
+- Added `ClassificationReport` support via `model.classificationReport()`
+- C4 diagram builders now use `ElementRegistry` for type access
+- Improved inventory building with enriched type metadata
+
+### v4.0.0 (2026-01-16)
+
+- Migrated from `IrSnapshot` to `ArchitecturalModel`
+- Updated validators to use new architectural model
+- Enhanced metric calculators with graph-based analysis
+
+### v3.0.0 (2026-01-09)
 
 Initial release with:
 - 8 DDD and Hexagonal Architecture validators

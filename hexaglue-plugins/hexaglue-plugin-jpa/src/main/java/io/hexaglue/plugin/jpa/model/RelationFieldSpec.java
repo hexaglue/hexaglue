@@ -18,6 +18,8 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.ValueObject;
 import io.hexaglue.plugin.jpa.extraction.RelationInfo;
 import io.hexaglue.spi.ir.CascadeType;
 import io.hexaglue.spi.ir.DomainRelation;
@@ -271,23 +273,30 @@ public record RelationFieldSpec(
     }
 
     /**
-     * Finds the ElementKind for a type using v4 model.
+     * Finds the ElementKind for a type using v4.1.0 model registry.
+     *
+     * @since 4.0.0
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     private static ElementKind findElementKindV4(ArchitecturalModel model, String qualifiedName) {
+        // v4.1.0: Use registry for type lookup
+        var registry = model.registry();
+
         // Check if it's an aggregate root
-        if (model.domainEntities()
+        if (registry.all(DomainEntity.class)
                 .filter(e -> e.entityKind() == ElementKind.AGGREGATE_ROOT)
                 .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
             return ElementKind.AGGREGATE_ROOT;
         }
         // Check if it's an entity
-        if (model.domainEntities()
+        if (registry.all(DomainEntity.class)
                 .filter(e -> e.entityKind() == ElementKind.ENTITY)
                 .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
             return ElementKind.ENTITY;
         }
         // Check if it's a value object
-        if (model.valueObjects().anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
+        if (registry.all(ValueObject.class)
+                .anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
             return ElementKind.VALUE_OBJECT;
         }
         // Default to VALUE_OBJECT for unknown types
