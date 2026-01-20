@@ -213,6 +213,20 @@ Add these dependencies to your project:
 
 `io.hexaglue.plugin.jpa`
 
+## Version History
+
+### v4.1.0 (2026-01-20)
+
+- Migrated to use `model.registry().all(Type.class)` pattern
+- Added support for enriched `DomainEntity` with `identityField()` access
+- Improved type structure detection with `FieldRole` support
+
+### v4.0.0 (2026-01-16)
+
+- Initial release with `ArchitecturalModel` support
+- Full JPA entity generation from domain model
+- Spring Data repository and MapStruct mapper generation
+
 ---
 
 **HexaGlue - Focus on business code, not infrastructure glue.**

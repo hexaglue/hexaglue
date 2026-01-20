@@ -18,6 +18,9 @@ import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
@@ -69,6 +72,19 @@ import java.util.stream.Collectors;
  * <p>This plugin requires a v4 {@code ArchitecturalModel}. The generated code uses
  * SPI classification types for consistency with the hexaglue ecosystem.
  *
+ * <h2>v4.1.0 Migration</h2>
+ * <p>Since v4.1.0, this plugin supports the new {@link DomainIndex}, {@link PortIndex},
+ * and {@link ClassificationReport} APIs for improved type access and classification insights.
+ * The plugin automatically uses the new API when available, falling back to the legacy API
+ * for backward compatibility.</p>
+ *
+ * <p>New v4.1.0 features used:
+ * <ul>
+ *   <li>{@link DomainIndex#aggregateRoots()} for accessing enriched aggregate types</li>
+ *   <li>{@link PortIndex#repositories()} for accessing repository ports with managed aggregates</li>
+ *   <li>{@link ClassificationReport#actionRequired()} for identifying types needing attention</li>
+ * </ul>
+ *
  * <p>Configuration options in hexaglue.yaml:
  * <pre>
  * hexaglue:
@@ -88,6 +104,7 @@ import java.util.stream.Collectors;
  * </pre>
  *
  * @since 4.0.0
+ * @since 4.1.0 - Added support for new DomainIndex, PortIndex, and ClassificationReport APIs
  */
 public final class JpaPlugin implements GeneratorPlugin {
 
@@ -147,7 +164,11 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Generates JPA infrastructure using v4 ArchitecturalModel.
+     * Generates JPA infrastructure using v4.1.0 ArchitecturalModel.
+     *
+     * <p>This method uses {@link ArchitecturalModel#registry()} to access legacy types
+     * required by the spec builders. The v4.1.0 indices are used for statistics and
+     * summary logging.</p>
      *
      * @param model the architectural model
      * @param config the JPA configuration
@@ -155,6 +176,7 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @param writer the artifact writer
      * @param diagnostics the diagnostic reporter
      * @since 4.0.0
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     private void generateFromModel(
             ArchitecturalModel model,
@@ -173,25 +195,23 @@ public final class JpaPlugin implements GeneratorPlugin {
         // Build embeddable mapping: domain VALUE_OBJECT FQN -> generated embeddable FQN
         Map<String, String> embeddableMapping = new HashMap<>();
 
-        // Generate embeddables from ValueObjects
+        // Generate embeddables from ValueObjects using registry
         if (config.generateEmbeddables()) {
-            // First pass: compute all embeddable mappings
-            model.valueObjects()
+            List<ValueObject> valueObjects = model.registry()
+                    .all(ValueObject.class)
                     .filter(vo -> vo.syntax() != null)
                     .filter(vo -> !isEnumType(vo))
-                    .forEach(vo -> {
-                        String embeddableClassName = vo.id().simpleName() + config.embeddableSuffix();
-                        String embeddableFqn = infraPackage + "." + embeddableClassName;
-                        embeddableMapping.put(vo.id().qualifiedName(), embeddableFqn);
-                    });
+                    .toList();
+
+            // First pass: compute all embeddable mappings
+            for (ValueObject vo : valueObjects) {
+                String embeddableClassName = vo.id().simpleName() + config.embeddableSuffix();
+                String embeddableFqn = infraPackage + "." + embeddableClassName;
+                embeddableMapping.put(vo.id().qualifiedName(), embeddableFqn);
+            }
 
             // Second pass: generate embeddables
-            for (ValueObject vo :
-                    model.valueObjects().filter(v -> v.syntax() != null).toList()) {
-                if (isEnumType(vo)) {
-                    continue;
-                }
-
+            for (ValueObject vo : valueObjects) {
                 try {
                     EmbeddableSpec embeddableSpec = EmbeddableSpecBuilder.builder()
                             .valueObject(vo)
@@ -216,15 +236,20 @@ public final class JpaPlugin implements GeneratorPlugin {
             }
         }
 
-        // Group driven ports by primary managed type
-        Map<String, List<DrivenPort>> portsByManagedType = model.drivenPorts()
+        // Group driven ports by primary managed type using registry
+        Map<String, List<DrivenPort>> portsByManagedType = model.registry()
+                .all(DrivenPort.class)
                 .filter(port -> port.primaryManagedType().isPresent())
                 .collect(Collectors.groupingBy(
                         port -> port.primaryManagedType().get().id().qualifiedName(), Collectors.toList()));
 
-        // Generate entities from DomainEntities
-        for (DomainEntity entity :
-                model.domainEntities().filter(DomainEntity::hasIdentity).toList()) {
+        // Generate entities from DomainEntities using registry
+        List<DomainEntity> allEntities = model.registry()
+                .all(DomainEntity.class)
+                .filter(DomainEntity::hasIdentity)
+                .toList();
+
+        for (DomainEntity entity : allEntities) {
             try {
                 EntitySpec entitySpec = EntitySpecBuilder.builder()
                         .domainEntity(entity)
@@ -286,9 +311,9 @@ public final class JpaPlugin implements GeneratorPlugin {
             }
         }
 
-        // Generate adapters for driven ports
+        // Generate adapters for driven ports using registry
         if (config.generateAdapters()) {
-            for (DrivenPort port : model.drivenPorts().toList()) {
+            for (DrivenPort port : model.registry().all(DrivenPort.class).toList()) {
                 if (port.primaryManagedType().isEmpty()) {
                     diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": no managed type");
                     continue;
@@ -296,7 +321,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 // Find the domain entity for this port
                 String managedTypeFqn = port.primaryManagedType().get().id().qualifiedName();
-                Optional<DomainEntity> entityOpt = model.domainEntities()
+                Optional<DomainEntity> entityOpt = allEntities.stream()
                         .filter(e -> e.id().qualifiedName().equals(managedTypeFqn))
                         .findFirst();
 
@@ -382,55 +407,75 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Logs a summary of the v4 ArchitecturalModel classification.
+     * Logs a summary of the v4.1 ArchitecturalModel classification.
      *
-     * <p>This provides visibility into the new classification system when available,
+     * <p>This provides visibility into the classification system,
      * including classification traces for debugging and warnings for unclassified types.
+     *
+     * <p>Uses the new {@link DomainIndex}, {@link PortIndex}, and
+     * {@link ClassificationReport} API for accurate and enriched information.
      *
      * @param model the architectural model
      * @param diagnostics the diagnostic reporter
      * @since 4.0.0
+     * @since 4.1.0 - Migrated to use new indices and classification report exclusively
      */
     private void logClassificationSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
-        // Note: Use domainEntities().filter(isAggregateRoot) instead of aggregates()
-        // because ArchitecturalModelBuilder creates DomainEntity with kind=AGGREGATE_ROOT,
-        // but does not create Aggregate objects (which are higher-level constructs).
-        long aggregateCount =
-                model.domainEntities().filter(DomainEntity::isAggregateRoot).count();
-        long entityCount =
-                model.domainEntities().filter(e -> !e.isAggregateRoot()).count();
-        long valueObjectCount = model.valueObjects().count();
-        long drivenPortCount = model.drivenPorts().count();
-        long unclassifiedCount = model.unclassifiedCount();
+        // v4.1.0: Use new DomainIndex and PortIndex
+        Optional<DomainIndex> domainIndexOpt = model.domainIndex();
+        Optional<PortIndex> portIndexOpt = model.portIndex();
+        Optional<ClassificationReport> reportOpt = model.classificationReport();
+
+        if (domainIndexOpt.isEmpty() || portIndexOpt.isEmpty()) {
+            diagnostics.warn("v4.1.0 indices not available for classification summary");
+            return;
+        }
+
+        DomainIndex domain = domainIndexOpt.get();
+        PortIndex ports = portIndexOpt.get();
+
+        long aggregateCount = domain.aggregateRoots().count();
+        long entityCount = domain.entities().count();
+        long valueObjectCount = domain.valueObjects().count();
+        long drivenPortCount = ports.drivenPorts().count();
 
         diagnostics.info(String.format(
-                "v4 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
+                "v4.1 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
                 aggregateCount, entityCount, valueObjectCount, drivenPortCount));
 
         // Log classification traces for aggregate roots (useful for debugging)
-        model.domainEntities().filter(DomainEntity::isAggregateRoot).limit(3).forEach(agg -> {
-            diagnostics.info("  - " + agg.id().simpleName() + ": "
-                    + agg.classificationTrace().explain());
-        });
+        domain.aggregateRoots()
+                .limit(3)
+                .forEach(agg -> diagnostics.info("  - " + agg.simpleName() + ": "
+                        + agg.classification().explain()));
 
-        // Warn about unclassified types with remediation hints
-        if (unclassifiedCount > 0) {
-            diagnostics.warn(String.format(
-                    "Found %d unclassified types (no JPA code will be generated for these):", unclassifiedCount));
-            model.unclassifiedTypes().limit(5).forEach(unclassified -> {
-                String hint = unclassified.classificationTrace().remediationHints().stream()
-                        .findFirst()
-                        .map(h -> " - Hint: " + h.description())
-                        .orElse("");
-                diagnostics.warn(String.format(
-                        "  - %s: %s%s",
-                        unclassified.id().simpleName(),
-                        unclassified.classificationTrace().explain(),
-                        hint));
-            });
-            if (unclassifiedCount > 5) {
-                diagnostics.warn(String.format("  ... and %d more unclassified types", unclassifiedCount - 5));
+        // v4.1.0: Use ClassificationReport for unclassified types
+        reportOpt.ifPresent(report -> {
+            if (report.hasIssues()) {
+                diagnostics.info(String.format(
+                        "Classification rate: %.1f%% (%d types need attention)",
+                        report.stats().classificationRate(),
+                        report.actionRequired().size()));
+
+                report.actionRequired().stream().limit(5).forEach(unclassified -> {
+                    String hint = unclassified.classification().remediationHints().stream()
+                            .findFirst()
+                            .map(h -> " - Hint: " + h.description())
+                            .orElse("");
+                    diagnostics.warn(String.format(
+                            "  - %s [%s]: %s%s",
+                            unclassified.simpleName(),
+                            unclassified.category(),
+                            unclassified.classification().explain(),
+                            hint));
+                });
+
+                if (report.actionRequired().size() > 5) {
+                    diagnostics.warn(String.format(
+                            "  ... and %d more types need attention",
+                            report.actionRequired().size() - 5));
+                }
             }
-        }
+        });
     }
 }

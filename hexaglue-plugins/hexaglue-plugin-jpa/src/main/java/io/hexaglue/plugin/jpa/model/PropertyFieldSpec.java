@@ -265,29 +265,31 @@ public record PropertyFieldSpec(
      * @param model the architectural model for type resolution
      * @return a PropertyFieldSpec ready for code generation
      * @since 4.0.0
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     public static PropertyFieldSpec from(PropertyInfo info, ArchitecturalModel model) {
         TypeName javaType = TypeMappings.toJpaType(info.fieldType().qualifiedName());
         String columnName = info.columnNameOpt().orElseGet(() -> JpaModelUtils.toSnakeCase(info.fieldName()));
         String typeQualifiedName = info.fieldType().qualifiedName();
 
-        // Detect value object
-        boolean isValueObject =
-                model.valueObjects().anyMatch(vo -> vo.id().qualifiedName().equals(typeQualifiedName));
+        // v4.1.0: Use registry for type detection
+        var registry = model.registry();
 
-        // Detect enum from syntax
-        boolean isEnum = model.registry()
-                .all(ValueObject.class)
-                .filter(vo -> vo.id().qualifiedName().equals(typeQualifiedName))
-                .filter(vo -> vo.syntax() != null)
-                .anyMatch(vo -> vo.syntax().form() == TypeForm.ENUM);
+        // Detect value object using registry
+        boolean isValueObject = registry.all(ValueObject.class)
+                .anyMatch(vo -> vo.id().qualifiedName().equals(typeQualifiedName));
 
-        // Check for simple wrapper type
-        ValueObject matchingVo = model.valueObjects()
+        // Find matching ValueObject and check if enum
+        ValueObject matchingVo = registry.all(ValueObject.class)
                 .filter(vo -> vo.id().qualifiedName().equals(typeQualifiedName))
                 .findFirst()
                 .orElse(null);
 
+        boolean isEnum = matchingVo != null
+                && matchingVo.syntax() != null
+                && matchingVo.syntax().form() == TypeForm.ENUM;
+
+        // Check for simple wrapper type
         boolean isSimpleWrapper = isSimpleWrapperV4(matchingVo);
         boolean isWrappedForeignKey = isSimpleWrapper && typeQualifiedName.endsWith("Id");
 

@@ -50,6 +50,7 @@ import java.util.Objects;
  * </ul>
  *
  * @since 3.0.0
+ * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
  */
 public final class DocumentationGenerator {
 
@@ -230,8 +231,9 @@ public final class DocumentationGenerator {
     }
 
     private void appendDomainTypesByKind(StringBuilder md, ArchitecturalModel model) {
+        var registry = model.registry();
         // Entities (non-aggregate roots)
-        List<DomainEntity> entities = model.domainEntities()
+        List<DomainEntity> entities = registry.all(DomainEntity.class)
                 .filter(e -> !e.isAggregateRoot())
                 .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
@@ -250,7 +252,7 @@ public final class DocumentationGenerator {
         }
 
         // Value Objects
-        List<ValueObject> valueObjects = model.valueObjects()
+        List<ValueObject> valueObjects = registry.all(ValueObject.class)
                 .sorted(Comparator.comparing(vo -> vo.id().simpleName()))
                 .toList();
         if (!valueObjects.isEmpty()) {
@@ -268,7 +270,7 @@ public final class DocumentationGenerator {
         }
 
         // Domain Events
-        List<DomainEvent> events = model.domainEvents()
+        List<DomainEvent> events = registry.all(DomainEvent.class)
                 .sorted(Comparator.comparing(ev -> ev.id().simpleName()))
                 .toList();
         if (!events.isEmpty()) {
@@ -286,7 +288,7 @@ public final class DocumentationGenerator {
         }
 
         // Domain Services
-        List<DomainService> services = model.domainServices()
+        List<DomainService> services = registry.all(DomainService.class)
                 .sorted(Comparator.comparing(s -> s.id().simpleName()))
                 .toList();
         if (!services.isEmpty()) {
@@ -344,7 +346,8 @@ public final class DocumentationGenerator {
 
         List<DrivingPort> drivingPorts = report.model() != null
                 ? report.model()
-                        .drivingPorts()
+                        .registry()
+                        .all(DrivingPort.class)
                         .sorted(Comparator.comparing(p -> p.id().simpleName()))
                         .toList()
                 : List.of();
@@ -372,7 +375,8 @@ public final class DocumentationGenerator {
 
         List<DrivenPort> drivenPorts = report.model() != null
                 ? report.model()
-                        .drivenPorts()
+                        .registry()
+                        .all(DrivenPort.class)
                         .sorted(Comparator.comparing(p -> p.id().simpleName()))
                         .toList()
                 : List.of();

@@ -45,6 +45,7 @@ import java.util.stream.Stream;
  *
  * @since 1.0.0
  * @since 4.0.0 - Migrated from IrSnapshot to ArchitecturalModel
+ * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
  */
 public class C4DiagramBuilder {
 
@@ -132,9 +133,10 @@ public class C4DiagramBuilder {
         List<BoundedContextInfo> contexts =
                 architectureQuery != null ? architectureQuery.findBoundedContexts() : List.of();
 
-        // Collect ports from model
-        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
-        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
+        // Collect ports from model using registry() instead of deprecated convenience methods
+        var registry = model.registry();
+        List<DrivingPort> drivingPorts = registry.all(DrivingPort.class).toList();
+        List<DrivenPort> drivenPorts = registry.all(DrivenPort.class).toList();
 
         // Driving adapters (left side)
         if (!drivingPorts.isEmpty()) {
@@ -217,8 +219,8 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart TB\n");
 
-        // Find aggregates (DomainEntity with isAggregateRoot)
-        List<DomainEntity> aggregates = model.domainEntities()
+        // Find aggregates (DomainEntity with isAggregateRoot) using registry()
+        List<DomainEntity> aggregates = model.registry().all(DomainEntity.class)
                 .filter(DomainEntity::isAggregateRoot)
                 .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
@@ -304,8 +306,9 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
 
-        List<DrivingPort> drivingPorts = model.drivingPorts().toList();
-        List<DrivenPort> drivenPorts = model.drivenPorts().toList();
+        var portRegistry = model.registry();
+        List<DrivingPort> drivingPorts = portRegistry.all(DrivingPort.class).toList();
+        List<DrivenPort> drivenPorts = portRegistry.all(DrivenPort.class).toList();
 
         // Driving ports
         diagram.append("    subgraph DRIVING[\"🔵 DRIVING PORTS<br/>(Primary/Inbound)\"]\n");
@@ -364,13 +367,14 @@ public class C4DiagramBuilder {
     private Map<String, List<Object>> findAggregateChildren(ArchitecturalModel model) {
         Map<String, List<Object>> result = new HashMap<>();
 
+        var childRegistry = model.registry();
         List<DomainEntity> aggregates =
-                model.domainEntities().filter(DomainEntity::isAggregateRoot).toList();
+                childRegistry.all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).toList();
 
         List<DomainEntity> entities =
-                model.domainEntities().filter(e -> !e.isAggregateRoot()).toList();
+                childRegistry.all(DomainEntity.class).filter(e -> !e.isAggregateRoot()).toList();
 
-        List<ValueObject> valueObjects = model.valueObjects().toList();
+        List<ValueObject> valueObjects = childRegistry.all(ValueObject.class).toList();
 
         // Simple heuristic: entities/VOs in same package as aggregate are children
         for (DomainEntity aggregate : aggregates) {

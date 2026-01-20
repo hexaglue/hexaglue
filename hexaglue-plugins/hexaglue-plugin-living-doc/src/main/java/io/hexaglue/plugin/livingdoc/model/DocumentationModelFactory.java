@@ -27,6 +27,7 @@ import java.util.Objects;
  * Factory for creating {@link DocumentationModel} from an {@link ArchitecturalModel}.
  *
  * @since 4.0.0
+ * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
  */
 public final class DocumentationModelFactory {
 
@@ -35,33 +36,36 @@ public final class DocumentationModelFactory {
     }
 
     /**
-     * Creates a DocumentationModel from an ArchitecturalModel (v4 API).
+     * Creates a DocumentationModel from an ArchitecturalModel (v4.1 API).
      *
      * @param model the architectural model
      * @return the documentation model
      * @throws NullPointerException if model is null
+     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
     public static DocumentationModel fromArchModel(ArchitecturalModel model) {
         Objects.requireNonNull(model, "model must not be null");
 
-        List<DocType> aggregateRoots = model.domainEntities()
+        var registry = model.registry();
+
+        List<DocType> aggregateRoots = registry.all(DomainEntity.class)
                 .filter(DomainEntity::isAggregateRoot)
                 .map(DocumentationModelFactory::toDocType)
                 .toList();
 
-        List<DocType> entities = model.domainEntities()
+        List<DocType> entities = registry.all(DomainEntity.class)
                 .filter(e -> !e.isAggregateRoot())
                 .map(DocumentationModelFactory::toDocType)
                 .toList();
 
         List<DocType> valueObjects =
-                model.valueObjects().map(DocumentationModelFactory::toDocType).toList();
+                registry.all(ValueObject.class).map(DocumentationModelFactory::toDocType).toList();
 
         List<DocPort> drivingPorts =
-                model.drivingPorts().map(DocumentationModelFactory::toDocPort).toList();
+                registry.all(DrivingPort.class).map(DocumentationModelFactory::toDocPort).toList();
 
         List<DocPort> drivenPorts =
-                model.drivenPorts().map(DocumentationModelFactory::toDocPort).toList();
+                registry.all(DrivenPort.class).map(DocumentationModelFactory::toDocPort).toList();
 
         return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
     }

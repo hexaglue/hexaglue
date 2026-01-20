@@ -14,6 +14,9 @@
 package io.hexaglue.spi.plugin;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.Optional;
 
@@ -132,5 +135,88 @@ public interface PluginContext {
      */
     default Optional<ArchitectureQuery> architectureQuery() {
         return Optional.empty();
+    }
+
+    // === New v4.1.0 API ===
+
+    /**
+     * Returns the domain index for accessing new v4.1.0 domain types.
+     *
+     * <p>The domain index provides type-safe access to enriched domain types
+     * including {@code AggregateRoot}, {@code Entity}, {@code ValueObject}, etc.
+     * with their computed metadata (identity fields, relationships, etc.).
+     *
+     * <p>Example:
+     * <pre>{@code
+     * context.domainIndex().ifPresent(domain -> {
+     *     domain.aggregateRoots().forEach(agg -> {
+     *         Field identity = agg.identityField();
+     *         List<TypeRef> entities = agg.entities();
+     *         generate(agg);
+     *     });
+     * });
+     * }</pre>
+     *
+     * @return an optional containing the domain index, or empty if not available
+     * @since 4.1.0
+     */
+    default Optional<DomainIndex> domainIndex() {
+        return model().domainIndex();
+    }
+
+    /**
+     * Returns the port index for accessing new v4.1.0 port types.
+     *
+     * <p>The port index provides type-safe access to enriched port types
+     * including {@code DrivingPort} and {@code DrivenPort} with their
+     * port type classification and managed aggregate references.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * context.portIndex().ifPresent(ports -> {
+     *     ports.repositories().forEach(repo -> {
+     *         Optional<TypeRef> aggregate = repo.managedAggregate();
+     *         DrivenPortType type = repo.portType();  // REPOSITORY
+     *         generate(repo);
+     *     });
+     * });
+     * }</pre>
+     *
+     * @return an optional containing the port index, or empty if not available
+     * @since 4.1.0
+     */
+    default Optional<PortIndex> portIndex() {
+        return model().portIndex();
+    }
+
+    /**
+     * Returns the classification report with statistics and remediation hints.
+     *
+     * <p>The classification report provides insights into the classification
+     * process, including:
+     * <ul>
+     *   <li>Classification statistics (rates, counts)</li>
+     *   <li>Unclassified types grouped by category</li>
+     *   <li>Classification conflicts</li>
+     *   <li>Prioritized remediation suggestions</li>
+     * </ul>
+     *
+     * <p>Example:
+     * <pre>{@code
+     * context.classificationReport().ifPresent(report -> {
+     *     diagnostics().info("Classification rate: " +
+     *         report.stats().classificationRate() + "%");
+     *
+     *     report.actionRequired().forEach(unclassified ->
+     *         diagnostics().warn("Needs attention: " +
+     *             unclassified.id().simpleName()));
+     * });
+     * }</pre>
+     *
+     * @return an optional containing the classification report, or empty if not available
+     * @since 4.1.0
+     */
+    default Optional<ClassificationReport> classificationReport() {
+        return model().classificationReport();
     }
 }

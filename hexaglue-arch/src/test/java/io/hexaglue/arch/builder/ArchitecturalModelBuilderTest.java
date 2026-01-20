@@ -17,6 +17,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.domain.DomainEvent;
+import io.hexaglue.arch.domain.Identifier;
+import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.ports.DrivingPort;
 import io.hexaglue.syntax.AnnotationSyntax;
 import io.hexaglue.syntax.AnnotationValue;
 import io.hexaglue.syntax.ConstructorSyntax;
@@ -43,6 +49,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @DisplayName("ArchitecturalModelBuilder")
+@SuppressWarnings("deprecation") // Tests use deprecated unclassifiedTypes() to verify classification behavior
 class ArchitecturalModelBuilderTest {
 
     @Nested
@@ -123,7 +130,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then - standard port classifier should classify *Repository as DRIVEN_PORT
-            var drivenPorts = model.drivenPorts().toList();
+            var drivenPorts = model.registry().all(DrivenPort.class).toList();
             assertThat(drivenPorts).hasSize(1);
             assertThat(drivenPorts.get(0).id().qualifiedName()).isEqualTo("com.example.OrderRepository");
         }
@@ -142,7 +149,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.domainEvents().count()).isEqualTo(1);
+            assertThat(model.registry().all(DomainEvent.class).count()).isEqualTo(1);
         }
 
         @Test
@@ -158,7 +165,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then - records should be classified as VALUE_OBJECT by default
-            assertThat(model.valueObjects().count()).isEqualTo(1);
+            assertThat(model.registry().all(ValueObject.class).count()).isEqualTo(1);
         }
     }
 
@@ -181,7 +188,7 @@ class ArchitecturalModelBuilderTest {
 
             // then
             var aggregateRoots =
-                    model.domainEntities().filter(e -> e.isAggregateRoot()).toList();
+                    model.registry().all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).toList();
             assertThat(aggregateRoots).hasSize(1);
             assertThat(aggregateRoots.get(0).kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         }
@@ -201,7 +208,7 @@ class ArchitecturalModelBuilderTest {
 
             // then
             var entities =
-                    model.domainEntities().filter(e -> !e.isAggregateRoot()).toList();
+                    model.registry().all(DomainEntity.class).filter(e -> !e.isAggregateRoot()).toList();
             assertThat(entities).hasSize(1);
             assertThat(entities.get(0).kind()).isEqualTo(ElementKind.ENTITY);
         }
@@ -220,7 +227,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.valueObjects().count()).isEqualTo(1);
+            assertThat(model.registry().all(ValueObject.class).count()).isEqualTo(1);
         }
 
         @Test
@@ -237,7 +244,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.identifiers().count()).isEqualTo(1);
+            assertThat(model.registry().all(Identifier.class).count()).isEqualTo(1);
         }
 
         @Test
@@ -254,7 +261,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.domainEvents().count()).isEqualTo(1);
+            assertThat(model.registry().all(DomainEvent.class).count()).isEqualTo(1);
         }
 
         @Test
@@ -272,7 +279,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.drivingPorts().count()).isEqualTo(1);
+            assertThat(model.registry().all(DrivingPort.class).count()).isEqualTo(1);
         }
 
         @Test
@@ -289,7 +296,7 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.drivenPorts().count()).isEqualTo(1);
+            assertThat(model.registry().all(DrivenPort.class).count()).isEqualTo(1);
         }
     }
 
@@ -340,11 +347,11 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.domainEntities().filter(e -> e.isAggregateRoot()).count())
+            assertThat(model.registry().all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).count())
                     .isEqualTo(1);
-            assertThat(model.identifiers().count()).isEqualTo(1);
-            assertThat(model.drivenPorts().count()).isEqualTo(1); // *Repository
-            assertThat(model.drivingPorts().count()).isEqualTo(1); // *UseCase
+            assertThat(model.registry().all(Identifier.class).count()).isEqualTo(1);
+            assertThat(model.registry().all(DrivenPort.class).count()).isEqualTo(1); // *Repository
+            assertThat(model.registry().all(DrivingPort.class).count()).isEqualTo(1); // *UseCase
         }
     }
 
