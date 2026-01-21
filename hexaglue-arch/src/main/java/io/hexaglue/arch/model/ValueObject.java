@@ -15,6 +15,7 @@ package io.hexaglue.arch.model;
 
 import io.hexaglue.arch.ClassificationTrace;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents a value object in the domain model.
@@ -30,6 +31,11 @@ import java.util.Objects;
  *   <li>Immutable - once created, the state cannot be changed</li>
  *   <li>Side-effect free - operations return new instances instead of modifying state</li>
  * </ul>
+ *
+ * <h2>Single-Value Detection (since 5.0.0)</h2>
+ * <p>Value objects wrapping a single value (like {@code OrderId}, {@code CustomerId}) can be
+ * detected using {@link #isSingleValue()} and the wrapped field accessed via {@link #wrappedField()}.
+ * This is useful for code generation that needs to unwrap such value objects.</p>
  *
  * <h2>Usage</h2>
  * <pre>{@code
@@ -78,5 +84,32 @@ public record ValueObject(TypeId id, TypeStructure structure, ClassificationTrac
      */
     public static ValueObject of(TypeId id, TypeStructure structure, ClassificationTrace classification) {
         return new ValueObject(id, structure, classification);
+    }
+
+    /**
+     * Returns whether this value object wraps a single value.
+     *
+     * <p>A single-value value object has exactly one field. Such value objects
+     * are often used as strongly-typed identifiers or simple wrappers around
+     * primitive types (e.g., {@code OrderId} wrapping a {@code UUID}).</p>
+     *
+     * @return true if this value object has exactly one field
+     * @since 5.0.0
+     */
+    public boolean isSingleValue() {
+        return structure.fields().size() == 1;
+    }
+
+    /**
+     * Returns the wrapped field if this is a single-value value object.
+     *
+     * <p>This method is useful for code generation that needs to unwrap
+     * single-value value objects to their underlying type.</p>
+     *
+     * @return the wrapped field, or empty if not a single-value value object
+     * @since 5.0.0
+     */
+    public Optional<Field> wrappedField() {
+        return isSingleValue() ? Optional.of(structure.fields().get(0)) : Optional.empty();
     }
 }

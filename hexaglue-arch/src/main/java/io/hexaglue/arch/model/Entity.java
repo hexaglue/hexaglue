@@ -14,6 +14,7 @@
 package io.hexaglue.arch.model;
 
 import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.syntax.TypeRef;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -36,6 +37,11 @@ import java.util.Optional;
  * this entity, if detected. Not all entities have an explicit identity field
  * (they might inherit it from a base class).</p>
  *
+ * <h2>Owning Aggregate (since 5.0.0)</h2>
+ * <p>Entities typically belong to an aggregate root. The {@link #owningAggregate()}
+ * field identifies the aggregate that contains this entity, enabling navigation
+ * of the aggregate boundary.</p>
+ *
  * <h2>Usage</h2>
  * <pre>{@code
  * // Entity with identity field
@@ -51,16 +57,27 @@ import java.util.Optional;
  *
  * // Entity without detected identity
  * Entity baseEntity = Entity.of(typeId, structure, trace);
+ *
+ * // Check owning aggregate (since 5.0.0)
+ * entity.owningAggregate().ifPresent(aggregate ->
+ *     System.out.println("Owned by: " + aggregate.qualifiedName())
+ * );
  * }</pre>
  *
  * @param id the unique identifier for this type
  * @param structure the structural description of this type
  * @param classification the classification trace explaining why this type was classified
  * @param identityField the field that identifies this entity (if detected)
+ * @param owningAggregate the aggregate root that owns this entity (if known)
  * @since 4.1.0
+ * @since 5.0.0 added owningAggregate
  */
 public record Entity(
-        TypeId id, TypeStructure structure, ClassificationTrace classification, Optional<Field> identityField)
+        TypeId id,
+        TypeStructure structure,
+        ClassificationTrace classification,
+        Optional<Field> identityField,
+        Optional<TypeRef> owningAggregate)
         implements DomainType {
 
     /**
@@ -70,13 +87,15 @@ public record Entity(
      * @param structure the type structure, must not be null
      * @param classification the classification trace, must not be null
      * @param identityField the identity field, must not be null (use Optional.empty() for none)
-     * @throws NullPointerException if id, structure, classification, or identityField is null
+     * @param owningAggregate the owning aggregate, must not be null (use Optional.empty() for none)
+     * @throws NullPointerException if any argument is null
      */
     public Entity {
         Objects.requireNonNull(id, "id must not be null");
         Objects.requireNonNull(structure, "structure must not be null");
         Objects.requireNonNull(classification, "classification must not be null");
         Objects.requireNonNull(identityField, "identityField must not be null");
+        Objects.requireNonNull(owningAggregate, "owningAggregate must not be null");
     }
 
     @Override
@@ -94,6 +113,16 @@ public record Entity(
     }
 
     /**
+     * Returns whether this entity has a known owning aggregate.
+     *
+     * @return true if the owning aggregate is known
+     * @since 5.0.0
+     */
+    public boolean hasOwningAggregate() {
+        return owningAggregate.isPresent();
+    }
+
+    /**
      * Creates an Entity with the given parameters and an identity field.
      *
      * @param id the type id
@@ -105,7 +134,7 @@ public record Entity(
      */
     public static Entity of(
             TypeId id, TypeStructure structure, ClassificationTrace classification, Field identityField) {
-        return new Entity(id, structure, classification, Optional.ofNullable(identityField));
+        return new Entity(id, structure, classification, Optional.ofNullable(identityField), Optional.empty());
     }
 
     /**
@@ -118,6 +147,27 @@ public record Entity(
      * @throws NullPointerException if any argument is null
      */
     public static Entity of(TypeId id, TypeStructure structure, ClassificationTrace classification) {
-        return new Entity(id, structure, classification, Optional.empty());
+        return new Entity(id, structure, classification, Optional.empty(), Optional.empty());
+    }
+
+    /**
+     * Creates an Entity with all parameters including owning aggregate.
+     *
+     * @param id the type id
+     * @param structure the type structure
+     * @param classification the classification trace
+     * @param identityField the identity field
+     * @param owningAggregate the owning aggregate
+     * @return a new Entity
+     * @throws NullPointerException if id, structure, classification, identityField, or owningAggregate is null
+     * @since 5.0.0
+     */
+    public static Entity of(
+            TypeId id,
+            TypeStructure structure,
+            ClassificationTrace classification,
+            Optional<Field> identityField,
+            Optional<TypeRef> owningAggregate) {
+        return new Entity(id, structure, classification, identityField, owningAggregate);
     }
 }

@@ -187,8 +187,10 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            var aggregateRoots =
-                    model.registry().all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).toList();
+            var aggregateRoots = model.registry()
+                    .all(DomainEntity.class)
+                    .filter(DomainEntity::isAggregateRoot)
+                    .toList();
             assertThat(aggregateRoots).hasSize(1);
             assertThat(aggregateRoots.get(0).kind()).isEqualTo(ElementKind.AGGREGATE_ROOT);
         }
@@ -207,8 +209,10 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            var entities =
-                    model.registry().all(DomainEntity.class).filter(e -> !e.isAggregateRoot()).toList();
+            var entities = model.registry()
+                    .all(DomainEntity.class)
+                    .filter(e -> !e.isAggregateRoot())
+                    .toList();
             assertThat(entities).hasSize(1);
             assertThat(entities.get(0).kind()).isEqualTo(ElementKind.ENTITY);
         }
@@ -347,7 +351,10 @@ class ArchitecturalModelBuilderTest {
                     .build();
 
             // then
-            assertThat(model.registry().all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).count())
+            assertThat(model.registry()
+                            .all(DomainEntity.class)
+                            .filter(DomainEntity::isAggregateRoot)
+                            .count())
                     .isEqualTo(1);
             assertThat(model.registry().all(Identifier.class).count()).isEqualTo(1);
             assertThat(model.registry().all(DrivenPort.class).count()).isEqualTo(1); // *Repository

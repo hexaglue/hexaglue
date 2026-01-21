@@ -74,7 +74,7 @@ class TypeRegistryTest {
                 ClassificationTrace.highConfidence(io.hexaglue.arch.ElementKind.DRIVING_PORT, "test-criterion", "Test");
         TypeStructure interfaceStructure =
                 TypeStructure.builder(TypeNature.INTERFACE).build();
-        return new DrivingPort(id, interfaceStructure, portTrace);
+        return DrivingPort.of(id, interfaceStructure, portTrace);
     }
 
     private UnclassifiedType createUnclassified(TypeId id) {

@@ -14,6 +14,8 @@
 package io.hexaglue.arch.model;
 
 import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.syntax.TypeRef;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -31,21 +33,53 @@ import java.util.Objects;
  *   <li>Named as verb phrases - describes what the service does</li>
  * </ul>
  *
+ * <h2>Injected Ports (since 5.0.0)</h2>
+ * <p>Domain services often depend on driven ports for accessing external resources.
+ * The {@link #injectedPorts()} field contains the types of ports that are injected
+ * via constructor or field injection.</p>
+ *
+ * <h2>Operations (since 5.0.0)</h2>
+ * <p>The {@link #operations()} field contains the business methods exposed by this
+ * service, excluding getters, setters, and object methods like equals/hashCode.</p>
+ *
  * <h2>Usage</h2>
  * <pre>{@code
+ * // Basic domain service
  * DomainService service = DomainService.of(
  *     TypeId.of("com.example.PricingService"),
  *     structure,
  *     trace
+ * );
+ *
+ * // Domain service with ports and operations (since 5.0.0)
+ * DomainService serviceWithDetails = DomainService.of(
+ *     TypeId.of("com.example.PricingService"),
+ *     structure,
+ *     trace,
+ *     List.of(inventoryPort, pricingPort),
+ *     List.of(calculatePriceMethod, applyDiscountMethod)
+ * );
+ *
+ * // Check injected ports
+ * service.injectedPorts().forEach(port ->
+ *     System.out.println("Depends on: " + port.qualifiedName())
  * );
  * }</pre>
  *
  * @param id the unique identifier for this type
  * @param structure the structural description of this type
  * @param classification the classification trace explaining why this type was classified
+ * @param injectedPorts the ports injected via constructor or fields (never null)
+ * @param operations the business methods exposed by this service (never null)
  * @since 4.1.0
+ * @since 5.0.0 added injectedPorts and operations
  */
-public record DomainService(TypeId id, TypeStructure structure, ClassificationTrace classification)
+public record DomainService(
+        TypeId id,
+        TypeStructure structure,
+        ClassificationTrace classification,
+        List<TypeRef> injectedPorts,
+        List<Method> operations)
         implements DomainType {
 
     /**
@@ -54,12 +88,18 @@ public record DomainService(TypeId id, TypeStructure structure, ClassificationTr
      * @param id the type id, must not be null
      * @param structure the type structure, must not be null
      * @param classification the classification trace, must not be null
+     * @param injectedPorts the injected ports, must not be null
+     * @param operations the business operations, must not be null
      * @throws NullPointerException if any argument is null
      */
     public DomainService {
         Objects.requireNonNull(id, "id must not be null");
         Objects.requireNonNull(structure, "structure must not be null");
         Objects.requireNonNull(classification, "classification must not be null");
+        Objects.requireNonNull(injectedPorts, "injectedPorts must not be null");
+        Objects.requireNonNull(operations, "operations must not be null");
+        injectedPorts = List.copyOf(injectedPorts);
+        operations = List.copyOf(operations);
     }
 
     @Override
@@ -68,15 +108,56 @@ public record DomainService(TypeId id, TypeStructure structure, ClassificationTr
     }
 
     /**
-     * Creates a DomainService with the given parameters.
+     * Returns whether this service has any injected ports.
+     *
+     * @return true if ports are injected
+     * @since 5.0.0
+     */
+    public boolean hasInjectedPorts() {
+        return !injectedPorts.isEmpty();
+    }
+
+    /**
+     * Returns whether this service has any business operations.
+     *
+     * @return true if operations are defined
+     * @since 5.0.0
+     */
+    public boolean hasOperations() {
+        return !operations.isEmpty();
+    }
+
+    /**
+     * Creates a DomainService with the given parameters (no ports or operations).
      *
      * @param id the type id
      * @param structure the type structure
      * @param classification the classification trace
-     * @return a new DomainService
+     * @return a new DomainService with empty ports and operations
      * @throws NullPointerException if any argument is null
      */
     public static DomainService of(TypeId id, TypeStructure structure, ClassificationTrace classification) {
-        return new DomainService(id, structure, classification);
+        return new DomainService(id, structure, classification, List.of(), List.of());
+    }
+
+    /**
+     * Creates a DomainService with all parameters including ports and operations.
+     *
+     * @param id the type id
+     * @param structure the type structure
+     * @param classification the classification trace
+     * @param injectedPorts the ports injected via constructor or fields
+     * @param operations the business methods exposed by this service
+     * @return a new DomainService
+     * @throws NullPointerException if any argument is null
+     * @since 5.0.0
+     */
+    public static DomainService of(
+            TypeId id,
+            TypeStructure structure,
+            ClassificationTrace classification,
+            List<TypeRef> injectedPorts,
+            List<Method> operations) {
+        return new DomainService(id, structure, classification, injectedPorts, operations);
     }
 }

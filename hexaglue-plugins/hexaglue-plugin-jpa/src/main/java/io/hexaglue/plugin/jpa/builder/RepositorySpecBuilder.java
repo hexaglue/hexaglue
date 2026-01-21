@@ -15,31 +15,25 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.JpaModelUtils;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
-import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Builder for transforming v4 DomainEntity to RepositorySpec model.
+ * Builder for transforming domain entities to RepositorySpec model.
  *
  * <p>This builder handles the transformation of domain aggregate roots into
  * Spring Data JPA repository interface specifications. It resolves entity
  * and ID types, applies naming conventions, and prepares the specification
  * for JavaPoet code generation.
- *
- * <p>Design decision: Repository generation is straightforward since Spring Data
- * repositories are purely declarative interfaces. The builder's main responsibility
- * is determining the correct entity and ID type parameters for the JpaRepository
- * generic interface.
  *
  * <h3>Generated Repository Example:</h3>
  * <pre>{@code
@@ -48,23 +42,13 @@ import java.util.Map;
  * }
  * }</pre>
  *
- * <h3>Usage Example:</h3>
- * <pre>{@code
- * RepositorySpec spec = RepositorySpecBuilder.builder()
- *     .domainEntity(orderEntity)
- *     .model(architecturalModel)
- *     .config(jpaConfig)
- *     .infrastructurePackage("com.example.infrastructure.jpa")
- *     .build();
- * }</pre>
- *
  * @since 4.0.0
  */
 public final class RepositorySpecBuilder {
 
-    private DomainEntity domainEntity;
-    private List<DrivenPort> drivenPorts = List.of();
-    private ArchitecturalModel architecturalModel;
+    private AggregateRoot aggregateRoot;
+    private Entity entity;
+    private List<io.hexaglue.arch.model.DrivenPort> drivenPorts = List.of();
     private JpaConfig config;
     private String infrastructurePackage;
 
@@ -95,9 +79,6 @@ public final class RepositorySpecBuilder {
     /**
      * Sets the infrastructure package name.
      *
-     * <p>This is typically derived from the domain package by replacing
-     * "domain" with "infrastructure.jpa".
-     *
      * @param infrastructurePackage the package for generated JPA classes
      * @return this builder
      */
@@ -107,38 +88,40 @@ public final class RepositorySpecBuilder {
     }
 
     /**
-     * Sets the v4 domain entity to transform.
+     * Sets the aggregate root to transform.
      *
-     * @param entity the domain entity from ArchitecturalModel
+     * @param aggregateRoot the aggregate root from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public RepositorySpecBuilder domainEntity(DomainEntity entity) {
-        this.domainEntity = entity;
+    public RepositorySpecBuilder aggregateRoot(AggregateRoot aggregateRoot) {
+        this.aggregateRoot = aggregateRoot;
+        this.entity = null;
         return this;
     }
 
     /**
-     * Sets the v4 driven ports for derived method extraction.
+     * Sets the entity to transform.
      *
-     * @param ports the driven ports for this domain entity
+     * @param entity the entity from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public RepositorySpecBuilder drivenPorts(List<DrivenPort> ports) {
+    public RepositorySpecBuilder entity(Entity entity) {
+        this.entity = entity;
+        this.aggregateRoot = null;
+        return this;
+    }
+
+    /**
+     * Sets the driven ports for derived method extraction.
+     *
+     * @param ports the driven ports from the model
+     * @return this builder
+     * @since 5.0.0
+     */
+    public RepositorySpecBuilder drivenPorts(List<io.hexaglue.arch.model.DrivenPort> ports) {
         this.drivenPorts = ports != null ? ports : List.of();
-        return this;
-    }
-
-    /**
-     * Sets the v4 architectural model.
-     *
-     * @param model the architectural model
-     * @return this builder
-     * @since 4.0.0
-     */
-    public RepositorySpecBuilder model(ArchitecturalModel model) {
-        this.architecturalModel = model;
         return this;
     }
 
@@ -147,84 +130,80 @@ public final class RepositorySpecBuilder {
      *
      * @return an immutable RepositorySpec ready for code generation
      * @throws IllegalStateException if required fields are missing
-     * @throws IllegalArgumentException if the domain entity has no identity
+     * @throws IllegalArgumentException if the entity has no identity
      */
     public RepositorySpec build() {
         validateRequiredFields();
 
-        if (!domainEntity.hasIdentity()) {
-            throw new IllegalArgumentException("Domain entity "
-                    + domainEntity.id().qualifiedName() + " has no identity. Cannot generate JPA repository.");
+        // Determine source
+        String simpleName;
+        String qualifiedName;
+        TypeName idType;
+
+        if (aggregateRoot != null) {
+            simpleName = aggregateRoot.id().simpleName();
+            qualifiedName = aggregateRoot.id().qualifiedName();
+            idType = resolveIdTypeFromField(aggregateRoot.identityField());
+        } else {
+            simpleName = entity.id().simpleName();
+            qualifiedName = entity.id().qualifiedName();
+            var identityFieldOpt = entity.identityField();
+            if (identityFieldOpt.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Entity " + qualifiedName + " has no identity. Cannot generate JPA repository.");
+            }
+            idType = resolveIdTypeFromField(identityFieldOpt.get());
         }
 
-        String simpleName = domainEntity.id().simpleName();
         String interfaceName = simpleName + config.repositorySuffix();
         String entityClassName = simpleName + config.entitySuffix();
-
         TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
-        TypeName idType = resolveIdType();
 
-        // Collect derived methods from v4 driven ports
+        // Collect derived methods from driven ports
         List<DerivedMethodSpec> derivedMethods = collectDerivedMethods(entityType);
 
         return new RepositorySpec(
-                infrastructurePackage,
-                interfaceName,
-                entityType,
-                idType,
-                domainEntity.id().qualifiedName(),
-                derivedMethods);
+                infrastructurePackage, interfaceName, entityType, idType, qualifiedName, derivedMethods);
     }
 
     /**
-     * Resolves the ID type from the v4 domain entity's identity.
+     * Resolves the ID type from a Field.
      *
+     * @param identityField the identity field
      * @return the JavaPoet TypeName of the unwrapped ID type
+     * @since 5.0.0
      */
-    private TypeName resolveIdType() {
-        TypeRef idType = domainEntity.identityType();
-
-        // Check if it's a value object wrapper (needs unwrapping)
-        if (architecturalModel != null) {
-            var voOpt = architecturalModel
-                    .valueObjects()
-                    .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
-                    .filter(vo -> vo.componentFields().size() == 1)
-                    .filter(vo -> vo.syntax() != null)
-                    .findFirst();
-
-            if (voOpt.isPresent()) {
-                // Unwrap the value object
-                var wrappedField = voOpt.get().syntax().fields().get(0);
-                return JpaModelUtils.resolveTypeName(wrappedField.type().qualifiedName());
-            }
+    private TypeName resolveIdTypeFromField(Field identityField) {
+        // If the field has a wrappedType, use it (the unwrapped type)
+        if (identityField.wrappedType().isPresent()) {
+            return JpaModelUtils.resolveTypeName(
+                    identityField.wrappedType().get().qualifiedName());
         }
-
-        return JpaModelUtils.resolveTypeName(idType.qualifiedName());
+        return JpaModelUtils.resolveTypeName(identityField.type().qualifiedName());
     }
 
     /**
-     * Collects derived query methods from v4 driven ports.
+     * Collects derived query methods from driven ports.
+     *
+     * <p>Uses the port's structure.methods() to extract property-based query methods.
      *
      * @param entityType the entity type for return types
      * @return list of derived method specifications
+     * @since 5.0.0
      */
     private List<DerivedMethodSpec> collectDerivedMethods(TypeName entityType) {
-        if (drivenPorts.isEmpty()) {
-            return List.of();
-        }
-
         Map<String, DerivedMethodSpec> methodsBySignature = new LinkedHashMap<>();
 
-        for (DrivenPort port : drivenPorts) {
-            for (var operation : port.operations()) {
-                // Use method syntax if available
-                if (operation.syntax() != null) {
-                    DerivedMethodSpec spec = DerivedMethodSpec.fromV4(operation, entityType);
-                    if (spec != null) {
-                        String signature = computeMethodSignature(spec);
-                        methodsBySignature.putIfAbsent(signature, spec);
-                    }
+        for (io.hexaglue.arch.model.DrivenPort port : drivenPorts) {
+            for (var method : port.structure().methods()) {
+                // Skip static methods
+                if (method.isStatic()) {
+                    continue;
+                }
+                DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, entityType);
+                if (spec != null) {
+                    String signature = computeMethodSignature(spec);
+                    methodsBySignature.putIfAbsent(signature, spec);
                 }
             }
         }
@@ -234,8 +213,6 @@ public final class RepositorySpecBuilder {
 
     /**
      * Computes a unique signature for a method based on name and parameter types.
-     *
-     * <p>This is used for deduplication when multiple ports declare the same method.
      *
      * @param spec the derived method specification
      * @return a signature string in the format "methodName(Type1,Type2,...)"
@@ -254,8 +231,8 @@ public final class RepositorySpecBuilder {
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainEntity == null) {
-            throw new IllegalStateException("domainEntity is required");
+        if (aggregateRoot == null && entity == null) {
+            throw new IllegalStateException("Either aggregateRoot or entity is required");
         }
         if (config == null) {
             throw new IllegalStateException("config is required");

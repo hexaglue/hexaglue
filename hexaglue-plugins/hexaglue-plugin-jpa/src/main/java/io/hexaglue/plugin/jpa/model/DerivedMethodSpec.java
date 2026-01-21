@@ -16,12 +16,10 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.spi.ir.MethodKind;
 import io.hexaglue.spi.ir.MethodParameter;
 import io.hexaglue.spi.ir.PortMethod;
 import io.hexaglue.spi.ir.TypeRef;
-import io.hexaglue.syntax.MethodSyntax;
 import java.util.List;
 
 /**
@@ -46,6 +44,10 @@ import java.util.List;
  */
 public record DerivedMethodSpec(
         String methodName, TypeName returnType, List<ParameterSpec> parameters, MethodKind kind) {
+
+    public DerivedMethodSpec {
+        parameters = List.copyOf(parameters);
+    }
 
     /**
      * Parameter specification for derived methods.
@@ -81,18 +83,18 @@ public record DerivedMethodSpec(
     }
 
     /**
-     * Creates a DerivedMethodSpec from a v4 PortOperation.
+     * Creates a DerivedMethodSpec from a Method from the architectural model.
      *
-     * <p>This factory method transforms the v4 representation to the plugin's internal
+     * <p>This factory method transforms the v5 representation to the plugin's internal
      * specification, inferring method kind from the method name pattern.
      *
-     * @param operation the v4 port operation
+     * @param method the Method from the architectural model
      * @param entityTypeName the entity class name to use for return types
      * @return a new DerivedMethodSpec, or null if the method should not be generated
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public static DerivedMethodSpec fromV4(PortOperation operation, TypeName entityTypeName) {
-        String methodName = operation.name();
+    public static DerivedMethodSpec fromV5(io.hexaglue.arch.model.Method method, TypeName entityTypeName) {
+        String methodName = method.name();
 
         // Infer method kind from name pattern
         MethodKind kind = inferMethodKind(methodName);
@@ -102,8 +104,8 @@ public record DerivedMethodSpec(
             return null;
         }
 
-        TypeName returnType = resolveReturnTypeV4(operation, kind, entityTypeName);
-        List<ParameterSpec> params = buildParametersV4(operation);
+        TypeName returnType = resolveReturnType(method, kind, entityTypeName);
+        List<ParameterSpec> params = buildParameters(method);
 
         return new DerivedMethodSpec(methodName, returnType, params, kind);
     }
@@ -149,9 +151,12 @@ public record DerivedMethodSpec(
     }
 
     /**
-     * Resolves the return type from v4 PortOperation.
+     * Resolves the return type from Method.
+     *
+     * @since 5.0.0
      */
-    private static TypeName resolveReturnTypeV4(PortOperation operation, MethodKind kind, TypeName entityTypeName) {
+    private static TypeName resolveReturnType(
+            io.hexaglue.arch.model.Method method, MethodKind kind, TypeName entityTypeName) {
         // Boolean for exists methods
         if (kind == MethodKind.EXISTS_BY_PROPERTY) {
             return TypeName.BOOLEAN;
@@ -167,8 +172,8 @@ public record DerivedMethodSpec(
             return ClassName.get(Long.class);
         }
 
-        io.hexaglue.syntax.TypeRef returnType = operation.returnType();
-        if (returnType == null) {
+        io.hexaglue.syntax.TypeRef returnType = method.returnType();
+        if (returnType == null || "void".equals(returnType.qualifiedName())) {
             return TypeName.VOID;
         }
 
@@ -193,26 +198,22 @@ public record DerivedMethodSpec(
     }
 
     /**
-     * Builds parameters from v4 PortOperation.
+     * Builds parameters from Method.
+     *
+     * @since 5.0.0
      */
-    private static List<ParameterSpec> buildParametersV4(PortOperation operation) {
-        MethodSyntax syntax = operation.syntax();
-        if (syntax == null) {
-            // Fall back to operation parameter types
-            return operation.parameterTypes().stream()
-                    .map(type -> new ParameterSpec("param", resolveTypeNameV4(type)))
-                    .toList();
-        }
-
-        return syntax.parameters().stream()
-                .map(param -> new ParameterSpec(param.name(), resolveTypeNameV4(param.type())))
+    private static List<ParameterSpec> buildParameters(io.hexaglue.arch.model.Method method) {
+        return method.parameters().stream()
+                .map(param -> new ParameterSpec(param.name(), resolveTypeName(param.type())))
                 .toList();
     }
 
     /**
-     * Resolves a v4 TypeRef to a JavaPoet TypeName.
+     * Resolves a TypeRef (from hexaglue-syntax) to a JavaPoet TypeName.
+     *
+     * @since 5.0.0
      */
-    private static TypeName resolveTypeNameV4(io.hexaglue.syntax.TypeRef typeRef) {
+    private static TypeName resolveTypeName(io.hexaglue.syntax.TypeRef typeRef) {
         // Handle primitives
         if (typeRef.isPrimitive()) {
             return switch (typeRef.qualifiedName()) {
@@ -233,7 +234,7 @@ public record DerivedMethodSpec(
         if (!typeRef.typeArguments().isEmpty()) {
             TypeName rawType = ClassName.bestGuess(typeRef.qualifiedName());
             TypeName[] typeArgs = typeRef.typeArguments().stream()
-                    .map(DerivedMethodSpec::resolveTypeNameV4)
+                    .map(DerivedMethodSpec::resolveTypeName)
                     .toArray(TypeName[]::new);
             return ParameterizedTypeName.get((ClassName) rawType, typeArgs);
         }
@@ -262,7 +263,7 @@ public record DerivedMethodSpec(
     }
 
     /**
-     * Resolves the JavaPoet return type from the SPI TypeRef.
+     * Resolves the JavaPoet return type from the SPI PortMethod.
      *
      * <p>Handles:
      * <ul>

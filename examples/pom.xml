@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+                             http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-examples</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+
+    <name>HexaGlue Examples Aggregator</name>
+    <description>Aggregator POM to build all examples at once</description>
+
+    <modules>
+        <module>sample-basic</module>
+        <module>sample-audit-violations</module>
+        <module>sample-multi-aggregate</module>
+        <module>sample-pokedex</module>
+        <module>sample-starwars</module>
+        <module>sample-value-objects</module>
+        <module>tutorial-audit</module>
+        <module>tutorial-living-doc</module>
+        <module>tutorial-validation</module>
+    </modules>
+
+</project>

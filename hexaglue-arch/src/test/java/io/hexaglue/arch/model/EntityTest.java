@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.syntax.TypeRef;
+import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -188,6 +190,46 @@ class EntityTest {
 
             // then
             assertThat(entity.hasIdentity()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("Owning Aggregate")
+    class OwningAggregateTests {
+
+        private static final TypeRef ORDER_TYPE = new TypeRef("com.example.Order", "Order", List.of(), false, false, 0);
+
+        @Test
+        @DisplayName("should create entity without owning aggregate")
+        void shouldCreateEntityWithoutOwningAggregate() {
+            // when
+            Entity entity = Entity.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(entity.owningAggregate()).isEmpty();
+            assertThat(entity.hasOwningAggregate()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should create entity with owning aggregate")
+        void shouldCreateEntityWithOwningAggregate() {
+            // when
+            Entity entity = Entity.of(ID, STRUCTURE, TRACE, Optional.of(IDENTITY_FIELD), Optional.of(ORDER_TYPE));
+
+            // then
+            assertThat(entity.owningAggregate()).contains(ORDER_TYPE);
+            assertThat(entity.hasOwningAggregate()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should preserve identity field when creating with owning aggregate")
+        void shouldPreserveIdentityFieldWhenCreatingWithOwningAggregate() {
+            // when
+            Entity entity = Entity.of(ID, STRUCTURE, TRACE, Optional.of(IDENTITY_FIELD), Optional.of(ORDER_TYPE));
+
+            // then
+            assertThat(entity.identityField()).contains(IDENTITY_FIELD);
+            assertThat(entity.hasIdentity()).isTrue();
         }
     }
 

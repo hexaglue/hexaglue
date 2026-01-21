@@ -13,10 +13,7 @@
 
 package io.hexaglue.plugin.jpa.model;
 
-import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.plugin.jpa.JpaConfig;
-import io.hexaglue.spi.ir.DomainType;
 import java.util.List;
 
 /**
@@ -62,43 +59,8 @@ public record RepositorySpec(
         String domainQualifiedName,
         List<DerivedMethodSpec> derivedMethods) {
 
-    /**
-     * Creates a RepositorySpec from a SPI DomainType and JpaConfig.
-     *
-     * <p>This factory method derives the repository metadata from the domain
-     * aggregate root and applies naming conventions from the configuration.
-     *
-     * <p>Naming convention:
-     * <ul>
-     *   <li>Interface name: {DomainName} + {repositorySuffix}</li>
-     *   <li>Package: {entityPackage} (same as entity)</li>
-     * </ul>
-     *
-     * @param domainType the aggregate root domain type
-     * @param config the JPA plugin configuration
-     * @return a RepositorySpec ready for code generation
-     * @throws IllegalArgumentException if the domain type has no identity
-     */
-    public static RepositorySpec from(DomainType domainType, JpaConfig config) {
-        if (!domainType.hasIdentity()) {
-            throw new IllegalArgumentException(
-                    "Domain type " + domainType.qualifiedName() + " has no identity. Cannot generate repository.");
-        }
-
-        // Derive entity class name
-        String entityClassName = domainType.simpleName() + config.entitySuffix();
-        String entityPackage = JpaModelUtils.deriveInfrastructurePackage(domainType.packageName());
-
-        // Derive repository interface name
-        String interfaceName = domainType.simpleName() + config.repositorySuffix();
-
-        // Resolve entity and ID types
-        TypeName entityType = ClassName.get(entityPackage, entityClassName);
-        TypeName idType = resolveIdType(domainType);
-
-        // Factory method creates a spec without derived methods (use builder for full control)
-        return new RepositorySpec(
-                entityPackage, interfaceName, entityType, idType, domainType.qualifiedName(), List.of());
+    public RepositorySpec {
+        derivedMethods = List.copyOf(derivedMethods);
     }
 
     /**
@@ -118,25 +80,5 @@ public record RepositorySpec(
     public String domainSimpleName() {
         int lastDot = domainQualifiedName.lastIndexOf('.');
         return lastDot < 0 ? domainQualifiedName : domainQualifiedName.substring(lastDot + 1);
-    }
-
-    /**
-     * Resolves the ID type from the domain type's identity.
-     *
-     * <p>Uses the unwrapped type for JPA compatibility. Wrapped identity types
-     * (e.g., {@code record OrderId(UUID value)}) are unwrapped to their underlying
-     * type (e.g., {@code UUID}) for use in the JpaRepository generic parameter.
-     *
-     * @param domainType the domain aggregate root
-     * @return the JavaPoet TypeName of the ID type
-     */
-    private static TypeName resolveIdType(DomainType domainType) {
-        String idTypeName = domainType
-                .identity()
-                .orElseThrow(() -> new IllegalArgumentException("Domain type has no identity"))
-                .unwrappedType()
-                .qualifiedName();
-
-        return ClassName.bestGuess(idTypeName);
     }
 }

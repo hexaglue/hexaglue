@@ -449,9 +449,12 @@ public class DddAuditPlugin implements AuditPlugin {
             long entityCount = registry.all(DomainEntity.class)
                     .filter(e -> !e.isAggregateRoot())
                     .count();
-            long valueObjectCount = registry.all(io.hexaglue.arch.domain.ValueObject.class).count();
-            long drivingPortCount = registry.all(io.hexaglue.arch.ports.DrivingPort.class).count();
-            long drivenPortCount = registry.all(io.hexaglue.arch.ports.DrivenPort.class).count();
+            long valueObjectCount =
+                    registry.all(io.hexaglue.arch.domain.ValueObject.class).count();
+            long drivingPortCount =
+                    registry.all(io.hexaglue.arch.ports.DrivingPort.class).count();
+            long drivenPortCount =
+                    registry.all(io.hexaglue.arch.ports.DrivenPort.class).count();
 
             diagnostics.info(String.format(
                     "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",

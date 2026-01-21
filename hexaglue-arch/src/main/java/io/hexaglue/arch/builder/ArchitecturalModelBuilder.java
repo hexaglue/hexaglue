@@ -24,6 +24,10 @@ import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.arch.domain.DomainEvent;
 import io.hexaglue.arch.domain.Identifier;
 import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.arch.ports.DrivingPort;
 import io.hexaglue.arch.ports.PortClassification;
@@ -76,12 +80,22 @@ public final class ArchitecturalModelBuilder {
     private final String projectName;
     private final String basePackage;
 
+    // v5 model components (optional - may be null for legacy usage)
+    private final TypeRegistry typeRegistry;
+    private final ClassificationReport classificationReport;
+    private final DomainIndex domainIndex;
+    private final PortIndex portIndex;
+
     private ArchitecturalModelBuilder(Builder builder) {
         this.syntaxProvider = builder.syntaxProvider;
         this.domainClassifier = builder.domainClassifier;
         this.portClassifier = builder.portClassifier;
         this.projectName = builder.projectName;
         this.basePackage = builder.basePackage;
+        this.typeRegistry = builder.typeRegistry;
+        this.classificationReport = builder.classificationReport;
+        this.domainIndex = builder.domainIndex;
+        this.portIndex = builder.portIndex;
     }
 
     /**
@@ -131,6 +145,20 @@ public final class ArchitecturalModelBuilder {
         int totalTypes = classifiedCount + unclassifiedCount;
         AnalysisMetadata metadata =
                 AnalysisMetadata.now(startTime, syntaxProvider.metadata().parserName(), totalTypes);
+
+        // Add v5 components if provided
+        if (typeRegistry != null) {
+            modelBuilder.typeRegistry(typeRegistry);
+        }
+        if (classificationReport != null) {
+            modelBuilder.classificationReport(classificationReport);
+        }
+        if (domainIndex != null) {
+            modelBuilder.domainIndex(domainIndex);
+        }
+        if (portIndex != null) {
+            modelBuilder.portIndex(portIndex);
+        }
 
         return modelBuilder.build(metadata);
     }
@@ -316,6 +344,12 @@ public final class ArchitecturalModelBuilder {
         private String projectName = "Unnamed Project";
         private String basePackage = "";
 
+        // v5 model components
+        private TypeRegistry typeRegistry;
+        private ClassificationReport classificationReport;
+        private DomainIndex domainIndex;
+        private PortIndex portIndex;
+
         private Builder(SyntaxProvider syntaxProvider) {
             this.syntaxProvider = Objects.requireNonNull(syntaxProvider, "syntaxProvider must not be null");
         }
@@ -361,6 +395,54 @@ public final class ArchitecturalModelBuilder {
          */
         public Builder basePackage(String basePackage) {
             this.basePackage = basePackage != null ? basePackage : "";
+            return this;
+        }
+
+        /**
+         * Sets the v5 type registry.
+         *
+         * @param registry the type registry from NewArchitecturalModelBuilder
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder typeRegistry(TypeRegistry registry) {
+            this.typeRegistry = registry;
+            return this;
+        }
+
+        /**
+         * Sets the v5 classification report.
+         *
+         * @param report the classification report from NewArchitecturalModelBuilder
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder classificationReport(ClassificationReport report) {
+            this.classificationReport = report;
+            return this;
+        }
+
+        /**
+         * Sets the v5 domain index.
+         *
+         * @param index the domain index from NewArchitecturalModelBuilder
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder domainIndex(DomainIndex index) {
+            this.domainIndex = index;
+            return this;
+        }
+
+        /**
+         * Sets the v5 port index.
+         *
+         * @param index the port index from NewArchitecturalModelBuilder
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder portIndex(PortIndex index) {
+            this.portIndex = index;
             return this;
         }
 

@@ -117,7 +117,14 @@ public final class JpaEmbeddableCodegen {
     }
 
     /**
-     * Adds a property field with @Column annotation.
+     * Adds a property field with appropriate JPA annotation.
+     *
+     * <p>The annotation depends on the property type:
+     * <ul>
+     *   <li>Enum types: {@code @Enumerated(EnumType.STRING)} + {@code @Column}</li>
+     *   <li>Embedded types (complex VALUE_OBJECTs): {@code @Embedded}</li>
+     *   <li>Simple types: {@code @Column}</li>
+     * </ul>
      *
      * @param builder the class builder
      * @param property the property field specification
@@ -130,7 +137,11 @@ public final class JpaEmbeddableCodegen {
             // Enum types need @Enumerated(EnumType.STRING)
             fieldBuilder.addAnnotation(JpaAnnotations.enumerated());
             fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
+        } else if (property.shouldBeEmbedded()) {
+            // Embedded types (complex VALUE_OBJECTs like Money) need @Embedded
+            fieldBuilder.addAnnotation(JpaAnnotations.embedded());
         } else {
+            // Simple types (including unwrapped single-value VOs like Quantity -> int)
             fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
         }
 

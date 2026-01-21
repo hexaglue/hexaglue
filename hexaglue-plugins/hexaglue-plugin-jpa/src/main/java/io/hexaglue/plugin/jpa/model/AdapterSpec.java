@@ -13,15 +13,9 @@
 
 package io.hexaglue.plugin.jpa.model;
 
-import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.strategy.AdapterContext;
-import io.hexaglue.spi.ir.DomainModel;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.Port;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Complete specification for generating a JPA adapter implementation.
@@ -83,72 +77,9 @@ public record AdapterSpec(
         List<AdapterMethodSpec> methods,
         AdapterContext.IdInfo idInfo) {
 
-    /**
-     * Creates an AdapterSpec from a SPI Port, DomainModel, and JpaConfig.
-     *
-     * <p>This factory method derives the adapter metadata from the port interface
-     * and domain model, applying naming conventions from the configuration.
-     *
-     * <p>Naming convention:
-     * <ul>
-     *   <li>Class name: {PortSimpleName} + {adapterSuffix}</li>
-     *   <li>Package: {entityPackage} (same as entity)</li>
-     * </ul>
-     *
-     * <p>The adapter will:
-     * <ul>
-     *   <li>Implement the port interface</li>
-     *   <li>Depend on the generated JPA repository</li>
-     *   <li>Depend on the generated mapper</li>
-     *   <li>Implement all port methods by delegating to repository/mapper</li>
-     * </ul>
-     *
-     * @param port the driven port interface to implement
-     * @param domain the domain model containing the aggregate root
-     * @param config the JPA plugin configuration
-     * @return an AdapterSpec ready for code generation
-     * @throws IllegalArgumentException if the port has no primary managed type
-     */
-    public static AdapterSpec from(Port port, DomainModel domain, JpaConfig config) {
-        if (port.primaryManagedType() == null) {
-            throw new IllegalArgumentException(
-                    "Port " + port.qualifiedName() + " has no primary managed type. Cannot generate adapter.");
-        }
-
-        // Find the domain type managed by this port
-        DomainType domainType = domain.findByQualifiedName(port.primaryManagedType())
-                .orElseThrow(() -> new IllegalArgumentException(
-                        "Domain type " + port.primaryManagedType() + " not found in model"));
-
-        // Derive package and names
-        String entityPackage = JpaModelUtils.deriveInfrastructurePackage(domainType.packageName());
-        String className = port.simpleName() + config.adapterSuffix();
-
-        // Resolve types
-        TypeName portType = ClassName.bestGuess(port.qualifiedName());
-        TypeName domainClass = ClassName.bestGuess(domainType.qualifiedName());
-        TypeName entityClass = ClassName.get(entityPackage, domainType.simpleName() + config.entitySuffix());
-        TypeName repositoryClass = ClassName.get(entityPackage, domainType.simpleName() + config.repositorySuffix());
-        TypeName mapperClass = ClassName.get(entityPackage, domainType.simpleName() + config.mapperSuffix());
-
-        // Convert port methods to adapter method specs
-        List<AdapterMethodSpec> methods =
-                port.methods().stream().map(AdapterMethodSpec::from).collect(Collectors.toList());
-
-        // Build IdInfo from domain type's identity
-        AdapterContext.IdInfo idInfo =
-                domainType.identity().map(AdapterContext.IdInfo::from).orElse(null);
-
-        return new AdapterSpec(
-                entityPackage,
-                className,
-                List.of(portType),
-                domainClass,
-                entityClass,
-                repositoryClass,
-                mapperClass,
-                methods,
-                idInfo);
+    public AdapterSpec {
+        implementedPorts = implementedPorts != null ? List.copyOf(implementedPorts) : null;
+        methods = methods != null ? List.copyOf(methods) : List.of();
     }
 
     /**

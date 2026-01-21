@@ -47,7 +47,8 @@ class UnclassifiedTypeBuilderTest {
     @BeforeEach
     void setUp() {
         FieldRoleDetector fieldRoleDetector = new FieldRoleDetector();
-        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector);
+        MethodRoleDetector methodRoleDetector = new MethodRoleDetector();
+        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector, methodRoleDetector);
         ClassificationTraceConverter traceConverter = new ClassificationTraceConverter();
         UnclassifiedCategoryDetector categoryDetector = new UnclassifiedCategoryDetector();
         builder = new UnclassifiedTypeBuilder(typeStructureBuilder, traceConverter, categoryDetector);

@@ -55,7 +55,7 @@ class PortIndexTest {
 
     private DrivingPort createDrivingPort(TypeId id) {
         ClassificationTrace trace = ClassificationTrace.highConfidence(ElementKind.DRIVING_PORT, "test", "Test");
-        return new DrivingPort(id, interfaceStructure, trace);
+        return DrivingPort.of(id, interfaceStructure, trace);
     }
 
     private DrivenPort createRepository(TypeId id, TypeId aggregateId) {
@@ -279,7 +279,7 @@ class PortIndexTest {
             TypeStructure structureWithImpls = TypeStructure.builder(TypeNature.INTERFACE)
                     .interfaces(implementations)
                     .build();
-            DrivingPort useCase = new DrivingPort(ORDER_USE_CASE_ID, structureWithImpls, trace);
+            DrivingPort useCase = DrivingPort.of(ORDER_USE_CASE_ID, structureWithImpls, trace);
 
             TypeRegistry registry = TypeRegistry.builder().add(useCase).build();
 

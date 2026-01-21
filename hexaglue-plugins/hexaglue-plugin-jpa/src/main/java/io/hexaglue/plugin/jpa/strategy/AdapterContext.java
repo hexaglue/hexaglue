@@ -130,22 +130,6 @@ public record AdapterContext(
     }
 
     /**
-     * Creates an AdapterContext without IdInfo (backward compatibility).
-     *
-     * @param domainClass the domain type
-     * @param entityClass the entity type
-     * @param repositoryFieldName the repository field name
-     * @param mapperFieldName the mapper field name
-     * @return an AdapterContext with null idInfo
-     * @deprecated Use the full constructor with idInfo parameter.
-     */
-    @Deprecated
-    public static AdapterContext withoutIdInfo(
-            TypeName domainClass, TypeName entityClass, String repositoryFieldName, String mapperFieldName) {
-        return new AdapterContext(domainClass, entityClass, repositoryFieldName, mapperFieldName, null);
-    }
-
-    /**
      * Returns true if this context has identity information.
      *
      * @return true if idInfo is not null

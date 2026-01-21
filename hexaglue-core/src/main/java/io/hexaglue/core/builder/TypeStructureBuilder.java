@@ -18,6 +18,7 @@ import io.hexaglue.arch.model.Constructor;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
@@ -56,8 +57,9 @@ import java.util.stream.Collectors;
  *
  * <h2>Usage</h2>
  * <pre>{@code
- * FieldRoleDetector detector = new FieldRoleDetector();
- * TypeStructureBuilder builder = new TypeStructureBuilder(detector);
+ * FieldRoleDetector fieldDetector = new FieldRoleDetector();
+ * MethodRoleDetector methodDetector = new MethodRoleDetector();
+ * TypeStructureBuilder builder = new TypeStructureBuilder(fieldDetector, methodDetector);
  * TypeStructure structure = builder.build(typeNode, context);
  * }</pre>
  *
@@ -82,15 +84,19 @@ public final class TypeStructureBuilder {
             Map.entry(JavaModifier.DEFAULT, Modifier.DEFAULT));
 
     private final FieldRoleDetector fieldRoleDetector;
+    private final MethodRoleDetector methodRoleDetector;
 
     /**
      * Creates a new TypeStructureBuilder.
      *
      * @param fieldRoleDetector the detector for field roles
-     * @throws NullPointerException if fieldRoleDetector is null
+     * @param methodRoleDetector the detector for method roles
+     * @throws NullPointerException if any detector is null
+     * @since 5.0.0 added methodRoleDetector parameter
      */
-    public TypeStructureBuilder(FieldRoleDetector fieldRoleDetector) {
+    public TypeStructureBuilder(FieldRoleDetector fieldRoleDetector, MethodRoleDetector methodRoleDetector) {
         this.fieldRoleDetector = Objects.requireNonNull(fieldRoleDetector, "fieldRoleDetector must not be null");
+        this.methodRoleDetector = Objects.requireNonNull(methodRoleDetector, "methodRoleDetector must not be null");
     }
 
     /**
@@ -109,11 +115,13 @@ public final class TypeStructureBuilder {
         Set<Modifier> modifiers = mapModifiers(typeNode.modifiers());
 
         List<Field> fields = context.graphQuery().fieldsOf(typeNode).stream()
+                // Filter out static fields - they are not part of the instance structure
+                .filter(fn -> !fn.modifiers().contains(JavaModifier.STATIC))
                 .map(fn -> buildField(fn, context))
                 .toList();
 
         List<Method> methods = context.graphQuery().methodsOf(typeNode).stream()
-                .map(this::buildMethod)
+                .map(mn -> buildMethod(mn, typeNode))
                 .toList();
 
         List<Constructor> constructors = context.graphQuery().constructorsOf(typeNode).stream()
@@ -164,17 +172,67 @@ public final class TypeStructureBuilder {
             elementType = Optional.of(mapTypeRef(fieldNode.type().arguments().get(0)));
         }
 
+        // Detect wrapped type for wrapper types (IDENTIFIER or single-field VALUE_OBJECT)
+        Optional<TypeRef> wrappedType = detectWrappedType(fieldNode, context);
+
         List<Annotation> annotations = mapAnnotations(fieldNode.annotations());
 
         return Field.builder(fieldNode.simpleName(), type)
                 .modifiers(mapModifiers(fieldNode.modifiers()))
                 .annotations(annotations)
                 .elementType(elementType.orElse(null))
+                .wrappedType(wrappedType.orElse(null))
                 .roles(roles)
                 .build();
     }
 
-    private Method buildMethod(MethodNode methodNode) {
+    /**
+     * Detects the wrapped type for wrapper types (IDENTIFIER or single-field VALUE_OBJECT).
+     *
+     * <p>If the field's type is classified as IDENTIFIER or VALUE_OBJECT and has exactly
+     * one non-static field, that field's type is returned as the wrapped type.</p>
+     *
+     * @param fieldNode the field to analyze
+     * @param context the builder context for lookups
+     * @return the wrapped type, or empty if not a wrapper
+     * @since 5.0.0
+     */
+    private Optional<TypeRef> detectWrappedType(FieldNode fieldNode, BuilderContext context) {
+        String fieldTypeName = fieldNode.type().rawQualifiedName();
+
+        // Check if the field's type is classified as IDENTIFIER or VALUE_OBJECT
+        boolean isIdentifier = context.isClassifiedAs(fieldTypeName, "IDENTIFIER");
+        boolean isValueObject = context.isClassifiedAs(fieldTypeName, "VALUE_OBJECT");
+
+        if (!isIdentifier && !isValueObject) {
+            return Optional.empty();
+        }
+
+        // Find the type node for the field's type
+        Optional<TypeNode> typeNodeOpt = context.graphQuery().type(fieldTypeName);
+        if (typeNodeOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        TypeNode wrapperTypeNode = typeNodeOpt.get();
+        List<FieldNode> wrapperFields = context.graphQuery().fieldsOf(wrapperTypeNode);
+
+        // Filter to non-static fields
+        List<FieldNode> nonStaticFields = wrapperFields.stream()
+                .filter(f -> !f.modifiers().contains(io.hexaglue.core.frontend.JavaModifier.STATIC))
+                .toList();
+
+        // Only single-field wrappers are considered wrapped
+        if (nonStaticFields.size() != 1) {
+            return Optional.empty();
+        }
+
+        // Return the wrapped type
+        FieldNode wrappedField = nonStaticFields.get(0);
+        return Optional.of(mapTypeRef(wrappedField.type()));
+    }
+
+    private Method buildMethod(MethodNode methodNode, TypeNode declaringType) {
         TypeRef returnType = mapTypeRef(methodNode.returnType());
 
         List<Parameter> parameters =
@@ -185,6 +243,8 @@ public final class TypeStructureBuilder {
         List<TypeRef> thrownExceptions =
                 methodNode.thrownTypes().stream().map(this::mapTypeRef).toList();
 
+        Set<MethodRole> roles = methodRoleDetector.detect(methodNode, declaringType);
+
         return new Method(
                 methodNode.simpleName(),
                 returnType,
@@ -192,7 +252,8 @@ public final class TypeStructureBuilder {
                 mapModifiers(methodNode.modifiers()),
                 annotations,
                 Optional.empty(),
-                thrownExceptions);
+                thrownExceptions,
+                roles);
     }
 
     private Constructor buildConstructor(ConstructorNode constructorNode) {

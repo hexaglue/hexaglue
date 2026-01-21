@@ -16,12 +16,10 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.arch.ports.PortOperation;
 import io.hexaglue.spi.ir.Cardinality;
 import io.hexaglue.spi.ir.MethodKind;
 import io.hexaglue.spi.ir.PortMethod;
 import io.hexaglue.spi.ir.TypeRef;
-import io.hexaglue.syntax.MethodSyntax;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -63,6 +61,10 @@ public record AdapterMethodSpec(
         Optional<String> targetProperty,
         Cardinality returnCardinality) {
 
+    public AdapterMethodSpec {
+        parameters = List.copyOf(parameters);
+    }
+
     /**
      * Parameter information for method generation.
      *
@@ -70,20 +72,7 @@ public record AdapterMethodSpec(
      * @param type the JavaPoet parameter type
      * @param isIdentity true if this parameter represents the aggregate's identity
      */
-    public record ParameterInfo(String name, TypeName type, boolean isIdentity) {
-
-        /**
-         * Creates a ParameterInfo without identity flag (defaults to false).
-         *
-         * @param name the parameter name
-         * @param type the parameter type
-         * @deprecated Use the full constructor with isIdentity flag.
-         */
-        @Deprecated
-        public ParameterInfo(String name, TypeName type) {
-            this(name, type, false);
-        }
-    }
+    public record ParameterInfo(String name, TypeName type, boolean isIdentity) {}
 
     /**
      * Creates an AdapterMethodSpec with inferred cardinality from the return type.
@@ -153,28 +142,31 @@ public record AdapterMethodSpec(
     }
 
     /**
-     * Creates an AdapterMethodSpec from a v4 PortOperation.
+     * Creates an AdapterMethodSpec from a Method from the architectural model.
      *
-     * <p>This factory method converts the v4 port operation to the
+     * <p>This factory method converts the model method to the
      * JavaPoet-based generation model, inferring the method kind from
-     * the operation name pattern since v4 doesn't expose MethodKind directly.
+     * the method name pattern.
      *
-     * @param operation the port operation from v4 model
+     * @param method the method from the architectural model
      * @return an AdapterMethodSpec ready for code generation
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public static AdapterMethodSpec fromV4(PortOperation operation) {
-        TypeName returnType = resolveTypeNameV4(operation.returnType());
-        List<ParameterInfo> parameters = buildParametersV4(operation);
+    public static AdapterMethodSpec fromV5(io.hexaglue.arch.model.Method method) {
+        TypeName returnType = resolveTypeNameFromSyntax(method.returnType());
+        List<ParameterInfo> parameters = method.parameters().stream()
+                .map(param -> new ParameterInfo(
+                        param.name(), resolveTypeNameFromSyntax(param.type()), isIdentityParameter(param.name())))
+                .collect(Collectors.toList());
 
         // Infer method kind from name pattern
-        MethodKind kind = inferMethodKind(operation.name());
-        Optional<String> targetProperty = extractTargetProperty(operation.name(), kind);
+        MethodKind kind = inferMethodKind(method.name());
+        Optional<String> targetProperty = extractTargetProperty(method.name(), kind);
 
         // Infer cardinality from return type
         Cardinality returnCardinality = inferCardinalityFromTypeName(returnType);
 
-        return new AdapterMethodSpec(operation.name(), returnType, parameters, kind, targetProperty, returnCardinality);
+        return new AdapterMethodSpec(method.name(), returnType, parameters, kind, targetProperty, returnCardinality);
     }
 
     /**
@@ -258,28 +250,6 @@ public record AdapterMethodSpec(
     }
 
     /**
-     * Builds parameters from v4 PortOperation.
-     */
-    private static List<ParameterInfo> buildParametersV4(PortOperation operation) {
-        MethodSyntax syntax = operation.syntax();
-        if (syntax != null) {
-            return syntax.parameters().stream()
-                    .map(param -> new ParameterInfo(
-                            param.name(), resolveTypeNameV4(param.type()), isIdentityParameter(param.name())))
-                    .collect(Collectors.toList());
-        }
-
-        // Fall back to operation parameter types with generated names
-        int index = 0;
-        List<ParameterInfo> params = new java.util.ArrayList<>();
-        for (io.hexaglue.syntax.TypeRef type : operation.parameterTypes()) {
-            String paramName = "param" + index++;
-            params.add(new ParameterInfo(paramName, resolveTypeNameV4(type), false));
-        }
-        return params;
-    }
-
-    /**
      * Heuristic to detect identity parameters (e.g., "id", "orderId").
      */
     private static boolean isIdentityParameter(String name) {
@@ -287,10 +257,17 @@ public record AdapterMethodSpec(
     }
 
     /**
-     * Resolves a v4 TypeRef to a JavaPoet TypeName.
+     * Resolves a TypeRef (from hexaglue-syntax) to a JavaPoet TypeName.
+     *
+     * @since 5.0.0
      */
-    private static TypeName resolveTypeNameV4(io.hexaglue.syntax.TypeRef typeRef) {
+    private static TypeName resolveTypeNameFromSyntax(io.hexaglue.syntax.TypeRef typeRef) {
         if (typeRef == null) {
+            return TypeName.VOID;
+        }
+
+        // Handle void
+        if ("void".equals(typeRef.qualifiedName())) {
             return TypeName.VOID;
         }
 
@@ -305,7 +282,6 @@ public record AdapterMethodSpec(
                 case "float" -> TypeName.FLOAT;
                 case "double" -> TypeName.DOUBLE;
                 case "char" -> TypeName.CHAR;
-                case "void" -> TypeName.VOID;
                 default -> ClassName.bestGuess(typeRef.qualifiedName());
             };
         }
@@ -314,7 +290,7 @@ public record AdapterMethodSpec(
         if (!typeRef.typeArguments().isEmpty()) {
             ClassName rawType = ClassName.bestGuess(typeRef.qualifiedName());
             TypeName[] typeArgs = typeRef.typeArguments().stream()
-                    .map(AdapterMethodSpec::resolveTypeNameV4)
+                    .map(AdapterMethodSpec::resolveTypeNameFromSyntax)
                     .toArray(TypeName[]::new);
             return ParameterizedTypeName.get(rawType, typeArgs);
         }

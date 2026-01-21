@@ -52,11 +52,13 @@ class TypeStructureBuilderTest {
 
     private TypeStructureBuilder builder;
     private FieldRoleDetector fieldRoleDetector;
+    private MethodRoleDetector methodRoleDetector;
 
     @BeforeEach
     void setUp() {
         fieldRoleDetector = new FieldRoleDetector();
-        builder = new TypeStructureBuilder(fieldRoleDetector);
+        methodRoleDetector = new MethodRoleDetector();
+        builder = new TypeStructureBuilder(fieldRoleDetector, methodRoleDetector);
     }
 
     @Nested

@@ -17,18 +17,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.arch.ClassificationTrace;
-import io.hexaglue.arch.ElementId;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.PortClassification;
-import io.hexaglue.arch.ports.PortOperation;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
+import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -38,7 +44,7 @@ import org.junit.jupiter.api.Test;
  * Unit tests for {@link AdapterSpecBuilder}.
  *
  * <p>These tests validate the builder's ability to create adapter specifications
- * from v4 DrivenPorts and DomainEntities, with special focus on method deduplication.
+ * from V5 DrivenPorts and AggregateRoots, with special focus on method deduplication.
  *
  * @since 4.0.0
  */
@@ -49,7 +55,7 @@ class AdapterSpecBuilderTest {
     private static final String INFRA_PKG = "com.example.infrastructure.jpa";
 
     private JpaConfig config;
-    private DomainEntity orderAggregate;
+    private AggregateRoot orderAggregate;
 
     @BeforeEach
     void setUp() {
@@ -75,7 +81,7 @@ class AdapterSpecBuilderTest {
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -93,7 +99,7 @@ class AdapterSpecBuilderTest {
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -111,7 +117,7 @@ class AdapterSpecBuilderTest {
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -129,7 +135,7 @@ class AdapterSpecBuilderTest {
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -147,7 +153,7 @@ class AdapterSpecBuilderTest {
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -163,22 +169,14 @@ class AdapterSpecBuilderTest {
             DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            new PortOperation(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Order"),
-                                    List.of(TypeRef.of(TEST_PKG + ".Order")),
-                                    null),
-                            new PortOperation(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(TypeRef.of("java.util.UUID")),
-                                    null),
-                            new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
+                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order"))),
+                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID"))),
+                            operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -201,30 +199,21 @@ class AdapterSpecBuilderTest {
             // Given: Two ports with the same findById method (common in sample-pokedex)
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(new PortOperation(
+                    List.of(operationToMethod(
                             "findById",
                             TypeRef.of("java.util.Optional"),
-                            List.of(TypeRef.of("java.util.UUID")),
-                            null)));
+                            List.of(TypeRef.of("java.util.UUID")))));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
                     List.of(
-                            new PortOperation(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(TypeRef.of("java.util.UUID")),
-                                    null),
-                            new PortOperation(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Order"),
-                                    List.of(TypeRef.of(TEST_PKG + ".Order")),
-                                    null)));
+                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID"))),
+                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port1, port2))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -248,21 +237,19 @@ class AdapterSpecBuilderTest {
             // Given
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
-                    List.of(new PortOperation(
+                    List.of(operationToMethod(
                             "findById",
                             TypeRef.of("java.util.Optional"),
-                            List.of(TypeRef.of("java.util.UUID")),
-                            null)));
+                            List.of(TypeRef.of("java.util.UUID")))));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
-                    List.of(new PortOperation(
-                            "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)));
+                    List.of(operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port1, port2))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -278,16 +265,16 @@ class AdapterSpecBuilderTest {
             // (first port's version should be kept)
             DrivenPort port1 = createPortWithOperations(
                     "PrimaryRepository",
-                    List.of(new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
+                    List.of(operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             DrivenPort port2 = createPortWithOperations(
                     "SecondaryRepository",
-                    List.of(new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
+                    List.of(operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port1, port2))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -305,13 +292,13 @@ class AdapterSpecBuilderTest {
             DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            new PortOperation("delete", null, List.of(TypeRef.of(TEST_PKG + ".Order")), null),
-                            new PortOperation("delete", null, List.of(TypeRef.of("java.util.UUID")), null)));
+                            operationToMethod("delete", null, List.of(TypeRef.of(TEST_PKG + ".Order"))),
+                            operationToMethod("delete", null, List.of(TypeRef.of("java.util.UUID")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(port))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -331,7 +318,7 @@ class AdapterSpecBuilderTest {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(null)
-                            .domainEntity(orderAggregate)
+                            .aggregateRoot(orderAggregate)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
@@ -342,15 +329,15 @@ class AdapterSpecBuilderTest {
         @Test
         @DisplayName("should throw when drivenPorts is empty")
         void shouldThrowWhenDrivenPortsIsEmpty() {
-            // When/Then
+            // When/Then: validateRequiredFields throws IllegalStateException for empty ports
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(List.of())
-                            .domainEntity(orderAggregate)
+                            .aggregateRoot(orderAggregate)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("At least one driven port is required");
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("drivenPorts is required");
         }
 
         @Test
@@ -362,12 +349,12 @@ class AdapterSpecBuilderTest {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(List.of(port))
-                            .domainEntity(null)
+                            .aggregateRoot(null)
                             .config(config)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("domainEntity is required");
+                    .hasMessageContaining("aggregateRoot or entity is required");
         }
 
         @Test
@@ -379,7 +366,7 @@ class AdapterSpecBuilderTest {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(List.of(port))
-                            .domainEntity(orderAggregate)
+                            .aggregateRoot(orderAggregate)
                             .config(null)
                             .infrastructurePackage(INFRA_PKG)
                             .build())
@@ -396,7 +383,7 @@ class AdapterSpecBuilderTest {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(List.of(port))
-                            .domainEntity(orderAggregate)
+                            .aggregateRoot(orderAggregate)
                             .config(config)
                             .infrastructurePackage(null)
                             .build())
@@ -413,7 +400,7 @@ class AdapterSpecBuilderTest {
             // When/Then
             assertThatThrownBy(() -> AdapterSpecBuilder.builder()
                             .drivenPorts(List.of(port))
-                            .domainEntity(orderAggregate)
+                            .aggregateRoot(orderAggregate)
                             .config(config)
                             .infrastructurePackage("")
                             .build())
@@ -433,31 +420,19 @@ class AdapterSpecBuilderTest {
             DrivenPort readPort = createPortWithOperations(
                     "PokemonReadRepository",
                     List.of(
-                            new PortOperation(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(TypeRef.of("java.lang.Integer")),
-                                    null),
-                            new PortOperation("findAll", TypeRef.of("java.util.List"), List.of(), null)));
+                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer"))),
+                            operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             DrivenPort writePort = createPortWithOperations(
                     "PokemonWriteRepository",
                     List.of(
-                            new PortOperation(
-                                    "save",
-                                    TypeRef.of(TEST_PKG + ".Pokemon"),
-                                    List.of(TypeRef.of(TEST_PKG + ".Pokemon")),
-                                    null),
-                            new PortOperation(
-                                    "findById",
-                                    TypeRef.of("java.util.Optional"),
-                                    List.of(TypeRef.of("java.lang.Integer")),
-                                    null)));
+                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Pokemon"), List.of(TypeRef.of(TEST_PKG + ".Pokemon"))),
+                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
                     .drivenPorts(List.of(readPort, writePort))
-                    .domainEntity(orderAggregate)
+                    .aggregateRoot(orderAggregate)
                     .config(config)
                     .infrastructurePackage(INFRA_PKG)
                     .build();
@@ -477,38 +452,78 @@ class AdapterSpecBuilderTest {
 
     // ===== Helper Methods =====
 
-    private DomainEntity createOrderAggregate() {
-        return new DomainEntity(
-                ElementId.of(TEST_PKG + ".Order"),
-                ElementKind.AGGREGATE_ROOT,
-                "id",
-                TypeRef.of(TEST_PKG + ".OrderId"),
-                Optional.empty(),
-                List.of(),
-                null,
-                highConfidence(ElementKind.AGGREGATE_ROOT));
+    private AggregateRoot createOrderAggregate() {
+        // Create identity field
+        Field identityField = Field.builder("id", TypeRef.of(TEST_PKG + ".OrderId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        // Create basic structure for Order aggregate
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(identityField))
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(TEST_PKG + ".Order"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
     }
 
     private DrivenPort createSimplePort(String name) {
-        return new DrivenPort(
-                ElementId.of(TEST_PKG + ".ports.out." + name),
-                PortClassification.REPOSITORY,
-                List.of(new PortOperation(
-                        "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")), null)),
+        Method saveMethod = new Method(
+                "save",
+                TypeRef.of(TEST_PKG + ".Order"),
+                List.of(Parameter.of("order", TypeRef.of(TEST_PKG + ".Order"))),
+                Set.of(Modifier.PUBLIC, Modifier.ABSTRACT),
+                List.of(),
                 Optional.empty(),
                 List.of(),
-                null,
-                highConfidence(ElementKind.DRIVEN_PORT));
+                Set.of());
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .methods(List.of(saveMethod))
+                .build();
+
+        return DrivenPort.repository(
+                TypeId.of(TEST_PKG + ".ports.out." + name),
+                structure,
+                highConfidence(ElementKind.DRIVEN_PORT),
+                TypeRef.of(TEST_PKG + ".Order"));
     }
 
-    private DrivenPort createPortWithOperations(String name, List<PortOperation> operations) {
-        return new DrivenPort(
-                ElementId.of(TEST_PKG + ".ports.out." + name),
-                PortClassification.REPOSITORY,
-                operations,
+    private DrivenPort createPortWithOperations(String name, List<Method> methods) {
+        TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .methods(methods)
+                .build();
+
+        return DrivenPort.repository(
+                TypeId.of(TEST_PKG + ".ports.out." + name),
+                structure,
+                highConfidence(ElementKind.DRIVEN_PORT),
+                TypeRef.of(TEST_PKG + ".Order"));
+    }
+
+    // Helper to convert old-style operations to V5 methods
+    private Method operationToMethod(String name, TypeRef returnType, List<TypeRef> paramTypes) {
+        List<Parameter> params = paramTypes.isEmpty()
+                ? List.of()
+                : List.of(Parameter.of("param" + (paramTypes.size() > 1 ? "0" : ""), paramTypes.get(0)));
+
+        return new Method(
+                name,
+                returnType != null ? returnType : TypeRef.of("void"),
+                params,
+                Set.of(Modifier.PUBLIC, Modifier.ABSTRACT),
+                List.of(),
                 Optional.empty(),
                 List.of(),
-                null,
-                highConfidence(ElementKind.DRIVEN_PORT));
+                Set.of());
     }
 }

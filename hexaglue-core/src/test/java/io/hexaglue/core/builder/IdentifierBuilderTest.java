@@ -49,7 +49,8 @@ class IdentifierBuilderTest {
     @BeforeEach
     void setUp() {
         FieldRoleDetector fieldRoleDetector = new FieldRoleDetector();
-        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector);
+        MethodRoleDetector methodRoleDetector = new MethodRoleDetector();
+        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector, methodRoleDetector);
         ClassificationTraceConverter traceConverter = new ClassificationTraceConverter();
         builder = new IdentifierBuilder(typeStructureBuilder, traceConverter);
     }

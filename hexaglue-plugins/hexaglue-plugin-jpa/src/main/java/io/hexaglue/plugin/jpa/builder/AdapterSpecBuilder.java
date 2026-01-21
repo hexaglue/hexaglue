@@ -15,9 +15,9 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
@@ -30,63 +30,20 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Builder for transforming v4 DrivenPort to AdapterSpec model.
+ * Builder for transforming DrivenPort to AdapterSpec model.
  *
  * <p>This builder creates adapter class specifications that implement port
  * interfaces (driven ports in Hexagonal Architecture) using JPA repositories
- * and MapStruct mappers. It handles:
- * <ul>
- *   <li>Single port implementation (one port → one adapter)</li>
- *   <li>Multiple port implementation (merged adapter pattern)</li>
- *   <li>Port method transformation to adapter method specifications</li>
- *   <li>Method deduplication (important for merged ports)</li>
- *   <li>Dependency resolution (repository, mapper references)</li>
- *   <li>Type mapping between domain and infrastructure layers</li>
- * </ul>
- *
- * <p>Design decision: Adapters bridge the domain and infrastructure layers.
- * They implement port interfaces defined in the domain layer and delegate to
- * infrastructure components (JPA repositories, MapStruct mappers) to perform
- * actual persistence operations.
- *
- * <h3>Method Deduplication:</h3>
- * <p>When multiple ports are merged into a single adapter, they may declare the
- * same methods (e.g., both ports have {@code findById}). This builder deduplicates
- * methods by their signature to avoid generating duplicate implementations.
- *
- * <h3>Generated Adapter Example:</h3>
- * <pre>{@code
- * @Component
- * public class OrderRepositoryAdapter implements OrderRepository {
- *     private final OrderJpaRepository repository;
- *     private final OrderMapper mapper;
- *
- *     public OrderRepositoryAdapter(OrderJpaRepository repository, OrderMapper mapper) {
- *         this.repository = repository;
- *         this.mapper = mapper;
- *     }
- *
- *     @Override
- *     public Order save(Order order) {
- *         var entity = mapper.toEntity(order);
- *         var saved = repository.save(entity);
- *         return mapper.toDomain(saved);
- *     }
- *
- *     @Override
- *     public Optional<Order> findById(UUID id) {
- *         return repository.findById(id).map(mapper::toDomain);
- *     }
- * }
- * }</pre>
+ * and MapStruct mappers.
  *
  * @since 4.0.0
  */
 public final class AdapterSpecBuilder {
 
-    private List<DrivenPort> drivenPorts;
-    private DomainEntity domainEntity;
-    private ArchitecturalModel architecturalModel;
+    private AggregateRoot aggregateRoot;
+    private Entity entity;
+    private List<io.hexaglue.arch.model.DrivenPort> drivenPorts;
+
     private JpaConfig config;
     private String infrastructurePackage;
 
@@ -117,9 +74,6 @@ public final class AdapterSpecBuilder {
     /**
      * Sets the infrastructure package name.
      *
-     * <p>This is typically derived from the domain package by replacing
-     * "domain" with "infrastructure.jpa".
-     *
      * @param infrastructurePackage the package for generated JPA classes
      * @return this builder
      */
@@ -129,38 +83,40 @@ public final class AdapterSpecBuilder {
     }
 
     /**
-     * Sets the v4 driven ports to implement.
+     * Sets the driven ports to implement.
      *
-     * @param ports the driven ports
+     * @param ports the driven ports from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public AdapterSpecBuilder drivenPorts(List<DrivenPort> ports) {
-        this.drivenPorts = ports;
+    public AdapterSpecBuilder drivenPorts(List<io.hexaglue.arch.model.DrivenPort> ports) {
+        this.drivenPorts = ports != null ? List.copyOf(ports) : null;
         return this;
     }
 
     /**
-     * Sets the v4 domain entity managed by this adapter.
+     * Sets the aggregate root managed by this adapter.
      *
-     * @param entity the domain entity
+     * @param aggregateRoot the aggregate root from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public AdapterSpecBuilder domainEntity(DomainEntity entity) {
-        this.domainEntity = entity;
+    public AdapterSpecBuilder aggregateRoot(AggregateRoot aggregateRoot) {
+        this.aggregateRoot = aggregateRoot;
+        this.entity = null;
         return this;
     }
 
     /**
-     * Sets the v4 architectural model.
+     * Sets the entity managed by this adapter.
      *
-     * @param model the architectural model
+     * @param entity the entity from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public AdapterSpecBuilder model(ArchitecturalModel model) {
-        this.architecturalModel = model;
+    public AdapterSpecBuilder entity(Entity entity) {
+        this.entity = entity;
+        this.aggregateRoot = null;
         return this;
     }
 
@@ -174,11 +130,22 @@ public final class AdapterSpecBuilder {
     public AdapterSpec build() {
         validateRequiredFields();
 
-        if (drivenPorts.isEmpty()) {
-            throw new IllegalArgumentException("At least one driven port is required to generate an adapter");
+        // Determine source
+        String simpleName;
+        String qualifiedName;
+
+        if (aggregateRoot != null) {
+            simpleName = aggregateRoot.id().simpleName();
+            qualifiedName = aggregateRoot.id().qualifiedName();
+        } else {
+            simpleName = entity.id().simpleName();
+            qualifiedName = entity.id().qualifiedName();
         }
 
-        String simpleName = domainEntity.id().simpleName();
+        // Validate ports
+        if (drivenPorts == null || drivenPorts.isEmpty()) {
+            throw new IllegalArgumentException("At least one driven port is required to generate an adapter");
+        }
 
         // Derive class name based on number of ports
         String className;
@@ -194,7 +161,7 @@ public final class AdapterSpecBuilder {
                 .collect(Collectors.toList());
 
         // Resolve domain, entity, repository, and mapper types
-        TypeName domainClass = ClassName.bestGuess(domainEntity.id().qualifiedName());
+        TypeName domainClass = ClassName.bestGuess(qualifiedName);
         String entityClassName = simpleName + config.entitySuffix();
         TypeName entityClass = ClassName.get(infrastructurePackage, entityClassName);
         TypeName repositoryClass = ClassName.get(infrastructurePackage, simpleName + config.repositorySuffix());
@@ -203,7 +170,7 @@ public final class AdapterSpecBuilder {
         // Collect all methods from all driven ports with deduplication
         List<AdapterMethodSpec> methods = buildAdapterMethodSpecs();
 
-        // Build IdInfo from domain entity's identity
+        // Build IdInfo
         AdapterContext.IdInfo idInfo = buildIdInfo();
 
         return new AdapterSpec(
@@ -219,49 +186,57 @@ public final class AdapterSpecBuilder {
     }
 
     /**
-     * Builds IdInfo from v4 domain entity.
+     * Builds IdInfo from domain source.
      */
     private AdapterContext.IdInfo buildIdInfo() {
-        if (!domainEntity.hasIdentity()) {
-            return null;
-        }
-
-        io.hexaglue.syntax.TypeRef idType = domainEntity.identityType();
-
-        // Check if it's a wrapped identity
-        TypeName wrapperType = JpaModelUtils.resolveTypeName(idType.qualifiedName());
-        TypeName unwrappedType = wrapperType;
-        boolean isWrapped = false;
-
-        if (architecturalModel != null) {
-            var voOpt = architecturalModel
-                    .valueObjects()
-                    .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
-                    .filter(vo -> vo.componentFields().size() == 1)
-                    .filter(vo -> vo.syntax() != null)
-                    .findFirst();
-
-            if (voOpt.isPresent()) {
-                var vo = voOpt.get();
-                var wrappedField = vo.syntax().fields().get(0);
-                unwrappedType =
-                        JpaModelUtils.resolveTypeName(wrappedField.type().qualifiedName());
-                isWrapped = true;
+        if (aggregateRoot != null) {
+            return buildIdInfoFromField(aggregateRoot.identityField());
+        } else {
+            var identityFieldOpt = entity.identityField();
+            if (identityFieldOpt.isEmpty()) {
+                return null;
             }
+            return buildIdInfoFromField(identityFieldOpt.get());
         }
-
-        return new AdapterContext.IdInfo(isWrapped ? wrapperType : null, unwrappedType, isWrapped);
     }
 
     /**
-     * Builds adapter method specifications from v4 driven ports.
+     * Builds IdInfo from a Field.
+     *
+     * @since 5.0.0
+     */
+    private AdapterContext.IdInfo buildIdInfoFromField(Field identityField) {
+        TypeName wrapperType =
+                JpaModelUtils.resolveTypeName(identityField.type().qualifiedName());
+        TypeName unwrappedType = wrapperType;
+        boolean isWrapped = identityField.wrappedType().isPresent();
+
+        if (isWrapped) {
+            unwrappedType = JpaModelUtils.resolveTypeName(
+                    identityField.wrappedType().get().qualifiedName());
+            return new AdapterContext.IdInfo(wrapperType, unwrappedType, true);
+        }
+
+        return new AdapterContext.IdInfo(null, unwrappedType, false);
+    }
+
+    /**
+     * Builds adapter method specifications from driven ports.
+     *
+     * <p>Uses the port's structure.methods() to extract all interface methods.
+     *
+     * @since 5.0.0
      */
     private List<AdapterMethodSpec> buildAdapterMethodSpecs() {
         Map<String, AdapterMethodSpec> methodsBySignature = new LinkedHashMap<>();
 
-        for (DrivenPort port : drivenPorts) {
-            for (var operation : port.operations()) {
-                AdapterMethodSpec spec = AdapterMethodSpec.fromV4(operation);
+        for (io.hexaglue.arch.model.DrivenPort port : drivenPorts) {
+            for (var method : port.structure().methods()) {
+                // Skip static and default methods - only abstract interface methods need implementation
+                if (method.isStatic()) {
+                    continue;
+                }
+                AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);
                 String signature = computeSignature(spec);
                 methodsBySignature.putIfAbsent(signature, spec);
             }
@@ -272,10 +247,6 @@ public final class AdapterSpecBuilder {
 
     /**
      * Computes a unique signature for a method based on name and parameter types.
-     *
-     * <p>This signature is used for deduplication. Two methods with the same name
-     * and parameter types are considered duplicates, even if they come from
-     * different port interfaces.
      *
      * @param spec the method specification
      * @return a signature string like "findById(java.util.UUID)"
@@ -291,11 +262,11 @@ public final class AdapterSpecBuilder {
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (drivenPorts == null) {
-            throw new IllegalStateException("drivenPorts is required");
+        if (aggregateRoot == null && entity == null) {
+            throw new IllegalStateException("Either aggregateRoot or entity is required");
         }
-        if (domainEntity == null) {
-            throw new IllegalStateException("domainEntity is required");
+        if (drivenPorts == null || drivenPorts.isEmpty()) {
+            throw new IllegalStateException("drivenPorts is required");
         }
         if (config == null) {
             throw new IllegalStateException("config is required");

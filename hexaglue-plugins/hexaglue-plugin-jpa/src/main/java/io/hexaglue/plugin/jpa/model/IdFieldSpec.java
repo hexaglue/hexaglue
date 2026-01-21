@@ -14,12 +14,11 @@
 package io.hexaglue.plugin.jpa.model;
 
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.plugin.jpa.extraction.IdentityInfo;
-import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.spi.ir.IdentityStrategy;
 import io.hexaglue.spi.ir.IdentityWrapperKind;
-import io.hexaglue.syntax.TypeForm;
-import io.hexaglue.syntax.TypeSyntax;
 
 /**
  * Intermediate representation of an identity field for JPA entity generation.
@@ -50,10 +49,11 @@ public record IdFieldSpec(
         IdentityWrapperKind wrapperKind) {
 
     /**
-     * Creates an IdFieldSpec from a SPI Identity.
+     * Creates an IdFieldSpec from a v5 model Field with IDENTITY role.
      *
-     * <p>This factory method converts the SPI identity model to the JavaPoet-based
-     * generation model. It handles both wrapped and unwrapped identity types.
+     * <p>This factory method converts the v5 arch.model.Field to the JavaPoet-based
+     * generation model. It handles both wrapped and unwrapped identity types using
+     * the Field's wrappedType information.
      *
      * <p>Examples:
      * <ul>
@@ -61,72 +61,35 @@ public record IdFieldSpec(
      *   <li>Unwrapped: {@code UUID id} → javaType=UUID, unwrappedType=UUID</li>
      * </ul>
      *
-     * @param identity the identity from the SPI
+     * @param field the identity field from arch.model (should have IDENTITY role)
+     * @param identityTypeStructure the TypeStructure of the identity type (for wrapper detection), may be null
      * @return an IdFieldSpec ready for code generation
+     * @since 5.0.0
      */
-    public static IdFieldSpec from(Identity identity) {
-        TypeName javaType = JpaModelUtils.resolveTypeName(identity.type().qualifiedName());
-        TypeName unwrappedType =
-                JpaModelUtils.resolveTypeName(identity.unwrappedType().qualifiedName());
-
-        return new IdFieldSpec(
-                identity.fieldName(), javaType, unwrappedType, identity.strategy(), identity.wrapperKind());
-    }
-
-    /**
-     * Creates an IdFieldSpec from v4 IdentityInfo extracted from annotations.
-     *
-     * <p>This factory method converts the v4 extraction model to the JavaPoet-based
-     * generation model. It handles both wrapped and unwrapped identity types.
-     *
-     * @param info the identity info from JpaAnnotationExtractor
-     * @param identityTypeSyntax the syntax of the identity type (for wrapper detection)
-     * @return an IdFieldSpec ready for code generation
-     * @since 4.0.0
-     */
-    public static IdFieldSpec from(IdentityInfo info, TypeSyntax identityTypeSyntax) {
-        TypeName javaType = JpaModelUtils.resolveTypeName(info.idType().qualifiedName());
-        TypeName unwrappedType = info.wrappedTypeOpt()
+    public static IdFieldSpec from(Field field, TypeStructure identityTypeStructure) {
+        TypeName javaType = JpaModelUtils.resolveTypeName(field.type().qualifiedName());
+        TypeName unwrappedType = field.wrappedType()
                 .map(t -> JpaModelUtils.resolveTypeName(t.qualifiedName()))
                 .orElse(javaType);
 
-        IdentityStrategy strategy = mapGenerationStrategy(info.strategy());
-        IdentityWrapperKind wrapperKind = detectWrapperKind(info, identityTypeSyntax);
+        IdentityStrategy strategy = detectStrategyFromField(field);
+        IdentityWrapperKind wrapperKind = detectWrapperKindFromField(field, identityTypeStructure);
 
-        return new IdFieldSpec(info.fieldName(), javaType, unwrappedType, strategy, wrapperKind);
+        return new IdFieldSpec(field.name(), javaType, unwrappedType, strategy, wrapperKind);
     }
 
     /**
-     * Maps IdentityInfo.GenerationStrategy to IdentityStrategy.
+     * Creates an IdFieldSpec from a v5 model Field with IDENTITY role.
+     *
+     * <p>Convenience method that calls {@link #from(Field, TypeStructure)} with null
+     * for identityTypeStructure.
+     *
+     * @param field the identity field from arch.model (should have IDENTITY role)
+     * @return an IdFieldSpec ready for code generation
+     * @since 5.0.0
      */
-    private static IdentityStrategy mapGenerationStrategy(IdentityInfo.GenerationStrategy strategy) {
-        if (strategy == null) {
-            return IdentityStrategy.ASSIGNED;
-        }
-        return switch (strategy) {
-            case NONE -> IdentityStrategy.ASSIGNED;
-            case IDENTITY -> IdentityStrategy.IDENTITY;
-            case SEQUENCE -> IdentityStrategy.SEQUENCE;
-            case TABLE -> IdentityStrategy.TABLE;
-            case AUTO -> IdentityStrategy.AUTO;
-            case UUID -> IdentityStrategy.UUID;
-        };
-    }
-
-    /**
-     * Detects the wrapper kind from the identity type syntax.
-     */
-    private static IdentityWrapperKind detectWrapperKind(IdentityInfo info, TypeSyntax syntax) {
-        if (info.embedded()) {
-            return IdentityWrapperKind.NONE; // Embedded IDs are not wrapped
-        }
-        if (!info.isWrapped()) {
-            return IdentityWrapperKind.NONE;
-        }
-        if (syntax != null && syntax.form() == TypeForm.RECORD) {
-            return IdentityWrapperKind.RECORD;
-        }
-        return IdentityWrapperKind.CLASS;
+    public static IdFieldSpec from(Field field) {
+        return from(field, null);
     }
 
     /**
@@ -183,5 +146,75 @@ public record IdFieldSpec(
      */
     public boolean isUuidGenerated() {
         return strategy == IdentityStrategy.UUID;
+    }
+
+    /**
+     * Detects identity generation strategy from v5 Field annotations.
+     *
+     * @param field the identity field
+     * @return the detected strategy, or ASSIGNED if no @GeneratedValue found
+     * @since 5.0.0
+     */
+    private static IdentityStrategy detectStrategyFromField(Field field) {
+        // Check for @GeneratedValue annotation
+        var genValueOpt = field.annotations().stream()
+                .filter(ann -> ann.qualifiedName().equals("jakarta.persistence.GeneratedValue")
+                        || ann.qualifiedName().equals("javax.persistence.GeneratedValue"))
+                .findFirst();
+
+        if (genValueOpt.isEmpty()) {
+            return IdentityStrategy.ASSIGNED;
+        }
+
+        var genValue = genValueOpt.get();
+        var strategyValueOpt = genValue.getTypedValue("strategy");
+
+        if (strategyValueOpt.isEmpty()) {
+            return IdentityStrategy.AUTO;
+        }
+
+        var av = strategyValueOpt.get();
+        if (av instanceof io.hexaglue.arch.model.AnnotationValue.EnumVal enumVal) {
+            return switch (enumVal.enumConstant()) {
+                case "IDENTITY" -> IdentityStrategy.IDENTITY;
+                case "SEQUENCE" -> IdentityStrategy.SEQUENCE;
+                case "TABLE" -> IdentityStrategy.TABLE;
+                case "UUID" -> IdentityStrategy.UUID;
+                default -> IdentityStrategy.AUTO;
+            };
+        }
+
+        return IdentityStrategy.AUTO;
+    }
+
+    /**
+     * Detects wrapper kind from v5 Field and its type structure.
+     *
+     * @param field the identity field
+     * @param identityTypeStructure the structure of the identity type (may be null)
+     * @return the wrapper kind
+     * @since 5.0.0
+     */
+    private static IdentityWrapperKind detectWrapperKindFromField(Field field, TypeStructure identityTypeStructure) {
+        // Check for @EmbeddedId
+        boolean isEmbeddedId = field.annotations().stream()
+                .anyMatch(ann -> ann.qualifiedName().equals("jakarta.persistence.EmbeddedId")
+                        || ann.qualifiedName().equals("javax.persistence.EmbeddedId"));
+
+        if (isEmbeddedId) {
+            return IdentityWrapperKind.NONE;
+        }
+
+        // If no wrapped type, it's not wrapped
+        if (field.wrappedType().isEmpty()) {
+            return IdentityWrapperKind.NONE;
+        }
+
+        // Use type structure to determine if it's a record or class
+        if (identityTypeStructure != null && identityTypeStructure.nature() == TypeNature.RECORD) {
+            return IdentityWrapperKind.RECORD;
+        }
+
+        return IdentityWrapperKind.CLASS;
     }
 }

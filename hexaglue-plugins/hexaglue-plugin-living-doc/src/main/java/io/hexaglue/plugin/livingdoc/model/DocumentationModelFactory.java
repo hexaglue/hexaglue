@@ -58,14 +58,17 @@ public final class DocumentationModelFactory {
                 .map(DocumentationModelFactory::toDocType)
                 .toList();
 
-        List<DocType> valueObjects =
-                registry.all(ValueObject.class).map(DocumentationModelFactory::toDocType).toList();
+        List<DocType> valueObjects = registry.all(ValueObject.class)
+                .map(DocumentationModelFactory::toDocType)
+                .toList();
 
-        List<DocPort> drivingPorts =
-                registry.all(DrivingPort.class).map(DocumentationModelFactory::toDocPort).toList();
+        List<DocPort> drivingPorts = registry.all(DrivingPort.class)
+                .map(DocumentationModelFactory::toDocPort)
+                .toList();
 
-        List<DocPort> drivenPorts =
-                registry.all(DrivenPort.class).map(DocumentationModelFactory::toDocPort).toList();
+        List<DocPort> drivenPorts = registry.all(DrivenPort.class)
+                .map(DocumentationModelFactory::toDocPort)
+                .toList();
 
         return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
     }

@@ -18,6 +18,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.syntax.TypeRef;
+import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -112,6 +115,95 @@ class DomainEventTest {
             assertThat(event.qualifiedName()).isEqualTo("com.example.OrderCreated");
             assertThat(event.simpleName()).isEqualTo("OrderCreated");
             assertThat(event.packageName()).isEqualTo("com.example");
+        }
+    }
+
+    @Nested
+    @DisplayName("Event Metadata")
+    class EventMetadata {
+
+        private static final TypeRef UUID_TYPE = new TypeRef("java.util.UUID", "UUID", List.of(), false, false, 0);
+        private static final TypeRef INSTANT_TYPE =
+                new TypeRef("java.time.Instant", "Instant", List.of(), false, false, 0);
+        private static final TypeRef ORDER_TYPE = new TypeRef("com.example.Order", "Order", List.of(), false, false, 0);
+
+        @Test
+        @DisplayName("should create event without metadata fields")
+        void shouldCreateEventWithoutMetadataFields() {
+            // when
+            DomainEvent event = DomainEvent.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(event.aggregateIdField()).isEmpty();
+            assertThat(event.timestampField()).isEmpty();
+            assertThat(event.sourceAggregate()).isEmpty();
+            assertThat(event.hasAggregateIdField()).isFalse();
+            assertThat(event.hasTimestampField()).isFalse();
+            assertThat(event.hasSourceAggregate()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should create event with aggregate id field")
+        void shouldCreateEventWithAggregateIdField() {
+            // given
+            Field aggregateIdField = Field.builder("orderId", UUID_TYPE).build();
+
+            // when
+            DomainEvent event = DomainEvent.of(
+                    ID, STRUCTURE, TRACE, Optional.of(aggregateIdField), Optional.empty(), Optional.empty());
+
+            // then
+            assertThat(event.aggregateIdField()).contains(aggregateIdField);
+            assertThat(event.hasAggregateIdField()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should create event with timestamp field")
+        void shouldCreateEventWithTimestampField() {
+            // given
+            Field timestampField = Field.builder("occurredAt", INSTANT_TYPE).build();
+
+            // when
+            DomainEvent event = DomainEvent.of(
+                    ID, STRUCTURE, TRACE, Optional.empty(), Optional.of(timestampField), Optional.empty());
+
+            // then
+            assertThat(event.timestampField()).contains(timestampField);
+            assertThat(event.hasTimestampField()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should create event with source aggregate")
+        void shouldCreateEventWithSourceAggregate() {
+            // when
+            DomainEvent event =
+                    DomainEvent.of(ID, STRUCTURE, TRACE, Optional.empty(), Optional.empty(), Optional.of(ORDER_TYPE));
+
+            // then
+            assertThat(event.sourceAggregate()).contains(ORDER_TYPE);
+            assertThat(event.hasSourceAggregate()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should create event with all metadata fields")
+        void shouldCreateEventWithAllMetadataFields() {
+            // given
+            Field aggregateIdField = Field.builder("orderId", UUID_TYPE).build();
+            Field timestampField = Field.builder("occurredAt", INSTANT_TYPE).build();
+
+            // when
+            DomainEvent event = DomainEvent.of(
+                    ID,
+                    STRUCTURE,
+                    TRACE,
+                    Optional.of(aggregateIdField),
+                    Optional.of(timestampField),
+                    Optional.of(ORDER_TYPE));
+
+            // then
+            assertThat(event.aggregateIdField()).contains(aggregateIdField);
+            assertThat(event.timestampField()).contains(timestampField);
+            assertThat(event.sourceAggregate()).contains(ORDER_TYPE);
         }
     }
 
