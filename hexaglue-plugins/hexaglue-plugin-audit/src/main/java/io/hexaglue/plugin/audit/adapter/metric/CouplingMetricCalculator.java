@@ -13,22 +13,20 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
 import io.hexaglue.spi.audit.CouplingMetrics;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Calculates coupling metrics using ArchitectureQuery.
  *
- * <p><b>REFACTORED (v3):</b> This calculator now delegates to Core via ArchitectureQuery.
+ * <p><b>REFACTORED (v5.0.0):</b> This calculator now delegates to Core via ArchitectureQuery.
  * It only interprets the results and applies thresholds (judgment).
  *
  * <p>Principle: "Le Core produit des faits, les plugins les exploitent."
@@ -58,24 +56,21 @@ public class CouplingMetricCalculator implements MetricCalculator {
     }
 
     /**
-     * Calculates coupling metric using ArchitectureQuery when available.
+     * Calculates coupling metric using ArchitectureQuery or falls back to aggregate-based calculation.
      *
-     * <p>When ArchitectureQuery is available, delegates to Core for accurate
-     * coupling analysis. Otherwise, falls back to legacy aggregate-based
-     * calculation.
-     *
-     * @param codebase the codebase to analyze
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for dependency graph access
      * @param architectureQuery the query interface from Core (may be null)
      * @return the calculated metric
-     * @since 3.0.0
+     * @since 5.0.0
      */
     @Override
-    public Metric calculate(Codebase codebase, ArchitectureQuery architectureQuery) {
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
         if (architectureQuery != null) {
             return calculateWithArchitectureQuery(architectureQuery);
         }
-        // Fallback to legacy calculation
-        return calculate(codebase);
+        // Fallback to aggregate-based calculation using v5 API
+        return calculateWithModel(model, codebase);
     }
 
     /**
@@ -123,42 +118,51 @@ public class CouplingMetricCalculator implements MetricCalculator {
     }
 
     /**
-     * Legacy calculation for aggregate coupling (fallback).
+     * Fallback calculation for aggregate coupling using v5 ArchType API.
      *
-     * <p>This method is retained for backward compatibility when
-     * ArchitectureQuery is not available.
+     * <p>This method is used when ArchitectureQuery is not available.
+     * It calculates efferent coupling between aggregates.
      *
-     * @param codebase the codebase to analyze
+     * @param model the architectural model
+     * @param codebase the codebase
      * @return the calculated metric
      */
-    @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+    private Metric calculateWithModel(ArchitecturalModel model, Codebase codebase) {
+        return model.domainIndex()
+                .map(domain -> {
+                    List<String> aggregateNames = domain.aggregateRoots()
+                            .map(agg -> agg.id().qualifiedName())
+                            .toList();
 
-        if (aggregates.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME,
-                    0.0,
-                    "dependencies",
-                    "Average outgoing dependencies between aggregates (no aggregates found)");
-        }
+                    if (aggregateNames.isEmpty()) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                0.0,
+                                "dependencies",
+                                "Average outgoing dependencies between aggregates (no aggregates found)");
+                    }
 
-        // Build set of all aggregate qualified names for filtering
-        Set<String> aggregateNames =
-                aggregates.stream().map(CodeUnit::qualifiedName).collect(Collectors.toSet());
+                    // Build set of all aggregate qualified names for filtering
+                    Set<String> aggregateSet = Set.copyOf(aggregateNames);
 
-        // Calculate average efferent coupling (outgoing dependencies to other aggregates)
-        double avgEfferent = aggregates.stream()
-                .mapToInt(aggregate -> calculateEfferentCoupling(aggregate, aggregateNames, codebase))
-                .average()
-                .orElse(0.0);
+                    // Calculate average efferent coupling (outgoing dependencies to other aggregates)
+                    double avgEfferent = aggregateNames.stream()
+                            .mapToInt(aggName -> calculateEfferentCoupling(aggName, aggregateSet, codebase))
+                            .average()
+                            .orElse(0.0);
 
-        return Metric.of(
-                METRIC_NAME,
-                avgEfferent,
-                "dependencies",
-                "Average outgoing dependencies between aggregates",
-                MetricThreshold.greaterThan(3.0));
+                    return Metric.of(
+                            METRIC_NAME,
+                            avgEfferent,
+                            "dependencies",
+                            "Average outgoing dependencies between aggregates",
+                            MetricThreshold.greaterThan(3.0));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        0.0,
+                        "dependencies",
+                        "Average outgoing dependencies between aggregates (domain index not available)"));
     }
 
     /**
@@ -166,18 +170,18 @@ public class CouplingMetricCalculator implements MetricCalculator {
      *
      * <p>Efferent coupling is the number of other aggregates this aggregate depends on.
      *
-     * @param aggregate the aggregate to analyze
+     * @param aggregateQName the aggregate qualified name
      * @param aggregateNames set of all aggregate qualified names
      * @param codebase the codebase
      * @return the number of aggregate dependencies
      */
-    private int calculateEfferentCoupling(CodeUnit aggregate, Set<String> aggregateNames, Codebase codebase) {
-        Set<String> dependencies = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
+    private int calculateEfferentCoupling(String aggregateQName, Set<String> aggregateNames, Codebase codebase) {
+        Set<String> dependencies = codebase.dependencies().getOrDefault(aggregateQName, Set.of());
 
         // Count dependencies to other aggregates (excluding self)
         return (int) dependencies.stream()
                 .filter(aggregateNames::contains)
-                .filter(dep -> !dep.equals(aggregate.qualifiedName()))
+                .filter(dep -> !dep.equals(aggregateQName))
                 .count();
     }
 }

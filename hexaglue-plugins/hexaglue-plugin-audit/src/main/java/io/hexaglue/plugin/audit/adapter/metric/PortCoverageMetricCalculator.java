@@ -13,12 +13,14 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 
 /**
@@ -48,30 +50,50 @@ public class PortCoverageMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the percentage of aggregates with repositories using the v5 ArchType API.
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for legacy access
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
+        return model.domainIndex()
+                .flatMap(domain -> model.portIndex().map(ports -> {
+                    List<AggregateRoot> aggregates = domain.aggregateRoots().toList();
 
-        if (aggregates.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME, 100.0, "%", "Percentage of aggregates with repository ports (no aggregates found)");
-        }
+                    if (aggregates.isEmpty()) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                100.0,
+                                "%",
+                                "Percentage of aggregates with repository ports (no aggregates found)");
+                    }
 
-        List<CodeUnit> repositories = codebase.unitsWithRole(RoleClassification.REPOSITORY);
+                    List<DrivenPort> repositories = ports.repositories().toList();
 
-        // Calculate how many aggregates have repositories
-        long aggregatesWithRepo = aggregates.stream()
-                .filter(agg -> hasRepository(agg, repositories))
-                .count();
+                    // Calculate how many aggregates have repositories
+                    long aggregatesWithRepo = aggregates.stream()
+                            .filter(agg -> hasRepository(agg, repositories))
+                            .count();
 
-        double coverage = (double) aggregatesWithRepo / aggregates.size() * 100.0;
+                    double coverage = (double) aggregatesWithRepo / aggregates.size() * 100.0;
 
-        return Metric.of(
-                METRIC_NAME,
-                coverage,
-                "%",
-                "Percentage of aggregates with repository ports",
-                MetricThreshold.lessThan(EXPECTED_COVERAGE));
+                    return Metric.of(
+                            METRIC_NAME,
+                            coverage,
+                            "%",
+                            "Percentage of aggregates with repository ports",
+                            MetricThreshold.lessThan(EXPECTED_COVERAGE));
+                }))
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        100.0,
+                        "%",
+                        "Percentage of aggregates with repository ports (indices not available)"));
     }
 
     /**
@@ -84,9 +106,9 @@ public class PortCoverageMetricCalculator implements MetricCalculator {
      * @param repositories list of all repositories
      * @return true if the aggregate has a repository
      */
-    private boolean hasRepository(CodeUnit aggregate, List<CodeUnit> repositories) {
-        String expectedRepoName = aggregate.simpleName() + "Repository";
+    private boolean hasRepository(AggregateRoot aggregate, List<DrivenPort> repositories) {
+        String expectedRepoName = aggregate.id().simpleName() + "Repository";
 
-        return repositories.stream().anyMatch(repo -> repo.simpleName().equals(expectedRepoName));
+        return repositories.stream().anyMatch(repo -> repo.id().simpleName().equals(expectedRepoName));
     }
 }

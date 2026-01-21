@@ -13,15 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DomainType;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.DependencyEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,16 +111,34 @@ public class DomainPurityValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates domain purity using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types
+     * @param codebase the codebase for dependency analysis
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all domain layer types
-        List<CodeUnit> domainTypes = codebase.unitsInLayer(LayerClassification.DOMAIN);
+        // Check if type registry is available
+        if (model.typeRegistry().isEmpty()) {
+            return violations; // Cannot validate without type registry
+        }
 
-        for (CodeUnit domainType : domainTypes) {
+        var typeRegistry = model.typeRegistry().get();
+
+        // Find all domain layer types using v5 API
+        List<DomainType> domainTypes = typeRegistry.all(DomainType.class).toList();
+
+        for (DomainType domainType : domainTypes) {
+            String domainTypeQName = domainType.id().qualifiedName();
+
             // Check dependencies for forbidden infrastructure imports
-            Set<String> dependencies = codebase.dependencies().get(domainType.qualifiedName());
+            Set<String> dependencies = codebase.dependencies().get(domainTypeQName);
 
             if (dependencies == null || dependencies.isEmpty()) {
                 continue; // No dependencies to check
@@ -133,16 +151,16 @@ public class DomainPurityValidator implements ConstraintValidator {
                 Violation.Builder builder = Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.MAJOR)
                         .message("Domain type '%s' has %d forbidden infrastructure import(s)"
-                                .formatted(domainType.simpleName(), forbiddenDependencies.size()))
-                        .affectedType(domainType.qualifiedName())
-                        .location(SourceLocation.of(domainType.qualifiedName(), 1, 1));
+                                .formatted(domainType.id().simpleName(), forbiddenDependencies.size()))
+                        .affectedType(domainTypeQName)
+                        .location(SourceLocation.of(domainTypeQName, 1, 1));
 
                 // Add evidence for each forbidden dependency
                 for (String forbiddenDep : forbiddenDependencies) {
                     String category = categorizeDependency(forbiddenDep);
                     builder.evidence(DependencyEvidence.of(
                             "Forbidden %s dependency: %s".formatted(category, forbiddenDep),
-                            domainType.qualifiedName(),
+                            domainTypeQName,
                             forbiddenDep));
                 }
 

@@ -13,16 +13,18 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.audit.domain.model.BehavioralEvidence;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.MethodDeclaration;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +36,10 @@ import java.util.List;
  * with no conceptual identity. They should be immutable - once created, their
  * state cannot change. If you need a different value, you create a new instance.
  *
- * <p>This validator performs heuristic checks for mutability indicators:
+ * <p>This validator uses the v5 ArchType API to check:
  * <ul>
- *   <li>Setter methods (methods starting with "set")</li>
- *   <li>Non-final fields (if field information is available)</li>
- *   <li>Methods that modify internal state</li>
+ *   <li>Records are immutable by design</li>
+ *   <li>Classes are checked for setter methods via {@link MethodRole#SETTER}</li>
  * </ul>
  *
  * <p><strong>Constraint:</strong> ddd:value-object-immutable<br>
@@ -48,6 +49,7 @@ import java.util.List;
  * ensures thread-safety and proper value semantics.
  *
  * @since 1.0.0
+ * @since 5.0.0 Migrated to v5 ArchType API using DomainIndex and MethodRole
  */
 public class ValueObjectImmutabilityValidator implements ConstraintValidator {
 
@@ -59,65 +61,81 @@ public class ValueObjectImmutabilityValidator implements ConstraintValidator {
     }
 
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all value objects
-        List<CodeUnit> valueObjects = codebase.unitsWithRole(RoleClassification.VALUE_OBJECT);
+        DomainIndex domain = model.domainIndex().orElse(null);
+        if (domain == null) {
+            return violations;
+        }
 
-        for (CodeUnit valueObject : valueObjects) {
-            // Check for setter methods
-            List<MethodDeclaration> setters = findSetterMethods(valueObject);
+        domain.valueObjects().forEach(vo -> {
+            // Records are immutable by design, skip them
+            if (vo.structure().isRecord()) {
+                return;
+            }
+
+            // For classes, check for setter methods
+            List<Method> setters = findSetterMethods(vo);
 
             if (!setters.isEmpty()) {
                 Violation.Builder builder = Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.CRITICAL)
                         .message("Value object '%s' has %d setter method(s), violating immutability"
-                                .formatted(valueObject.simpleName(), setters.size()))
-                        .affectedType(valueObject.qualifiedName())
-                        .location(SourceLocation.of(valueObject.qualifiedName(), 1, 1));
+                                .formatted(vo.id().simpleName(), setters.size()))
+                        .affectedType(vo.id().qualifiedName())
+                        .location(SourceLocation.of(vo.id().qualifiedName(), 1, 1));
 
                 // Add evidence for each setter
-                for (MethodDeclaration setter : setters) {
+                for (Method setter : setters) {
                     builder.evidence(BehavioralEvidence.of(
-                            "Setter method detected: " + setter.name(), valueObject.qualifiedName(), setter.name()));
+                            "Setter method detected: " + setter.name(),
+                            vo.id().qualifiedName(),
+                            setter.name()));
                 }
 
                 violations.add(builder.build());
             }
-        }
+        });
 
         return violations;
     }
 
     /**
-     * Finds setter methods in the code unit.
+     * Finds setter methods in the value object using v5 API.
      *
-     * <p>A method is considered a setter if:
+     * <p>Uses the v5 Method API which provides:
+     * <ul>
+     *   <li>{@code method.hasRole(MethodRole.SETTER)} - Direct role check</li>
+     *   <li>{@code method.isSetter()} - Convenience method</li>
+     * </ul>
+     *
+     * <p>Fallback heuristic if roles not populated:
      * <ul>
      *   <li>Name starts with "set"</li>
      *   <li>Has exactly one parameter</li>
      *   <li>Returns void</li>
      * </ul>
      *
-     * @param unit the code unit to check
+     * @param vo the value object to check
      * @return list of setter methods
      */
-    private List<MethodDeclaration> findSetterMethods(CodeUnit unit) {
-        return unit.methods().stream()
+    private List<Method> findSetterMethods(ValueObject vo) {
+        return vo.structure().methods().stream()
                 .filter(method -> {
-                    // Check name starts with "set"
+                    // First check v5 role
+                    if (method.hasRole(MethodRole.SETTER)) {
+                        return true;
+                    }
+
+                    // Fallback heuristic
                     if (!method.name().startsWith("set") || method.name().length() <= 3) {
                         return false;
                     }
-
-                    // Check has exactly one parameter
-                    if (method.parameterTypes().size() != 1) {
+                    if (method.parameters().size() != 1) {
                         return false;
                     }
-
-                    // Check returns void
-                    return method.returnType().equals("void");
+                    return method.returnType().qualifiedName().equals("void");
                 })
                 .toList();
     }

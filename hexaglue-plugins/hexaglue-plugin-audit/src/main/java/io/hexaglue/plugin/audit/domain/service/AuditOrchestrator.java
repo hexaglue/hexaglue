@@ -64,14 +64,17 @@ public class AuditOrchestrator {
     /**
      * Executes a complete audit.
      *
+     * @param model                  the architectural model (may be null for legacy mode)
      * @param codebase               the codebase to audit
      * @param query                  architecture query for advanced analysis (may be null)
      * @param enabledConstraints     the constraints to execute (empty = all)
      * @param enabledMetrics         the metrics to calculate (empty = all)
      * @param allowCriticalViolations whether CRITICAL violations should fail the build
      * @return the complete audit result
+     * @since 5.0.0 Added model parameter for v5 ArchType API support
      */
     public AuditResult executeAudit(
+            io.hexaglue.arch.ArchitecturalModel model,
             Codebase codebase,
             ArchitectureQuery query,
             Set<String> enabledConstraints,
@@ -86,10 +89,10 @@ public class AuditOrchestrator {
                 .collect(java.util.stream.Collectors.toSet());
 
         // 1. Execute constraints
-        List<Violation> violations = constraintEngine.executeConstraints(codebase, query, constraintIds);
+        List<Violation> violations = constraintEngine.executeConstraints(model, codebase, query, constraintIds);
 
         // 2. Calculate metrics (with architecture query for rich analysis)
-        Map<String, Metric> metrics = metricAggregator.calculateMetrics(codebase, query, enabledMetrics);
+        Map<String, Metric> metrics = metricAggregator.calculateMetrics(model, codebase, query, enabledMetrics);
 
         // 3. Determine build outcome
         BuildOutcome outcome = computeOutcome(violations, allowCriticalViolations);

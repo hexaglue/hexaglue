@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.domain.port.driving;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
@@ -42,14 +43,15 @@ import java.util.List;
  *     }
  *
  *     @Override
- *     public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
- *         // Validation logic here
+ *     public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
+ *         // Use model.domainIndex() and model.portIndex() for v5 type access
  *         return violations;
  *     }
  * }
  * }</pre>
  *
  * @since 1.0.0
+ * @since 5.0.0 Added ArchitecturalModel parameter to validate() for v5 ArchType access
  */
 public interface ConstraintValidator {
 
@@ -61,16 +63,25 @@ public interface ConstraintValidator {
     ConstraintId constraintId();
 
     /**
-     * Validates the constraint against the codebase.
+     * Validates the constraint against the codebase using v5 ArchType API.
      *
-     * <p>This method analyzes the codebase and returns a list of violations found.
+     * <p>This method analyzes the architectural model and returns a list of violations found.
      * An empty list indicates the constraint is satisfied.
      *
-     * @param codebase the codebase to validate
+     * <p>Validators should use the v5 indices for type access:
+     * <ul>
+     *   <li>{@code model.domainIndex()} for aggregate roots, entities, value objects, etc.</li>
+     *   <li>{@code model.portIndex()} for driving and driven ports</li>
+     *   <li>{@code model.typeRegistry()} for generic type access</li>
+     * </ul>
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for legacy access (to be phased out)
      * @param query architecture query for advanced analysis (may be null)
      * @return list of violations (empty if constraint is satisfied)
+     * @since 5.0.0
      */
-    List<Violation> validate(Codebase codebase, ArchitectureQuery query);
+    List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query);
 
     /**
      * Returns the default severity for violations of this constraint.

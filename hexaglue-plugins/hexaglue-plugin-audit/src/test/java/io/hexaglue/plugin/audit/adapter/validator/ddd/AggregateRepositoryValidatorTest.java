@@ -13,13 +13,14 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.aggregate;
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.repository;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link AggregateRepositoryValidator}.
  *
- * <p>Validates that aggregates are correctly checked for corresponding repositories.
+ * <p>Validates that aggregates are correctly checked for corresponding repositories
+ * using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class AggregateRepositoryValidatorTest {
 
@@ -43,14 +47,15 @@ class AggregateRepositoryValidatorTest {
     @Test
     @DisplayName("Should pass when aggregate has repository")
     void shouldPass_whenAggregateHasRepository() {
-        // Given
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(aggregate("Order"))
-                .addUnit(repository("Order"))
+        // Given - aggregate with matching repository
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -59,12 +64,13 @@ class AggregateRepositoryValidatorTest {
     @Test
     @DisplayName("Should fail when aggregate is missing repository")
     void shouldFail_whenAggregateMissingRepository() {
-        // Given
-        Codebase codebase =
-                new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
+        // Given - aggregate without repository
+        ArchitecturalModel model =
+                new TestModelBuilder().addAggregateRoot("com.example.domain.Order").build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -76,16 +82,17 @@ class AggregateRepositoryValidatorTest {
     @Test
     @DisplayName("Should check all aggregates")
     void shouldCheckAllAggregates() {
-        // Given
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(aggregate("Order"))
-                .addUnit(repository("Order"))
-                .addUnit(aggregate("Customer"))
-                .addUnit(aggregate("Product")) // Missing repository
+        // Given - some aggregates with repositories, some without
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addAggregateRoot("com.example.domain.Customer")
+                .addAggregateRoot("com.example.domain.Product") // Missing repository
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(2);
@@ -98,11 +105,12 @@ class AggregateRepositoryValidatorTest {
     @Test
     @DisplayName("Should pass when codebase has no aggregates")
     void shouldPass_whenNoAggregates() {
-        // Given
+        // Given - empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -112,11 +120,12 @@ class AggregateRepositoryValidatorTest {
     @DisplayName("Should provide structural evidence")
     void shouldProvideStructuralEvidence() {
         // Given
-        Codebase codebase =
-                new TestCodebaseBuilder().addUnit(aggregate("Order")).build();
+        ArchitecturalModel model =
+                new TestModelBuilder().addAggregateRoot("com.example.domain.Order").build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);

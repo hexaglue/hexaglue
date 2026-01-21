@@ -14,13 +14,16 @@
 package io.hexaglue.plugin.audit.domain.service;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.DomainEvent;
-import io.hexaglue.arch.domain.DomainService;
-import io.hexaglue.arch.domain.ValueObject;
-import io.hexaglue.arch.ports.ApplicationService;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
 import io.hexaglue.spi.audit.ArchitectureQuery;
@@ -52,35 +55,35 @@ public class InventoryBuilder {
      * Builds a component inventory from the architectural model using the architecture query.
      *
      * <p>Bounded contexts are obtained from {@link ArchitectureQuery#findBoundedContexts()},
-     * ensuring consistency with the core's analysis. Uses {@link ArchitecturalModel#registry()}
-     * instead of deprecated convenience methods.</p>
+     * ensuring consistency with the core's analysis. Uses domain and port indices for efficient access.</p>
      *
      * @param model             the architectural model to analyze
      * @param architectureQuery the architecture query for bounded context detection
      * @return a ComponentInventory with counts by type
      * @throws NullPointerException if model or architectureQuery is null
      * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+     * @since 5.0.0 - Migrated to v5 ArchType API with DomainIndex and PortIndex
      */
     public ComponentInventory build(ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(architectureQuery, "architectureQuery required");
 
-        var registry = model.registry();
+        // Get indices
+        DomainIndex domainIndex = model.domainIndex().orElseThrow();
+        PortIndex portIndex = model.portIndex().orElseThrow();
+        var registry = model.typeRegistry().orElseThrow();
 
-        // Collect domain elements from registry
-        List<DomainEntity> aggregates = registry.all(DomainEntity.class)
-                .filter(DomainEntity::isAggregateRoot)
-                .toList();
-        List<DomainEntity> entities = registry.all(DomainEntity.class)
-                .filter(e -> !e.isAggregateRoot())
-                .toList();
-        List<ValueObject> valueObjects = registry.all(ValueObject.class).toList();
-        List<DomainEvent> domainEvents = registry.all(DomainEvent.class).toList();
-        List<DomainService> domainServices = registry.all(DomainService.class).toList();
-        List<ApplicationService> appServices =
-                registry.all(ApplicationService.class).toList();
-        List<DrivingPort> drivingPorts = registry.all(DrivingPort.class).toList();
-        List<DrivenPort> drivenPorts = registry.all(DrivenPort.class).toList();
+        // Collect domain elements from indices
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
+        List<Entity> entities = domainIndex.entities().toList();
+        List<ValueObject> valueObjects = domainIndex.valueObjects().toList();
+        // Note: identifiers() available but not used in current inventory
+        // List<Identifier> identifiers = domainIndex.identifiers().toList();
+        List<DomainEvent> domainEvents = domainIndex.domainEvents().toList();
+        List<DomainService> domainServices = domainIndex.domainServices().toList();
+        List<ApplicationService> appServices = registry.all(ApplicationService.class).toList();
+        List<DrivingPort> drivingPorts = portIndex.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = portIndex.drivenPorts().toList();
 
         // Extract examples (simple names, limited)
         List<String> aggregateExamples = extractExamples(aggregates.stream().map(e -> e.id().simpleName()));
@@ -128,42 +131,42 @@ public class InventoryBuilder {
      *
      * <p>This method obtains bounded contexts from {@link ArchitectureQuery#findBoundedContexts()}
      * and correlates them with domain elements from the architectural model.
-     * Uses {@link ArchitecturalModel#registry()} instead of deprecated convenience methods.</p>
+     * Uses domain and port indices for efficient access.</p>
      *
      * @param model             the architectural model
      * @param architectureQuery the architecture query
      * @return list of bounded context statistics
      * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+     * @since 5.0.0 - Migrated to v5 ArchType API with DomainIndex and PortIndex
      */
     private List<BoundedContextStats> buildBoundedContextStats(
             ArchitecturalModel model, ArchitectureQuery architectureQuery) {
         List<BoundedContextInfo> boundedContexts = architectureQuery.findBoundedContexts();
 
         List<BoundedContextStats> stats = new ArrayList<>();
-        var registry = model.registry();
+        DomainIndex domainIndex = model.domainIndex().orElseThrow();
+        PortIndex portIndex = model.portIndex().orElseThrow();
 
         for (BoundedContextInfo bcInfo : boundedContexts) {
             // Count aggregates in this bounded context
-            int aggregateCount = (int) registry.all(DomainEntity.class)
-                    .filter(DomainEntity::isAggregateRoot)
-                    .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
+            int aggregateCount = (int) domainIndex.aggregateRoots()
+                    .filter(agg -> bcInfo.typeNames().contains(agg.id().qualifiedName()))
                     .count();
 
-            // Count entities (non-aggregate roots)
-            int entityCount = (int) registry.all(DomainEntity.class)
-                    .filter(e -> !e.isAggregateRoot())
+            // Count entities
+            int entityCount = (int) domainIndex.entities()
                     .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
                     .count();
 
             // Count value objects
-            int voCount = (int) registry.all(ValueObject.class)
+            int voCount = (int) domainIndex.valueObjects()
                     .filter(vo -> bcInfo.typeNames().contains(vo.id().qualifiedName()))
                     .count();
 
             // Count ports in this bounded context (by package)
             int portCount = (int) Stream.concat(
-                            registry.all(DrivingPort.class).map(p -> p.id().qualifiedName()),
-                            registry.all(DrivenPort.class).map(p -> p.id().qualifiedName()))
+                            portIndex.drivingPorts().map(p -> p.id().qualifiedName()),
+                            portIndex.drivenPorts().map(p -> p.id().qualifiedName()))
                     .filter(name -> bcInfo.containsPackage(extractPackage(name)))
                     .count();
 

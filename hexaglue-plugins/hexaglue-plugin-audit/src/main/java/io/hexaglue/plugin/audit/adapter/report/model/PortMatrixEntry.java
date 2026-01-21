@@ -14,8 +14,9 @@
 package io.hexaglue.plugin.audit.adapter.report.model;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.spi.ir.Port;
 import java.util.List;
 import java.util.Objects;
@@ -112,13 +113,14 @@ public record PortMatrixEntry(
      * @return list of port matrix entries
      * @since 4.0.0
      * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+     * @since 5.0.0 - Migrated to v5 ArchType API with PortIndex
      */
     public static List<PortMatrixEntry> fromModel(ArchitecturalModel model) {
         Objects.requireNonNull(model, "model required");
 
-        var registry = model.registry();
-        Stream<PortMatrixEntry> drivingEntries = registry.all(DrivingPort.class).map(PortMatrixEntry::fromDrivingPort);
-        Stream<PortMatrixEntry> drivenEntries = registry.all(DrivenPort.class).map(PortMatrixEntry::fromDrivenPort);
+        PortIndex portIndex = model.portIndex().orElseThrow();
+        Stream<PortMatrixEntry> drivingEntries = portIndex.drivingPorts().map(PortMatrixEntry::fromDrivingPort);
+        Stream<PortMatrixEntry> drivenEntries = portIndex.drivenPorts().map(PortMatrixEntry::fromDrivenPort);
 
         return Stream.concat(drivingEntries, drivenEntries).toList();
     }
@@ -132,8 +134,8 @@ public record PortMatrixEntry(
                 port.id().qualifiedName(),
                 "DRIVING",
                 "USE_CASE", // Default kind for driving ports
-                null, // managedType not available in v4 model
-                port.operations().size(),
+                null, // managedType not available in v5 model
+                port.structure().methods().size(),
                 false); // hasAdapter detection not implemented yet
     }
 
@@ -141,16 +143,17 @@ public record PortMatrixEntry(
      * Creates a PortMatrixEntry from a DrivenPort.
      */
     private static PortMatrixEntry fromDrivenPort(DrivenPort port) {
-        String kind = port.classification() != null ? port.classification().name() : "GATEWAY";
-        String managedType =
-                port.primaryManagedType().map(ref -> ref.id().qualifiedName()).orElse(null);
+        String kind = port.portType().name();
+        String managedType = port.managedAggregate()
+                .map(io.hexaglue.syntax.TypeRef::qualifiedName)
+                .orElse(null);
         return new PortMatrixEntry(
                 port.id().simpleName(),
                 port.id().qualifiedName(),
                 "DRIVEN",
                 kind,
                 managedType,
-                port.operations().size(),
+                port.structure().methods().size(),
                 false); // hasAdapter detection not implemented yet
     }
 }

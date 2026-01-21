@@ -13,15 +13,16 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,28 +55,51 @@ public class AggregateRepositoryValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates aggregate-repository relationships using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types and ports
+     * @param codebase the codebase (not used in v5)
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
+        // Check if domain index and port index are available
+        if (model.domainIndex().isEmpty() || model.portIndex().isEmpty()) {
+            return violations; // Cannot validate without indices
+        }
+
+        var domainIndex = model.domainIndex().get();
+        var portIndex = model.portIndex().get();
+
         // Find all aggregate roots
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
 
-        // Find all repositories (ports with REPOSITORY role)
-        List<CodeUnit> repositories = codebase.unitsWithRole(RoleClassification.REPOSITORY);
+        // Find all repositories
+        List<DrivenPort> repositories = portIndex.repositories().toList();
 
-        for (CodeUnit aggregate : aggregates) {
-            // Check if there's a repository for this aggregate
-            boolean hasRepository = repositories.stream().anyMatch(repo -> isRepositoryFor(repo, aggregate));
+        for (AggregateRoot aggregate : aggregates) {
+            // Check if aggregate has a driven port (repository) reference
+            boolean hasRepositoryViaModel = aggregate.hasDrivenPort();
 
-            if (!hasRepository) {
+            // Also check if there's a repository that manages this aggregate
+            boolean hasRepositoryViaPortIndex = repositories.stream()
+                    .anyMatch(repo -> isRepositoryFor(repo, aggregate));
+
+            if (!hasRepositoryViaModel && !hasRepositoryViaPortIndex) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.MAJOR)
-                        .message("Aggregate root '%s' has no repository interface".formatted(aggregate.simpleName()))
-                        .affectedType(aggregate.qualifiedName())
-                        .location(SourceLocation.of(aggregate.qualifiedName(), 1, 1))
+                        .message("Aggregate root '%s' has no repository interface"
+                                .formatted(aggregate.id().simpleName()))
+                        .affectedType(aggregate.id().qualifiedName())
+                        .location(SourceLocation.of(aggregate.id().qualifiedName(), 1, 1))
                         .evidence(StructuralEvidence.of(
-                                "Aggregate roots should be managed by repositories", aggregate.qualifiedName()))
+                                "Aggregate roots should be managed by repositories",
+                                aggregate.id().qualifiedName()))
                         .build());
             }
         }
@@ -86,31 +110,24 @@ public class AggregateRepositoryValidator implements ConstraintValidator {
     /**
      * Checks if the repository is for the given aggregate.
      *
-     * <p>This uses naming conventions and dependency analysis:
-     * <ul>
-     *   <li>Repository name matches pattern "{AggregateName}Repository"</li>
-     *   <li>Repository has methods returning or accepting the aggregate type</li>
-     * </ul>
+     * <p>This uses the v5 API {@link DrivenPort#managedAggregate()} to determine
+     * if the repository manages this aggregate. Fallback to naming conventions
+     * if managed aggregate is not available.</p>
      *
-     * @param repository the repository code unit
-     * @param aggregate  the aggregate code unit
+     * @param repository the repository driven port
+     * @param aggregate the aggregate root
      * @return true if the repository is for this aggregate
      */
-    private boolean isRepositoryFor(CodeUnit repository, CodeUnit aggregate) {
-        // Check naming convention
-        String expectedRepoName = aggregate.simpleName() + "Repository";
-        if (repository.simpleName().equals(expectedRepoName)) {
-            return true;
+    private boolean isRepositoryFor(DrivenPort repository, AggregateRoot aggregate) {
+        // Check if repository explicitly manages this aggregate (v5 API)
+        if (repository.managedAggregate().isPresent()) {
+            String managedQName = repository.managedAggregate().get().qualifiedName();
+            return managedQName.equals(aggregate.id().qualifiedName());
         }
 
-        // Check if repository methods reference the aggregate
-        // (This is a simplified check - in practice would need type analysis)
-        return repository.methods().stream()
-                .anyMatch(method ->
-                        // Check return type or parameters contain aggregate name
-                        method.returnType().contains(aggregate.simpleName())
-                                || method.parameterTypes().stream()
-                                        .anyMatch(paramType -> paramType.contains(aggregate.simpleName())));
+        // Fallback: check naming convention
+        String expectedRepoName = aggregate.id().simpleName() + "Repository";
+        return repository.id().simpleName().equals(expectedRepoName);
     }
 
     @Override

@@ -13,14 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.FieldDeclaration;
-import io.hexaglue.spi.audit.MethodDeclaration;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -75,37 +76,55 @@ public class CohesionMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the average LCOM4 for aggregates using the v5 ArchType API.
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for legacy access
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
+        return model.domainIndex()
+                .map(domain -> {
+                    long aggregateCount = domain.aggregateRoots().count();
 
-        if (aggregates.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME, 0.0, "components", "Average LCOM4 cohesion for aggregates (no aggregates found)");
-        }
+                    if (aggregateCount == 0) {
+                        return Metric.of(
+                                METRIC_NAME, 0.0, "components", "Average LCOM4 cohesion for aggregates (no aggregates found)");
+                    }
 
-        double avgLcom4 = aggregates.stream()
-                .filter(this::hasMethodsAndFields)
-                .mapToInt(this::calculateLcom4)
-                .average()
-                .orElse(1.0); // Default to 1 if no valid aggregates
+                    double avgLcom4 = domain.aggregateRoots()
+                            .filter(this::hasMethodsAndFields)
+                            .mapToInt(agg -> calculateLcom4(agg.structure()))
+                            .average()
+                            .orElse(1.0); // Default to 1 if no valid aggregates
 
-        return Metric.of(
-                METRIC_NAME,
-                avgLcom4,
-                "components",
-                "Average LCOM4 cohesion for aggregates",
-                MetricThreshold.greaterThan(WARNING_THRESHOLD));
+                    return Metric.of(
+                            METRIC_NAME,
+                            avgLcom4,
+                            "components",
+                            "Average LCOM4 cohesion for aggregates",
+                            MetricThreshold.greaterThan(WARNING_THRESHOLD));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        0.0,
+                        "components",
+                        "Average LCOM4 cohesion for aggregates (domain index not available)"));
     }
 
     /**
-     * Checks if the code unit has both methods and fields.
+     * Checks if the aggregate has both methods and fields.
      *
-     * @param unit the code unit
-     * @return true if the unit has at least one method and one field
+     * @param aggregate the aggregate to check
+     * @return true if the aggregate has at least one method and one field
      */
-    private boolean hasMethodsAndFields(CodeUnit unit) {
-        return !unit.methods().isEmpty() && !unit.fields().isEmpty();
+    private boolean hasMethodsAndFields(io.hexaglue.arch.model.AggregateRoot aggregate) {
+        TypeStructure structure = aggregate.structure();
+        return !structure.methods().isEmpty() && !structure.fields().isEmpty();
     }
 
     /**
@@ -113,19 +132,19 @@ public class CohesionMetricCalculator implements MetricCalculator {
      *
      * <p>LCOM4 is the number of connected components in the method-field graph.
      *
-     * @param aggregate the aggregate to analyze
+     * @param structure the type structure to analyze
      * @return the LCOM4 value (1 = cohesive, >1 = lacks cohesion)
      */
-    private int calculateLcom4(CodeUnit aggregate) {
-        List<MethodDeclaration> methods = aggregate.methods();
-        List<FieldDeclaration> fields = aggregate.fields();
+    private int calculateLcom4(TypeStructure structure) {
+        List<Method> methods = structure.methods();
+        List<Field> fields = structure.fields();
 
         if (methods.isEmpty() || fields.isEmpty()) {
             return 1; // Cohesive by default if no methods or fields
         }
 
         // Build method-to-fields mapping using heuristics
-        Map<MethodDeclaration, Set<FieldDeclaration>> methodFieldAccess = estimateFieldAccess(methods, fields);
+        Map<Method, Set<Field>> methodFieldAccess = estimateFieldAccess(methods, fields);
 
         // Build connectivity graph and find connected components
         return countConnectedComponents(methods, methodFieldAccess);
@@ -138,13 +157,12 @@ public class CohesionMetricCalculator implements MetricCalculator {
      * @param fields  the fields in the class
      * @return map of method to set of fields it likely accesses
      */
-    private Map<MethodDeclaration, Set<FieldDeclaration>> estimateFieldAccess(
-            List<MethodDeclaration> methods, List<FieldDeclaration> fields) {
+    private Map<Method, Set<Field>> estimateFieldAccess(List<Method> methods, List<Field> fields) {
 
-        Map<MethodDeclaration, Set<FieldDeclaration>> access = new HashMap<>();
+        Map<Method, Set<Field>> access = new HashMap<>();
 
-        for (MethodDeclaration method : methods) {
-            Set<FieldDeclaration> accessedFields = new HashSet<>();
+        for (Method method : methods) {
+            Set<Field> accessedFields = new HashSet<>();
 
             // Heuristic 1: Getter/setter pattern
             accessedFields.addAll(matchByGetterSetter(method, fields));
@@ -170,9 +188,9 @@ public class CohesionMetricCalculator implements MetricCalculator {
      * @param fields the fields to match against
      * @return set of fields matching the getter/setter pattern
      */
-    private Set<FieldDeclaration> matchByGetterSetter(MethodDeclaration method, List<FieldDeclaration> fields) {
+    private Set<Field> matchByGetterSetter(Method method, List<Field> fields) {
 
-        Set<FieldDeclaration> matched = new HashSet<>();
+        Set<Field> matched = new HashSet<>();
         String methodName = method.name();
 
         if (methodName.startsWith("get") || methodName.startsWith("set") || methodName.startsWith("is")) {
@@ -226,22 +244,25 @@ public class CohesionMetricCalculator implements MetricCalculator {
      * @param fields the fields to match against
      * @return set of fields with matching types
      */
-    private Set<FieldDeclaration> matchByType(MethodDeclaration method, List<FieldDeclaration> fields) {
+    private Set<Field> matchByType(Method method, List<Field> fields) {
 
-        Set<FieldDeclaration> matched = new HashSet<>();
+        Set<Field> matched = new HashSet<>();
 
-        // Only match by type if it's not a common primitive/wrapper
-        // (to avoid false positives where unrelated methods share common types)
-
-        // Match by return type (if non-primitive)
-        if (!isCommonType(method.returnType())) {
-            fields.stream().filter(f -> f.type().equals(method.returnType())).forEach(matched::add);
+        // Match by return type (if non-common)
+        String returnType = method.returnType().qualifiedName();
+        if (!isCommonType(returnType)) {
+            fields.stream()
+                    .filter(f -> f.type().qualifiedName().equals(returnType))
+                    .forEach(matched::add);
         }
 
-        // Match by parameter types (if non-primitive)
-        for (String paramType : method.parameterTypes()) {
+        // Match by parameter types (if non-common)
+        for (io.hexaglue.arch.model.Parameter param : method.parameters()) {
+            String paramType = param.type().qualifiedName();
             if (!isCommonType(paramType)) {
-                fields.stream().filter(f -> f.type().equals(paramType)).forEach(matched::add);
+                fields.stream()
+                        .filter(f -> f.type().qualifiedName().equals(paramType))
+                        .forEach(matched::add);
             }
         }
 
@@ -286,16 +307,17 @@ public class CohesionMetricCalculator implements MetricCalculator {
     /**
      * Checks if a method is a constructor.
      *
-     * <p>A constructor is identified by having a null or empty return type.
-     * Note that "void" is NOT a constructor - it's a regular method with no return value.
+     * <p>Constructors are identified by having the same name as the declaring type's simple name.
+     * In the v5 API, we can check if the method name matches a pattern or if it has no return type.</p>
      *
      * @param method the method to check
      * @return true if the method appears to be a constructor
      */
-    private boolean isConstructor(MethodDeclaration method) {
-        // Constructors have no return type (null or empty string)
-        // Methods with "void" return type are NOT constructors
-        return method.returnType() == null || method.returnType().isEmpty();
+    private boolean isConstructor(Method method) {
+        // Constructors have a return type of "void" or empty in some representations
+        // For now, we use a simple heuristic: methods without generic return types
+        // This is a limitation - ideally we'd check against the declaring type name
+        return method.returnType().qualifiedName().isEmpty();
     }
 
     /**
@@ -308,8 +330,7 @@ public class CohesionMetricCalculator implements MetricCalculator {
      * @param methodFieldAccess the method-to-fields mapping
      * @return the number of connected components
      */
-    private int countConnectedComponents(
-            List<MethodDeclaration> methods, Map<MethodDeclaration, Set<FieldDeclaration>> methodFieldAccess) {
+    private int countConnectedComponents(List<Method> methods, Map<Method, Set<Field>> methodFieldAccess) {
 
         int methodCount = methods.size();
         UnionFind uf = new UnionFind(methodCount);
@@ -317,11 +338,11 @@ public class CohesionMetricCalculator implements MetricCalculator {
         // Connect methods that share fields
         for (int i = 0; i < methodCount; i++) {
             for (int j = i + 1; j < methodCount; j++) {
-                MethodDeclaration method1 = methods.get(i);
-                MethodDeclaration method2 = methods.get(j);
+                Method method1 = methods.get(i);
+                Method method2 = methods.get(j);
 
-                Set<FieldDeclaration> fields1 = methodFieldAccess.getOrDefault(method1, Set.of());
-                Set<FieldDeclaration> fields2 = methodFieldAccess.getOrDefault(method2, Set.of());
+                Set<Field> fields1 = methodFieldAccess.getOrDefault(method1, Set.of());
+                Set<Field> fields2 = methodFieldAccess.getOrDefault(method2, Set.of());
 
                 if (sharesFields(fields1, fields2)) {
                     uf.union(i, j);
@@ -339,12 +360,12 @@ public class CohesionMetricCalculator implements MetricCalculator {
      * @param fields2 the second field set
      * @return true if the sets share at least one field
      */
-    private boolean sharesFields(Set<FieldDeclaration> fields1, Set<FieldDeclaration> fields2) {
+    private boolean sharesFields(Set<Field> fields1, Set<Field> fields2) {
         if (fields1.isEmpty() || fields2.isEmpty()) {
             return false;
         }
 
-        Set<FieldDeclaration> intersection = new HashSet<>(fields1);
+        Set<Field> intersection = new HashSet<>(fields1);
         intersection.retainAll(fields2);
         return !intersection.isEmpty();
     }

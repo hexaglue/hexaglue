@@ -13,16 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DomainEvent;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -35,8 +34,7 @@ import java.util.regex.Pattern;
  * in the business domain. Their names should reflect this by using past-tense
  * verbs, making the timeline of events explicit in the code.
  *
- * <p>This validator identifies domain events (value objects with names ending
- * in "Event" or matching domain event patterns) and checks that they follow
+ * <p>This validator identifies domain events and checks that they follow
  * past-tense naming conventions.
  *
  * <p><strong>Valid Past-Tense Patterns:</strong>
@@ -84,75 +82,56 @@ public class EventNamingValidator implements ConstraintValidator {
                     + "Assigned|Unassigned|Granted|Revoked|Enabled|Disabled|Locked|Unlocked|Opened|Closed|"
                     + "Expired|Renewed|Scheduled|Rescheduled|Found|Lost|Won|Built|Sold|Bought|Paid|Refunded)$");
 
-    /**
-     * Pattern to identify potential domain events.
-     *
-     * <p>A value object is considered a potential domain event if its name:
-     * <ul>
-     *   <li>Ends with "Event" (e.g., OrderPlacedEvent, UserCreatedEvent)</li>
-     *   <li>Contains "Event" followed by more text (e.g., EventData)</li>
-     *   <li>Matches common domain event patterns</li>
-     * </ul>
-     */
-    private static final Pattern EVENT_NAME_PATTERN = Pattern.compile(".*Event.*|.*Notification.*");
-
     @Override
     public ConstraintId constraintId() {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates event naming using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types
+     * @param codebase the codebase (not used in v5)
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all value objects in the domain layer
-        List<CodeUnit> valueObjects = codebase.units().stream()
-                .filter(unit -> unit.layer() == LayerClassification.DOMAIN)
-                .filter(unit -> unit.role() == RoleClassification.VALUE_OBJECT)
-                .toList();
+        // Check if domain index is available
+        if (model.domainIndex().isEmpty()) {
+            return violations; // Cannot validate without domain index
+        }
 
-        for (CodeUnit valueObject : valueObjects) {
-            String simpleName = valueObject.simpleName();
+        var domainIndex = model.domainIndex().get();
 
-            // Check if this value object is likely a domain event
-            if (isDomainEvent(simpleName)) {
-                // Extract the event name without "Event" suffix for validation
-                String eventName = extractEventName(simpleName);
+        // Get all domain events directly from the domain index
+        List<DomainEvent> domainEvents = domainIndex.domainEvents().toList();
 
-                // Check if the event name is in past tense
-                if (!isPastTense(eventName)) {
-                    violations.add(Violation.builder(CONSTRAINT_ID)
-                            .severity(Severity.MINOR)
-                            .message("Domain event '%s' should be named in past tense".formatted(simpleName))
-                            .affectedType(valueObject.qualifiedName())
-                            .location(SourceLocation.of(valueObject.qualifiedName(), 1, 1))
-                            .evidence(StructuralEvidence.of(
-                                    "Domain events represent facts that have already occurred. "
-                                            + "Use past-tense verbs (e.g., OrderPlaced, UserCreated, PaymentCompleted)",
-                                    valueObject.qualifiedName()))
-                            .build());
-                }
+        for (DomainEvent domainEvent : domainEvents) {
+            String simpleName = domainEvent.id().simpleName();
+
+            // Extract the event name without "Event" suffix for validation
+            String eventName = extractEventName(simpleName);
+
+            // Check if the event name is in past tense
+            if (!isPastTense(eventName)) {
+                violations.add(Violation.builder(CONSTRAINT_ID)
+                        .severity(Severity.MINOR)
+                        .message("Domain event '%s' should be named in past tense".formatted(simpleName))
+                        .affectedType(domainEvent.id().qualifiedName())
+                        .location(SourceLocation.of(domainEvent.id().qualifiedName(), 1, 1))
+                        .evidence(StructuralEvidence.of(
+                                "Domain events represent facts that have already occurred. "
+                                        + "Use past-tense verbs (e.g., OrderPlaced, UserCreated, PaymentCompleted)",
+                                domainEvent.id().qualifiedName()))
+                        .build());
             }
         }
 
         return violations;
-    }
-
-    /**
-     * Checks if a value object name indicates it's a domain event.
-     *
-     * <p>This heuristic identifies domain events by their naming convention.
-     * A value object is considered a domain event if:
-     * <ul>
-     *   <li>Its name contains "Event" or "Notification"</li>
-     *   <li>It follows other common domain event patterns</li>
-     * </ul>
-     *
-     * @param simpleName the simple name of the value object
-     * @return true if the name suggests this is a domain event
-     */
-    private boolean isDomainEvent(String simpleName) {
-        return EVENT_NAME_PATTERN.matcher(simpleName).matches();
     }
 
     /**

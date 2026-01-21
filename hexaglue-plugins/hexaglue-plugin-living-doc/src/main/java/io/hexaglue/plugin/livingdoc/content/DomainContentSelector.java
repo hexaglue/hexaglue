@@ -17,20 +17,21 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ConfidenceLevel;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.DomainEvent;
-import io.hexaglue.arch.domain.DomainService;
-import io.hexaglue.arch.domain.Identifier;
-import io.hexaglue.arch.domain.ValueObject;
-import io.hexaglue.arch.ports.ApplicationService;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
-import io.hexaglue.syntax.FieldSyntax;
-import io.hexaglue.syntax.TypeForm;
 import io.hexaglue.syntax.TypeRef;
-import io.hexaglue.syntax.TypeSyntax;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,55 +41,63 @@ import java.util.stream.Collectors;
  *
  * @since 4.0.0
  * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+ * @since 5.0.0 - Migrated to v5 ArchType API with DomainIndex
  */
 public final class DomainContentSelector {
 
     private final ArchitecturalModel model;
 
     /**
-     * Creates a selector using v4 ArchitecturalModel.
+     * Creates a selector using v5 ArchitecturalModel with DomainIndex.
      *
      * @param model the architectural model
      * @since 4.0.0
+     * @since 5.0.0 - Migrated to v5 API
      */
     public DomainContentSelector(ArchitecturalModel model) {
         this.model = model;
     }
 
     public List<DomainTypeDoc> selectAggregateRoots() {
-        return model.registry()
-                .all(DomainEntity.class)
-                .filter(DomainEntity::isAggregateRoot)
-                .map(this::toDoc)
-                .toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.aggregateRoots().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectEntities() {
-        return model.registry()
-                .all(DomainEntity.class)
-                .filter(e -> !e.isAggregateRoot())
-                .map(this::toDoc)
-                .toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.entities().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectValueObjects() {
-        return model.registry().all(ValueObject.class).map(this::toDoc).toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.valueObjects().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectIdentifiers() {
-        return model.registry().all(Identifier.class).map(this::toDoc).toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.identifiers().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainEvents() {
-        return model.registry().all(DomainEvent.class).map(this::toDoc).toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.domainEvents().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainServices() {
-        return model.registry().all(DomainService.class).map(this::toDoc).toList();
+        DomainIndex domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
+        return domainIndex.domainServices().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectApplicationServices() {
-        return model.registry().all(ApplicationService.class).map(this::toDoc).toList();
+        return model.typeRegistry()
+                .map(registry -> registry.all(ApplicationService.class).map(this::toDoc).toList())
+                .orElse(List.of());
     }
 
     public List<DomainTypeDoc> selectAllTypes() {
@@ -103,159 +112,204 @@ public final class DomainContentSelector {
         return all;
     }
 
-    private DomainTypeDoc toDoc(DomainEntity entity) {
-        TypeSyntax syntax = entity.syntax();
+    private DomainTypeDoc toDoc(AggregateRoot agg) {
+        TypeStructure structure = agg.structure();
+        String packageName = extractPackageName(agg.id().qualifiedName());
+        String simpleName = agg.id().simpleName();
+        boolean isRecord = structure.isRecord();
+        String construct = structure.nature().name().toLowerCase();
+
+        // AggregateRoot always has an identity field (required field, not Optional)
+        IdentityDoc identityDoc = toIdentityDoc(agg);
+
+        return new DomainTypeDoc(
+                simpleName,
+                packageName,
+                ElementKind.AGGREGATE_ROOT,
+                toSpiConfidenceLevel(agg.classification()),
+                construct,
+                isRecord,
+                identityDoc,
+                extractProperties(structure),
+                List.of(), // Relations not tracked in v5 yet
+                toDebugInfo(agg.id().qualifiedName(), structure));
+    }
+
+    private DomainTypeDoc toDoc(Entity entity) {
+        TypeStructure structure = entity.structure();
         String packageName = extractPackageName(entity.id().qualifiedName());
         String simpleName = entity.id().simpleName();
-        boolean isRecord = syntax != null && syntax.form() == TypeForm.RECORD;
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        boolean isRecord = structure.isRecord();
+        String construct = structure.nature().name().toLowerCase();
 
         IdentityDoc identityDoc = null;
-        if (entity.hasIdentity()) {
+        if (entity.identityField().isPresent()) {
             identityDoc = toIdentityDoc(entity);
         }
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
-                entity.isAggregateRoot() ? ElementKind.AGGREGATE_ROOT : ElementKind.ENTITY,
-                toSpiConfidenceLevel(entity.classificationTrace()),
+                ElementKind.ENTITY,
+                toSpiConfidenceLevel(entity.classification()),
                 construct,
                 isRecord,
                 identityDoc,
-                extractProperties(syntax),
-                List.of(), // Relations not tracked in v4 yet
-                toDebugInfo(entity.id().qualifiedName(), syntax));
+                extractProperties(structure),
+                List.of(), // Relations not tracked in v5 yet
+                toDebugInfo(entity.id().qualifiedName(), structure));
     }
 
     private DomainTypeDoc toDoc(ValueObject vo) {
-        TypeSyntax syntax = vo.syntax();
+        TypeStructure structure = vo.structure();
         String packageName = extractPackageName(vo.id().qualifiedName());
         String simpleName = vo.id().simpleName();
-        boolean isRecord = syntax != null && syntax.form() == TypeForm.RECORD;
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        boolean isRecord = structure.isRecord();
+        String construct = structure.nature().name().toLowerCase();
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
                 ElementKind.VALUE_OBJECT,
-                toSpiConfidenceLevel(vo.classificationTrace()),
+                toSpiConfidenceLevel(vo.classification()),
                 construct,
                 isRecord,
                 null,
-                extractProperties(syntax),
+                extractProperties(structure),
                 List.of(),
-                toDebugInfo(vo.id().qualifiedName(), syntax));
+                toDebugInfo(vo.id().qualifiedName(), structure));
     }
 
     private DomainTypeDoc toDoc(Identifier id) {
-        TypeSyntax syntax = id.syntax();
+        TypeStructure structure = id.structure();
         String packageName = extractPackageName(id.id().qualifiedName());
         String simpleName = id.id().simpleName();
-        boolean isRecord = syntax != null && syntax.form() == TypeForm.RECORD;
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        boolean isRecord = structure.isRecord();
+        String construct = structure.nature().name().toLowerCase();
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
                 ElementKind.IDENTIFIER,
-                toSpiConfidenceLevel(id.classificationTrace()),
+                toSpiConfidenceLevel(id.classification()),
                 construct,
                 isRecord,
                 null,
-                extractProperties(syntax),
+                extractProperties(structure),
                 List.of(),
-                toDebugInfo(id.id().qualifiedName(), syntax));
+                toDebugInfo(id.id().qualifiedName(), structure));
     }
 
     private DomainTypeDoc toDoc(DomainEvent event) {
-        TypeSyntax syntax = event.syntax();
+        TypeStructure structure = event.structure();
         String packageName = extractPackageName(event.id().qualifiedName());
         String simpleName = event.id().simpleName();
-        boolean isRecord = syntax != null && syntax.form() == TypeForm.RECORD;
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        boolean isRecord = structure.isRecord();
+        String construct = structure.nature().name().toLowerCase();
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
                 ElementKind.DOMAIN_EVENT,
-                toSpiConfidenceLevel(event.classificationTrace()),
+                toSpiConfidenceLevel(event.classification()),
                 construct,
                 isRecord,
                 null,
-                extractProperties(syntax),
+                extractProperties(structure),
                 List.of(),
-                toDebugInfo(event.id().qualifiedName(), syntax));
+                toDebugInfo(event.id().qualifiedName(), structure));
     }
 
     private DomainTypeDoc toDoc(DomainService service) {
-        TypeSyntax syntax = service.syntax();
+        TypeStructure structure = service.structure();
         String packageName = extractPackageName(service.id().qualifiedName());
         String simpleName = service.id().simpleName();
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        String construct = structure.nature().name().toLowerCase();
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
                 ElementKind.DOMAIN_SERVICE,
-                toSpiConfidenceLevel(service.classificationTrace()),
+                toSpiConfidenceLevel(service.classification()),
                 construct,
                 false,
                 null,
-                extractProperties(syntax),
+                extractProperties(structure),
                 List.of(),
-                toDebugInfo(service.id().qualifiedName(), syntax));
+                toDebugInfo(service.id().qualifiedName(), structure));
     }
 
     private DomainTypeDoc toDoc(ApplicationService service) {
-        TypeSyntax syntax = service.syntax();
+        TypeStructure structure = service.structure();
         String packageName = extractPackageName(service.id().qualifiedName());
         String simpleName = service.id().simpleName();
-        String construct = syntax != null ? syntax.form().name().toLowerCase() : "class";
+        String construct = structure.nature().name().toLowerCase();
 
         return new DomainTypeDoc(
                 simpleName,
                 packageName,
                 ElementKind.APPLICATION_SERVICE,
-                toSpiConfidenceLevel(service.classificationTrace()),
+                toSpiConfidenceLevel(service.classification()),
                 construct,
                 false,
                 null,
-                extractProperties(syntax),
+                extractProperties(structure),
                 List.of(),
-                toDebugInfo(service.id().qualifiedName(), syntax));
+                toDebugInfo(service.id().qualifiedName(), structure));
     }
 
-    private IdentityDoc toIdentityDoc(DomainEntity entity) {
-        String fieldName = entity.identityField();
-        TypeRef idType = entity.identityType();
+    private IdentityDoc toIdentityDoc(AggregateRoot agg) {
+        // AggregateRoot.identityField() returns Field directly (required, not Optional)
+        Field idField = agg.identityField();
+        String fieldName = idField.name();
+        TypeRef idType = idField.type();
 
-        String typeName = idType != null ? idType.simpleName() : "Object";
-        String unwrappedTypeName = typeName; // Simplified - would need deeper analysis for wrapped IDs
+        String typeName = idType.simpleName();
+        String unwrappedTypeName = idField.wrappedType()
+                .map(TypeRef::simpleName)
+                .orElse(typeName);
 
         return new IdentityDoc(
                 fieldName,
                 typeName,
                 unwrappedTypeName,
-                "AUTO", // Strategy not tracked in v4 yet
+                "AUTO", // Strategy not tracked in v5 yet
                 "DIRECT",
                 false,
                 false,
                 null);
     }
 
-    private List<PropertyDoc> extractProperties(TypeSyntax syntax) {
-        if (syntax == null || syntax.fields() == null) {
-            return List.of();
-        }
+    private IdentityDoc toIdentityDoc(Entity entity) {
+        Field idField = entity.identityField()
+                .orElseThrow(() -> new IllegalStateException("Entity must have identity field"));
+        String fieldName = idField.name();
+        TypeRef idType = idField.type();
 
-        return syntax.fields().stream().map(this::toPropertyDoc).collect(Collectors.toList());
+        String typeName = idType.simpleName();
+        String unwrappedTypeName = idField.wrappedType()
+                .map(TypeRef::simpleName)
+                .orElse(typeName);
+
+        return new IdentityDoc(
+                fieldName,
+                typeName,
+                unwrappedTypeName,
+                "AUTO", // Strategy not tracked in v5 yet
+                "DIRECT",
+                false,
+                false,
+                null);
     }
 
-    private PropertyDoc toPropertyDoc(FieldSyntax field) {
+    private List<PropertyDoc> extractProperties(TypeStructure structure) {
+        return structure.fields().stream().map(this::toPropertyDoc).collect(Collectors.toList());
+    }
+
+    private PropertyDoc toPropertyDoc(Field field) {
         TypeRef type = field.type();
-        String typeName = type != null ? type.qualifiedName() : "Object";
-        List<String> typeArguments = type != null && !type.typeArguments().isEmpty()
+        String typeName = type.qualifiedName();
+        List<String> typeArguments = !type.typeArguments().isEmpty()
                 ? type.typeArguments().stream().map(TypeRef::qualifiedName).collect(Collectors.toList())
                 : List.of();
 
@@ -272,22 +326,15 @@ public final class DomainContentSelector {
                 null);
     }
 
-    private DebugInfo toDebugInfo(String qualifiedName, TypeSyntax syntax) {
+    private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {
+        // TypeStructure doesn't track source location - provide defaults
         String sourceFile = null;
         int lineStart = 0;
         int lineEnd = 0;
 
-        if (syntax != null
-                && syntax.sourceLocation() != null
-                && syntax.sourceLocation().isKnown()) {
-            sourceFile = syntax.sourceLocation().filePath().toString();
-            lineStart = syntax.sourceLocation().line();
-            lineEnd = syntax.sourceLocation().endLine();
-        }
-
-        List<String> annotations = syntax != null && syntax.annotations() != null
-                ? syntax.annotations().stream().map(a -> "@" + a.simpleName()).collect(Collectors.toList())
-                : List.of();
+        List<String> annotations = structure.annotations().stream()
+                .map(a -> "@" + a.simpleName())
+                .collect(Collectors.toList());
 
         return new DebugInfo(qualifiedName, annotations, sourceFile, lineStart, lineEnd);
     }

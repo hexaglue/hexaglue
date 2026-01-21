@@ -13,18 +13,17 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.Entity;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -44,9 +43,8 @@ import java.util.Set;
  *   <li>Entities should only be accessible through the aggregate root's interface</li>
  * </ul>
  *
- * <p>Aggregate membership is determined by the core's classification analysis via
- * {@link ArchitectureQuery#findAggregateMembership()}, which uses actual type relationships
- * rather than package-based inference.
+ * <p>Aggregate membership is determined by the v5 API via {@link Entity#owningAggregate()},
+ * which provides actual type relationships rather than package-based inference.
  *
  * <p><strong>Constraint:</strong> ddd:aggregate-boundary<br>
  * <strong>Severity:</strong> MAJOR<br>
@@ -64,49 +62,51 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates aggregate boundaries using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types
+     * @param codebase the codebase for dependency analysis
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        if (query == null) {
-            // Cannot validate without architecture query
-            return violations;
+        // Check if domain index is available
+        if (model.domainIndex().isEmpty()) {
+            return violations; // Cannot validate without domain index
         }
 
-        // Get aggregate membership from core's analysis
-        Map<String, List<String>> aggregateMembership = query.findAggregateMembership();
+        var domainIndex = model.domainIndex().get();
 
-        if (aggregateMembership.isEmpty()) {
-            return violations; // No aggregates with members to validate
-        }
-
-        // Build reverse map: entity -> aggregate root it belongs to
-        Map<String, String> entityToAggregate = buildEntityToAggregateMap(aggregateMembership);
-
-        // Find all entities in the codebase
-        List<CodeUnit> entities = codebase.unitsWithRole(RoleClassification.ENTITY);
+        // Get all entities with their owning aggregates
+        List<Entity> entities = domainIndex.entities().toList();
 
         // Check each entity to see if it's referenced from outside its aggregate
-        for (CodeUnit entity : entities) {
-            String entityQName = entity.qualifiedName();
-            String aggregateQName = entityToAggregate.get(entityQName);
+        for (Entity entity : entities) {
+            String entityQName = entity.id().qualifiedName();
 
-            if (aggregateQName == null) {
-                // Entity doesn't belong to any aggregate (per core analysis), skip
+            // Skip entities without an owning aggregate
+            if (entity.owningAggregate().isEmpty()) {
                 continue;
             }
+
+            String aggregateQName = entity.owningAggregate().get().qualifiedName();
 
             // Find all code units that depend on this entity
             Set<String> dependents = findDependents(codebase, entityQName);
 
             // Filter out dependencies from within the same aggregate
-            Set<String> externalDependents = filterExternalDependents(dependents, aggregateQName, entityToAggregate);
+            Set<String> externalDependents = filterExternalDependents(dependents, aggregateQName, entities);
 
             if (!externalDependents.isEmpty()) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.MAJOR)
                         .message("Entity '%s' is accessible outside its aggregate '%s'"
-                                .formatted(entity.simpleName(), getSimpleName(aggregateQName)))
+                                .formatted(entity.id().simpleName(), getSimpleName(aggregateQName)))
                         .affectedType(entityQName)
                         .location(SourceLocation.of(entityQName, 1, 1))
                         .evidence(StructuralEvidence.of(
@@ -117,25 +117,6 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
         }
 
         return violations;
-    }
-
-    /**
-     * Builds a reverse map from entity qualified names to their owning aggregate root.
-     *
-     * @param aggregateMembership the aggregate membership map from core (aggregate -> [members])
-     * @return map of entity qualified name to aggregate qualified name
-     */
-    private Map<String, String> buildEntityToAggregateMap(Map<String, List<String>> aggregateMembership) {
-        Map<String, String> map = new HashMap<>();
-
-        for (Map.Entry<String, List<String>> entry : aggregateMembership.entrySet()) {
-            String aggregateQName = entry.getKey();
-            for (String memberQName : entry.getValue()) {
-                map.put(memberQName, aggregateQName);
-            }
-        }
-
-        return map;
     }
 
     /**
@@ -162,11 +143,11 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
      *
      * @param dependents all dependents of the entity
      * @param aggregateQName the aggregate that owns the entity
-     * @param entityToAggregate map of entities to their aggregates
+     * @param allEntities all entities for aggregate membership lookup
      * @return dependents that are external to the aggregate
      */
     private Set<String> filterExternalDependents(
-            Set<String> dependents, String aggregateQName, Map<String, String> entityToAggregate) {
+            Set<String> dependents, String aggregateQName, List<Entity> allEntities) {
 
         Set<String> externalDeps = new HashSet<>();
 
@@ -177,8 +158,13 @@ public class AggregateBoundaryValidator implements ConstraintValidator {
             }
 
             // Skip if dependent is another entity in the same aggregate
-            String dependentAggregate = entityToAggregate.get(dependentQName);
-            if (aggregateQName.equals(dependentAggregate)) {
+            boolean isInSameAggregate = allEntities.stream()
+                    .anyMatch(e -> e.id().qualifiedName().equals(dependentQName)
+                            && e.owningAggregate()
+                                    .map(agg -> agg.qualifiedName().equals(aggregateQName))
+                                    .orElse(false));
+
+            if (isInSameAggregate) {
                 continue;
             }
 

@@ -14,12 +14,14 @@
 package io.hexaglue.plugin.audit.adapter.report;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.DomainEvent;
-import io.hexaglue.arch.domain.DomainService;
-import io.hexaglue.arch.domain.ValueObject;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.diagram.C4DiagramBuilder;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
@@ -231,17 +233,16 @@ public final class DocumentationGenerator {
     }
 
     private void appendDomainTypesByKind(StringBuilder md, ArchitecturalModel model) {
-        var registry = model.registry();
-        // Entities (non-aggregate roots)
-        List<DomainEntity> entities = registry.all(DomainEntity.class)
-                .filter(e -> !e.isAggregateRoot())
+        DomainIndex domainIndex = model.domainIndex().orElseThrow();
+        // Entities
+        List<Entity> entities = domainIndex.entities()
                 .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
         if (!entities.isEmpty()) {
             md.append("## Entities\n\n");
             md.append("| Entity | Package |\n");
             md.append("|--------|--------|\n");
-            for (DomainEntity entity : entities) {
+            for (Entity entity : entities) {
                 md.append("| `")
                         .append(entity.id().simpleName())
                         .append("` | ")
@@ -252,7 +253,7 @@ public final class DocumentationGenerator {
         }
 
         // Value Objects
-        List<ValueObject> valueObjects = registry.all(ValueObject.class)
+        List<ValueObject> valueObjects = domainIndex.valueObjects()
                 .sorted(Comparator.comparing(vo -> vo.id().simpleName()))
                 .toList();
         if (!valueObjects.isEmpty()) {
@@ -270,7 +271,7 @@ public final class DocumentationGenerator {
         }
 
         // Domain Events
-        List<DomainEvent> events = registry.all(DomainEvent.class)
+        List<DomainEvent> events = domainIndex.domainEvents()
                 .sorted(Comparator.comparing(ev -> ev.id().simpleName()))
                 .toList();
         if (!events.isEmpty()) {
@@ -288,7 +289,7 @@ public final class DocumentationGenerator {
         }
 
         // Domain Services
-        List<DomainService> services = registry.all(DomainService.class)
+        List<DomainService> services = domainIndex.domainServices()
                 .sorted(Comparator.comparing(s -> s.id().simpleName()))
                 .toList();
         if (!services.isEmpty()) {
@@ -346,8 +347,9 @@ public final class DocumentationGenerator {
 
         List<DrivingPort> drivingPorts = report.model() != null
                 ? report.model()
-                        .registry()
-                        .all(DrivingPort.class)
+                        .portIndex()
+                        .orElseThrow()
+                        .drivingPorts()
                         .sorted(Comparator.comparing(p -> p.id().simpleName()))
                         .toList()
                 : List.of();
@@ -359,7 +361,7 @@ public final class DocumentationGenerator {
                 md.append("| `")
                         .append(port.id().simpleName())
                         .append("` | ")
-                        .append(port.operations().size())
+                        .append(port.structure().methods().size())
                         .append(" | ")
                         .append(extractPackage(port.id().qualifiedName()))
                         .append(" |\n");
@@ -375,27 +377,28 @@ public final class DocumentationGenerator {
 
         List<DrivenPort> drivenPorts = report.model() != null
                 ? report.model()
-                        .registry()
-                        .all(DrivenPort.class)
+                        .portIndex()
+                        .orElseThrow()
+                        .drivenPorts()
                         .sorted(Comparator.comparing(p -> p.id().simpleName()))
                         .toList()
                 : List.of();
 
         if (!drivenPorts.isEmpty()) {
-            md.append("| Port | Classification | Managed Type | Operations | Package |\n");
-            md.append("|------|----------------|--------------|:----------:|--------|\n");
+            md.append("| Port | Port Type | Managed Type | Operations | Package |\n");
+            md.append("|------|-----------|--------------|:----------:|--------|\n");
             for (DrivenPort port : drivenPorts) {
-                String managedType = port.primaryManagedType()
-                        .map(ref -> "`" + ref.id().simpleName() + "`")
+                String managedType = port.managedAggregate()
+                        .map(ref -> "`" + simplifyType(ref.qualifiedName()) + "`")
                         .orElse("-");
                 md.append("| `")
                         .append(port.id().simpleName())
                         .append("` | ")
-                        .append(port.classification())
+                        .append(port.portType())
                         .append(" | ")
                         .append(managedType)
                         .append(" | ")
-                        .append(port.operations().size())
+                        .append(port.structure().methods().size())
                         .append(" | ")
                         .append(extractPackage(port.id().qualifiedName()))
                         .append(" |\n");
