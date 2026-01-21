@@ -43,6 +43,10 @@ import java.util.List;
 public record EmbeddableSpec(
         String packageName, String className, String domainQualifiedName, List<PropertyFieldSpec> properties) {
 
+    public EmbeddableSpec {
+        properties = List.copyOf(properties);
+    }
+
     /**
      * Creates a new builder instance.
      *

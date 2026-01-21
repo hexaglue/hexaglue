@@ -16,22 +16,22 @@ package io.hexaglue.plugin.jpa.builder;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
-import io.hexaglue.syntax.FieldSyntax;
-import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
- * Builder for transforming v4 DomainEntity to MapperSpec model.
+ * Builder for transforming domain entities to MapperSpec model.
  *
  * <p>This builder creates MapStruct mapper interface specifications that convert
  * between domain objects and JPA entities. It analyzes the domain entity structure
@@ -65,7 +65,7 @@ import java.util.Set;
  * <h3>Usage Example:</h3>
  * <pre>{@code
  * MapperSpec spec = MapperSpecBuilder.builder()
- *     .domainEntity(orderEntity)
+ *     .aggregateRoot(orderAggregate)
  *     .model(architecturalModel)
  *     .config(jpaConfig)
  *     .infrastructurePackage("com.example.infrastructure.jpa")
@@ -76,7 +76,9 @@ import java.util.Set;
  */
 public final class MapperSpecBuilder {
 
-    private DomainEntity domainEntity;
+    private AggregateRoot aggregateRoot;
+    private Entity entity;
+
     private ArchitecturalModel architecturalModel;
     private JpaConfig config;
     private String infrastructurePackage;
@@ -121,19 +123,33 @@ public final class MapperSpecBuilder {
     }
 
     /**
-     * Sets the v4 domain entity to transform.
+     * Sets the aggregate root to transform.
      *
-     * @param entity the domain entity from ArchitecturalModel
+     * @param aggregateRoot the aggregate root from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public MapperSpecBuilder domainEntity(DomainEntity entity) {
-        this.domainEntity = entity;
+    public MapperSpecBuilder aggregateRoot(AggregateRoot aggregateRoot) {
+        this.aggregateRoot = aggregateRoot;
+        this.entity = null;
         return this;
     }
 
     /**
-     * Sets the v4 architectural model for type resolution.
+     * Sets the entity to transform.
+     *
+     * @param entity the entity from the model
+     * @return this builder
+     * @since 5.0.0
+     */
+    public MapperSpecBuilder entity(Entity entity) {
+        this.entity = entity;
+        this.aggregateRoot = null;
+        return this;
+    }
+
+    /**
+     * Sets the architectural model for type resolution.
      *
      * @param model the architectural model
      * @return this builder
@@ -167,15 +183,28 @@ public final class MapperSpecBuilder {
     public MapperSpec build() {
         validateRequiredFields();
 
-        String simpleName = domainEntity.id().simpleName();
-        String interfaceName = simpleName + config.mapperSuffix();
+        // Determine source type
+        String simpleName;
+        String qualifiedName;
+        String identityFieldName;
 
-        TypeName domainTypeName = ClassName.bestGuess(domainEntity.id().qualifiedName());
+        if (aggregateRoot != null) {
+            simpleName = aggregateRoot.id().simpleName();
+            qualifiedName = aggregateRoot.id().qualifiedName();
+            identityFieldName = aggregateRoot.identityField().name();
+        } else {
+            simpleName = entity.id().simpleName();
+            qualifiedName = entity.id().qualifiedName();
+            identityFieldName = entity.identityField().map(Field::name).orElse("id");
+        }
+
+        String interfaceName = simpleName + config.mapperSuffix();
+        TypeName domainTypeName = ClassName.bestGuess(qualifiedName);
         String entityClassName = simpleName + config.entitySuffix();
         TypeName entityType = ClassName.get(infrastructurePackage, entityClassName);
 
-        List<MappingSpec> toEntityMappings = buildToEntityMappings();
-        List<MappingSpec> toDomainMappings = buildToDomainMappings();
+        List<MappingSpec> toEntityMappings = buildToEntityMappings(identityFieldName);
+        List<MappingSpec> toDomainMappings = buildToDomainMappings(identityFieldName);
 
         MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentity();
         List<ValueObjectMappingSpec> valueObjectMappings = detectValueObjectMappings();
@@ -222,17 +251,15 @@ public final class MapperSpecBuilder {
     /**
      * Builds mapping specifications for domain to entity conversion.
      *
+     * @param identityFieldName the name of the identity field in the domain object
      * @return list of mapping specifications for toEntity method
      */
-    private List<MappingSpec> buildToEntityMappings() {
+    private List<MappingSpec> buildToEntityMappings(String identityFieldName) {
         List<MappingSpec> mappings = new ArrayList<>();
 
         // Map identity field if name differs from "id"
-        if (domainEntity.hasIdentity()) {
-            String identityFieldName = domainEntity.identityField();
-            if (!identityFieldName.equals("id")) {
-                mappings.add(MappingSpec.direct("id", identityFieldName));
-            }
+        if (identityFieldName != null && !identityFieldName.equals("id")) {
+            mappings.add(MappingSpec.direct("id", identityFieldName));
         }
 
         // Ignore version field if optimistic locking is enabled
@@ -252,136 +279,240 @@ public final class MapperSpecBuilder {
     /**
      * Builds mapping specifications for entity to domain conversion.
      *
+     * @param identityFieldName the name of the identity field in the domain object
      * @return list of mapping specifications for toDomain method
      */
-    private List<MappingSpec> buildToDomainMappings() {
+    private List<MappingSpec> buildToDomainMappings(String identityFieldName) {
         List<MappingSpec> mappings = new ArrayList<>();
 
         // Map identity field if name differs from "id"
-        if (domainEntity.hasIdentity()) {
-            String identityFieldName = domainEntity.identityField();
-            if (!identityFieldName.equals("id")) {
-                mappings.add(MappingSpec.direct(identityFieldName, "id"));
-            }
+        if (identityFieldName != null && !identityFieldName.equals("id")) {
+            mappings.add(MappingSpec.direct(identityFieldName, "id"));
         }
 
         return mappings;
     }
 
     /**
-     * Detects wrapped identity using v4 model.
+     * Detects wrapped identity.
      *
      * @return the wrapped identity spec, or null if identity is not wrapped
      */
     private MapperSpec.WrappedIdentitySpec detectWrappedIdentity() {
-        if (!domainEntity.hasIdentity()) {
-            return null;
+        if (aggregateRoot != null) {
+            return detectWrappedIdentityFromField(
+                    aggregateRoot.identityField().type(),
+                    aggregateRoot.identityField().wrappedType());
         }
 
-        TypeRef idType = domainEntity.identityType();
-
-        // Check if identity type is a value object wrapper
-        var voOpt = architecturalModel
-                .valueObjects()
-                .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
-                .filter(vo -> vo.componentFields().size() == 1)
-                .filter(vo -> vo.syntax() != null)
-                .findFirst();
-
-        if (voOpt.isEmpty()) {
-            return null;
+        if (entity != null) {
+            return entity.identityField()
+                    .map(idField -> detectWrappedIdentityFromField(idField.type(), idField.wrappedType()))
+                    .orElse(null);
         }
 
-        ValueObject vo = voOpt.get();
-        FieldSyntax wrappedField = vo.syntax().fields().get(0);
-        String wrapperType = vo.id().qualifiedName();
-        String unwrappedType = wrappedField.type().qualifiedName();
-        String accessorMethod = wrappedField.name(); // For records, accessor is field name
-
-        return new MapperSpec.WrappedIdentitySpec(wrapperType, unwrappedType, accessorMethod);
+        return null;
     }
 
     /**
-     * Detects Value Objects used as properties using v4 model.
+     * Detects wrapped identity from a field.
+     *
+     * @param idType the identity field type
+     * @param wrappedType the wrapped type (if present)
+     * @return the wrapped identity spec, or null if identity is not wrapped
+     * @since 5.0.0
+     */
+    private MapperSpec.WrappedIdentitySpec detectWrappedIdentityFromField(
+            io.hexaglue.syntax.TypeRef idType, Optional<io.hexaglue.syntax.TypeRef> wrappedType) {
+        // If wrappedType is present in the Field, use it directly
+        if (wrappedType.isPresent()) {
+            String wrapperTypeName = idType.qualifiedName();
+            String unwrappedTypeName = wrappedType.get().qualifiedName();
+            // Infer accessor method from the simple name of the wrapped type
+            String accessorMethod = inferAccessorMethod(idType.qualifiedName());
+            return new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod);
+        }
+
+        // Fallback: look for v5 ValueObject in domainIndex
+        if (architecturalModel.domainIndex().isPresent()) {
+            var domainIndex = architecturalModel.domainIndex().get();
+            var voOpt = domainIndex
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(idType.qualifiedName()))
+                    .filter(io.hexaglue.arch.model.ValueObject::isSingleValue)
+                    .findFirst();
+
+            if (voOpt.isPresent()) {
+                io.hexaglue.arch.model.ValueObject vo = voOpt.get();
+                Field wrappedField = vo.wrappedField()
+                        .orElseThrow(() -> new IllegalStateException("ValueObject "
+                                + vo.id().qualifiedName() + " is marked as single-value but has no wrapped field"));
+                String wrapperTypeName = vo.id().qualifiedName();
+                String unwrappedTypeName = wrappedField.type().qualifiedName();
+                String accessorMethod = wrappedField.name();
+                return new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Infers the accessor method name for a wrapper type.
+     *
+     * <p>For records, the accessor is typically "value" or the simple name in lowercase.</p>
+     *
+     * @param qualifiedName the wrapper type's qualified name
+     * @return the likely accessor method name
+     */
+    private String inferAccessorMethod(String qualifiedName) {
+        // Default to "value" which is common for ID wrappers
+        return "value";
+    }
+
+    /**
+     * Detects Value Objects used as properties.
      *
      * @return list of Value Object mapping specifications
      */
     private List<ValueObjectMappingSpec> detectValueObjectMappings() {
-        Set<String> processedTypes = new HashSet<>();
-        List<ValueObjectMappingSpec> mappings = new ArrayList<>();
-
-        // Exclude the entity's own identity type (handled by detectWrappedIdentity)
-        String identityTypeName =
-                domainEntity.hasIdentity() ? domainEntity.identityType().qualifiedName() : null;
-
-        // Scan all fields of the domain entity
-        if (domainEntity.syntax() != null) {
-            scanFieldsForValueObjects(domainEntity.syntax().fields(), identityTypeName, processedTypes, mappings);
+        if (aggregateRoot != null) {
+            return detectValueObjectMappingsFromFields(
+                    aggregateRoot.structure().fields(),
+                    aggregateRoot.identityField().type().qualifiedName());
         }
 
-        // Also scan fields of embedded VALUE_OBJECTs
-        for (String embeddableDomainFqn : embeddableMapping.keySet()) {
-            architecturalModel
-                    .valueObjects()
-                    .filter(vo -> vo.id().qualifiedName().equals(embeddableDomainFqn))
-                    .filter(vo -> vo.syntax() != null)
-                    .findFirst()
-                    .ifPresent(vo -> scanFieldsForValueObjects(
-                            vo.syntax().fields(), identityTypeName, processedTypes, mappings));
+        if (entity != null) {
+            String identityTypeName =
+                    entity.identityField().map(f -> f.type().qualifiedName()).orElse(null);
+            return detectValueObjectMappingsFromFields(entity.structure().fields(), identityTypeName);
         }
 
-        return mappings;
+        return List.of();
     }
 
     /**
-     * Scans a list of fields for Value Object wrapper types using v4 model.
+     * Detects Value Objects used as properties from fields.
+     *
+     * @param fields the fields to scan
+     * @param identityTypeName the identity type name to exclude
+     * @return list of Value Object mapping specifications
+     * @since 5.0.0
      */
-    private void scanFieldsForValueObjects(
-            List<FieldSyntax> fields,
-            String identityTypeName,
-            Set<String> processedTypes,
-            List<ValueObjectMappingSpec> mappings) {
+    private List<ValueObjectMappingSpec> detectValueObjectMappingsFromFields(List<Field> fields, String identityTypeName) {
+        Set<String> processedTypes = new HashSet<>();
+        List<ValueObjectMappingSpec> mappings = new ArrayList<>();
 
-        for (FieldSyntax field : fields) {
-            // Skip static fields
-            if (field.isStatic()) {
-                continue;
-            }
+        if (architecturalModel.domainIndex().isEmpty()) {
+            return mappings;
+        }
 
+        var domainIndex = architecturalModel.domainIndex().get();
+
+        for (Field field : fields) {
             String fieldTypeName = field.type().qualifiedName();
 
-            // Skip if already processed (avoid duplicate conversion methods)
+            // Skip if already processed
             if (processedTypes.contains(fieldTypeName)) {
                 continue;
             }
 
-            // Skip the entity's own identity type (handled by detectWrappedIdentity)
+            // Skip the entity's own identity type
             if (fieldTypeName.equals(identityTypeName)) {
                 continue;
             }
 
-            // Check if the field type is a simple wrapper value object
-            var voOpt = architecturalModel
+            // Check if the field type is a single-value value object
+            var voOpt = domainIndex
                     .valueObjects()
                     .filter(vo -> vo.id().qualifiedName().equals(fieldTypeName))
-                    .filter(vo -> vo.componentFields().size() == 1)
-                    .filter(vo -> vo.syntax() != null)
+                    .filter(io.hexaglue.arch.model.ValueObject::isSingleValue)
                     .findFirst();
 
             if (voOpt.isPresent()) {
-                ValueObject vo = voOpt.get();
-                FieldSyntax wrappedField = vo.syntax().fields().get(0);
+                io.hexaglue.arch.model.ValueObject vo = voOpt.get();
+                Field wrappedField = vo.wrappedField()
+                        .orElseThrow(() -> new IllegalStateException("ValueObject "
+                                + vo.id().qualifiedName() + " is marked as single-value but has no wrapped field"));
                 String wrapperType = vo.id().qualifiedName();
                 String simpleName = vo.id().simpleName();
                 String unwrappedType = wrappedField.type().qualifiedName();
                 String accessorMethod = wrappedField.name();
-                boolean isRecord = vo.syntax().isRecord();
+                // For v5, check if it's a record from structure
+                boolean isRecord = vo.structure().isRecord();
 
                 mappings.add(
                         new ValueObjectMappingSpec(wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
                 processedTypes.add(fieldTypeName);
             }
         }
+
+        // Also scan fields of embedded VALUE_OBJECTs
+        for (String embeddableDomainFqn : embeddableMapping.keySet()) {
+            domainIndex
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(embeddableDomainFqn))
+                    .findFirst()
+                    .ifPresent(vo -> {
+                        for (Field voField : vo.structure().fields()) {
+                            String voFieldTypeName = voField.type().qualifiedName();
+                            if (processedTypes.contains(voFieldTypeName) || voFieldTypeName.equals(identityTypeName)) {
+                                continue;
+                            }
+
+                            // Check if nested field is a single-value VALUE_OBJECT
+                            var nestedVoOpt = domainIndex
+                                    .valueObjects()
+                                    .filter(nestedVo ->
+                                            nestedVo.id().qualifiedName().equals(voFieldTypeName))
+                                    .filter(io.hexaglue.arch.model.ValueObject::isSingleValue)
+                                    .findFirst();
+
+                            if (nestedVoOpt.isPresent()) {
+                                io.hexaglue.arch.model.ValueObject nestedVo = nestedVoOpt.get();
+                                Field nestedWrappedField = nestedVo.wrappedField()
+                                        .orElseThrow(() -> new IllegalStateException(
+                                                "ValueObject " + nestedVo.id().qualifiedName()
+                                                        + " is marked as single-value but has no wrapped field"));
+                                String wrapperType = nestedVo.id().qualifiedName();
+                                String simpleName = nestedVo.id().simpleName();
+                                String unwrappedType = nestedWrappedField.type().qualifiedName();
+                                String accessorMethod = nestedWrappedField.name();
+                                boolean isRecord = nestedVo.structure().isRecord();
+
+                                mappings.add(new ValueObjectMappingSpec(
+                                        wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
+                                processedTypes.add(voFieldTypeName);
+                                continue;
+                            }
+
+                            // Also check if nested field is an IDENTIFIER (e.g., ProductId wrapping UUID)
+                            var nestedIdOpt = domainIndex
+                                    .identifiers()
+                                    .filter(id -> id.id().qualifiedName().equals(voFieldTypeName))
+                                    .findFirst();
+
+                            if (nestedIdOpt.isPresent()) {
+                                io.hexaglue.arch.model.Identifier nestedId = nestedIdOpt.get();
+                                var wrappedType = nestedId.wrappedType();
+                                if (wrappedType != null) {
+                                    String wrapperType = nestedId.id().qualifiedName();
+                                    String simpleName = nestedId.id().simpleName();
+                                    String unwrappedType = wrappedType.qualifiedName();
+                                    // For identifiers, use "value" as the accessor (record convention)
+                                    String accessorMethod = "value";
+                                    boolean isRecord = nestedId.structure().isRecord();
+
+                                    mappings.add(new ValueObjectMappingSpec(
+                                            wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
+                                    processedTypes.add(voFieldTypeName);
+                                }
+                            }
+                        }
+                    });
+        }
+
+        return mappings;
     }
 
     /**
@@ -390,8 +521,8 @@ public final class MapperSpecBuilder {
      * @throws IllegalStateException if any required field is missing
      */
     private void validateRequiredFields() {
-        if (domainEntity == null) {
-            throw new IllegalStateException("domainEntity is required");
+        if (aggregateRoot == null && entity == null) {
+            throw new IllegalStateException("Either aggregateRoot or entity is required");
         }
         if (architecturalModel == null) {
             throw new IllegalStateException("model (ArchitecturalModel) is required");

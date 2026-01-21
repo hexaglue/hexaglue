@@ -77,6 +77,7 @@ public final class NewArchitecturalModelBuilder {
     private final TypeStructureBuilder structureBuilder;
     private final ClassificationTraceConverter traceConverter;
     private final FieldRoleDetector fieldRoleDetector;
+    private final MethodRoleDetector methodRoleDetector;
     private final UnclassifiedCategoryDetector categoryDetector;
     private final AggregateRootBuilder aggregateRootBuilder;
     private final EntityBuilder entityBuilder;
@@ -95,7 +96,8 @@ public final class NewArchitecturalModelBuilder {
      */
     public NewArchitecturalModelBuilder() {
         this.fieldRoleDetector = new FieldRoleDetector();
-        this.structureBuilder = new TypeStructureBuilder(fieldRoleDetector);
+        this.methodRoleDetector = new MethodRoleDetector();
+        this.structureBuilder = new TypeStructureBuilder(fieldRoleDetector, methodRoleDetector);
         this.traceConverter = new ClassificationTraceConverter();
         this.categoryDetector = new UnclassifiedCategoryDetector();
 

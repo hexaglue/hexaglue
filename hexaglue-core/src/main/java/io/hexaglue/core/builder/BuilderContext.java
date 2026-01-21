@@ -148,6 +148,17 @@ public final class BuilderContext {
     }
 
     /**
+     * Checks if a type is classified as an aggregate root.
+     *
+     * @param qualifiedName the fully qualified type name
+     * @return true if the type is classified as AGGREGATE_ROOT
+     * @since 5.0.0
+     */
+    public boolean isClassifiedAsAggregate(String qualifiedName) {
+        return isClassifiedAs(qualifiedName, "AGGREGATE_ROOT");
+    }
+
+    /**
      * Creates a new BuilderContext with an additional built type.
      *
      * <p>This method does not modify the current context; it returns a new instance.</p>

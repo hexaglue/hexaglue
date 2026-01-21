@@ -497,9 +497,17 @@ public final class JpaAnnotations {
     /**
      * Builds a {@code @Mapper} annotation for MapStruct with Spring component model.
      *
+     * <p>The mapper is configured with:
+     * <ul>
+     *   <li>{@code componentModel = "spring"} - for Spring dependency injection</li>
+     *   <li>{@code unmappedTargetPolicy = ReportingPolicy.IGNORE} - to ignore unmapped
+     *       properties like business methods (add, multiply) on Value Objects that
+     *       MapStruct mistakenly identifies as target properties</li>
+     * </ul>
+     *
      * <p>Example:
      * <pre>{@code
-     * @Mapper(componentModel = "spring")
+     * @Mapper(componentModel = "spring", unmappedTargetPolicy = ReportingPolicy.IGNORE)
      * public interface OrderMapper { ... }
      * }</pre>
      *
@@ -508,6 +516,10 @@ public final class JpaAnnotations {
     public static AnnotationSpec mapper() {
         return AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("componentModel", "$S", "spring")
+                .addMember(
+                        "unmappedTargetPolicy",
+                        "$T.IGNORE",
+                        ClassName.get("org.mapstruct", "ReportingPolicy"))
                 .build();
     }
 

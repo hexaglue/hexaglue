@@ -88,7 +88,7 @@ public final class FieldRoleDetector {
         Set<FieldRole> roles = EnumSet.noneOf(FieldRole.class);
 
         // IDENTITY: @Id annotation or naming convention (but not for collections/maps)
-        if (isIdentityField(field)) {
+        if (isIdentityField(field, context)) {
             roles.add(FieldRole.IDENTITY);
         }
 
@@ -121,19 +121,69 @@ public final class FieldRoleDetector {
         return roles.isEmpty() ? Set.of() : Set.copyOf(roles);
     }
 
-    private boolean isIdentityField(FieldNode field) {
+    /**
+     * Checks if a field is an identity field.
+     *
+     * <p>Identity is detected by:
+     * <ul>
+     *   <li>@Id annotations (JPA, Spring Data, jMolecules)</li>
+     *   <li>Name is exactly {@code id}</li>
+     *   <li>Name is {@code <typeName>Id} where typeName is the declaring type's simple name
+     *       (e.g., {@code orderId} for {@code Order})</li>
+     * </ul>
+     *
+     * <p>Fields like {@code productId} in {@code OrderLine} are NOT identity fields
+     * because they are foreign key references to other aggregates.
+     */
+    private boolean isIdentityField(FieldNode field, BuilderContext context) {
         // Collections and maps are not identity fields
         if (field.isCollectionType() || field.type().isMapLike()) {
             return false;
         }
 
-        // Check annotations
+        // Check annotations - definitive
         if (hasAnyAnnotation(field.annotations(), ID_ANNOTATIONS)) {
             return true;
         }
 
-        // Check naming pattern
-        return field.looksLikeIdentity();
+        // Check naming pattern: "id" exactly
+        String fieldName = field.simpleName();
+        if (fieldName.equals("id")) {
+            return true;
+        }
+
+        // Try to get declaring type from graph for precise heuristic
+        var graph = context.graphQuery().graph();
+        if (graph != null) {
+            var declaringTypeOpt = graph.indexes().declaringTypeOf(field.id());
+            if (declaringTypeOpt.isPresent()) {
+                var declaringType = context.graphQuery().type(declaringTypeOpt.get());
+                if (declaringType.isPresent()) {
+                    String typeName = declaringType.get().simpleName();
+                    String expectedIdFieldName =
+                            Character.toLowerCase(typeName.charAt(0)) + typeName.substring(1) + "Id";
+                    if (fieldName.equals(expectedIdFieldName)) {
+                        return true;
+                    }
+                    // If we have graph access and the field doesn't match the expected pattern,
+                    // it's NOT an identity (e.g., productId in OrderLine)
+                    return false;
+                }
+            }
+        }
+
+        // Fallback for tests without graph: use FieldNode.declaringTypeName
+        String declaringTypeName = field.declaringTypeName();
+        if (declaringTypeName != null && !declaringTypeName.isEmpty()) {
+            String simpleTypeName = declaringTypeName.contains(".")
+                    ? declaringTypeName.substring(declaringTypeName.lastIndexOf('.') + 1)
+                    : declaringTypeName;
+            String expectedIdFieldName =
+                    Character.toLowerCase(simpleTypeName.charAt(0)) + simpleTypeName.substring(1) + "Id";
+            return fieldName.equals(expectedIdFieldName);
+        }
+
+        return false;
     }
 
     private boolean isAuditField(FieldNode field) {

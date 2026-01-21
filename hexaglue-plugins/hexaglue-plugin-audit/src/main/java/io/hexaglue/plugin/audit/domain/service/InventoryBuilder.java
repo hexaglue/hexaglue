@@ -77,7 +77,8 @@ public class InventoryBuilder {
         List<ValueObject> valueObjects = registry.all(ValueObject.class).toList();
         List<DomainEvent> domainEvents = registry.all(DomainEvent.class).toList();
         List<DomainService> domainServices = registry.all(DomainService.class).toList();
-        List<ApplicationService> appServices = registry.all(ApplicationService.class).toList();
+        List<ApplicationService> appServices =
+                registry.all(ApplicationService.class).toList();
         List<DrivingPort> drivingPorts = registry.all(DrivingPort.class).toList();
         List<DrivenPort> drivenPorts = registry.all(DrivenPort.class).toList();
 

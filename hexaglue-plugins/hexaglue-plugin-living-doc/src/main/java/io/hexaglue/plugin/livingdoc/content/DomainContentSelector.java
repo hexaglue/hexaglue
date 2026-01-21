@@ -56,14 +56,16 @@ public final class DomainContentSelector {
     }
 
     public List<DomainTypeDoc> selectAggregateRoots() {
-        return model.registry().all(DomainEntity.class)
+        return model.registry()
+                .all(DomainEntity.class)
                 .filter(DomainEntity::isAggregateRoot)
                 .map(this::toDoc)
                 .toList();
     }
 
     public List<DomainTypeDoc> selectEntities() {
-        return model.registry().all(DomainEntity.class)
+        return model.registry()
+                .all(DomainEntity.class)
                 .filter(e -> !e.isAggregateRoot())
                 .map(this::toDoc)
                 .toList();

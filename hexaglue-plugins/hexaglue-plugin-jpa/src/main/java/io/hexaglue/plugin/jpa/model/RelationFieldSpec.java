@@ -20,6 +20,8 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.domain.DomainEntity;
 import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.plugin.jpa.extraction.RelationInfo;
 import io.hexaglue.spi.ir.CascadeType;
 import io.hexaglue.spi.ir.DomainRelation;
@@ -27,6 +29,7 @@ import io.hexaglue.spi.ir.FetchType;
 import io.hexaglue.spi.ir.RelationKind;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -225,6 +228,235 @@ public record RelationFieldSpec(
                 cascade,
                 fetch,
                 info.orphanRemoval());
+    }
+
+    /**
+     * Creates a RelationFieldSpec from a v5 model Field with REFERENCE or COLLECTION role.
+     *
+     * <p>This factory method converts the v5 arch.model.Field to the JavaPoet-based
+     * generation model. It detects relation kind from field roles and annotations,
+     * and properly handles Value Object collections as ELEMENT_COLLECTION.
+     *
+     * @param field the field from arch.model (should have REFERENCE or COLLECTION role)
+     * @param model the architectural model for type resolution
+     * @param embeddableMapping map from domain FQN to embeddable FQN
+     * @return a RelationFieldSpec ready for code generation
+     * @since 5.0.0
+     */
+    public static RelationFieldSpec fromV5(
+            Field field, ArchitecturalModel model, Map<String, String> embeddableMapping) {
+
+        String targetFqn = field.elementType()
+                .map(t -> t.qualifiedName())
+                .orElse(field.type().qualifiedName());
+
+        // Determine target kind first - needed to detect ELEMENT_COLLECTION vs ONE_TO_MANY
+        ElementKind targetKind = findElementKindV5(model, targetFqn);
+
+        // Detect relation kind from field annotations, roles, and target kind
+        RelationKind kind = detectRelationKindV5(field, targetKind);
+
+        // For EMBEDDED and ELEMENT_COLLECTION, use embeddable type if available
+        if ((kind == RelationKind.EMBEDDED || kind == RelationKind.ELEMENT_COLLECTION)
+                && embeddableMapping.containsKey(targetFqn)) {
+            targetFqn = embeddableMapping.get(targetFqn);
+        }
+
+        TypeName targetType = resolveTargetType(kind, targetFqn);
+
+        // Extract cascade, fetch, orphanRemoval from annotations
+        CascadeType cascade = detectCascadeTypeV5(field);
+        FetchType fetch = detectFetchTypeV5(field);
+        boolean orphanRemoval = detectOrphanRemovalV5(field);
+        String mappedBy = detectMappedByV5(field);
+
+        return new RelationFieldSpec(
+                field.name(), targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval);
+    }
+
+    /**
+     * Detects relation kind from v5 Field annotations, roles, and target type.
+     *
+     * <p>For collections of Value Objects (targetKind == VALUE_OBJECT), uses
+     * ELEMENT_COLLECTION instead of ONE_TO_MANY. This is critical for JPA
+     * as @ElementCollection is required for embedded collections.
+     *
+     * @param field the field to analyze
+     * @param targetKind the ElementKind of the target type
+     * @return the appropriate RelationKind
+     * @since 5.0.0
+     */
+    private static RelationKind detectRelationKindV5(Field field, ElementKind targetKind) {
+        // Check for explicit JPA annotations first - they take precedence
+        if (field.hasAnnotation("jakarta.persistence.OneToMany")
+                || field.hasAnnotation("javax.persistence.OneToMany")) {
+            return RelationKind.ONE_TO_MANY;
+        }
+        if (field.hasAnnotation("jakarta.persistence.ManyToOne")
+                || field.hasAnnotation("javax.persistence.ManyToOne")) {
+            return RelationKind.MANY_TO_ONE;
+        }
+        if (field.hasAnnotation("jakarta.persistence.OneToOne") || field.hasAnnotation("javax.persistence.OneToOne")) {
+            return RelationKind.ONE_TO_ONE;
+        }
+        if (field.hasAnnotation("jakarta.persistence.ManyToMany")
+                || field.hasAnnotation("javax.persistence.ManyToMany")) {
+            return RelationKind.MANY_TO_MANY;
+        }
+        if (field.hasAnnotation("jakarta.persistence.ElementCollection")
+                || field.hasAnnotation("javax.persistence.ElementCollection")) {
+            return RelationKind.ELEMENT_COLLECTION;
+        }
+        if (field.hasAnnotation("jakarta.persistence.Embedded") || field.hasAnnotation("javax.persistence.Embedded")) {
+            return RelationKind.EMBEDDED;
+        }
+
+        // Infer from roles and target kind
+        if (field.hasRole(FieldRole.EMBEDDED)) {
+            return RelationKind.EMBEDDED;
+        }
+        if (field.hasRole(FieldRole.COLLECTION)) {
+            // Collections of VALUE_OBJECTs use @ElementCollection
+            // Collections of entities use @OneToMany
+            if (targetKind == ElementKind.VALUE_OBJECT || targetKind == ElementKind.IDENTIFIER) {
+                return RelationKind.ELEMENT_COLLECTION;
+            }
+            return RelationKind.ONE_TO_MANY;
+        }
+        if (field.hasRole(FieldRole.AGGREGATE_REFERENCE)) {
+            return RelationKind.MANY_TO_ONE; // Default for single references
+        }
+
+        // Fallback: if target is a VALUE_OBJECT, use EMBEDDED
+        if (targetKind == ElementKind.VALUE_OBJECT || targetKind == ElementKind.IDENTIFIER) {
+            return RelationKind.EMBEDDED;
+        }
+
+        return RelationKind.EMBEDDED; // Fallback
+    }
+
+    /**
+     * Detects cascade type from v5 Field annotations.
+     *
+     * @since 5.0.0
+     */
+    private static CascadeType detectCascadeTypeV5(Field field) {
+        var cascadeOpt = extractRelationAnnotationValue(field, "cascade");
+        if (cascadeOpt.isEmpty()) {
+            return CascadeType.NONE;
+        }
+
+        Object cascadeValue = cascadeOpt.get();
+        if (cascadeValue instanceof String str) {
+            if (str.contains("ALL")) return CascadeType.ALL;
+            if (str.contains("PERSIST")) return CascadeType.PERSIST;
+            if (str.contains("MERGE")) return CascadeType.MERGE;
+            if (str.contains("REMOVE")) return CascadeType.REMOVE;
+        }
+        return CascadeType.NONE;
+    }
+
+    /**
+     * Detects fetch type from v5 Field annotations.
+     *
+     * @since 5.0.0
+     */
+    private static FetchType detectFetchTypeV5(Field field) {
+        var fetchOpt = extractRelationAnnotationValue(field, "fetch");
+        if (fetchOpt.isEmpty()) {
+            return FetchType.LAZY;
+        }
+
+        Object fetchValue = fetchOpt.get();
+        if (fetchValue instanceof String str && str.contains("EAGER")) {
+            return FetchType.EAGER;
+        }
+        return FetchType.LAZY;
+    }
+
+    /**
+     * Detects orphan removal from v5 Field annotations.
+     *
+     * @since 5.0.0
+     */
+    private static boolean detectOrphanRemovalV5(Field field) {
+        var orphanOpt = extractRelationAnnotationValue(field, "orphanRemoval");
+        if (orphanOpt.isEmpty()) {
+            return false;
+        }
+
+        Object value = orphanOpt.get();
+        return Boolean.TRUE.equals(value) || "true".equalsIgnoreCase(String.valueOf(value));
+    }
+
+    /**
+     * Detects mappedBy from v5 Field annotations.
+     *
+     * @since 5.0.0
+     */
+    private static String detectMappedByV5(Field field) {
+        var mappedByOpt = extractRelationAnnotationValue(field, "mappedBy");
+        if (mappedByOpt.isPresent()) {
+            Object value = mappedByOpt.get();
+            String str = String.valueOf(value);
+            if (!str.isBlank() && !str.equals("null")) {
+                return str;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extracts an attribute value from a JPA relation annotation.
+     *
+     * @since 5.0.0
+     */
+    private static Optional<Object> extractRelationAnnotationValue(Field field, String attributeName) {
+        var relationAnnotations = List.of(
+                "jakarta.persistence.OneToMany", "javax.persistence.OneToMany",
+                "jakarta.persistence.ManyToOne", "javax.persistence.ManyToOne",
+                "jakarta.persistence.OneToOne", "javax.persistence.OneToOne",
+                "jakarta.persistence.ManyToMany", "javax.persistence.ManyToMany",
+                "jakarta.persistence.ElementCollection", "javax.persistence.ElementCollection");
+
+        for (var ann : field.annotations()) {
+            if (relationAnnotations.contains(ann.qualifiedName())) {
+                return ann.getValue(attributeName);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Finds the ElementKind for a type using v5 domainIndex.
+     *
+     * @since 5.0.0
+     */
+    private static ElementKind findElementKindV5(ArchitecturalModel model, String qualifiedName) {
+        var domainIndexOpt = model.domainIndex();
+        if (domainIndexOpt.isPresent()) {
+            var domainIndex = domainIndexOpt.get();
+
+            // Check aggregate roots
+            if (domainIndex
+                    .aggregateRoots()
+                    .anyMatch(agg -> agg.id().qualifiedName().equals(qualifiedName))) {
+                return ElementKind.AGGREGATE_ROOT;
+            }
+            // Check entities
+            if (domainIndex.entities().anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
+                return ElementKind.ENTITY;
+            }
+            // Check value objects
+            if (domainIndex
+                    .valueObjects()
+                    .anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
+                return ElementKind.VALUE_OBJECT;
+            }
+        }
+
+        // Fallback to legacy registry
+        return findElementKindV4(model, qualifiedName);
     }
 
     /**

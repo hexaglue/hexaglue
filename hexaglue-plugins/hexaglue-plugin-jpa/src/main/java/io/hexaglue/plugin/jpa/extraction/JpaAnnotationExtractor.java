@@ -341,6 +341,8 @@ public final class JpaAnnotationExtractor {
     /**
      * Extracts property information from all non-relation, non-identity fields.
      *
+     * <p>Collection fields are also skipped as they are treated as implicit relations.</p>
+     *
      * @param type the type syntax to analyze
      * @return a list of property infos (may be empty)
      */
@@ -360,8 +362,13 @@ public final class JpaAnnotationExtractor {
                 continue;
             }
 
-            // Skip relation fields
+            // Skip relation fields (with explicit JPA annotations)
             if (extractRelation(field).isPresent()) {
+                continue;
+            }
+
+            // Skip collection fields (they become implicit relations)
+            if (isCollectionType(field.type())) {
                 continue;
             }
 
@@ -417,5 +424,67 @@ public final class JpaAnnotationExtractor {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Determines if a type is a collection type.
+     *
+     * <p>Recognized collection types include List, Set, Collection, and their implementations.</p>
+     *
+     * @param type the type reference to check
+     * @return true if the type is a collection
+     */
+    private static boolean isCollectionType(TypeRef type) {
+        String qn = type.qualifiedName();
+        return qn.equals("java.util.List")
+                || qn.equals("java.util.Set")
+                || qn.equals("java.util.Collection")
+                || qn.equals("java.util.ArrayList")
+                || qn.equals("java.util.LinkedList")
+                || qn.equals("java.util.HashSet")
+                || qn.equals("java.util.TreeSet")
+                || qn.equals("java.util.LinkedHashSet")
+                || qn.startsWith("java.util.")
+                        && (qn.contains("List") || qn.contains("Set") || qn.contains("Collection"));
+    }
+
+    /**
+     * Extracts implicit relations from collection fields without JPA annotations.
+     *
+     * <p>This method detects collections that are not annotated with JPA relationship
+     * annotations and creates implicit element-collection relations.</p>
+     *
+     * <p>Element collection is used by default because the target type may not have
+     * a corresponding JPA entity generated (e.g., child entities within aggregates).
+     * Using {@code @ElementCollection} allows JPA to persist these as embedded collections.</p>
+     *
+     * @param type the type syntax to analyze
+     * @return a list of implicit relation infos (may be empty)
+     */
+    public static List<RelationInfo> extractImplicitRelations(TypeSyntax type) {
+        Objects.requireNonNull(type, "type must not be null");
+
+        List<RelationInfo> implicitRelations = new ArrayList<>();
+
+        for (FieldSyntax field : type.fields()) {
+            // Skip static fields
+            if (field.isStatic()) {
+                continue;
+            }
+
+            // Skip fields with explicit JPA relation annotations
+            if (extractRelation(field).isPresent()) {
+                continue;
+            }
+
+            // Detect implicit relations from collection fields
+            if (isCollectionType(field.type())) {
+                TypeRef elementType = extractCollectionElementType(field.type());
+                // Use element collection since target may not be a JPA entity
+                implicitRelations.add(RelationInfo.elementCollection(field.name(), elementType));
+            }
+        }
+
+        return List.copyOf(implicitRelations);
     }
 }

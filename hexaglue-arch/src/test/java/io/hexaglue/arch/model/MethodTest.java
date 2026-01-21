@@ -68,9 +68,10 @@ class MethodTest {
             List<Annotation> annotations = List.of(Annotation.of("Override"));
             Optional<String> doc = Optional.of("Finds an order by ID");
             List<TypeRef> exceptions = List.of(TypeRef.of("com.example.OrderNotFoundException"));
+            Set<MethodRole> roles = Set.of(MethodRole.QUERY);
 
             // when
-            Method method = new Method(name, returnType, params, modifiers, annotations, doc, exceptions);
+            Method method = new Method(name, returnType, params, modifiers, annotations, doc, exceptions, roles);
 
             // then
             assertThat(method.name()).isEqualTo(name);
@@ -80,6 +81,7 @@ class MethodTest {
             assertThat(method.annotations()).hasSize(1);
             assertThat(method.documentation()).contains("Finds an order by ID");
             assertThat(method.thrownExceptions()).hasSize(1);
+            assertThat(method.roles()).containsExactly(MethodRole.QUERY);
         }
 
         @Test
@@ -134,7 +136,8 @@ class MethodTest {
                     Set.of(),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // then
             assertThat(method.signature()).isEqualTo("setName(String)");
@@ -154,7 +157,8 @@ class MethodTest {
                     Set.of(),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // then
             assertThat(method.signature()).isEqualTo("transfer(Account, Account, BigDecimal)");
@@ -176,7 +180,8 @@ class MethodTest {
                     Set.of(Modifier.PUBLIC),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -194,7 +199,8 @@ class MethodTest {
                     Set.of(Modifier.PUBLIC, Modifier.ABSTRACT),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -212,7 +218,8 @@ class MethodTest {
                     Set.of(Modifier.PRIVATE),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // then
             assertThat(method.isPublic()).isFalse();
@@ -236,7 +243,8 @@ class MethodTest {
                     Set.of(),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // when/then
             assertThatThrownBy(() -> method.parameters().add(Parameter.of("extra", TypeRef.of("String"))))
@@ -254,7 +262,8 @@ class MethodTest {
                     Set.of(Modifier.PUBLIC),
                     List.of(),
                     Optional.empty(),
-                    List.of());
+                    List.of(),
+                    Set.of());
 
             // when/then
             assertThatThrownBy(() -> method.modifiers().add(Modifier.STATIC))
@@ -288,6 +297,152 @@ class MethodTest {
 
             // then
             assertThat(m1).isNotEqualTo(m2);
+        }
+    }
+
+    @Nested
+    @DisplayName("Method Roles")
+    class MethodRoles {
+
+        @Test
+        @DisplayName("should create method with roles")
+        void shouldCreateMethodWithRoles() {
+            // given
+            Method method = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+
+            // then
+            assertThat(method.roles()).containsExactly(MethodRole.GETTER);
+        }
+
+        @Test
+        @DisplayName("should check hasRole")
+        void shouldCheckHasRole() {
+            // given
+            Method getter = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+            Method business = Method.of("process", TypeRef.of("void"), Set.of(MethodRole.BUSINESS));
+
+            // then
+            assertThat(getter.hasRole(MethodRole.GETTER)).isTrue();
+            assertThat(getter.hasRole(MethodRole.SETTER)).isFalse();
+            assertThat(business.hasRole(MethodRole.BUSINESS)).isTrue();
+        }
+
+        @Test
+        @DisplayName("should identify getter method")
+        void shouldIdentifyGetterMethod() {
+            // given
+            Method getter = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+            Method notGetter = Method.of("process", TypeRef.of("void"), Set.of(MethodRole.BUSINESS));
+
+            // then
+            assertThat(getter.isGetter()).isTrue();
+            assertThat(notGetter.isGetter()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should identify setter method")
+        void shouldIdentifySetterMethod() {
+            // given
+            Method setter = Method.of("setName", TypeRef.of("void"), Set.of(MethodRole.SETTER));
+            Method notSetter = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+
+            // then
+            assertThat(setter.isSetter()).isTrue();
+            assertThat(notSetter.isSetter()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should identify factory method")
+        void shouldIdentifyFactoryMethod() {
+            // given
+            Method factory = Method.of("of", TypeRef.of("Order"), Set.of(MethodRole.FACTORY));
+
+            // then
+            assertThat(factory.isFactory()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should identify business method")
+        void shouldIdentifyBusinessMethod() {
+            // given
+            Method business = Method.of("placeOrder", TypeRef.of("Order"), Set.of(MethodRole.BUSINESS));
+
+            // then
+            assertThat(business.isBusiness()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should identify accessor method")
+        void shouldIdentifyAccessorMethod() {
+            // given
+            Method getter = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+            Method query = Method.of("find", TypeRef.of("Order"), Set.of(MethodRole.QUERY));
+            Method business = Method.of("process", TypeRef.of("void"), Set.of(MethodRole.BUSINESS));
+
+            // then
+            assertThat(getter.isAccessor()).isTrue();
+            assertThat(query.isAccessor()).isTrue();
+            assertThat(business.isAccessor()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should identify mutation method")
+        void shouldIdentifyMutationMethod() {
+            // given
+            Method setter = Method.of("setName", TypeRef.of("void"), Set.of(MethodRole.SETTER));
+            Method command = Method.of("create", TypeRef.of("void"), Set.of(MethodRole.COMMAND));
+            Method business = Method.of("process", TypeRef.of("void"), Set.of(MethodRole.BUSINESS));
+            Method query = Method.of("find", TypeRef.of("Order"), Set.of(MethodRole.QUERY));
+
+            // then
+            assertThat(setter.isMutation()).isTrue();
+            assertThat(command.isMutation()).isTrue();
+            assertThat(business.isMutation()).isTrue();
+            assertThat(query.isMutation()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should identify object method")
+        void shouldIdentifyObjectMethod() {
+            // given
+            Method equals = Method.of("equals", TypeRef.of("boolean"), Set.of(MethodRole.OBJECT_METHOD));
+            Method business = Method.of("process", TypeRef.of("void"), Set.of(MethodRole.BUSINESS));
+
+            // then
+            assertThat(equals.isObjectMethod()).isTrue();
+            assertThat(business.isObjectMethod()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should support multiple roles")
+        void shouldSupportMultipleRoles() {
+            // given
+            Method method = new Method(
+                    "findAndUpdate",
+                    TypeRef.of("Order"),
+                    List.of(),
+                    Set.of(),
+                    List.of(),
+                    Optional.empty(),
+                    List.of(),
+                    Set.of(MethodRole.QUERY, MethodRole.COMMAND));
+
+            // then
+            assertThat(method.hasRole(MethodRole.QUERY)).isTrue();
+            assertThat(method.hasRole(MethodRole.COMMAND)).isTrue();
+            assertThat(method.isAccessor()).isTrue();
+            assertThat(method.isMutation()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return immutable roles set")
+        void shouldReturnImmutableRolesSet() {
+            // given
+            Method method = Method.of("getName", TypeRef.of("String"), Set.of(MethodRole.GETTER));
+
+            // when/then
+            assertThatThrownBy(() -> method.roles().add(MethodRole.SETTER))
+                    .isInstanceOf(UnsupportedOperationException.class);
         }
     }
 }

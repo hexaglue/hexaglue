@@ -16,23 +16,21 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
 import io.hexaglue.plugin.jpa.util.TypeMappings;
-import io.hexaglue.spi.ir.DomainProperty;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.JavaConstruct;
 import io.hexaglue.spi.ir.Nullability;
 import io.hexaglue.syntax.TypeForm;
-import java.util.List;
 import java.util.Map;
 
 /**
  * Intermediate representation of a simple property field for JPA entity generation.
  *
- * <p>This record bridges the gap between the SPI's {@link DomainProperty} and
- * JavaPoet's code generation model. It contains only the information needed to
+ * <p>This record bridges the domain model and JavaPoet's code generation model.
+ * It contains only the information needed to
  * generate a JPA field with appropriate annotations.
  *
  * <p>Design decision: This spec focuses on simple properties only. Relationships
@@ -63,190 +61,6 @@ public record PropertyFieldSpec(
         boolean isWrappedForeignKey,
         TypeName unwrappedType,
         String wrapperAccessorMethod) {
-
-    /**
-     * Creates a PropertyFieldSpec from a SPI DomainProperty.
-     *
-     * <p>This factory method performs the conversion from the SPI domain model
-     * to the JavaPoet-based generation model. It handles type conversion and
-     * column name transformation.
-     *
-     * <p>Note: This method cannot detect Value Objects or enums since it doesn't have
-     * access to all domain types. Use {@link #from(DomainProperty, List)} for
-     * Value Object and enum detection.
-     *
-     * @param property the domain property from the SPI
-     * @return a PropertyFieldSpec ready for code generation
-     * @throws IllegalArgumentException if the property has a relationship (use RelationFieldSpec instead)
-     */
-    public static PropertyFieldSpec from(DomainProperty property) {
-        return from(property, List.of());
-    }
-
-    /**
-     * Creates a PropertyFieldSpec from a SPI DomainProperty with Value Object and enum detection.
-     *
-     * <p>This factory method performs the conversion from the SPI domain model
-     * to the JavaPoet-based generation model. It handles type conversion,
-     * column name transformation, Value Object detection, and enum detection.
-     *
-     * <p>A property is considered a Value Object if its type is classified as
-     * {@link ElementKind#VALUE_OBJECT} in the provided list of all domain types.
-     *
-     * <p>A property is considered an enum if its type has {@link JavaConstruct#ENUM}
-     * in the provided list of all domain types. Enums require special JPA handling
-     * with {@code @Enumerated(EnumType.STRING)}.
-     *
-     * <p>A property is considered a wrapped foreign key if its type is a VALUE_OBJECT
-     * record with exactly one property, and the type name ends with "Id". These
-     * inter-aggregate references should be unwrapped for JPA persistence.
-     *
-     * @param property the domain property from the SPI
-     * @param allTypes all domain types from the IR snapshot for Value Object and enum detection
-     * @return a PropertyFieldSpec ready for code generation
-     * @throws IllegalArgumentException if the property has a relationship (use RelationFieldSpec instead)
-     */
-    public static PropertyFieldSpec from(DomainProperty property, List<DomainType> allTypes) {
-        return from(property, allTypes, Map.of(), null);
-    }
-
-    /**
-     * Creates a PropertyFieldSpec with embeddable type substitution support.
-     *
-     * <p>This factory method extends {@link #from(DomainProperty, List)} with support
-     * for substituting complex VALUE_OBJECT types with their generated embeddable types.
-     *
-     * <p>When a property's type is found in the embeddableMapping, the javaType is
-     * substituted with the corresponding embeddable type. This is used when generating
-     * embeddable classes that contain nested VALUE_OBJECTs.
-     *
-     * @param property the domain property from the SPI
-     * @param allTypes all domain types from the IR snapshot
-     * @param embeddableMapping map from domain FQN to embeddable FQN
-     * @param infrastructurePackage the infrastructure package for embeddable types
-     * @return a PropertyFieldSpec ready for code generation
-     * @throws IllegalArgumentException if the property has a relationship
-     */
-    public static PropertyFieldSpec from(
-            DomainProperty property,
-            List<DomainType> allTypes,
-            Map<String, String> embeddableMapping,
-            String infrastructurePackage) {
-        if (property.hasRelation()) {
-            throw new IllegalArgumentException(
-                    "Property " + property.name() + " has a relation. Use RelationFieldSpec.from() instead.");
-        }
-
-        if (property.isIdentity()) {
-            throw new IllegalArgumentException(
-                    "Property " + property.name() + " is an identity. Use IdFieldSpec.from() instead.");
-        }
-
-        TypeName javaType = TypeMappings.toJpaType(property.type());
-        String columnName = JpaModelUtils.toSnakeCase(property.name());
-        String typeQualifiedName = property.type().qualifiedName();
-
-        // Check if this type should be substituted with an embeddable type
-        // This is used for complex VALUE_OBJECTs that have corresponding generated embeddables
-        if (embeddableMapping != null && embeddableMapping.containsKey(typeQualifiedName)) {
-            String embeddableFqn = embeddableMapping.get(typeQualifiedName);
-            javaType = ClassName.bestGuess(embeddableFqn);
-            // For embeddable substitution, return a spec with the substituted type
-            // No need for unwrapping since the embeddable handles the mapping
-            return new PropertyFieldSpec(
-                    property.name(),
-                    javaType,
-                    property.nullability(),
-                    columnName,
-                    true, // isEmbedded - treated as embedded since it's an embeddable type
-                    true, // isValueObject
-                    false, // isEnum
-                    embeddableFqn,
-                    false, // isWrappedForeignKey
-                    null, // unwrappedType - not applicable
-                    null); // wrapperAccessorMethod - not applicable
-        }
-
-        // Find the matching domain type to check its properties
-        DomainType matchingType = allTypes.stream()
-                .filter(type -> type.qualifiedName().equals(typeQualifiedName))
-                .findFirst()
-                .orElse(null);
-
-        // Detect if the property's type is a Value Object
-        boolean isValueObject = matchingType != null && matchingType.isValueObject();
-
-        // Detect if the property's type is an enum
-        boolean isEnum = matchingType != null && matchingType.construct() == JavaConstruct.ENUM;
-
-        // Detect if the property is a simple wrapper type (single-property VALUE_OBJECT or IDENTIFIER)
-        // This includes:
-        // - Foreign keys like CustomerId (single property, name ends with "Id")
-        // - Simple value wrappers like Money, Quantity (single property)
-        // These should be unwrapped to their primitive types for JPA persistence
-        boolean isSimpleWrapper = isSimpleWrapperType(matchingType);
-        boolean isWrappedForeignKey = isSimpleWrapper
-                && matchingType != null
-                && matchingType.simpleName().endsWith("Id");
-        TypeName unwrappedType = null;
-        String wrapperAccessorMethod = null;
-
-        if (isSimpleWrapper && matchingType != null) {
-            // Get the single property from the wrapper type
-            DomainProperty wrappedProperty = matchingType.properties().get(0);
-            unwrappedType = TypeMappings.toJpaType(wrappedProperty.type());
-            // For records, the accessor is the property name (e.g., "value")
-            wrapperAccessorMethod =
-                    matchingType.isRecord() ? wrappedProperty.name() : "get" + capitalize(wrappedProperty.name());
-        }
-
-        return new PropertyFieldSpec(
-                property.name(),
-                javaType,
-                property.nullability(),
-                columnName,
-                property.isEmbedded(),
-                isValueObject,
-                isEnum,
-                typeQualifiedName,
-                isWrappedForeignKey,
-                unwrappedType,
-                wrapperAccessorMethod);
-    }
-
-    /**
-     * Determines if a domain type is a simple wrapper type.
-     *
-     * <p>A simple wrapper type is identified by the following criteria:
-     * <ul>
-     *   <li>It is a VALUE_OBJECT or IDENTIFIER (typed wrapper)</li>
-     *   <li>It is a Java record (immutable wrapper pattern)</li>
-     *   <li>It has exactly one property (single-field wrapper)</li>
-     * </ul>
-     *
-     * <p>This includes both:
-     * <ul>
-     *   <li>Foreign keys: {@code CustomerId(UUID value)}, {@code ProductId(Long value)}</li>
-     *   <li>Value wrappers: {@code Money(BigDecimal amount)}, {@code Quantity(int value)}</li>
-     * </ul>
-     *
-     * <p>These wrapper types should be unwrapped to their primitive types for JPA persistence
-     * in embeddable classes, avoiding the need for complex embedded relationships.
-     *
-     * @param type the domain type to check
-     * @return true if the type is a simple wrapper
-     */
-    private static boolean isSimpleWrapperType(DomainType type) {
-        if (type == null) {
-            return false;
-        }
-        // Accept both VALUE_OBJECT and IDENTIFIER kinds
-        // Both are single-property wrappers that should be unwrapped
-        boolean isWrapper = type.isValueObject() || type.kind() == ElementKind.IDENTIFIER;
-        return isWrapper
-                && type.construct() == JavaConstruct.RECORD
-                && type.properties().size() == 1;
-    }
 
     private static String capitalize(String str) {
         if (str == null || str.isEmpty()) {
@@ -329,6 +143,175 @@ public record PropertyFieldSpec(
             return false;
         }
         return (vo.syntax().form() == TypeForm.RECORD) && vo.componentFields().size() == 1;
+    }
+
+    /**
+     * Creates a PropertyFieldSpec from a v5 model Field.
+     *
+     * <p>This factory method converts the v5 arch.model.Field to the JavaPoet-based
+     * generation model. It uses the ArchitecturalModel's domainIndex to detect value objects.
+     *
+     * @param field the field from arch.model
+     * @param model the architectural model for value object detection
+     * @return a PropertyFieldSpec ready for code generation
+     * @throws IllegalArgumentException if the field has an IDENTITY role
+     * @since 5.0.0
+     */
+    public static PropertyFieldSpec fromV5(Field field, ArchitecturalModel model) {
+        return fromV5(field, model, Map.of(), null);
+    }
+
+    /**
+     * Creates a PropertyFieldSpec from a v5 model Field with embeddable mapping support.
+     *
+     * <p>This factory method extends {@link #fromV5(Field, ArchitecturalModel)} with support
+     * for substituting complex VALUE_OBJECT types with their generated embeddable types.
+     *
+     * <p>When a field's type is found in the embeddableMapping, the javaType is
+     * substituted with the corresponding embeddable type. This is used when generating
+     * embeddable classes that contain nested VALUE_OBJECTs (e.g., OrderLine with Money).
+     *
+     * <p>Simple wrapper types (single-field VALUE_OBJECTs like Quantity) are still
+     * unwrapped to their primitive types regardless of the embeddable mapping.
+     *
+     * @param field the field from arch.model
+     * @param model the architectural model for value object detection
+     * @param embeddableMapping map from domain FQN to embeddable FQN
+     * @param infrastructurePackage the infrastructure package for embeddable types (unused but for consistency)
+     * @return a PropertyFieldSpec ready for code generation
+     * @throws IllegalArgumentException if the field has an IDENTITY role
+     * @since 5.0.0
+     */
+    public static PropertyFieldSpec fromV5(
+            Field field, ArchitecturalModel model, Map<String, String> embeddableMapping, String infrastructurePackage) {
+        // Skip identity fields - they are handled by IdFieldSpec
+        if (field.hasRole(FieldRole.IDENTITY)) {
+            throw new IllegalArgumentException(
+                    "Field " + field.name() + " is an identity. Use IdFieldSpec.from() instead.");
+        }
+
+        TypeName javaType = TypeMappings.toJpaType(field.type().qualifiedName());
+        String columnName = JpaModelUtils.toSnakeCase(field.name());
+        String typeQualifiedName = field.type().qualifiedName();
+
+        // Detect value object using v5 domainIndex (if available)
+        io.hexaglue.arch.model.ValueObject matchingVo = null;
+        io.hexaglue.arch.model.Identifier matchingId = null;
+        var domainIndexOpt = model.domainIndex();
+        if (domainIndexOpt.isPresent()) {
+            var domainIndex = domainIndexOpt.get();
+
+            // Check if it's a Value Object
+            matchingVo = domainIndex
+                    .valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(typeQualifiedName))
+                    .findFirst()
+                    .orElse(null);
+
+            // Also check if it's an Identifier (for fields like productId: ProductId)
+            if (matchingVo == null) {
+                matchingId = domainIndex
+                        .identifiers()
+                        .filter(id -> id.id().qualifiedName().equals(typeQualifiedName))
+                        .findFirst()
+                        .orElse(null);
+            }
+        }
+
+        boolean isValueObject = matchingVo != null;
+        boolean isIdentifier = matchingId != null;
+
+        // Detect enum type using structure
+        boolean isEnum = matchingVo != null
+                && matchingVo.structure() != null
+                && matchingVo.structure().nature() == TypeNature.ENUM;
+
+        // Detect simple wrapper type
+        boolean isSimpleWrapper = isSimpleWrapperV5(matchingVo);
+        boolean isWrappedForeignKey = (isSimpleWrapper || isIdentifier) && typeQualifiedName.endsWith("Id");
+
+        TypeName unwrappedType = null;
+        String wrapperAccessorMethod = null;
+
+        // Handle Value Object simple wrappers
+        if (isSimpleWrapper && matchingVo != null) {
+            var wrappedFieldOpt = matchingVo.wrappedField();
+            if (wrappedFieldOpt.isPresent()) {
+                var wrappedField = wrappedFieldOpt.get();
+                unwrappedType = TypeMappings.toJpaType(wrappedField.type().qualifiedName());
+                boolean isRecord = matchingVo.structure().isRecord();
+                wrapperAccessorMethod = isRecord ? wrappedField.name() : "get" + capitalize(wrappedField.name());
+            }
+        }
+
+        // Handle Identifier types (e.g., ProductId wrapping UUID)
+        if (matchingId != null) {
+            var wrappedTypeRef = matchingId.wrappedType();
+            if (wrappedTypeRef != null) {
+                unwrappedType = TypeMappings.toJpaType(wrappedTypeRef.qualifiedName());
+                // For identifiers, assume record-style accessor with 'value' field
+                boolean isRecord = matchingId.structure().isRecord();
+                wrapperAccessorMethod = isRecord ? "value" : "getValue";
+            }
+        }
+
+        // Determine nullability from annotations
+        boolean isNullable = !field.hasAnnotation("jakarta.persistence.NotNull")
+                && !field.hasAnnotation("javax.validation.constraints.NotNull")
+                && !field.hasAnnotation("javax.persistence.NotNull");
+        Nullability nullability = isNullable ? Nullability.NULLABLE : Nullability.NON_NULL;
+
+        // Check if embedded
+        boolean isEmbedded = field.hasRole(FieldRole.EMBEDDED);
+
+        // Check if this type should be substituted with an embeddable type
+        // Only substitute if it's a VALUE_OBJECT that is NOT a simple wrapper
+        // Simple wrappers (like Quantity) should be unwrapped to their primitive type
+        // Complex VALUE_OBJECTs (like Money with 2 fields) should use @Embedded with the embeddable type
+        if (embeddableMapping != null && !embeddableMapping.isEmpty() && !isSimpleWrapper && !isIdentifier
+                && embeddableMapping.containsKey(typeQualifiedName)) {
+            String embeddableFqn = embeddableMapping.get(typeQualifiedName);
+            TypeName embeddableType = ClassName.bestGuess(embeddableFqn);
+            return new PropertyFieldSpec(
+                    field.name(),
+                    embeddableType,
+                    nullability,
+                    columnName,
+                    true, // isEmbedded - treated as embedded since it's an embeddable type
+                    true, // isValueObject
+                    false, // isEnum - embeddables are not enums
+                    embeddableFqn,
+                    false, // isWrappedForeignKey
+                    null, // unwrappedType - not applicable for complex VOs
+                    null); // wrapperAccessorMethod - not applicable
+        }
+
+        return new PropertyFieldSpec(
+                field.name(),
+                javaType,
+                nullability,
+                columnName,
+                isEmbedded,
+                isValueObject,
+                isEnum,
+                typeQualifiedName,
+                isWrappedForeignKey,
+                unwrappedType,
+                wrapperAccessorMethod);
+    }
+
+    /**
+     * Determines if a v5 value object is a simple wrapper type.
+     *
+     * @param vo the v5 model value object
+     * @return true if it's a single-value wrapper record
+     * @since 5.0.0
+     */
+    private static boolean isSimpleWrapperV5(io.hexaglue.arch.model.ValueObject vo) {
+        if (vo == null) {
+            return false;
+        }
+        return vo.isSingleValue() && vo.structure().isRecord();
     }
 
     /**

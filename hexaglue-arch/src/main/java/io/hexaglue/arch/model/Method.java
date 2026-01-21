@@ -25,7 +25,21 @@ import java.util.stream.Collectors;
  * Representation of a method in a type.
  *
  * <p>This record captures the method's signature, including name, return type,
- * parameters, modifiers, annotations, and thrown exceptions.</p>
+ * parameters, modifiers, annotations, thrown exceptions, and semantic roles.</p>
+ *
+ * <h2>Method Roles</h2>
+ * <p>Methods can have semantic roles that describe their purpose:</p>
+ * <ul>
+ *   <li>{@link MethodRole#GETTER} - Property accessor (getX/isX)</li>
+ *   <li>{@link MethodRole#SETTER} - Property mutator (setX)</li>
+ *   <li>{@link MethodRole#FACTORY} - Static factory method</li>
+ *   <li>{@link MethodRole#BUSINESS} - Domain business logic</li>
+ *   <li>{@link MethodRole#VALIDATION} - Validation/invariant check</li>
+ *   <li>{@link MethodRole#LIFECYCLE} - Lifecycle callback</li>
+ *   <li>{@link MethodRole#OBJECT_METHOD} - equals/hashCode/toString</li>
+ *   <li>{@link MethodRole#COMMAND} - CQRS command (modifies state)</li>
+ *   <li>{@link MethodRole#QUERY} - CQRS query (reads state)</li>
+ * </ul>
  *
  * <h2>Usage</h2>
  * <pre>{@code
@@ -40,10 +54,19 @@ import java.util.stream.Collectors;
  *     Set.of(Modifier.PUBLIC),
  *     List.of(Annotation.of("Override")),
  *     Optional.of("Finds an entity by ID"),
- *     List.of(TypeRef.of("java.lang.RuntimeException")));
+ *     List.of(TypeRef.of("java.lang.RuntimeException")),
+ *     Set.of(MethodRole.QUERY));
  *
  * // Get method signature
  * String sig = findById.signature(); // "findById(Long)"
+ *
+ * // Check method roles
+ * if (findById.hasRole(MethodRole.QUERY)) {
+ *     // Handle query method
+ * }
+ * if (findById.isGetter() || findById.isSetter()) {
+ *     // Skip accessors
+ * }
  * }</pre>
  *
  * @param name the method name
@@ -53,7 +76,9 @@ import java.util.stream.Collectors;
  * @param annotations the annotations on this method (immutable)
  * @param documentation the method's documentation (if present)
  * @param thrownExceptions the exceptions declared to be thrown (immutable)
+ * @param roles the semantic roles of this method (immutable)
  * @since 4.1.0
+ * @since 5.0.0 Added roles parameter
  */
 public record Method(
         String name,
@@ -62,7 +87,8 @@ public record Method(
         Set<Modifier> modifiers,
         List<Annotation> annotations,
         Optional<String> documentation,
-        List<TypeRef> thrownExceptions) {
+        List<TypeRef> thrownExceptions,
+        Set<MethodRole> roles) {
 
     /**
      * Creates a new Method.
@@ -74,6 +100,7 @@ public record Method(
      * @param annotations the annotations, must not be null
      * @param documentation the documentation, must not be null
      * @param thrownExceptions the thrown exceptions, must not be null
+     * @param roles the semantic roles, must not be null
      * @throws NullPointerException if any argument is null
      * @throws IllegalArgumentException if name is blank
      */
@@ -85,6 +112,7 @@ public record Method(
         Objects.requireNonNull(annotations, "annotations must not be null");
         Objects.requireNonNull(documentation, "documentation must not be null");
         Objects.requireNonNull(thrownExceptions, "thrownExceptions must not be null");
+        Objects.requireNonNull(roles, "roles must not be null");
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
@@ -92,6 +120,7 @@ public record Method(
         modifiers = Set.copyOf(modifiers);
         annotations = List.copyOf(annotations);
         thrownExceptions = List.copyOf(thrownExceptions);
+        roles = Set.copyOf(roles);
     }
 
     /**
@@ -104,7 +133,22 @@ public record Method(
      * @throws IllegalArgumentException if name is blank
      */
     public static Method of(String name, TypeRef returnType) {
-        return new Method(name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of());
+        return new Method(name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), Set.of());
+    }
+
+    /**
+     * Creates a method with the given name, return type, and roles.
+     *
+     * @param name the method name
+     * @param returnType the return type
+     * @param roles the semantic roles
+     * @return a new Method
+     * @throws NullPointerException if any argument is null
+     * @throws IllegalArgumentException if name is blank
+     * @since 5.0.0
+     */
+    public static Method of(String name, TypeRef returnType, Set<MethodRole> roles) {
+        return new Method(name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles);
     }
 
     /**
@@ -137,5 +181,95 @@ public record Method(
      */
     public boolean isAbstract() {
         return modifiers.contains(Modifier.ABSTRACT);
+    }
+
+    /**
+     * Returns whether this method is static.
+     *
+     * @return true if the method has the STATIC modifier
+     */
+    public boolean isStatic() {
+        return modifiers.contains(Modifier.STATIC);
+    }
+
+    /**
+     * Returns whether this method has the given role.
+     *
+     * @param role the role to check
+     * @return true if the method has this role
+     * @since 5.0.0
+     */
+    public boolean hasRole(MethodRole role) {
+        return roles.contains(role);
+    }
+
+    /**
+     * Returns whether this method is a getter.
+     *
+     * @return true if the method has the GETTER role
+     * @since 5.0.0
+     */
+    public boolean isGetter() {
+        return hasRole(MethodRole.GETTER);
+    }
+
+    /**
+     * Returns whether this method is a setter.
+     *
+     * @return true if the method has the SETTER role
+     * @since 5.0.0
+     */
+    public boolean isSetter() {
+        return hasRole(MethodRole.SETTER);
+    }
+
+    /**
+     * Returns whether this method is a factory method.
+     *
+     * @return true if the method has the FACTORY role
+     * @since 5.0.0
+     */
+    public boolean isFactory() {
+        return hasRole(MethodRole.FACTORY);
+    }
+
+    /**
+     * Returns whether this method is a business logic method.
+     *
+     * @return true if the method has the BUSINESS role
+     * @since 5.0.0
+     */
+    public boolean isBusiness() {
+        return hasRole(MethodRole.BUSINESS);
+    }
+
+    /**
+     * Returns whether this method is an accessor (getter or query).
+     *
+     * @return true if the method has an accessor role
+     * @since 5.0.0
+     */
+    public boolean isAccessor() {
+        return roles.stream().anyMatch(MethodRole::isAccessor);
+    }
+
+    /**
+     * Returns whether this method is a mutation (setter, command, or business).
+     *
+     * @return true if the method has a mutation role
+     * @since 5.0.0
+     */
+    public boolean isMutation() {
+        return roles.stream().anyMatch(MethodRole::isMutation);
+    }
+
+    /**
+     * Returns whether this method is an Object method (equals, hashCode, toString).
+     *
+     * @return true if the method has the OBJECT_METHOD role
+     * @since 5.0.0
+     */
+    public boolean isObjectMethod() {
+        return hasRole(MethodRole.OBJECT_METHOD);
     }
 }

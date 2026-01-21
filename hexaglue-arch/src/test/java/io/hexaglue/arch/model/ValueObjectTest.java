@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.syntax.TypeRef;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -112,6 +114,104 @@ class ValueObjectTest {
             assertThat(vo.qualifiedName()).isEqualTo("com.example.Money");
             assertThat(vo.simpleName()).isEqualTo("Money");
             assertThat(vo.packageName()).isEqualTo("com.example");
+        }
+    }
+
+    @Nested
+    @DisplayName("Single Value Detection")
+    class SingleValueDetection {
+
+        private static final TypeRef UUID_TYPE = new TypeRef("java.util.UUID", "UUID", List.of(), false, false, 0);
+        private static final TypeRef STRING_TYPE =
+                new TypeRef("java.lang.String", "String", List.of(), false, false, 0);
+        private static final TypeRef INT_TYPE = new TypeRef("int", "int", List.of(), true, false, 0);
+
+        @Test
+        @DisplayName("should detect single-value value object")
+        void shouldDetectSingleValueObject() {
+            // given
+            Field valueField = Field.builder("value", UUID_TYPE).build();
+            TypeStructure singleFieldStructure = TypeStructure.builder(TypeNature.RECORD)
+                    .fields(List.of(valueField))
+                    .build();
+
+            // when
+            ValueObject vo = ValueObject.of(TypeId.of("com.example.OrderId"), singleFieldStructure, TRACE);
+
+            // then
+            assertThat(vo.isSingleValue()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should not detect multi-field value object as single value")
+        void shouldNotDetectMultiFieldAsingleValue() {
+            // given
+            Field amountField = Field.builder("amount", INT_TYPE).build();
+            Field currencyField = Field.builder("currency", STRING_TYPE).build();
+            TypeStructure multiFieldStructure = TypeStructure.builder(TypeNature.RECORD)
+                    .fields(List.of(amountField, currencyField))
+                    .build();
+
+            // when
+            ValueObject vo = ValueObject.of(TypeId.of("com.example.Money"), multiFieldStructure, TRACE);
+
+            // then
+            assertThat(vo.isSingleValue()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should not detect empty value object as single value")
+        void shouldNotDetectEmptyAsSingleValue() {
+            // when
+            ValueObject vo = ValueObject.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(vo.isSingleValue()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should return wrapped field for single-value value object")
+        void shouldReturnWrappedFieldForSingleValue() {
+            // given
+            Field valueField = Field.builder("value", UUID_TYPE).build();
+            TypeStructure singleFieldStructure = TypeStructure.builder(TypeNature.RECORD)
+                    .fields(List.of(valueField))
+                    .build();
+
+            // when
+            ValueObject vo = ValueObject.of(TypeId.of("com.example.OrderId"), singleFieldStructure, TRACE);
+
+            // then
+            assertThat(vo.wrappedField()).isPresent();
+            assertThat(vo.wrappedField().get().name()).isEqualTo("value");
+            assertThat(vo.wrappedField().get().type()).isEqualTo(UUID_TYPE);
+        }
+
+        @Test
+        @DisplayName("should return empty for multi-field value object")
+        void shouldReturnEmptyForMultiField() {
+            // given
+            Field amountField = Field.builder("amount", INT_TYPE).build();
+            Field currencyField = Field.builder("currency", STRING_TYPE).build();
+            TypeStructure multiFieldStructure = TypeStructure.builder(TypeNature.RECORD)
+                    .fields(List.of(amountField, currencyField))
+                    .build();
+
+            // when
+            ValueObject vo = ValueObject.of(TypeId.of("com.example.Money"), multiFieldStructure, TRACE);
+
+            // then
+            assertThat(vo.wrappedField()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should return empty for empty value object")
+        void shouldReturnEmptyForEmptyValueObject() {
+            // when
+            ValueObject vo = ValueObject.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(vo.wrappedField()).isEmpty();
         }
     }
 

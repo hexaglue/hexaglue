@@ -95,13 +95,25 @@ class FieldRoleDetectorTest {
         }
 
         @Test
-        @DisplayName("should detect field ending with 'Id'")
+        @DisplayName("should detect field ending with 'Id' matching declaring type")
         void shouldDetectFieldEndingWithId() {
-            FieldNode field = createField("orderId", "com.example.OrderId", List.of());
+            // orderId in Order class should be detected as identity
+            FieldNode field = createFieldInType("orderId", "com.example.OrderId", List.of(), "com.example.Order");
 
             Set<FieldRole> roles = detector.detect(field, context);
 
             assertThat(roles).contains(FieldRole.IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should not detect field ending with 'Id' when it's a foreign key reference")
+        void shouldNotDetectForeignKeyAsIdentity() {
+            // productId in OrderLine is a foreign key reference, not an identity
+            FieldNode field = createFieldInType("productId", "com.example.ProductId", List.of(), "com.example.OrderLine");
+
+            Set<FieldRole> roles = detector.detect(field, context);
+
+            assertThat(roles).doesNotContain(FieldRole.IDENTITY);
         }
 
         @Test
@@ -332,7 +344,7 @@ class FieldRoleDetectorTest {
         @Test
         @DisplayName("should detect multiple roles for a field")
         void shouldDetectMultipleRoles() {
-            // Field that is both IDENTITY and EMBEDDED (orderId referencing an Identifier type)
+            // Field that is both IDENTITY and EMBEDDED (orderId in Order referencing an Identifier type)
             NodeId idNodeId = NodeId.type("com.example.OrderId");
             ClassificationResult idResult = ClassificationResult.classified(
                     idNodeId,
@@ -347,7 +359,8 @@ class FieldRoleDetectorTest {
 
             context = BuilderContext.of(new TestGraphQuery(), new ClassificationResults(Map.of(idNodeId, idResult)));
 
-            FieldNode field = createField("orderId", "com.example.OrderId", List.of());
+            // orderId in Order class is both IDENTITY and EMBEDDED
+            FieldNode field = createFieldInType("orderId", "com.example.OrderId", List.of(), "com.example.Order");
 
             Set<FieldRole> roles = detector.detect(field, context);
 
@@ -373,6 +386,16 @@ class FieldRoleDetectorTest {
                 .declaringTypeName("com.example.TestClass")
                 .simpleName(name)
                 .type(collectionType)
+                .annotations(annotations)
+                .build();
+    }
+
+    private FieldNode createFieldInType(
+            String name, String typeName, List<AnnotationRef> annotations, String declaringTypeName) {
+        return FieldNode.builder()
+                .declaringTypeName(declaringTypeName)
+                .simpleName(name)
+                .type(TypeRef.of(typeName))
                 .annotations(annotations)
                 .build();
     }

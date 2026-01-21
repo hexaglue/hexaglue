@@ -50,7 +50,8 @@ class EntityBuilderTest {
     @BeforeEach
     void setUp() {
         FieldRoleDetector fieldRoleDetector = new FieldRoleDetector();
-        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector);
+        MethodRoleDetector methodRoleDetector = new MethodRoleDetector();
+        TypeStructureBuilder typeStructureBuilder = new TypeStructureBuilder(fieldRoleDetector, methodRoleDetector);
         ClassificationTraceConverter traceConverter = new ClassificationTraceConverter();
         builder = new EntityBuilder(typeStructureBuilder, traceConverter, fieldRoleDetector);
     }
@@ -217,17 +218,18 @@ class EntityBuilderTest {
         }
 
         @Test
-        @DisplayName("should detect identity field ending with Id")
+        @DisplayName("should detect identity field ending with Id matching type name")
         void shouldDetectIdentityFieldEndingWithId() {
+            // productId in Product class should be detected as identity (productId matches Product)
             FieldNode productIdField = FieldNode.builder()
                     .simpleName("productId")
-                    .declaringTypeName("com.example.ProductItem")
+                    .declaringTypeName("com.example.Product")
                     .type(TypeRef.of("com.example.ProductId"))
                     .modifiers(Set.of(JavaModifier.PRIVATE, JavaModifier.FINAL))
                     .build();
 
             TypeNode typeNode = TypeNode.builder()
-                    .qualifiedName("com.example.ProductItem")
+                    .qualifiedName("com.example.Product")
                     .form(JavaForm.CLASS)
                     .build();
 

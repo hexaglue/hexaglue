@@ -14,19 +14,17 @@
 package io.hexaglue.plugin.jpa.builder;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.jpa.JpaConfig;
-import io.hexaglue.plugin.jpa.extraction.JpaAnnotationExtractor;
-import io.hexaglue.plugin.jpa.extraction.PropertyInfo;
 import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
-import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * Builder for transforming v4 ValueObject to EmbeddableSpec model.
+ * Builder for transforming ValueObject to EmbeddableSpec model.
  *
  * <p>This builder applies the transformation logic to convert domain value objects
  * into JPA embeddable specifications ready for JavaPoet code generation.
@@ -45,7 +43,8 @@ import java.util.stream.Collectors;
  */
 public final class EmbeddableSpecBuilder {
 
-    private ValueObject valueObject;
+    private io.hexaglue.arch.model.ValueObject valueObject;
+
     private ArchitecturalModel architecturalModel;
     private JpaConfig config;
     private String infrastructurePackage;
@@ -87,19 +86,19 @@ public final class EmbeddableSpecBuilder {
     }
 
     /**
-     * Sets the v4 value object to transform.
+     * Sets the value object to transform.
      *
-     * @param vo the value object from ArchitecturalModel
+     * @param vo the value object from the model
      * @return this builder
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    public EmbeddableSpecBuilder valueObject(ValueObject vo) {
+    public EmbeddableSpecBuilder valueObject(io.hexaglue.arch.model.ValueObject vo) {
         this.valueObject = vo;
         return this;
     }
 
     /**
-     * Sets the v4 architectural model for type resolution.
+     * Sets the architectural model for type resolution.
      *
      * @param model the architectural model
      * @return this builder
@@ -133,16 +132,11 @@ public final class EmbeddableSpecBuilder {
     public EmbeddableSpec build() {
         validateRequiredFields();
 
-        TypeSyntax syntax = valueObject.syntax();
-        if (syntax == null) {
-            throw new IllegalStateException("Value object " + valueObject.id().qualifiedName()
-                    + " has no syntax. Cannot generate JPA embeddable.");
-        }
-
+        TypeStructure structure = valueObject.structure();
         String simpleName = valueObject.id().simpleName();
         String className = simpleName + config.embeddableSuffix();
 
-        List<PropertyFieldSpec> properties = buildPropertySpecs(syntax);
+        List<PropertyFieldSpec> properties = buildPropertySpecs(structure);
 
         return EmbeddableSpec.builder()
                 .packageName(infrastructurePackage)
@@ -153,12 +147,21 @@ public final class EmbeddableSpecBuilder {
     }
 
     /**
-     * Builds property field specifications using v4 model.
+     * Builds property field specifications.
+     *
+     * <p>This method uses the embeddableMapping to substitute complex VALUE_OBJECT
+     * types (like Money) with their generated embeddable types (like MoneyEmbeddable).
+     * Simple wrappers (like Quantity with a single field) are unwrapped to their
+     * primitive types instead.</p>
+     *
+     * @since 5.0.0
      */
-    private List<PropertyFieldSpec> buildPropertySpecs(TypeSyntax syntax) {
-        List<PropertyInfo> properties = JpaAnnotationExtractor.extractProperties(syntax);
-        return properties.stream()
-                .map(prop -> PropertyFieldSpec.from(prop, architecturalModel))
+    private List<PropertyFieldSpec> buildPropertySpecs(TypeStructure structure) {
+        return structure.fields().stream()
+                .filter(f -> !f.hasRole(FieldRole.IDENTITY))
+                .filter(f -> !f.hasRole(FieldRole.COLLECTION))
+                .filter(f -> !f.hasRole(FieldRole.AGGREGATE_REFERENCE))
+                .map(f -> PropertyFieldSpec.fromV5(f, architecturalModel, embeddableMapping, infrastructurePackage))
                 .collect(Collectors.toList());
     }
 

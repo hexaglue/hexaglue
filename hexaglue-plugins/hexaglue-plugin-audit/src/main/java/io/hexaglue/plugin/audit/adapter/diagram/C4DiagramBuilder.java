@@ -220,7 +220,8 @@ public class C4DiagramBuilder {
         diagram.append("flowchart TB\n");
 
         // Find aggregates (DomainEntity with isAggregateRoot) using registry()
-        List<DomainEntity> aggregates = model.registry().all(DomainEntity.class)
+        List<DomainEntity> aggregates = model.registry()
+                .all(DomainEntity.class)
                 .filter(DomainEntity::isAggregateRoot)
                 .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
@@ -368,11 +369,15 @@ public class C4DiagramBuilder {
         Map<String, List<Object>> result = new HashMap<>();
 
         var childRegistry = model.registry();
-        List<DomainEntity> aggregates =
-                childRegistry.all(DomainEntity.class).filter(DomainEntity::isAggregateRoot).toList();
+        List<DomainEntity> aggregates = childRegistry
+                .all(DomainEntity.class)
+                .filter(DomainEntity::isAggregateRoot)
+                .toList();
 
-        List<DomainEntity> entities =
-                childRegistry.all(DomainEntity.class).filter(e -> !e.isAggregateRoot()).toList();
+        List<DomainEntity> entities = childRegistry
+                .all(DomainEntity.class)
+                .filter(e -> !e.isAggregateRoot())
+                .toList();
 
         List<ValueObject> valueObjects = childRegistry.all(ValueObject.class).toList();
 

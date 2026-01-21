@@ -63,6 +63,11 @@ public record EntitySpec(
         boolean enableAuditing,
         boolean enableOptimisticLocking) {
 
+    public EntitySpec {
+        properties = List.copyOf(properties);
+        relations = List.copyOf(relations);
+    }
+
     /**
      * Creates a new builder instance.
      *

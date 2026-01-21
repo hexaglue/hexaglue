@@ -22,6 +22,7 @@ import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.graph.model.FieldNode;
 import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -36,6 +37,11 @@ import java.util.Set;
  * <p>The identity field is detected using the {@link FieldRoleDetector} - it looks for
  * fields with the {@link FieldRole#IDENTITY} role (annotated with @Id or named "id").</p>
  *
+ * <h2>Owning Aggregate Detection (since 5.0.0)</h2>
+ * <p>The builder attempts to detect the owning aggregate for this entity by looking at
+ * field types. If the entity has a field of type matching an aggregate ID pattern
+ * (e.g., "orderId" of type "OrderId"), the corresponding aggregate is inferred.</p>
+ *
  * <h2>Usage</h2>
  * <pre>{@code
  * EntityBuilder builder = new EntityBuilder(structureBuilder, traceConverter, fieldRoleDetector);
@@ -43,6 +49,7 @@ import java.util.Set;
  * }</pre>
  *
  * @since 4.1.0
+ * @since 5.0.0 added owning aggregate detection
  */
 public final class EntityBuilder {
 
@@ -85,8 +92,9 @@ public final class EntityBuilder {
         TypeStructure structure = structureBuilder.build(typeNode, context);
         ClassificationTrace trace = traceConverter.convert(classification);
         Optional<Field> identityField = findIdentityField(typeNode, structure, context);
+        Optional<TypeRef> owningAggregate = detectOwningAggregate(structure, context);
 
-        return Entity.of(id, structure, trace, identityField.orElse(null));
+        return Entity.of(id, structure, trace, identityField, owningAggregate);
     }
 
     /**
@@ -123,5 +131,55 @@ public final class EntityBuilder {
         }
 
         return Optional.empty();
+    }
+
+    /**
+     * Detects the owning aggregate for this entity.
+     *
+     * <p>Detection is based on field types. If a field type matches an aggregate ID pattern
+     * (type name ending with "Id"), the corresponding aggregate is inferred as the owner.</p>
+     *
+     * <p>For example, if the entity has a field "orderId" of type "com.example.OrderId",
+     * and "com.example.Order" is a classified aggregate root, then "Order" is the owning aggregate.</p>
+     *
+     * @param structure the entity structure
+     * @param context the builder context
+     * @return the owning aggregate type, or empty
+     * @since 5.0.0
+     */
+    private Optional<TypeRef> detectOwningAggregate(TypeStructure structure, BuilderContext context) {
+        return structure.fields().stream()
+                .map(field -> detectAggregateFromField(field, context))
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    /**
+     * Attempts to detect an aggregate reference from a single field.
+     *
+     * @param field the field to analyze
+     * @param context the builder context
+     * @return the aggregate type if detected, or empty
+     */
+    private Optional<TypeRef> detectAggregateFromField(Field field, BuilderContext context) {
+        String fieldTypeName = field.type().qualifiedName();
+
+        // If the field type name ends with "Id", derive the aggregate name
+        if (fieldTypeName.endsWith("Id")) {
+            String aggregateName = fieldTypeName.substring(0, fieldTypeName.length() - 2);
+
+            // Check if this aggregate is in the classification results
+            if (context.isClassifiedAsAggregate(aggregateName)) {
+                return Optional.of(
+                        new TypeRef(aggregateName, extractSimpleName(aggregateName), List.of(), false, false, 0));
+            }
+        }
+
+        return Optional.empty();
+    }
+
+    private static String extractSimpleName(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
     }
 }

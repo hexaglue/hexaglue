@@ -16,12 +16,13 @@ package io.hexaglue.plugin.jpa;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
-import io.hexaglue.arch.ports.DrivenPort;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EntitySpecBuilder;
@@ -42,7 +43,6 @@ import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
-import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -69,16 +69,14 @@ import java.util.stream.Collectors;
  *   <li><b>Code generation</b>: Codegen classes generate JavaPoet TypeSpecs from specs</li>
  * </ol>
  *
- * <p>This plugin requires a v4 {@code ArchitecturalModel}. The generated code uses
+ * <p>This plugin requires a v5 {@code ArchitecturalModel}. The generated code uses
  * SPI classification types for consistency with the hexaglue ecosystem.
  *
- * <h2>v4.1.0 Migration</h2>
- * <p>Since v4.1.0, this plugin supports the new {@link DomainIndex}, {@link PortIndex},
- * and {@link ClassificationReport} APIs for improved type access and classification insights.
- * The plugin automatically uses the new API when available, falling back to the legacy API
- * for backward compatibility.</p>
+ * <h2>v5.0.0 Architecture</h2>
+ * <p>Since v5.0.0, this plugin uses the new {@link DomainIndex}, {@link PortIndex},
+ * and {@link ClassificationReport} APIs for improved type access and classification insights.</p>
  *
- * <p>New v4.1.0 features used:
+ * <p>v5.0.0 features used:
  * <ul>
  *   <li>{@link DomainIndex#aggregateRoots()} for accessing enriched aggregate types</li>
  *   <li>{@link PortIndex#repositories()} for accessing repository ports with managed aggregates</li>
@@ -114,25 +112,9 @@ public final class JpaPlugin implements GeneratorPlugin {
     /** Indentation for generated code (4 spaces). */
     private static final String INDENT = "    ";
 
-    /** V4 ArchitecturalModel (set during execute if available). */
-    private ArchitecturalModel archModel;
-
     @Override
     public String id() {
         return PLUGIN_ID;
-    }
-
-    /**
-     * Overrides default execute to capture v4 ArchitecturalModel.
-     *
-     * @param context the plugin context
-     * @since 4.0.0
-     */
-    @Override
-    public void execute(PluginContext context) {
-        // Capture v4 model before delegating to generate()
-        this.archModel = context.model();
-        GeneratorPlugin.super.execute(context);
     }
 
     @Override
@@ -140,11 +122,18 @@ public final class JpaPlugin implements GeneratorPlugin {
         PluginConfig pluginConfig = context.config();
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
+        ArchitecturalModel model = context.model().orElse(null);
 
-        // archModel is set by execute() - should never be null at this point
-        if (archModel == null) {
-            diagnostics.error("v4 ArchitecturalModel is required for JPA code generation. "
+        if (model == null) {
+            diagnostics.error("ArchitecturalModel is required for JPA code generation. "
                     + "Please ensure the model is available.");
+            return;
+        }
+
+        // Verify v5 indices are available
+        if (model.domainIndex().isEmpty() || model.portIndex().isEmpty()) {
+            diagnostics.error("v5 ArchitecturalModel with DomainIndex and PortIndex is required. "
+                    + "Please ensure the model is built with v5 model types.");
             return;
         }
 
@@ -152,38 +141,40 @@ public final class JpaPlugin implements GeneratorPlugin {
         JpaConfig config = JpaConfig.from(pluginConfig);
 
         // Determine packages from ArchitecturalModel
-        String basePackage = archModel.project().basePackage();
+        String basePackage = model.project().basePackage();
         String infraPackage =
                 pluginConfig.getString("infrastructurePackage").orElse(basePackage + ".infrastructure.persistence");
 
         diagnostics.info("JPA Plugin starting with package: " + infraPackage);
         logConfig(diagnostics, config);
-        logClassificationSummary(archModel, diagnostics);
+        logClassificationSummary(model, diagnostics);
 
-        generateFromModel(archModel, config, infraPackage, writer, diagnostics);
+        generateFromV5Model(
+                model, model.domainIndex().get(), model.portIndex().get(), config, infraPackage, writer, diagnostics);
     }
 
     /**
-     * Generates JPA infrastructure using v4.1.0 ArchitecturalModel.
-     *
-     * <p>This method uses {@link ArchitecturalModel#registry()} to access legacy types
-     * required by the spec builders. The v4.1.0 indices are used for statistics and
-     * summary logging.</p>
+     * Generates JPA infrastructure using v5 model types.
      *
      * @param model the architectural model
+     * @param domainIndex the v5 domain index
+     * @param portIndex the v5 port index
      * @param config the JPA configuration
      * @param infraPackage the infrastructure package name
      * @param writer the artifact writer
      * @param diagnostics the diagnostic reporter
-     * @since 4.0.0
-     * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+     * @since 5.0.0
      */
-    private void generateFromModel(
+    private void generateFromV5Model(
             ArchitecturalModel model,
+            DomainIndex domainIndex,
+            PortIndex portIndex,
             JpaConfig config,
             String infraPackage,
             ArtifactWriter writer,
             DiagnosticReporter diagnostics) {
+
+        diagnostics.info("Using v5 model types for JPA generation");
 
         // Counters for summary
         int entityCount = 0;
@@ -195,23 +186,23 @@ public final class JpaPlugin implements GeneratorPlugin {
         // Build embeddable mapping: domain VALUE_OBJECT FQN -> generated embeddable FQN
         Map<String, String> embeddableMapping = new HashMap<>();
 
-        // Generate embeddables from ValueObjects using registry
+        // Generate embeddables from v5 ValueObjects
         if (config.generateEmbeddables()) {
-            List<ValueObject> valueObjects = model.registry()
-                    .all(ValueObject.class)
-                    .filter(vo -> vo.syntax() != null)
-                    .filter(vo -> !isEnumType(vo))
+            List<io.hexaglue.arch.model.ValueObject> valueObjects = domainIndex
+                    .valueObjects()
+                    .filter(vo -> vo.structure() != null)
+                    .filter(vo -> vo.structure().nature() != TypeNature.ENUM)
                     .toList();
 
             // First pass: compute all embeddable mappings
-            for (ValueObject vo : valueObjects) {
+            for (io.hexaglue.arch.model.ValueObject vo : valueObjects) {
                 String embeddableClassName = vo.id().simpleName() + config.embeddableSuffix();
                 String embeddableFqn = infraPackage + "." + embeddableClassName;
                 embeddableMapping.put(vo.id().qualifiedName(), embeddableFqn);
             }
 
             // Second pass: generate embeddables
-            for (ValueObject vo : valueObjects) {
+            for (io.hexaglue.arch.model.ValueObject vo : valueObjects) {
                 try {
                     EmbeddableSpec embeddableSpec = EmbeddableSpecBuilder.builder()
                             .valueObject(vo)
@@ -236,23 +227,20 @@ public final class JpaPlugin implements GeneratorPlugin {
             }
         }
 
-        // Group driven ports by primary managed type using registry
-        Map<String, List<DrivenPort>> portsByManagedType = model.registry()
-                .all(DrivenPort.class)
-                .filter(port -> port.primaryManagedType().isPresent())
+        // Group v5 driven ports by managed aggregate
+        Map<String, List<io.hexaglue.arch.model.DrivenPort>> portsByManagedType = portIndex
+                .drivenPorts()
+                .filter(port -> port.managedAggregate().isPresent())
                 .collect(Collectors.groupingBy(
-                        port -> port.primaryManagedType().get().id().qualifiedName(), Collectors.toList()));
+                        port -> port.managedAggregate().get().qualifiedName(), Collectors.toList()));
 
-        // Generate entities from DomainEntities using registry
-        List<DomainEntity> allEntities = model.registry()
-                .all(DomainEntity.class)
-                .filter(DomainEntity::hasIdentity)
-                .toList();
+        // Generate entities from v5 AggregateRoots
+        List<AggregateRoot> allAggregates = domainIndex.aggregateRoots().toList();
 
-        for (DomainEntity entity : allEntities) {
+        for (AggregateRoot aggregate : allAggregates) {
             try {
                 EntitySpec entitySpec = EntitySpecBuilder.builder()
-                        .domainEntity(entity)
+                        .aggregateRoot(aggregate)
                         .model(model)
                         .config(config)
                         .infrastructurePackage(infraPackage)
@@ -265,16 +253,15 @@ public final class JpaPlugin implements GeneratorPlugin {
                 entityCount++;
                 diagnostics.info("Generated entity: " + entitySpec.className());
 
-                // Get driven ports for this entity
-                List<DrivenPort> portsForEntity =
-                        portsByManagedType.getOrDefault(entity.id().qualifiedName(), List.of());
+                // Get v5 driven ports for this aggregate
+                List<io.hexaglue.arch.model.DrivenPort> portsForAggregate =
+                        portsByManagedType.getOrDefault(aggregate.id().qualifiedName(), List.of());
 
                 // Generate repository if enabled
                 if (config.generateRepositories()) {
                     RepositorySpec repoSpec = RepositorySpecBuilder.builder()
-                            .domainEntity(entity)
-                            .drivenPorts(portsForEntity)
-                            .model(model)
+                            .aggregateRoot(aggregate)
+                            .drivenPorts(portsForAggregate)
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .build();
@@ -289,7 +276,74 @@ public final class JpaPlugin implements GeneratorPlugin {
                 // Generate mapper if enabled
                 if (config.generateMappers()) {
                     MapperSpec mapperSpec = MapperSpecBuilder.builder()
-                            .domainEntity(entity)
+                            .aggregateRoot(aggregate)
+                            .model(model)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .embeddableMapping(embeddableMapping)
+                            .build();
+
+                    TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
+                    String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
+                    writer.writeJavaSource(infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    mapperCount++;
+                    diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
+                }
+
+            } catch (IOException e) {
+                diagnostics.error(
+                        "Failed to generate JPA class for " + aggregate.id().simpleName(), e);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                diagnostics.warn("Skipping " + aggregate.id().simpleName() + ": " + e.getMessage());
+            }
+        }
+
+        // Generate entities from v5 Entities (non-aggregate-root entities)
+        List<Entity> allEntities = domainIndex
+                .entities()
+                .filter(e -> e.identityField().isPresent())
+                .toList();
+
+        for (Entity entity : allEntities) {
+            try {
+                EntitySpec entitySpec = EntitySpecBuilder.builder()
+                        .entity(entity)
+                        .model(model)
+                        .config(config)
+                        .infrastructurePackage(infraPackage)
+                        .embeddableMapping(embeddableMapping)
+                        .build();
+
+                TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
+                String entitySource = toJavaSource(infraPackage, entityTypeSpec);
+                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                entityCount++;
+                diagnostics.info("Generated entity: " + entitySpec.className());
+
+                // Get v5 driven ports for this entity
+                List<io.hexaglue.arch.model.DrivenPort> portsForEntity =
+                        portsByManagedType.getOrDefault(entity.id().qualifiedName(), List.of());
+
+                // Generate repository if enabled
+                if (config.generateRepositories()) {
+                    RepositorySpec repoSpec = RepositorySpecBuilder.builder()
+                            .entity(entity)
+                            .drivenPorts(portsForEntity)
+                            .config(config)
+                            .infrastructurePackage(infraPackage)
+                            .build();
+
+                    TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
+                    String repoSource = toJavaSource(infraPackage, repoTypeSpec);
+                    writer.writeJavaSource(infraPackage, repoSpec.interfaceName(), repoSource);
+                    repositoryCount++;
+                    diagnostics.info("Generated repository: " + repoSpec.interfaceName());
+                }
+
+                // Generate mapper if enabled
+                if (config.generateMappers()) {
+                    MapperSpec mapperSpec = MapperSpecBuilder.builder()
+                            .entity(entity)
                             .model(model)
                             .config(config)
                             .infrastructurePackage(infraPackage)
@@ -311,49 +365,81 @@ public final class JpaPlugin implements GeneratorPlugin {
             }
         }
 
-        // Generate adapters for driven ports using registry
+        // Generate adapters for v5 driven ports
         if (config.generateAdapters()) {
-            for (DrivenPort port : model.registry().all(DrivenPort.class).toList()) {
-                if (port.primaryManagedType().isEmpty()) {
+            for (io.hexaglue.arch.model.DrivenPort port :
+                    portIndex.drivenPorts().toList()) {
+                if (port.managedAggregate().isEmpty()) {
                     diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": no managed type");
                     continue;
                 }
 
-                // Find the domain entity for this port
-                String managedTypeFqn = port.primaryManagedType().get().id().qualifiedName();
-                Optional<DomainEntity> entityOpt = allEntities.stream()
-                        .filter(e -> e.id().qualifiedName().equals(managedTypeFqn))
-                        .findFirst();
+                String managedTypeFqn = port.managedAggregate().get().qualifiedName();
 
-                if (entityOpt.isEmpty()) {
-                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": managed type "
-                            + managedTypeFqn + " not found as entity");
-                    continue;
-                }
+                // Try to find the managed type as AggregateRoot first, then as Entity
+                Optional<AggregateRoot> aggregateOpt = domainIndex.aggregateRoot(TypeId.of(managedTypeFqn));
 
-                DomainEntity entity = entityOpt.get();
+                if (aggregateOpt.isPresent()) {
+                    try {
+                        AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
+                                .drivenPorts(List.of(port))
+                                .aggregateRoot(aggregateOpt.get())
+                                .config(config)
+                                .infrastructurePackage(infraPackage)
+                                .build();
 
-                try {
-                    AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
-                            .drivenPorts(List.of(port))
-                            .domainEntity(entity)
-                            .model(model)
-                            .config(config)
-                            .infrastructurePackage(infraPackage)
-                            .build();
+                        TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
+                        String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
+                        writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
+                        adapterCount++;
 
-                    TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
-                    String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                    writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
-                    adapterCount++;
+                        diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
+                                + port.id().simpleName());
+                    } catch (IOException e) {
+                        diagnostics.error(
+                                "Failed to generate adapter for port "
+                                        + port.id().simpleName(),
+                                e);
+                    } catch (IllegalArgumentException | IllegalStateException e) {
+                        diagnostics.warn(
+                                "Skipping adapter for port " + port.id().simpleName() + ": " + e.getMessage());
+                    }
+                } else {
+                    // Try as Entity
+                    Optional<Entity> entityOpt = allEntities.stream()
+                            .filter(e -> e.id().qualifiedName().equals(managedTypeFqn))
+                            .findFirst();
 
-                    diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
-                            + port.id().simpleName());
-                } catch (IOException e) {
-                    diagnostics.error(
-                            "Failed to generate adapter for port " + port.id().simpleName(), e);
-                } catch (IllegalArgumentException | IllegalStateException e) {
-                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": " + e.getMessage());
+                    if (entityOpt.isPresent()) {
+                        try {
+                            AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
+                                    .drivenPorts(List.of(port))
+                                    .entity(entityOpt.get())
+                                    .config(config)
+                                    .infrastructurePackage(infraPackage)
+                                    .build();
+
+                            TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
+                            String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
+                            writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
+                            adapterCount++;
+
+                            diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
+                                    + port.id().simpleName());
+                        } catch (IOException e) {
+                            diagnostics.error(
+                                    "Failed to generate adapter for port "
+                                            + port.id().simpleName(),
+                                    e);
+                        } catch (IllegalArgumentException | IllegalStateException e) {
+                            diagnostics.warn(
+                                    "Skipping adapter for port " + port.id().simpleName() + ": " + e.getMessage());
+                        }
+                    } else {
+                        diagnostics.warn(
+                                "Skipping adapter for port " + port.id().simpleName() + ": managed type "
+                                        + managedTypeFqn + " not found as aggregate or entity");
+                    }
                 }
             }
         }
@@ -394,20 +480,7 @@ public final class JpaPlugin implements GeneratorPlugin {
     }
 
     /**
-     * Determines if a v4 ValueObject is an enum type.
-     *
-     * <p>Enums don't need embeddable classes - they are handled via @Enumerated.
-     *
-     * @param vo the value object
-     * @return true if the type is an enum
-     * @since 4.0.0
-     */
-    private boolean isEnumType(ValueObject vo) {
-        return vo.syntax() != null && vo.syntax().isEnum();
-    }
-
-    /**
-     * Logs a summary of the v4.1 ArchitecturalModel classification.
+     * Logs a summary of the v5.0 ArchitecturalModel classification.
      *
      * <p>This provides visibility into the classification system,
      * including classification traces for debugging and warnings for unclassified types.
@@ -417,17 +490,16 @@ public final class JpaPlugin implements GeneratorPlugin {
      *
      * @param model the architectural model
      * @param diagnostics the diagnostic reporter
-     * @since 4.0.0
-     * @since 4.1.0 - Migrated to use new indices and classification report exclusively
+     * @since 5.0.0
      */
     private void logClassificationSummary(ArchitecturalModel model, DiagnosticReporter diagnostics) {
-        // v4.1.0: Use new DomainIndex and PortIndex
+        // v5.0.0: Use new DomainIndex and PortIndex
         Optional<DomainIndex> domainIndexOpt = model.domainIndex();
         Optional<PortIndex> portIndexOpt = model.portIndex();
         Optional<ClassificationReport> reportOpt = model.classificationReport();
 
         if (domainIndexOpt.isEmpty() || portIndexOpt.isEmpty()) {
-            diagnostics.warn("v4.1.0 indices not available for classification summary");
+            diagnostics.warn("v5.0.0 indices not available for classification summary");
             return;
         }
 
@@ -440,16 +512,16 @@ public final class JpaPlugin implements GeneratorPlugin {
         long drivenPortCount = ports.drivenPorts().count();
 
         diagnostics.info(String.format(
-                "v4.1 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
+                "v5.0 Model: %d aggregates, %d entities, %d value objects, %d driven ports",
                 aggregateCount, entityCount, valueObjectCount, drivenPortCount));
 
         // Log classification traces for aggregate roots (useful for debugging)
         domain.aggregateRoots()
                 .limit(3)
-                .forEach(agg -> diagnostics.info("  - " + agg.simpleName() + ": "
-                        + agg.classification().explain()));
+                .forEach(agg -> diagnostics.info(
+                        "  - " + agg.simpleName() + ": " + agg.classification().explain()));
 
-        // v4.1.0: Use ClassificationReport for unclassified types
+        // v5.0.0: Use ClassificationReport for unclassified types
         reportOpt.ifPresent(report -> {
             if (report.hasIssues()) {
                 diagnostics.info(String.format(

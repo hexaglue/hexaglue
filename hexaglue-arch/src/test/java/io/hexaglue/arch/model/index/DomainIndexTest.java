@@ -94,7 +94,7 @@ class DomainIndexTest {
         ClassificationTrace trace = ClassificationTrace.highConfidence(ElementKind.DOMAIN_SERVICE, "test", "Test");
         TypeStructure interfaceStructure =
                 TypeStructure.builder(TypeNature.INTERFACE).build();
-        return new DomainService(id, interfaceStructure, trace);
+        return DomainService.of(id, interfaceStructure, trace);
     }
 
     @Nested

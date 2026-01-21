@@ -15,6 +15,7 @@ package io.hexaglue.core.engine;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.builder.ArchitecturalModelBuilder;
+import io.hexaglue.core.builder.NewArchitecturalModelBuilder;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationStatus;
@@ -29,6 +30,8 @@ import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.builder.GraphBuilder;
 import io.hexaglue.core.graph.model.GraphMetadata;
 import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.core.graph.query.DefaultGraphQuery;
+import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
@@ -144,7 +147,10 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 3: Classify all types
             log.info("Classifying types");
-            List<ClassificationResult> classifications = classifyAll(graph, config);
+            ClassificationResults classificationResults = classifyAll(graph, config);
+            List<ClassificationResult> classifications = classificationResults.stream()
+                    .filter(c -> c.isClassified() || c.status() == ClassificationStatus.CONFLICT)
+                    .toList();
 
             int classifiedDomain = (int) classifications.stream()
                     .filter(c -> c.target() == ClassificationTarget.DOMAIN)
@@ -177,9 +183,23 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                                 "Classification conflict for type: " + typeName + " - " + c.justification()));
                     });
 
-            // Step 4: Build ArchitecturalModel
+            // Step 4: Build v5 model indices using NewArchitecturalModelBuilder
+            log.info("Building v5 model indices");
+            GraphQuery graphQuery = new DefaultGraphQuery(graph);
+            NewArchitecturalModelBuilder v5Builder = new NewArchitecturalModelBuilder();
+            NewArchitecturalModelBuilder.Result v5Result = v5Builder.build(graphQuery, classificationResults);
+            log.debug(
+                    "Built v5 model: {} types, {} domain, {} ports",
+                    v5Result.typeRegistry().size(),
+                    v5Result.domainIndex().aggregateRoots().count()
+                            + v5Result.domainIndex().entities().count()
+                            + v5Result.domainIndex().valueObjects().count(),
+                    v5Result.portIndex().drivingPorts().count()
+                            + v5Result.portIndex().drivenPorts().count());
+
+            // Step 5: Build ArchitecturalModel with v5 indices
             log.info("Building ArchitecturalModel");
-            ArchitecturalModel archModel = buildArchitecturalModel(config);
+            ArchitecturalModel archModel = buildArchitecturalModel(config, v5Result);
             log.debug("Built ArchitecturalModel with {} elements", archModel.size());
 
             // Step 4.5: Export primary classifications for enrichment and secondary classifiers
@@ -222,32 +242,29 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         }
     }
 
-    private List<ClassificationResult> classifyAll(ApplicationGraph graph, EngineConfig config) {
+    private ClassificationResults classifyAll(ApplicationGraph graph, EngineConfig config) {
         // Determine which classifier to use
         SinglePassClassifier effectiveClassifier = classifier != null ? classifier : new SinglePassClassifier();
 
         // Use SinglePassClassifier for unified classification
         // This ensures ports are classified FIRST, then domain types with port context
         // Pass the classification config for user-defined exclusions and explicit classifications
-        ClassificationResults results = effectiveClassifier.classify(graph, config.classificationConfig());
-
-        // Filter to only return classified or conflicting types
-        return results.stream()
-                .filter(c -> c.isClassified() || c.status() == ClassificationStatus.CONFLICT)
-                .toList();
+        return effectiveClassifier.classify(graph, config.classificationConfig());
     }
 
     /**
-     * Builds the v4 ArchitecturalModel using SpoonSyntaxProvider and ArchitecturalModelBuilder.
+     * Builds the ArchitecturalModel with v5 indices from NewArchitecturalModelBuilder.
      *
      * <p>This creates the unified model that plugins can access via ArchModelPluginContext.
-     * The model uses the v4 classification system with TypeSyntax support.
+     * The model includes both v4 legacy API and v5 enriched indices (domainIndex, portIndex).</p>
      *
      * @param config the engine configuration
+     * @param v5Result the v5 model result containing type registry and indices
      * @return the built ArchitecturalModel
-     * @since 4.0.0
+     * @since 5.0.0
      */
-    private ArchitecturalModel buildArchitecturalModel(EngineConfig config) {
+    private ArchitecturalModel buildArchitecturalModel(
+            EngineConfig config, NewArchitecturalModelBuilder.Result v5Result) {
         // Build SyntaxProvider with the same sources as the main pipeline
         SyntaxProvider syntaxProvider = SpoonSyntaxProvider.builder()
                 .basePackage(config.basePackage())
@@ -255,10 +272,14 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                 .javaVersion(config.javaVersion())
                 .build();
 
-        // Build ArchitecturalModel using the v4 builder
+        // Build ArchitecturalModel using the v4 builder, enriched with v5 indices
         return ArchitecturalModelBuilder.builder(syntaxProvider)
                 .projectName(config.projectName())
                 .basePackage(config.basePackage())
+                .typeRegistry(v5Result.typeRegistry())
+                .classificationReport(v5Result.classificationReport())
+                .domainIndex(v5Result.domainIndex())
+                .portIndex(v5Result.portIndex())
                 .build();
     }
 

@@ -18,6 +18,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.syntax.TypeRef;
+import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -35,6 +38,14 @@ class DomainServiceTest {
             TypeStructure.builder(TypeNature.INTERFACE).build();
     private static final ClassificationTrace TRACE = ClassificationTrace.highConfidence(
             ElementKind.DOMAIN_SERVICE, "explicit-domain-service", "Has Service annotation");
+    private static final TypeRef INVENTORY_PORT =
+            new TypeRef("com.example.InventoryPort", "InventoryPort", List.of(), false, false, 0);
+    private static final TypeRef PRICING_PORT =
+            new TypeRef("com.example.PricingPort", "PricingPort", List.of(), false, false, 0);
+    private static final Method CALCULATE_PRICE_METHOD = Method.of(
+            "calculatePrice",
+            new TypeRef("java.math.BigDecimal", "BigDecimal", List.of(), false, false, 0),
+            Set.of(MethodRole.BUSINESS));
 
     @Nested
     @DisplayName("Construction")
@@ -50,6 +61,21 @@ class DomainServiceTest {
             assertThat(service.id()).isEqualTo(ID);
             assertThat(service.structure()).isEqualTo(STRUCTURE);
             assertThat(service.classification()).isEqualTo(TRACE);
+            assertThat(service.injectedPorts()).isEmpty();
+            assertThat(service.operations()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should create with injected ports and operations")
+        void shouldCreateWithInjectedPortsAndOperations() {
+            // when
+            DomainService service = DomainService.of(
+                    ID, STRUCTURE, TRACE, List.of(INVENTORY_PORT, PRICING_PORT), List.of(CALCULATE_PRICE_METHOD));
+
+            // then
+            assertThat(service.id()).isEqualTo(ID);
+            assertThat(service.injectedPorts()).containsExactly(INVENTORY_PORT, PRICING_PORT);
+            assertThat(service.operations()).containsExactly(CALCULATE_PRICE_METHOD);
         }
 
         @Test
@@ -112,6 +138,85 @@ class DomainServiceTest {
             assertThat(service.qualifiedName()).isEqualTo("com.example.PricingService");
             assertThat(service.simpleName()).isEqualTo("PricingService");
             assertThat(service.packageName()).isEqualTo("com.example");
+        }
+    }
+
+    @Nested
+    @DisplayName("Injected Ports and Operations")
+    class InjectedPortsAndOperations {
+
+        @Test
+        @DisplayName("hasInjectedPorts should return true when ports are present")
+        void hasInjectedPortsShouldReturnTrueWhenPresent() {
+            // given
+            DomainService service = DomainService.of(ID, STRUCTURE, TRACE, List.of(INVENTORY_PORT), List.of());
+
+            // then
+            assertThat(service.hasInjectedPorts()).isTrue();
+        }
+
+        @Test
+        @DisplayName("hasInjectedPorts should return false when no ports")
+        void hasInjectedPortsShouldReturnFalseWhenAbsent() {
+            // given
+            DomainService service = DomainService.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(service.hasInjectedPorts()).isFalse();
+        }
+
+        @Test
+        @DisplayName("hasOperations should return true when operations are present")
+        void hasOperationsShouldReturnTrueWhenPresent() {
+            // given
+            DomainService service = DomainService.of(ID, STRUCTURE, TRACE, List.of(), List.of(CALCULATE_PRICE_METHOD));
+
+            // then
+            assertThat(service.hasOperations()).isTrue();
+        }
+
+        @Test
+        @DisplayName("hasOperations should return false when no operations")
+        void hasOperationsShouldReturnFalseWhenAbsent() {
+            // given
+            DomainService service = DomainService.of(ID, STRUCTURE, TRACE);
+
+            // then
+            assertThat(service.hasOperations()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should make defensive copies of lists")
+        void shouldMakeDefensiveCopies() {
+            // given
+            List<TypeRef> mutablePorts = new java.util.ArrayList<>();
+            mutablePorts.add(INVENTORY_PORT);
+            List<Method> mutableOps = new java.util.ArrayList<>();
+            mutableOps.add(CALCULATE_PRICE_METHOD);
+
+            // when
+            DomainService service = DomainService.of(ID, STRUCTURE, TRACE, mutablePorts, mutableOps);
+            mutablePorts.add(PRICING_PORT);
+
+            // then
+            assertThat(service.injectedPorts()).containsExactly(INVENTORY_PORT);
+            assertThat(service.operations()).containsExactly(CALCULATE_PRICE_METHOD);
+        }
+
+        @Test
+        @DisplayName("should reject null injectedPorts")
+        void shouldRejectNullInjectedPorts() {
+            assertThatThrownBy(() -> DomainService.of(ID, STRUCTURE, TRACE, null, List.of()))
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("injectedPorts");
+        }
+
+        @Test
+        @DisplayName("should reject null operations")
+        void shouldRejectNullOperations() {
+            assertThatThrownBy(() -> DomainService.of(ID, STRUCTURE, TRACE, List.of(), null))
+                    .isInstanceOf(NullPointerException.class)
+                    .hasMessageContaining("operations");
         }
     }
 
