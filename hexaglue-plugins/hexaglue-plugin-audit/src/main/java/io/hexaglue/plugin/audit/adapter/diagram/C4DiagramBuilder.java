@@ -14,11 +14,14 @@
 package io.hexaglue.plugin.audit.adapter.diagram;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.ValueObject;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
-import io.hexaglue.arch.ports.PortClassification;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.BoundedContextInfo;
@@ -133,10 +136,10 @@ public class C4DiagramBuilder {
         List<BoundedContextInfo> contexts =
                 architectureQuery != null ? architectureQuery.findBoundedContexts() : List.of();
 
-        // Collect ports from model using registry() instead of deprecated convenience methods
-        var registry = model.registry();
-        List<DrivingPort> drivingPorts = registry.all(DrivingPort.class).toList();
-        List<DrivenPort> drivenPorts = registry.all(DrivenPort.class).toList();
+        // Collect ports from model using port index
+        PortIndex portIndex = model.portIndex().orElseThrow();
+        List<DrivingPort> drivingPorts = portIndex.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = portIndex.drivenPorts().toList();
 
         // Driving adapters (left side)
         if (!drivingPorts.isEmpty()) {
@@ -219,11 +222,11 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart TB\n");
 
-        // Find aggregates (DomainEntity with isAggregateRoot) using registry()
-        List<DomainEntity> aggregates = model.registry()
-                .all(DomainEntity.class)
-                .filter(DomainEntity::isAggregateRoot)
-                .sorted(Comparator.comparing(e -> e.id().simpleName()))
+        // Find aggregates using domain index
+        DomainIndex domainIndex = model.domainIndex().orElseThrow();
+        List<AggregateRoot> aggregates = domainIndex
+                .aggregateRoots()
+                .sorted(Comparator.comparing(agg -> agg.id().simpleName()))
                 .toList();
 
         if (aggregates.isEmpty()) {
@@ -235,7 +238,7 @@ public class C4DiagramBuilder {
         // Build aggregate nodes with their entities
         Map<String, List<Object>> aggregateChildren = findAggregateChildren(model);
 
-        for (DomainEntity aggregate : aggregates) {
+        for (AggregateRoot aggregate : aggregates) {
             String aggId = sanitizeId(aggregate.id().simpleName());
             diagram.append("    subgraph ")
                     .append(aggId)
@@ -256,7 +259,7 @@ public class C4DiagramBuilder {
             for (Object child : children.stream().limit(4).toList()) {
                 String childName;
                 String shape;
-                if (child instanceof DomainEntity entity) {
+                if (child instanceof Entity entity) {
                     childName = entity.id().simpleName();
                     shape = "[" + childName + "]";
                 } else if (child instanceof ValueObject vo) {
@@ -286,7 +289,7 @@ public class C4DiagramBuilder {
 
         // Styles
         diagram.append("\n");
-        for (DomainEntity aggregate : aggregates) {
+        for (AggregateRoot aggregate : aggregates) {
             diagram.append("    style ")
                     .append(sanitizeId(aggregate.id().simpleName()))
                     .append(" fill:#ff9800,stroke:#e65100\n");
@@ -307,9 +310,9 @@ public class C4DiagramBuilder {
         diagram.append("```mermaid\n");
         diagram.append("flowchart LR\n");
 
-        var portRegistry = model.registry();
-        List<DrivingPort> drivingPorts = portRegistry.all(DrivingPort.class).toList();
-        List<DrivenPort> drivenPorts = portRegistry.all(DrivenPort.class).toList();
+        PortIndex portIndex = model.portIndex().orElseThrow();
+        List<DrivingPort> drivingPorts = portIndex.drivingPorts().toList();
+        List<DrivenPort> drivenPorts = portIndex.drivenPorts().toList();
 
         // Driving ports
         diagram.append("    subgraph DRIVING[\"🔵 DRIVING PORTS<br/>(Primary/Inbound)\"]\n");
@@ -335,7 +338,7 @@ public class C4DiagramBuilder {
         diagram.append("        direction TB\n");
         for (DrivenPort port : drivenPorts) {
             String id = sanitizeId(port.id().simpleName()) + "_OUT";
-            String icon = port.classification() == PortClassification.REPOSITORY ? "📦" : "🔌";
+            String icon = port.portType() == DrivenPortType.REPOSITORY ? "📦" : "🔌";
             diagram.append("        ")
                     .append(id)
                     .append("[\"")
@@ -368,21 +371,13 @@ public class C4DiagramBuilder {
     private Map<String, List<Object>> findAggregateChildren(ArchitecturalModel model) {
         Map<String, List<Object>> result = new HashMap<>();
 
-        var childRegistry = model.registry();
-        List<DomainEntity> aggregates = childRegistry
-                .all(DomainEntity.class)
-                .filter(DomainEntity::isAggregateRoot)
-                .toList();
-
-        List<DomainEntity> entities = childRegistry
-                .all(DomainEntity.class)
-                .filter(e -> !e.isAggregateRoot())
-                .toList();
-
-        List<ValueObject> valueObjects = childRegistry.all(ValueObject.class).toList();
+        DomainIndex domainIndex = model.domainIndex().orElseThrow();
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
+        List<Entity> entities = domainIndex.entities().toList();
+        List<ValueObject> valueObjects = domainIndex.valueObjects().toList();
 
         // Simple heuristic: entities/VOs in same package as aggregate are children
-        for (DomainEntity aggregate : aggregates) {
+        for (AggregateRoot aggregate : aggregates) {
             String aggPackage = extractPackage(aggregate.id().qualifiedName());
             List<Object> children = Stream.concat(
                             entities.stream()

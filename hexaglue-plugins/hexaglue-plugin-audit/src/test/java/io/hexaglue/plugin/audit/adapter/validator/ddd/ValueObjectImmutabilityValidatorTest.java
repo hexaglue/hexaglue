@@ -13,13 +13,14 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.valueObject;
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.withUnits;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.BehavioralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
+import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,7 +30,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link ValueObjectImmutabilityValidator}.
  *
- * <p>Validates that value objects are correctly checked for immutability (no setters).
+ * <p>Validates that value objects are correctly checked for immutability (no setters)
+ * using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class ValueObjectImmutabilityValidatorTest {
 
@@ -43,11 +47,13 @@ class ValueObjectImmutabilityValidatorTest {
     @Test
     @DisplayName("Should pass when value object has no setters")
     void shouldPass_whenValueObjectHasNoSetters() {
-        // Given
-        Codebase codebase = withUnits(valueObject("Money", false));
+        // Given - immutable value object
+        ArchitecturalModel model =
+                new TestModelBuilder().addValueObject("com.example.domain.Money", false).build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -56,11 +62,13 @@ class ValueObjectImmutabilityValidatorTest {
     @Test
     @DisplayName("Should fail when value object has setter")
     void shouldFail_whenValueObjectHasSetter() {
-        // Given
-        Codebase codebase = withUnits(valueObject("Money", true));
+        // Given - value object with setter
+        ArchitecturalModel model =
+                new TestModelBuilder().addValueObject("com.example.domain.Money", true).build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -75,15 +83,16 @@ class ValueObjectImmutabilityValidatorTest {
     @Test
     @DisplayName("Should check all value objects")
     void shouldCheckAllValueObjects() {
-        // Given
-        Codebase codebase = withUnits(
-                valueObject("Money", false), // Valid
-                valueObject("Address", true), // Invalid - has setter
-                valueObject("Email", false) // Valid
-                );
+        // Given - multiple value objects, one with setter
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject("com.example.domain.Money", false) // Valid
+                .addValueObject("com.example.domain.Address", true) // Invalid - has setter
+                .addValueObject("com.example.domain.Email", false) // Valid
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -93,11 +102,12 @@ class ValueObjectImmutabilityValidatorTest {
     @Test
     @DisplayName("Should pass when codebase has no value objects")
     void shouldPass_whenNoValueObjects() {
-        // Given
-        Codebase codebase = withUnits();
+        // Given - empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -107,18 +117,19 @@ class ValueObjectImmutabilityValidatorTest {
     @DisplayName("Should provide behavioral evidence")
     void shouldProvideBehavioralEvidence() {
         // Given
-        Codebase codebase = withUnits(valueObject("Money", true));
+        ArchitecturalModel model =
+                new TestModelBuilder().addValueObject("com.example.domain.Money", true).build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).evidence()).isNotEmpty();
         assertThat(violations.get(0).evidence().get(0)).isInstanceOf(BehavioralEvidence.class);
 
-        BehavioralEvidence evidence =
-                (BehavioralEvidence) violations.get(0).evidence().get(0);
+        BehavioralEvidence evidence = (BehavioralEvidence) violations.get(0).evidence().get(0);
         assertThat(evidence.description()).contains("Setter method detected");
         assertThat(evidence.methodName()).isEqualTo("setValue");
     }

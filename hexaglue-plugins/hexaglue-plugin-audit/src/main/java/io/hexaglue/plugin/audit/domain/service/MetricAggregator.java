@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.domain.service;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
@@ -33,10 +34,11 @@ import java.util.stream.Collectors;
  *   <li>Handling calculation errors gracefully</li>
  * </ul>
  *
- * <p><b>REFACTORED (v3):</b> Now passes {@link ArchitectureQuery} to calculators
- * so they can leverage Core's rich analysis capabilities.
+ * <p><b>REFACTORED (v5.0.0):</b> Now passes {@link ArchitecturalModel} to calculators
+ * for v5 ArchType API access via {@code model.domainIndex()} and {@code model.portIndex()}.
  *
  * @since 1.0.0
+ * @since 5.0.0 Updated to pass ArchitecturalModel to calculators for v5 ArchType access
  */
 public class MetricAggregator {
 
@@ -52,38 +54,23 @@ public class MetricAggregator {
     }
 
     /**
-     * Calculates the specified metrics for the codebase.
+     * Calculates the specified metrics using v5 ArchType API.
      *
      * <p>This method iterates through the enabled metrics, executes their
-     * calculators, and collects all results. If a calculator throws an exception,
-     * it is logged but doesn't stop execution of other calculators.
-     *
-     * @param codebase       the codebase to analyze
-     * @param enabledMetrics the set of metric names to calculate (empty = all)
-     * @return map of calculated metrics (metric name -> metric)
-     * @deprecated Use {@link #calculateMetrics(Codebase, ArchitectureQuery, Set)} instead
-     */
-    @Deprecated
-    public Map<String, Metric> calculateMetrics(Codebase codebase, Set<String> enabledMetrics) {
-        return calculateMetrics(codebase, null, enabledMetrics);
-    }
-
-    /**
-     * Calculates the specified metrics for the codebase using architecture query.
-     *
-     * <p>This method iterates through the enabled metrics, executes their
-     * calculators with access to the Core's ArchitectureQuery, and collects
+     * calculators with access to the v5 ArchitecturalModel, and collects
      * all results. If a calculator throws an exception, it is logged but
      * doesn't stop execution of other calculators.
      *
-     * @param codebase          the codebase to analyze
+     * @param model             the architectural model containing v5 indices
+     * @param codebase          the codebase for legacy access (to be phased out)
      * @param architectureQuery the query interface from Core (may be null)
      * @param enabledMetrics    the set of metric names to calculate (empty = all)
      * @return map of calculated metrics (metric name -> metric)
-     * @since 3.0.0
+     * @since 5.0.0
      */
     public Map<String, Metric> calculateMetrics(
-            Codebase codebase, ArchitectureQuery architectureQuery, Set<String> enabledMetrics) {
+            ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery, Set<String> enabledMetrics) {
+        Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(codebase, "codebase required");
         Objects.requireNonNull(enabledMetrics, "enabledMetrics required");
 
@@ -95,8 +82,8 @@ public class MetricAggregator {
                 .filter(Objects::nonNull)
                 .map(calculator -> {
                     try {
-                        // Use the new method that accepts ArchitectureQuery
-                        Metric metric = calculator.calculate(codebase, architectureQuery);
+                        // Use the v5 method that accepts ArchitecturalModel
+                        Metric metric = calculator.calculate(model, codebase, architectureQuery);
                         return Map.entry(calculator.metricName(), metric);
                     } catch (Exception e) {
                         // Log error but continue with other calculators

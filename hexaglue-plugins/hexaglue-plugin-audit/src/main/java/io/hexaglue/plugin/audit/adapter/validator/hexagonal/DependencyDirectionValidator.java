@@ -13,15 +13,16 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.ArchKind;
+import io.hexaglue.arch.model.ArchType;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.DependencyEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,15 +58,53 @@ public class DependencyDirectionValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates the dependency direction constraint using v5 ArchType API.
+     *
+     * <p>Checks that domain and application layer types do not depend on
+     * infrastructure layer types. Uses {@code model.typeRegistry()} to access
+     * all classified types and {@code ArchKind} to determine layer membership.
+     *
+     * @param model the architectural model containing v5 type registry
+     * @param codebase the codebase for dependency graph access
+     * @param query architecture query (not used in this validator)
+     * @return list of violations found
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Check domain layer dependencies
-        violations.addAll(validateLayerDependencies(codebase, LayerClassification.DOMAIN));
+        if (model.typeRegistry().isEmpty()) {
+            // No v5 model available - cannot validate
+            return violations;
+        }
 
-        // Check application layer dependencies (also shouldn't depend on infrastructure)
-        violations.addAll(validateLayerDependencies(codebase, LayerClassification.APPLICATION));
+        var registry = model.typeRegistry().get();
+
+        // Get all types and classify by layer
+        List<ArchType> domainTypes =
+                registry.all(ArchType.class).filter(t -> t.kind().isDomain()).toList();
+
+        List<ArchType> applicationTypes =
+                registry.all(ArchType.class).filter(t -> t.kind().isApplication()).toList();
+
+        List<ArchType> infrastructureTypes = registry.all(ArchType.class)
+                .filter(t -> !t.kind().isDomain()
+                        && !t.kind().isApplication()
+                        && !t.kind().isPort()
+                        && t.kind() != ArchKind.UNCLASSIFIED)
+                .toList();
+
+        // Create a quick lookup for infrastructure types
+        Set<String> infraQualifiedNames =
+                infrastructureTypes.stream().map(t -> t.id().qualifiedName()).collect(java.util.stream.Collectors.toSet());
+
+        // Check domain layer dependencies
+        violations.addAll(validateLayerDependencies(codebase, domainTypes, infraQualifiedNames, "DOMAIN"));
+
+        // Check application layer dependencies
+        violations.addAll(validateLayerDependencies(codebase, applicationTypes, infraQualifiedNames, "APPLICATION"));
 
         return violations;
     }
@@ -74,38 +113,48 @@ public class DependencyDirectionValidator implements ConstraintValidator {
      * Validates that a specific layer doesn't depend on infrastructure.
      *
      * @param codebase the codebase to analyze
-     * @param layer the layer to check
+     * @param layerTypes the types in the layer to check
+     * @param infraQualifiedNames the qualified names of infrastructure types
+     * @param layerName the name of the layer being checked (for error messages)
      * @return list of violations found
      */
-    private List<Violation> validateLayerDependencies(Codebase codebase, LayerClassification layer) {
+    private List<Violation> validateLayerDependencies(
+            Codebase codebase, List<ArchType> layerTypes, Set<String> infraQualifiedNames, String layerName) {
         List<Violation> violations = new ArrayList<>();
 
-        for (CodeUnit unit : codebase.unitsInLayer(layer)) {
-            Set<String> deps = codebase.dependencies().getOrDefault(unit.qualifiedName(), Set.of());
+        for (ArchType type : layerTypes) {
+            String qualifiedName = type.id().qualifiedName();
+            Set<String> deps = codebase.dependencies().getOrDefault(qualifiedName, Set.of());
 
             for (String depName : deps) {
-                // Find the dependency in the codebase
-                codebase.units().stream()
-                        .filter(u -> u.qualifiedName().equals(depName))
-                        .filter(u -> u.layer() == LayerClassification.INFRASTRUCTURE)
-                        .findFirst()
-                        .ifPresent(infraUnit -> {
-                            violations.add(Violation.builder(CONSTRAINT_ID)
-                                    .severity(Severity.BLOCKER)
-                                    .message("%s type '%s' depends on Infrastructure type '%s'"
-                                            .formatted(layer.name(), unit.simpleName(), infraUnit.simpleName()))
-                                    .affectedType(unit.qualifiedName())
-                                    .location(SourceLocation.of(unit.qualifiedName(), 1, 1))
-                                    .evidence(DependencyEvidence.of(
-                                            "Illegal dependency from %s to Infrastructure".formatted(layer.name()),
-                                            unit.qualifiedName(),
-                                            infraUnit.qualifiedName()))
-                                    .build());
-                        });
+                if (infraQualifiedNames.contains(depName)) {
+                    violations.add(Violation.builder(CONSTRAINT_ID)
+                            .severity(Severity.BLOCKER)
+                            .message("%s type '%s' depends on Infrastructure type '%s'"
+                                    .formatted(layerName, type.id().simpleName(), extractSimpleName(depName)))
+                            .affectedType(qualifiedName)
+                            .location(SourceLocation.of(qualifiedName, 1, 1))
+                            .evidence(DependencyEvidence.of(
+                                    "Illegal dependency from %s to Infrastructure".formatted(layerName),
+                                    qualifiedName,
+                                    depName))
+                            .build());
+                }
             }
         }
 
         return violations;
+    }
+
+    /**
+     * Extracts simple name from qualified name.
+     *
+     * @param qualifiedName the qualified name
+     * @return the simple name
+     */
+    private String extractSimpleName(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
     }
 
     @Override

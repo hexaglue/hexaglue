@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.domain.port.driving;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
@@ -23,35 +24,32 @@ import io.hexaglue.spi.audit.Codebase;
  * <p>Each implementation calculates a specific metric. This follows the
  * Strategy pattern similar to {@link ConstraintValidator}.
  *
- * <p><b>REFACTORED (v3):</b> Calculators can now leverage the Core's
- * {@link ArchitectureQuery} for rich analysis capabilities instead of
- * duplicating calculations. The principle is: "Le Core produit des faits,
- * les plugins les exploitent."
+ * <p><b>REFACTORED (v5.0.0):</b> Calculators now use the v5 ArchType API via
+ * {@link ArchitecturalModel} for type access. Use {@code model.domainIndex()}
+ * and {@code model.portIndex()} for typed access to domain and port types.
  *
  * <h2>Example Implementation</h2>
  * <pre>{@code
- * public class CouplingMetricCalculator implements MetricCalculator {
+ * public class AggregateMetricCalculator implements MetricCalculator {
  *
  *     @Override
  *     public String metricName() {
- *         return "coupling.average";
+ *         return "aggregate.count";
  *     }
  *
  *     @Override
- *     public Metric calculate(Codebase codebase, ArchitectureQuery query) {
- *         if (query != null) {
- *             // Use Core's rich analysis
- *             List<CouplingMetrics> metrics = query.analyzeAllPackageCoupling();
- *             double avg = metrics.stream().mapToDouble(CouplingMetrics::instability).average().orElse(0.0);
- *             return Metric.of("coupling.average", avg, "ratio", "Average coupling");
- *         }
- *         // Fallback without query
- *         return calculate(codebase);
+ *     public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
+ *         // Use v5 API for type access
+ *         long count = model.domainIndex()
+ *             .map(domain -> domain.aggregateRoots().count())
+ *             .orElse(0L);
+ *         return Metric.of("aggregate.count", count, "count", "Number of aggregate roots");
  *     }
  * }
  * }</pre>
  *
  * @since 1.0.0
+ * @since 5.0.0 Added ArchitecturalModel parameter for v5 ArchType access
  */
 public interface MetricCalculator {
 
@@ -63,33 +61,20 @@ public interface MetricCalculator {
     String metricName();
 
     /**
-     * Calculates the metric for the given codebase (legacy method).
+     * Calculates the metric using the v5 ArchType API.
      *
-     * <p>This method is retained for backward compatibility with calculators
-     * that don't need the ArchitectureQuery.
+     * <p>Calculators should use the v5 indices for type access:
+     * <ul>
+     *   <li>{@code model.domainIndex()} for aggregate roots, entities, value objects, etc.</li>
+     *   <li>{@code model.portIndex()} for driving and driven ports</li>
+     *   <li>{@code model.typeRegistry()} for generic type access</li>
+     * </ul>
      *
-     * @param codebase the codebase to analyze
-     * @return the calculated metric
-     */
-    Metric calculate(Codebase codebase);
-
-    /**
-     * Calculates the metric using both codebase and architecture query.
-     *
-     * <p>This method allows calculators to leverage the Core's rich analysis
-     * capabilities via {@link ArchitectureQuery}. Calculators should delegate
-     * to the Core for graph traversal and coupling analysis, focusing only
-     * on interpretation and judgment.
-     *
-     * <p>Default implementation delegates to {@link #calculate(Codebase)} for
-     * backward compatibility.
-     *
-     * @param codebase the codebase to analyze
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for legacy access (to be phased out)
      * @param architectureQuery the query interface from Core (may be null)
      * @return the calculated metric
-     * @since 3.0.0
+     * @since 5.0.0
      */
-    default Metric calculate(Codebase codebase, ArchitectureQuery architectureQuery) {
-        return calculate(codebase);
-    }
+    Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery);
 }

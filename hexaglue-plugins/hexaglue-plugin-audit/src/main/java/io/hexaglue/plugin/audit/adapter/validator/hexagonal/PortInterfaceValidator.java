@@ -13,16 +13,16 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
@@ -53,26 +53,88 @@ public class PortInterfaceValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates the port interface constraint using v5 ArchType API.
+     *
+     * <p>Checks that all driving and driven ports are Java interfaces.
+     * Uses {@code model.portIndex()} for direct port access and
+     * {@code structure.isInterface()} to verify the type nature.
+     *
+     * @param model the architectural model containing v5 port index
+     * @param codebase the codebase (not used in this validator)
+     * @param query architecture query (not used in this validator)
+     * @return list of violations found
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find all ports (excluding repositories which have their own validation)
-        List<CodeUnit> ports = codebase.unitsWithRole(RoleClassification.PORT);
+        if (model.portIndex().isEmpty()) {
+            // No v5 model available - cannot validate
+            return violations;
+        }
 
-        for (CodeUnit port : ports) {
-            // Check if port is an interface
-            if (port.kind() != CodeUnitKind.INTERFACE) {
-                violations.add(Violation.builder(CONSTRAINT_ID)
-                        .severity(Severity.CRITICAL)
-                        .message("Port '%s' is not an interface (found: %s)".formatted(port.simpleName(), port.kind()))
-                        .affectedType(port.qualifiedName())
-                        .location(SourceLocation.of(port.qualifiedName(), 1, 1))
-                        .evidence(StructuralEvidence.of(
-                                "Ports must be interfaces to support the Dependency Inversion Principle",
-                                port.qualifiedName()))
-                        .build());
-            }
+        var portIndex = model.portIndex().get();
+
+        // Check driving ports
+        portIndex.drivingPorts().forEach(port -> {
+            violations.addAll(validatePortIsInterface(port));
+        });
+
+        // Check driven ports
+        portIndex.drivenPorts().forEach(port -> {
+            violations.addAll(validatePortIsInterface(port));
+        });
+
+        return violations;
+    }
+
+    /**
+     * Validates that a driving port is an interface.
+     *
+     * @param port the driving port to validate
+     * @return list of violations (empty if valid)
+     */
+    private List<Violation> validatePortIsInterface(DrivingPort port) {
+        List<Violation> violations = new ArrayList<>();
+
+        if (!port.structure().isInterface()) {
+            violations.add(Violation.builder(CONSTRAINT_ID)
+                    .severity(Severity.CRITICAL)
+                    .message("Port '%s' is not an interface (found: %s)"
+                            .formatted(port.id().simpleName(), port.structure().nature().name()))
+                    .affectedType(port.id().qualifiedName())
+                    .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
+                    .evidence(StructuralEvidence.of(
+                            "Ports must be interfaces to support the Dependency Inversion Principle",
+                            port.id().qualifiedName()))
+                    .build());
+        }
+
+        return violations;
+    }
+
+    /**
+     * Validates that a driven port is an interface.
+     *
+     * @param port the driven port to validate
+     * @return list of violations (empty if valid)
+     */
+    private List<Violation> validatePortIsInterface(DrivenPort port) {
+        List<Violation> violations = new ArrayList<>();
+
+        if (!port.structure().isInterface()) {
+            violations.add(Violation.builder(CONSTRAINT_ID)
+                    .severity(Severity.CRITICAL)
+                    .message("Port '%s' is not an interface (found: %s)"
+                            .formatted(port.id().simpleName(), port.structure().nature().name()))
+                    .affectedType(port.id().qualifiedName())
+                    .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
+                    .evidence(StructuralEvidence.of(
+                            "Ports must be interfaces to support the Dependency Inversion Principle",
+                            port.id().qualifiedName()))
+                    .build());
         }
 
         return violations;

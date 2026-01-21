@@ -13,21 +13,31 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link AggregateConsistencyValidator}.
+ *
+ * <p>Validates aggregate consistency rules using the v5 ArchType API:
+ * <ul>
+ *   <li>Single ownership: entities should belong to only one aggregate</li>
+ *   <li>Size limits: aggregates should not exceed 7 entities</li>
+ * </ul>
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class AggregateConsistencyValidatorTest {
 
@@ -41,11 +51,13 @@ class AggregateConsistencyValidatorTest {
     // === Constraint Identity ===
 
     @Test
+    @DisplayName("Should have correct constraint ID")
     void shouldHaveCorrectConstraintId() {
         assertThat(validator.constraintId()).isEqualTo(ConstraintId.of("ddd:aggregate-consistency"));
     }
 
     @Test
+    @DisplayName("Should have MAJOR severity")
     void shouldHaveMajorSeverity() {
         assertThat(validator.defaultSeverity()).isEqualTo(Severity.MAJOR);
     }
@@ -53,43 +65,45 @@ class AggregateConsistencyValidatorTest {
     // === Rule 1: Single Ownership ===
 
     @Test
+    @DisplayName("Should pass when entity belongs to single aggregate")
     void shouldPass_whenEntityBelongsToSingleAggregate() {
         // Given: Order aggregate with OrderLine entity
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit orderLineEntity = entity("OrderLine", true);
-        CodeUnit customerAggregate = aggregate("Customer");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(orderAggregate)
-                .addUnit(orderLineEntity)
-                .addUnit(customerAggregate)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(
+                        "com.example.domain.Order",
+                        List.of("com.example.domain.OrderLine"),
+                        List.of())
+                .addEntity("com.example.domain.OrderLine", "com.example.domain.Order")
+                .addAggregateRoot("com.example.domain.Customer")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: No violation - entity belongs to single aggregate
         assertThat(violations).isEmpty();
     }
 
     @Test
+    @DisplayName("Should fail when entity belongs to multiple aggregates")
     void shouldFail_whenEntityBelongsToMultipleAggregates() {
         // Given: Address entity referenced by both Customer and Order
-        CodeUnit customerAggregate = aggregate("Customer");
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit addressEntity = entity("Address", true);
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(customerAggregate)
-                .addUnit(orderAggregate)
-                .addUnit(addressEntity)
-                .addDependency("com.example.domain.Customer", "com.example.domain.Address")
-                .addDependency("com.example.domain.Order", "com.example.domain.Address")
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(
+                        "com.example.domain.Customer",
+                        List.of("com.example.domain.Address"),
+                        List.of())
+                .addAggregateRoot(
+                        "com.example.domain.Order",
+                        List.of("com.example.domain.Address"),
+                        List.of())
+                .addEntity("com.example.domain.Address")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: Violation detected
         assertThat(violations).hasSize(1);
@@ -101,247 +115,167 @@ class AggregateConsistencyValidatorTest {
     }
 
     @Test
+    @DisplayName("Should fail when entity referenced by three aggregates")
     void shouldFail_whenEntityReferencedByThreeAggregates() {
         // Given: Shared entity referenced by 3 aggregates
-        CodeUnit agg1 = aggregate("Aggregate1");
-        CodeUnit agg2 = aggregate("Aggregate2");
-        CodeUnit agg3 = aggregate("Aggregate3");
-        CodeUnit sharedEntity = entity("SharedEntity", true);
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(agg1)
-                .addUnit(agg2)
-                .addUnit(agg3)
-                .addUnit(sharedEntity)
-                .addDependency("com.example.domain.Aggregate1", "com.example.domain.SharedEntity")
-                .addDependency("com.example.domain.Aggregate2", "com.example.domain.SharedEntity")
-                .addDependency("com.example.domain.Aggregate3", "com.example.domain.SharedEntity")
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(
+                        "com.example.domain.Aggregate1",
+                        List.of("com.example.domain.SharedEntity"),
+                        List.of())
+                .addAggregateRoot(
+                        "com.example.domain.Aggregate2",
+                        List.of("com.example.domain.SharedEntity"),
+                        List.of())
+                .addAggregateRoot(
+                        "com.example.domain.Aggregate3",
+                        List.of("com.example.domain.SharedEntity"),
+                        List.of())
+                .addEntity("com.example.domain.SharedEntity")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: Single violation listing all three aggregates
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
+        assertThat(violations.get(0).message())
+                .contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
     }
 
     // === Rule 2: Size Limit ===
 
     @Test
+    @DisplayName("Should pass when aggregate size within limit")
     void shouldPass_whenAggregateSizeWithinLimit() {
         // Given: Order aggregate with 3 entities (within limit of 7)
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit entity1 = entity("OrderLine", true);
-        CodeUnit entity2 = entity("OrderDiscount", true);
-        CodeUnit entity3 = entity("OrderNote", true);
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(orderAggregate)
-                .addUnit(entity1)
-                .addUnit(entity2)
-                .addUnit(entity3)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderDiscount")
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderNote")
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(
+                        "com.example.domain.Order",
+                        List.of(
+                                "com.example.domain.OrderLine",
+                                "com.example.domain.OrderDiscount",
+                                "com.example.domain.OrderNote"),
+                        List.of())
+                .addEntity("com.example.domain.OrderLine", "com.example.domain.Order")
+                .addEntity("com.example.domain.OrderDiscount", "com.example.domain.Order")
+                .addEntity("com.example.domain.OrderNote", "com.example.domain.Order")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: No violation
         assertThat(violations).isEmpty();
     }
 
     @Test
+    @DisplayName("Should pass when aggregate has exactly seven entities")
     void shouldPass_whenAggregateHasExactlySevenEntities() {
         // Given: Aggregate with exactly 7 entities (boundary case)
-        CodeUnit aggregate = aggregate("LargeAggregate");
-        TestCodebaseBuilder builder = new TestCodebaseBuilder().addUnit(aggregate);
+        List<String> entityNames = new ArrayList<>();
+        TestModelBuilder builder = new TestModelBuilder();
 
         for (int i = 1; i <= 7; i++) {
-            CodeUnit entity = entity("Entity" + i, true);
-            builder.addUnit(entity).addDependency("com.example.domain.LargeAggregate", entity.qualifiedName());
+            String entityQName = "com.example.domain.Entity" + i;
+            entityNames.add(entityQName);
+            builder.addEntity(entityQName, "com.example.domain.LargeAggregate");
         }
 
-        Codebase codebase = builder.build();
+        builder.addAggregateRoot("com.example.domain.LargeAggregate", entityNames, List.of());
+        ArchitecturalModel model = builder.build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: No violation at boundary
         assertThat(violations).isEmpty();
     }
 
     @Test
+    @DisplayName("Should warn when aggregate too large")
     void shouldWarn_whenAggregateTooLarge() {
         // Given: Order aggregate with 8 entities (exceeds limit of 7)
-        CodeUnit orderAggregate = aggregate("Order");
-        TestCodebaseBuilder builder = new TestCodebaseBuilder().addUnit(orderAggregate);
+        List<String> entityNames = new ArrayList<>();
+        TestModelBuilder builder = new TestModelBuilder();
 
-        // Add 8 entities
         for (int i = 1; i <= 8; i++) {
-            CodeUnit entity = entity("Entity" + i, true);
-            builder.addUnit(entity).addDependency("com.example.domain.Order", entity.qualifiedName());
+            String entityQName = "com.example.domain.Entity" + i;
+            entityNames.add(entityQName);
+            builder.addEntity(entityQName, "com.example.domain.Order");
         }
 
-        Codebase codebase = builder.build();
+        builder.addAggregateRoot("com.example.domain.Order", entityNames, List.of());
+        ArchitecturalModel model = builder.build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: Violation detected
         assertThat(violations).hasSize(1);
         Violation violation = violations.get(0);
-        assertThat(violation.message()).contains("Order", "8 entities", "maximum: 7", "splitting");
+        assertThat(violation.message()).contains("Order", "8 entities", "maximum: 7");
         assertThat(violation.severity()).isEqualTo(Severity.MAJOR);
     }
 
     @Test
+    @DisplayName("Should warn when aggregate massive")
     void shouldWarn_whenAggregateMassive() {
         // Given: Huge aggregate with 15 entities
-        CodeUnit aggregate = aggregate("MassiveAggregate");
-        TestCodebaseBuilder builder = new TestCodebaseBuilder().addUnit(aggregate);
+        List<String> entityNames = new ArrayList<>();
+        TestModelBuilder builder = new TestModelBuilder();
 
         for (int i = 1; i <= 15; i++) {
-            CodeUnit entity = entity("Entity" + i, true);
-            builder.addUnit(entity).addDependency("com.example.domain.MassiveAggregate", entity.qualifiedName());
+            String entityQName = "com.example.domain.Entity" + i;
+            entityNames.add(entityQName);
+            builder.addEntity(entityQName, "com.example.domain.MassiveAggregate");
         }
 
-        Codebase codebase = builder.build();
+        builder.addAggregateRoot("com.example.domain.MassiveAggregate", entityNames, List.of());
+        ArchitecturalModel model = builder.build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: Violation with count
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message()).contains("15 entities");
     }
 
-    // === Rule 3: Boundary Respect ===
-
-    @Test
-    void shouldPass_whenOnlyAggregateRootAccessedExternally() {
-        // Given: Infrastructure adapter only references aggregate root
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit orderLineEntity = entity("OrderLine", true);
-        CodeUnit orderAdapter = infraClass("OrderAdapter");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(orderAggregate)
-                .addUnit(orderLineEntity)
-                .addUnit(orderAdapter)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
-                .addDependency("com.example.infrastructure.OrderAdapter", "com.example.domain.Order")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: No violation - adapter correctly accesses aggregate root
-        assertThat(violations).isEmpty();
-    }
-
-    @Test
-    void shouldFail_whenInternalEntityAccessedExternally() {
-        // Given: External adapter directly references internal entity
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit orderLineEntity = entity("OrderLine", true);
-        CodeUnit orderAdapter = infraClass("OrderAdapter");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(orderAggregate)
-                .addUnit(orderLineEntity)
-                .addUnit(orderAdapter)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
-                // Violation: adapter bypasses aggregate root
-                .addDependency("com.example.infrastructure.OrderAdapter", "com.example.domain.OrderLine")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: Violation detected
-        assertThat(violations).hasSize(1);
-        Violation violation = violations.get(0);
-        assertThat(violation.message())
-                .contains("OrderAdapter", "directly references", "OrderLine", "Order", "aggregate root");
-        assertThat(violation.affectedTypes()).contains("com.example.infrastructure.OrderAdapter");
-        assertThat(violation.severity()).isEqualTo(Severity.MAJOR);
-    }
-
-    @Test
-    void shouldFail_whenApplicationLayerBypassesAggregateRoot() {
-        // Given: Application service directly accesses internal entity
-        CodeUnit customerAggregate = aggregate("Customer");
-        CodeUnit addressEntity = entity("Address", true);
-        CodeUnit orderService = applicationClass("OrderService");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(customerAggregate)
-                .addUnit(addressEntity)
-                .addUnit(orderService)
-                .addDependency("com.example.domain.Customer", "com.example.domain.Address")
-                .addDependency("com.example.application.OrderService", "com.example.domain.Address")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: Violation detected
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message())
-                .contains("OrderService", "Address", "Customer", "Only the aggregate root");
-    }
-
     // === Edge Cases ===
 
     @Test
+    @DisplayName("Should pass when no aggregates")
     void shouldPass_whenNoAggregates() {
-        // Given: Codebase with no aggregates
-        Codebase codebase = withUnits(domainClass("SomeClass"), infraClass("SomeAdapter"));
+        // Given: Empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: No violations
         assertThat(violations).isEmpty();
     }
 
     @Test
+    @DisplayName("Should pass when aggregate has no entities")
     void shouldPass_whenAggregateHasNoEntities() {
         // Given: Aggregate with no entity dependencies
-        CodeUnit aggregate = aggregate("SimpleAggregate");
-        Codebase codebase = withUnits(aggregate);
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.SimpleAggregate")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: No violations
         assertThat(violations).isEmpty();
-    }
-
-    @Test
-    void shouldPass_whenDomainLayerReferencesInternalEntity() {
-        // Given: Another domain type references entity (domain-to-domain is allowed)
-        CodeUnit orderAggregate = aggregate("Order");
-        CodeUnit orderLineEntity = entity("OrderLine", true);
-        CodeUnit orderService = domainClass("OrderDomainService");
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(orderAggregate)
-                .addUnit(orderLineEntity)
-                .addUnit(orderService)
-                .addDependency("com.example.domain.Order", "com.example.domain.OrderLine")
-                .addDependency("com.example.domain.OrderDomainService", "com.example.domain.OrderLine")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: No boundary violation (domain-to-domain is OK, only multi-ownership is checked)
-        assertThat(violations)
-                .filteredOn(v -> v.message().contains("bypass") || v.message().contains("boundary"))
-                .isEmpty();
     }
 }

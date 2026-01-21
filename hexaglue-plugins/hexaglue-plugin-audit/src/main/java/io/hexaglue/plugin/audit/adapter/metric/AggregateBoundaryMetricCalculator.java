@@ -13,15 +13,16 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -55,65 +56,83 @@ public class AggregateBoundaryMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the percentage of properly encapsulated entities using the v5 ArchType API.
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for dependency graph access
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> entities = codebase.unitsWithRole(RoleClassification.ENTITY);
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
+        return model.domainIndex()
+                .map(domain -> {
+                    long entityCount = domain.entities().count();
 
-        // Edge case: no entities means perfect encapsulation
-        if (entities.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME,
-                    100.0,
-                    "%",
-                    "Percentage of entities properly encapsulated within aggregates (no entities found)");
-        }
+                    // Edge case: no entities means perfect encapsulation
+                    if (entityCount == 0) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                100.0,
+                                "%",
+                                "Percentage of entities properly encapsulated within aggregates (no entities found)");
+                    }
 
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+                    long aggregateCount = domain.aggregateRoots().count();
 
-        // Edge case: entities exist but no aggregates means 0% encapsulation
-        if (aggregates.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME,
-                    0.0,
-                    "%",
-                    "Percentage of entities properly encapsulated within aggregates (no aggregates found)",
-                    MetricThreshold.lessThan(WARNING_THRESHOLD));
-        }
+                    // Edge case: entities exist but no aggregates means 0% encapsulation
+                    if (aggregateCount == 0) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                0.0,
+                                "%",
+                                "Percentage of entities properly encapsulated within aggregates (no aggregates found)",
+                                MetricThreshold.lessThan(WARNING_THRESHOLD));
+                    }
 
-        // Build entity-to-aggregate membership map
-        Map<String, String> entityToAggregate = buildEntityToAggregateMap(aggregates, entities);
+                    // Build entity-to-aggregate membership map
+                    Map<String, String> entityToAggregate = buildEntityToAggregateMap(domain);
 
-        // Count entities that belong to aggregates and check encapsulation
-        long entitiesInAggregates = 0;
-        long encapsulatedCount = 0;
+                    // Count entities that belong to aggregates and check encapsulation
+                    long entitiesInAggregates = 0;
+                    long encapsulatedCount = 0;
 
-        for (CodeUnit entity : entities) {
-            String entityQName = entity.qualifiedName();
-            String aggregateQName = entityToAggregate.get(entityQName);
+                    for (Entity entity : domain.entities().toList()) {
+                        String entityQName = entity.id().qualifiedName();
+                        String aggregateQName = entityToAggregate.get(entityQName);
 
-            // Entity doesn't belong to any aggregate, skip from calculation
-            if (aggregateQName == null) {
-                continue;
-            }
+                        // Entity doesn't belong to any aggregate, skip from calculation
+                        if (aggregateQName == null) {
+                            continue;
+                        }
 
-            entitiesInAggregates++;
+                        entitiesInAggregates++;
 
-            // Check if entity is only accessed from within its aggregate
-            if (isEncapsulated(entity, aggregateQName, entityToAggregate, codebase)) {
-                encapsulatedCount++;
-            }
-        }
+                        // Check if entity is only accessed from within its aggregate
+                        if (isEncapsulated(entity, aggregateQName, entityToAggregate, codebase)) {
+                            encapsulatedCount++;
+                        }
+                    }
 
-        // Only calculate percentage based on entities that belong to aggregates
-        double encapsulationPercentage =
-                entitiesInAggregates > 0 ? (double) encapsulatedCount / entitiesInAggregates * 100.0 : 100.0;
+                    // Only calculate percentage based on entities that belong to aggregates
+                    double encapsulationPercentage = entitiesInAggregates > 0
+                            ? (double) encapsulatedCount / entitiesInAggregates * 100.0
+                            : 100.0;
 
-        return Metric.of(
-                METRIC_NAME,
-                encapsulationPercentage,
-                "%",
-                "Percentage of entities properly encapsulated within aggregates",
-                MetricThreshold.lessThan(WARNING_THRESHOLD));
+                    return Metric.of(
+                            METRIC_NAME,
+                            encapsulationPercentage,
+                            "%",
+                            "Percentage of entities properly encapsulated within aggregates",
+                            MetricThreshold.lessThan(WARNING_THRESHOLD));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        100.0,
+                        "%",
+                        "Percentage of entities properly encapsulated within aggregates (domain index not available)"));
     }
 
     /**
@@ -122,23 +141,23 @@ public class AggregateBoundaryMetricCalculator implements MetricCalculator {
      * <p>An entity belongs to an aggregate if it is in the same package as the aggregate
      * or in a sub-package of the aggregate's package.
      *
-     * @param aggregates all aggregate roots
-     * @param entities all entities
+     * @param domain the domain index
      * @return map of entity qualified name to aggregate qualified name
      */
-    private Map<String, String> buildEntityToAggregateMap(List<CodeUnit> aggregates, List<CodeUnit> entities) {
+    private Map<String, String> buildEntityToAggregateMap(
+            io.hexaglue.arch.model.index.DomainIndex domain) {
         Map<String, String> map = new HashMap<>();
 
-        for (CodeUnit entity : entities) {
-            String entityPackage = entity.packageName();
+        for (Entity entity : domain.entities().toList()) {
+            String entityPackage = getPackageName(entity.id().qualifiedName());
 
             // Find the aggregate this entity belongs to
-            for (CodeUnit aggregate : aggregates) {
-                String aggregatePackage = aggregate.packageName();
+            for (AggregateRoot aggregate : domain.aggregateRoots().toList()) {
+                String aggregatePackage = getPackageName(aggregate.id().qualifiedName());
 
                 // Entity belongs to aggregate if in same package or sub-package
                 if (entityPackage.equals(aggregatePackage) || entityPackage.startsWith(aggregatePackage + ".")) {
-                    map.put(entity.qualifiedName(), aggregate.qualifiedName());
+                    map.put(entity.id().qualifiedName(), aggregate.id().qualifiedName());
                     break; // Assume entity belongs to only one aggregate
                 }
             }
@@ -155,13 +174,13 @@ public class AggregateBoundaryMetricCalculator implements MetricCalculator {
      * @param entity the entity to check
      * @param aggregateQName the aggregate that owns the entity
      * @param entityToAggregate map of entities to their aggregates
-     * @param codebase the codebase
+     * @param codebase the codebase for dependency access
      * @return true if the entity is properly encapsulated
      */
     private boolean isEncapsulated(
-            CodeUnit entity, String aggregateQName, Map<String, String> entityToAggregate, Codebase codebase) {
+            Entity entity, String aggregateQName, Map<String, String> entityToAggregate, Codebase codebase) {
 
-        String entityQName = entity.qualifiedName();
+        String entityQName = entity.id().qualifiedName();
 
         // Find all code units that depend on this entity
         Set<String> dependents = findDependents(codebase, entityQName);

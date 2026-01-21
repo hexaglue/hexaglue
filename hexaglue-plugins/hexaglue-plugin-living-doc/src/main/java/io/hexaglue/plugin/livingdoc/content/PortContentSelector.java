@@ -14,17 +14,18 @@
 package io.hexaglue.plugin.livingdoc.content;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
-import io.hexaglue.arch.ports.PortClassification;
-import io.hexaglue.arch.ports.PortOperation;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.spi.ir.ConfidenceLevel;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortKind;
-import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,27 +34,33 @@ import java.util.stream.Collectors;
  *
  * @since 4.0.0
  * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
+ * @since 5.0.0 - Migrated to v5 ArchType API with PortIndex
  */
 public final class PortContentSelector {
 
     private final ArchitecturalModel model;
 
     /**
-     * Creates a selector using v4 ArchitecturalModel.
+     * Creates a selector using v5 ArchitecturalModel with PortIndex.
      *
      * @param model the architectural model
      * @since 4.0.0
+     * @since 5.0.0 - Migrated to v5 API
      */
     public PortContentSelector(ArchitecturalModel model) {
         this.model = model;
     }
 
     public List<PortDoc> selectDrivingPorts() {
-        return model.registry().all(DrivingPort.class).map(this::toDoc).toList();
+        PortIndex portIndex = model.portIndex()
+                .orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
+        return portIndex.drivingPorts().map(this::toDoc).toList();
     }
 
     public List<PortDoc> selectDrivenPorts() {
-        return model.registry().all(DrivenPort.class).map(this::toDoc).toList();
+        PortIndex portIndex = model.portIndex()
+                .orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
+        return portIndex.drivenPorts().map(this::toDoc).toList();
     }
 
     private PortDoc toDoc(DrivingPort port) {
@@ -63,12 +70,12 @@ public final class PortContentSelector {
         return new PortDoc(
                 simpleName,
                 packageName,
-                toPortKind(port.classification()),
+                PortKind.USE_CASE, // Default kind for driving ports in v5
                 PortDirection.DRIVING,
-                toConfidenceLevel(port.classificationTrace()),
+                toConfidenceLevel(port.classification()),
                 List.of(), // managedTypes - driving ports don't manage types
-                port.operations().stream().map(this::toMethodDoc).collect(Collectors.toList()),
-                toDebugInfo(port.id().qualifiedName(), port.syntax()));
+                port.structure().methods().stream().map(this::toMethodDoc).collect(Collectors.toList()),
+                toDebugInfo(port.id().qualifiedName(), port.structure()));
     }
 
     private PortDoc toDoc(DrivenPort port) {
@@ -76,59 +83,51 @@ public final class PortContentSelector {
         String simpleName = port.id().simpleName();
 
         // Extract managed types
-        List<String> managedTypes = port.primaryManagedType()
-                .map(ref -> List.of(ref.id().qualifiedName()))
+        List<String> managedTypes = port.managedAggregate()
+                .map(ref -> List.of(ref.qualifiedName()))
                 .orElse(List.of());
 
         return new PortDoc(
                 simpleName,
                 packageName,
-                toPortKind(port.classification()),
+                toPortKind(port.portType()),
                 PortDirection.DRIVEN,
-                toConfidenceLevel(port.classificationTrace()),
+                toConfidenceLevel(port.classification()),
                 managedTypes,
-                port.operations().stream().map(this::toMethodDoc).collect(Collectors.toList()),
-                toDebugInfo(port.id().qualifiedName(), port.syntax()));
+                port.structure().methods().stream().map(this::toMethodDoc).collect(Collectors.toList()),
+                toDebugInfo(port.id().qualifiedName(), port.structure()));
     }
 
-    private MethodDoc toMethodDoc(PortOperation operation) {
-        String returnType =
-                operation.returnType() != null ? operation.returnType().qualifiedName() : "void";
-        List<String> parameters = operation.parameterTypes().stream()
-                .map(io.hexaglue.syntax.TypeRef::qualifiedName)
+    private MethodDoc toMethodDoc(Method method) {
+        String returnType = method.returnType() != null
+                ? method.returnType().qualifiedName()
+                : "void";
+        List<String> parameters = method.parameters().stream()
+                .map(p -> p.type().qualifiedName())
                 .collect(Collectors.toList());
-        return new MethodDoc(operation.name(), returnType, parameters);
+        return new MethodDoc(method.name(), returnType, parameters);
     }
 
-    private DebugInfo toDebugInfo(String qualifiedName, TypeSyntax syntax) {
+    private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {
+        // TypeStructure doesn't track source location - provide defaults
         String sourceFile = null;
         int lineStart = 0;
         int lineEnd = 0;
 
-        if (syntax != null
-                && syntax.sourceLocation() != null
-                && syntax.sourceLocation().isKnown()) {
-            sourceFile = syntax.sourceLocation().filePath().toString();
-            lineStart = syntax.sourceLocation().line();
-            lineEnd = syntax.sourceLocation().endLine();
-        }
-
-        List<String> annotations = syntax != null && syntax.annotations() != null
-                ? syntax.annotations().stream().map(a -> "@" + a.simpleName()).collect(Collectors.toList())
-                : List.of();
+        List<String> annotations = structure.annotations().stream()
+                .map(a -> "@" + a.simpleName())
+                .collect(Collectors.toList());
 
         return new DebugInfo(qualifiedName, annotations, sourceFile, lineStart, lineEnd);
     }
 
-    private PortKind toPortKind(PortClassification classification) {
-        return switch (classification) {
+    private PortKind toPortKind(DrivenPortType portType) {
+        return switch (portType) {
             case REPOSITORY -> PortKind.REPOSITORY;
             case GATEWAY -> PortKind.GATEWAY;
-            case USE_CASE -> PortKind.USE_CASE;
-            case COMMAND_HANDLER -> PortKind.COMMAND;
-            case QUERY_HANDLER -> PortKind.QUERY;
             case EVENT_PUBLISHER -> PortKind.EVENT_PUBLISHER;
-            case NOTIFICATION, UNKNOWN -> PortKind.GENERIC;
+            case NOTIFICATION -> PortKind.GENERIC;
+            case OTHER -> PortKind.GENERIC;
         };
     }
 

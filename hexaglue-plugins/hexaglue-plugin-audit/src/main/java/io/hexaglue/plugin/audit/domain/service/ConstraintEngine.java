@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.domain.service;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
@@ -35,6 +36,7 @@ import java.util.Set;
  * </ul>
  *
  * @since 1.0.0
+ * @since 5.0.0 Updated to pass ArchitecturalModel to validators for v5 ArchType access
  */
 public class ConstraintEngine {
 
@@ -50,19 +52,23 @@ public class ConstraintEngine {
     }
 
     /**
-     * Executes the specified constraints against the codebase.
+     * Executes the specified constraints against the codebase using v5 ArchType API.
      *
      * <p>This method iterates through the enabled constraints, executes their
-     * validators, and collects all violations. If a validator throws an exception,
-     * it is logged but doesn't stop execution of other validators.
+     * validators with access to the v5 ArchitecturalModel, and collects all violations.
+     * If a validator throws an exception, it is logged but doesn't stop execution
+     * of other validators.
      *
-     * @param codebase           the codebase to validate
+     * @param model              the architectural model containing v5 indices
+     * @param codebase           the codebase for legacy access (to be phased out)
      * @param query              architecture query for advanced analysis (may be null)
      * @param enabledConstraints the set of constraint IDs to execute (empty = all)
      * @return list of all violations found
+     * @since 5.0.0
      */
     public List<Violation> executeConstraints(
-            Codebase codebase, ArchitectureQuery query, Set<ConstraintId> enabledConstraints) {
+            ArchitecturalModel model, Codebase codebase, ArchitectureQuery query, Set<ConstraintId> enabledConstraints) {
+        Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(codebase, "codebase required");
         Objects.requireNonNull(enabledConstraints, "enabledConstraints required");
 
@@ -74,7 +80,7 @@ public class ConstraintEngine {
                 .filter(Objects::nonNull)
                 .flatMap(validator -> {
                     try {
-                        return validator.validate(codebase, query).stream();
+                        return validator.validate(model, codebase, query).stream();
                     } catch (Exception e) {
                         // Log error but continue with other validators
                         System.err.println(

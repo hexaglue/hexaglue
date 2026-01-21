@@ -14,7 +14,15 @@
 package io.hexaglue.plugin.audit;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.domain.DomainEntity;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
@@ -171,6 +179,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         // Execute audit with architecture query
         AuditResult result = orchestrator.executeAudit(
+                archModel, // Pass the v5 architectural model
                 codebase,
                 architectureQuery,
                 config.enabledConstraints(),
@@ -442,22 +451,15 @@ public class DddAuditPlugin implements AuditPlugin {
             });
         } else {
             // Fallback to registry if indices not available
-            var registry = model.registry();
-            long aggregateCount = registry.all(DomainEntity.class)
-                    .filter(DomainEntity::isAggregateRoot)
-                    .count();
-            long entityCount = registry.all(DomainEntity.class)
-                    .filter(e -> !e.isAggregateRoot())
-                    .count();
-            long valueObjectCount =
-                    registry.all(io.hexaglue.arch.domain.ValueObject.class).count();
-            long drivingPortCount =
-                    registry.all(io.hexaglue.arch.ports.DrivingPort.class).count();
-            long drivenPortCount =
-                    registry.all(io.hexaglue.arch.ports.DrivenPort.class).count();
+            var registry = model.typeRegistry().orElseThrow();
+            long aggregateCount = registry.all(AggregateRoot.class).count();
+            long entityCount = registry.all(Entity.class).count();
+            long valueObjectCount = registry.all(ValueObject.class).count();
+            long drivingPortCount = registry.all(DrivingPort.class).count();
+            long drivenPortCount = registry.all(DrivenPort.class).count();
 
             diagnostics.info(String.format(
-                    "v4 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
+                    "v5 Model: %d aggregates, %d entities, %d value objects, %d driving ports, %d driven ports",
                     aggregateCount, entityCount, valueObjectCount, drivingPortCount, drivenPortCount));
         }
     }
@@ -493,6 +495,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         // Execute audit with architecture query
         AuditResult result = orchestrator.executeAudit(
+                model, // Pass the v5 architectural model
                 codebase,
                 coreQuery,
                 config.enabledConstraints(),
@@ -724,103 +727,103 @@ public class DddAuditPlugin implements AuditPlugin {
         List<CodeUnit> units = new ArrayList<>();
         Map<String, Set<String>> dependencies = new HashMap<>();
 
-        var registry = model.registry();
+        var registry = model.typeRegistry().orElseThrow();
 
-        // Convert domain entities to code units
-        registry.all(io.hexaglue.arch.domain.DomainEntity.class).forEach(entity -> {
-            CodeUnit unit = toCodeUnitV4(entity);
+        // Convert aggregate roots to code units
+        registry.all(AggregateRoot.class).forEach(aggregate -> {
+            CodeUnit unit = toCodeUnitV5(aggregate);
             units.add(unit);
-            dependencies.put(entity.id().qualifiedName(), extractDependenciesV4(entity));
+            dependencies.put(aggregate.id().qualifiedName(), extractDependenciesV5(aggregate));
+        });
+
+        // Convert entities to code units
+        registry.all(Entity.class).forEach(entity -> {
+            CodeUnit unit = toCodeUnitV5(entity);
+            units.add(unit);
+            dependencies.put(entity.id().qualifiedName(), extractDependenciesV5(entity));
         });
 
         // Convert value objects to code units
-        registry.all(io.hexaglue.arch.domain.ValueObject.class).forEach(vo -> {
-            CodeUnit unit = toCodeUnitV4(vo);
+        registry.all(ValueObject.class).forEach(vo -> {
+            CodeUnit unit = toCodeUnitV5(vo);
             units.add(unit);
-            dependencies.put(vo.id().qualifiedName(), extractDependenciesV4(vo));
+            dependencies.put(vo.id().qualifiedName(), extractDependenciesV5(vo));
         });
 
         // Convert identifiers to code units
-        registry.all(io.hexaglue.arch.domain.Identifier.class).forEach(id -> {
-            CodeUnit unit = toCodeUnitV4(id);
+        registry.all(Identifier.class).forEach(id -> {
+            CodeUnit unit = toCodeUnitV5(id);
             units.add(unit);
-            dependencies.put(id.id().qualifiedName(), extractDependenciesV4(id));
+            dependencies.put(id.id().qualifiedName(), extractDependenciesV5(id));
         });
 
         // Convert domain events to code units
-        registry.all(io.hexaglue.arch.domain.DomainEvent.class).forEach(event -> {
-            CodeUnit unit = toCodeUnitV4(event);
+        registry.all(DomainEvent.class).forEach(event -> {
+            CodeUnit unit = toCodeUnitV5(event);
             units.add(unit);
-            dependencies.put(event.id().qualifiedName(), extractDependenciesV4(event));
+            dependencies.put(event.id().qualifiedName(), extractDependenciesV5(event));
         });
 
         // Convert domain services to code units
-        registry.all(io.hexaglue.arch.domain.DomainService.class).forEach(service -> {
-            CodeUnit unit = toCodeUnitV4(service);
+        registry.all(DomainService.class).forEach(service -> {
+            CodeUnit unit = toCodeUnitV5(service);
             units.add(unit);
-            dependencies.put(service.id().qualifiedName(), extractDependenciesV4(service));
+            dependencies.put(service.id().qualifiedName(), extractDependenciesV5(service));
         });
 
         // Convert application services to code units
-        registry.all(io.hexaglue.arch.ports.ApplicationService.class).forEach(appService -> {
-            CodeUnit unit = toCodeUnitV4(appService);
+        registry.all(ApplicationService.class).forEach(appService -> {
+            CodeUnit unit = toCodeUnitV5(appService);
             units.add(unit);
-            dependencies.put(appService.id().qualifiedName(), extractDependenciesV4(appService));
+            dependencies.put(appService.id().qualifiedName(), extractDependenciesV5(appService));
         });
 
         // Convert driving ports to code units
-        registry.all(io.hexaglue.arch.ports.DrivingPort.class).forEach(port -> {
-            CodeUnit unit = toCodeUnitV4(port);
+        registry.all(DrivingPort.class).forEach(port -> {
+            CodeUnit unit = toCodeUnitV5(port);
             units.add(unit);
-            dependencies.put(port.id().qualifiedName(), extractDependenciesV4(port));
+            dependencies.put(port.id().qualifiedName(), extractDependenciesV5(port));
         });
 
         // Convert driven ports to code units
-        registry.all(io.hexaglue.arch.ports.DrivenPort.class).forEach(port -> {
-            CodeUnit unit = toCodeUnitV4(port);
+        registry.all(DrivenPort.class).forEach(port -> {
+            CodeUnit unit = toCodeUnitV5(port);
             units.add(unit);
-            dependencies.put(port.id().qualifiedName(), extractDependenciesV4(port));
+            dependencies.put(port.id().qualifiedName(), extractDependenciesV5(port));
         });
 
         return new Codebase("audit-target", inferBasePackage(units), units, dependencies);
     }
 
     /**
-     * Converts a v4 DomainEntity to a CodeUnit.
+     * Converts a v5 AggregateRoot to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.domain.DomainEntity entity) {
-        io.hexaglue.syntax.TypeSyntax syntax = entity.syntax();
+    private CodeUnit toCodeUnitV5(AggregateRoot aggregate) {
+        var structure = aggregate.structure();
 
         // Build field declarations
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                isIdentityFieldV4(field, entity) ? Set.of("Id") : Set.of()))
-                        .toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        field.roles().contains(io.hexaglue.arch.model.FieldRole.IDENTITY) ? Set.of("Id") : Set.of()))
+                .toList();
 
         // Build method declarations
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
 
         // Determine code unit kind
-        CodeUnitKind unitKind = syntax != null && syntax.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
-
-        // Determine role - aggregate root or entity
-        RoleClassification role =
-                entity.isAggregateRoot() ? RoleClassification.AGGREGATE_ROOT : RoleClassification.ENTITY;
+        CodeUnitKind unitKind = structure.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
 
         return new CodeUnit(
-                entity.id().qualifiedName(),
+                aggregate.id().qualifiedName(),
                 unitKind,
                 LayerClassification.DOMAIN,
-                role,
+                RoleClassification.AGGREGATE_ROOT,
                 methodDecls,
                 fieldDecls,
                 codeMetrics,
@@ -828,27 +831,59 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 ValueObject to a CodeUnit.
+     * Converts a v5 Entity to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.domain.ValueObject vo) {
-        io.hexaglue.syntax.TypeSyntax syntax = vo.syntax();
+    private CodeUnit toCodeUnitV5(Entity entity) {
+        var structure = entity.structure();
 
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                Set.of()))
-                        .toList()
-                : List.of();
+        // Build field declarations
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        field.roles().contains(io.hexaglue.arch.model.FieldRole.IDENTITY) ? Set.of("Id") : Set.of()))
+                .toList();
 
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        // Build method declarations
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
-        CodeUnitKind unitKind = syntax != null && syntax.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
+
+        // Determine code unit kind
+        CodeUnitKind unitKind = structure.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
+
+        return new CodeUnit(
+                entity.id().qualifiedName(),
+                unitKind,
+                LayerClassification.DOMAIN,
+                RoleClassification.ENTITY,
+                methodDecls,
+                fieldDecls,
+                codeMetrics,
+                new DocumentationInfo(false, 0, List.of()));
+    }
+
+    /**
+     * Converts a v5 ValueObject to a CodeUnit.
+     */
+    private CodeUnit toCodeUnitV5(ValueObject vo) {
+        var structure = vo.structure();
+
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        Set.of()))
+                .toList();
+
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
+
+        CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
+        CodeUnitKind unitKind = structure.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
 
         return new CodeUnit(
                 vo.id().qualifiedName(),
@@ -862,30 +897,27 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 Identifier to a CodeUnit.
+     * Converts a v5 Identifier to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.domain.Identifier id) {
-        io.hexaglue.syntax.TypeSyntax syntax = id.syntax();
+    private CodeUnit toCodeUnitV5(Identifier identifier) {
+        var structure = identifier.structure();
 
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                Set.of()))
-                        .toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        Set.of()))
+                .toList();
 
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
-        CodeUnitKind unitKind = syntax != null && syntax.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
+        CodeUnitKind unitKind = structure.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
 
         return new CodeUnit(
-                id.id().qualifiedName(),
+                identifier.id().qualifiedName(),
                 unitKind,
                 LayerClassification.DOMAIN,
                 RoleClassification.VALUE_OBJECT, // Identifiers are value objects semantically
@@ -896,27 +928,24 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 DomainEvent to a CodeUnit.
+     * Converts a v5 DomainEvent to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.domain.DomainEvent event) {
-        io.hexaglue.syntax.TypeSyntax syntax = event.syntax();
+    private CodeUnit toCodeUnitV5(DomainEvent event) {
+        var structure = event.structure();
 
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                Set.of()))
-                        .toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        Set.of()))
+                .toList();
 
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
-        CodeUnitKind unitKind = syntax != null && syntax.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
+        CodeUnitKind unitKind = structure.isRecord() ? CodeUnitKind.RECORD : CodeUnitKind.CLASS;
 
         return new CodeUnit(
                 event.id().qualifiedName(),
@@ -930,24 +959,21 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 DomainService to a CodeUnit.
+     * Converts a v5 DomainService to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.domain.DomainService service) {
-        io.hexaglue.syntax.TypeSyntax syntax = service.syntax();
+    private CodeUnit toCodeUnitV5(DomainService service) {
+        var structure = service.structure();
 
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                Set.of()))
-                        .toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        Set.of()))
+                .toList();
 
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
 
@@ -963,24 +989,21 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 ApplicationService to a CodeUnit.
+     * Converts a v5 ApplicationService to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.ports.ApplicationService appService) {
-        io.hexaglue.syntax.TypeSyntax syntax = appService.syntax();
+    private CodeUnit toCodeUnitV5(ApplicationService appService) {
+        var structure = appService.structure();
 
-        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = syntax != null && syntax.fields() != null
-                ? syntax.fields().stream()
-                        .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                                field.name(),
-                                field.type() != null ? field.type().qualifiedName() : "Object",
-                                Set.of(),
-                                Set.of()))
-                        .toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
+                .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
+                        field.name(),
+                        field.type().qualifiedName(),
+                        Set.of(),
+                        Set.of()))
+                .toList();
 
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = syntax != null && syntax.methods() != null
-                ? syntax.methods().stream().map(this::toMethodDeclarationV4).toList()
-                : List.of();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                structure.methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), fieldDecls.size(), 100.0);
 
@@ -996,20 +1019,11 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 DrivingPort to a CodeUnit.
+     * Converts a v5 DrivingPort to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.ports.DrivingPort port) {
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.operations().stream()
-                .map(op -> new io.hexaglue.spi.audit.MethodDeclaration(
-                        op.name(),
-                        op.returnType() != null ? op.returnType().qualifiedName() : "void",
-                        op.parameterTypes().stream()
-                                .map(io.hexaglue.syntax.TypeRef::qualifiedName)
-                                .toList(),
-                        Set.of(),
-                        Set.of(),
-                        0))
-                .toList();
+    private CodeUnit toCodeUnitV5(DrivingPort port) {
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                port.structure().methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), 0, 100.0);
 
@@ -1025,25 +1039,16 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 DrivenPort to a CodeUnit.
+     * Converts a v5 DrivenPort to a CodeUnit.
      */
-    private CodeUnit toCodeUnitV4(io.hexaglue.arch.ports.DrivenPort port) {
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.operations().stream()
-                .map(op -> new io.hexaglue.spi.audit.MethodDeclaration(
-                        op.name(),
-                        op.returnType() != null ? op.returnType().qualifiedName() : "void",
-                        op.parameterTypes().stream()
-                                .map(io.hexaglue.syntax.TypeRef::qualifiedName)
-                                .toList(),
-                        Set.of(),
-                        Set.of(),
-                        0))
-                .toList();
+    private CodeUnit toCodeUnitV5(DrivenPort port) {
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
+                port.structure().methods().stream().map(this::toMethodDeclarationV5).toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), 0, 100.0);
 
-        // Determine role based on classification
-        RoleClassification role = port.classification() == io.hexaglue.arch.ports.PortClassification.REPOSITORY
+        // Determine role based on port type
+        RoleClassification role = port.portType() == io.hexaglue.arch.model.DrivenPortType.REPOSITORY
                 ? RoleClassification.REPOSITORY
                 : RoleClassification.PORT;
 
@@ -1059,21 +1064,19 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Converts a v4 MethodSyntax to a MethodDeclaration.
+     * Converts a v5 Method to a MethodDeclaration.
      */
-    private io.hexaglue.spi.audit.MethodDeclaration toMethodDeclarationV4(io.hexaglue.syntax.MethodSyntax method) {
-        String returnType = method.returnType() != null ? method.returnType().qualifiedName() : "void";
-        List<String> paramTypes = method.parameters().stream()
-                .map(p -> p.type() != null ? p.type().qualifiedName() : "Object")
-                .toList();
+    private io.hexaglue.spi.audit.MethodDeclaration toMethodDeclarationV5(io.hexaglue.arch.model.Method method) {
+        String returnType =
+                method.returnType() != null ? method.returnType().qualifiedName() : "void";
+        List<String> paramTypes =
+                method.parameters().stream().map(p -> p.type().qualifiedName()).toList();
 
         // Extract modifiers
-        Set<String> modifiers = method.modifiers() != null
-                ? method.modifiers().stream()
-                        .map(Enum::name)
-                        .map(String::toLowerCase)
-                        .collect(java.util.stream.Collectors.toSet())
-                : Set.of();
+        Set<String> modifiers = method.modifiers().stream()
+                .map(Enum::name)
+                .map(String::toLowerCase)
+                .collect(java.util.stream.Collectors.toSet());
 
         return new io.hexaglue.spi.audit.MethodDeclaration(
                 method.name(), returnType, paramTypes, modifiers, Set.of(), 1 // complexity
@@ -1081,131 +1084,120 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Checks if a field is the identity field for a DomainEntity.
+     * Extracts dependencies from a v5 AggregateRoot.
      */
-    private boolean isIdentityFieldV4(
-            io.hexaglue.syntax.FieldSyntax field, io.hexaglue.arch.domain.DomainEntity entity) {
-        return entity.hasIdentity()
-                && entity.identityField() != null
-                && entity.identityField().equals(field.name());
-    }
-
-    /**
-     * Extracts dependencies from a v4 DomainEntity.
-     */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.domain.DomainEntity entity) {
+    private Set<String> extractDependenciesV5(AggregateRoot aggregate) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = entity.syntax();
-        if (syntax != null) {
-            // From fields
-            if (syntax.fields() != null) {
-                syntax.fields().forEach(field -> {
-                    if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                        deps.add(field.type().qualifiedName());
-                    }
-                });
+        var structure = aggregate.structure();
+        // From fields
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
             }
-            // From annotations
-            if (syntax.annotations() != null) {
-                syntax.annotations().forEach(ann -> deps.add(ann.qualifiedName()));
+        });
+        // From annotations
+        structure.annotations().forEach(ann -> deps.add(ann.qualifiedName()));
+        return deps;
+    }
+
+    /**
+     * Extracts dependencies from a v5 Entity.
+     */
+    private Set<String> extractDependenciesV5(Entity entity) {
+        Set<String> deps = new HashSet<>();
+        var structure = entity.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
             }
-        }
+        });
+        structure.annotations().forEach(ann -> deps.add(ann.qualifiedName()));
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 ValueObject.
+     * Extracts dependencies from a v5 ValueObject.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.domain.ValueObject vo) {
+    private Set<String> extractDependenciesV5(ValueObject vo) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = vo.syntax();
-        if (syntax != null && syntax.fields() != null) {
-            syntax.fields().forEach(field -> {
-                if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                    deps.add(field.type().qualifiedName());
-                }
-            });
-        }
+        var structure = vo.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
+            }
+        });
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 Identifier.
+     * Extracts dependencies from a v5 Identifier.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.domain.Identifier id) {
+    private Set<String> extractDependenciesV5(Identifier identifier) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = id.syntax();
-        if (syntax != null && syntax.fields() != null) {
-            syntax.fields().forEach(field -> {
-                if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                    deps.add(field.type().qualifiedName());
-                }
-            });
-        }
+        var structure = identifier.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
+            }
+        });
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 DomainEvent.
+     * Extracts dependencies from a v5 DomainEvent.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.domain.DomainEvent event) {
+    private Set<String> extractDependenciesV5(DomainEvent event) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = event.syntax();
-        if (syntax != null && syntax.fields() != null) {
-            syntax.fields().forEach(field -> {
-                if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                    deps.add(field.type().qualifiedName());
-                }
-            });
-        }
+        var structure = event.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
+            }
+        });
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 DomainService.
+     * Extracts dependencies from a v5 DomainService.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.domain.DomainService service) {
+    private Set<String> extractDependenciesV5(DomainService service) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = service.syntax();
-        if (syntax != null && syntax.fields() != null) {
-            syntax.fields().forEach(field -> {
-                if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                    deps.add(field.type().qualifiedName());
-                }
-            });
-        }
+        var structure = service.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
+            }
+        });
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 ApplicationService.
+     * Extracts dependencies from a v5 ApplicationService.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.ports.ApplicationService appService) {
+    private Set<String> extractDependenciesV5(ApplicationService appService) {
         Set<String> deps = new HashSet<>();
-        io.hexaglue.syntax.TypeSyntax syntax = appService.syntax();
-        if (syntax != null && syntax.fields() != null) {
-            syntax.fields().forEach(field -> {
-                if (field.type() != null && !isPrimitive(field.type().qualifiedName())) {
-                    deps.add(field.type().qualifiedName());
-                }
-            });
-        }
+        var structure = appService.structure();
+        structure.fields().forEach(field -> {
+            if (!isPrimitive(field.type().qualifiedName())) {
+                deps.add(field.type().qualifiedName());
+            }
+        });
         return deps;
     }
 
     /**
-     * Extracts dependencies from a v4 DrivingPort.
+     * Extracts dependencies from a v5 DrivingPort.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.ports.DrivingPort port) {
+    private Set<String> extractDependenciesV5(DrivingPort port) {
         Set<String> deps = new HashSet<>();
         // Ports are interfaces, extract from method signatures
-        port.operations().forEach(op -> {
-            if (op.returnType() != null && !isPrimitive(op.returnType().qualifiedName())) {
-                deps.add(op.returnType().qualifiedName());
+        port.structure().methods().forEach(method -> {
+            if (method.returnType() != null && !isPrimitive(method.returnType().qualifiedName())) {
+                deps.add(method.returnType().qualifiedName());
             }
-            op.parameterTypes().forEach(param -> {
-                if (!isPrimitive(param.qualifiedName())) {
-                    deps.add(param.qualifiedName());
+            method.parameters().forEach(param -> {
+                if (!isPrimitive(param.type().qualifiedName())) {
+                    deps.add(param.type().qualifiedName());
                 }
             });
         });
@@ -1213,17 +1205,17 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Extracts dependencies from a v4 DrivenPort.
+     * Extracts dependencies from a v5 DrivenPort.
      */
-    private Set<String> extractDependenciesV4(io.hexaglue.arch.ports.DrivenPort port) {
+    private Set<String> extractDependenciesV5(DrivenPort port) {
         Set<String> deps = new HashSet<>();
-        port.operations().forEach(op -> {
-            if (op.returnType() != null && !isPrimitive(op.returnType().qualifiedName())) {
-                deps.add(op.returnType().qualifiedName());
+        port.structure().methods().forEach(method -> {
+            if (method.returnType() != null && !isPrimitive(method.returnType().qualifiedName())) {
+                deps.add(method.returnType().qualifiedName());
             }
-            op.parameterTypes().forEach(param -> {
-                if (!isPrimitive(param.qualifiedName())) {
-                    deps.add(param.qualifiedName());
+            method.parameters().forEach(param -> {
+                if (!isPrimitive(param.type().qualifiedName())) {
+                    deps.add(param.type().qualifiedName());
                 }
             });
         });

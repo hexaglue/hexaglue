@@ -13,15 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DomainType;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.MethodDeclaration;
-import java.util.List;
 
 /**
  * Calculates average cyclomatic complexity for domain types.
@@ -74,50 +74,117 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the average cyclomatic complexity using the v5 ArchType API.
+     *
+     * <p>Note: Since the v5 API does not yet expose method complexity in the Method record,
+     * this implementation returns 0.0 as a placeholder. The complexity calculation will be
+     * re-enabled when the Method record includes a complexity field.</p>
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for legacy access
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> domainTypes = codebase.unitsInLayer(LayerClassification.DOMAIN);
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
+        return model.domainIndex()
+                .map(domain -> {
+                    int totalMethods = 0;
+                    int totalComplexity = 0;
 
-        if (domainTypes.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME,
-                    0.0,
-                    "complexity",
-                    "Average cyclomatic complexity for domain methods (no domain types found)");
-        }
+                    // Process all domain types
+                    for (DomainType domainType : domain.aggregateRoots()
+                            .map(agg -> (DomainType) agg)
+                            .toList()) {
+                        TypeStructure structure = domainType.structure();
 
-        int totalMethods = 0;
-        int totalComplexity = 0;
+                        // Skip interfaces as they don't have method implementations
+                        if (structure.isInterface()) {
+                            continue;
+                        }
 
-        for (CodeUnit unit : domainTypes) {
-            // Skip interfaces as they don't have method implementations
-            if (unit.kind() == CodeUnitKind.INTERFACE) {
-                continue;
-            }
+                        for (Method method : structure.methods()) {
+                            totalMethods++;
+                            // TODO: Add complexity field to Method record
+                            // totalComplexity += method.complexity();
+                        }
+                    }
 
-            List<MethodDeclaration> methods = unit.methods();
+                    // Add entities
+                    for (DomainType domainType : domain.entities()
+                            .map(entity -> (DomainType) entity)
+                            .toList()) {
+                        TypeStructure structure = domainType.structure();
 
-            for (MethodDeclaration method : methods) {
-                totalMethods++;
-                totalComplexity += method.complexity();
-            }
-        }
+                        if (structure.isInterface()) {
+                            continue;
+                        }
 
-        if (totalMethods == 0) {
-            return Metric.of(
-                    METRIC_NAME,
-                    0.0,
-                    "complexity",
-                    "Average cyclomatic complexity for domain methods (no methods found)");
-        }
+                        for (Method method : structure.methods()) {
+                            totalMethods++;
+                            // TODO: Add complexity field to Method record
+                            // totalComplexity += method.complexity();
+                        }
+                    }
 
-        double averageComplexity = (double) totalComplexity / totalMethods;
+                    // Add value objects
+                    for (DomainType domainType : domain.valueObjects()
+                            .map(vo -> (DomainType) vo)
+                            .toList()) {
+                        TypeStructure structure = domainType.structure();
 
-        return Metric.of(
-                METRIC_NAME,
-                averageComplexity,
-                "complexity",
-                "Average cyclomatic complexity for domain methods",
-                MetricThreshold.greaterThan(WARNING_THRESHOLD));
+                        if (structure.isInterface()) {
+                            continue;
+                        }
+
+                        for (Method method : structure.methods()) {
+                            totalMethods++;
+                            // TODO: Add complexity field to Method record
+                            // totalComplexity += method.complexity();
+                        }
+                    }
+
+                    // Add domain services
+                    for (DomainType domainType : domain.domainServices()
+                            .map(svc -> (DomainType) svc)
+                            .toList()) {
+                        TypeStructure structure = domainType.structure();
+
+                        if (structure.isInterface()) {
+                            continue;
+                        }
+
+                        for (Method method : structure.methods()) {
+                            totalMethods++;
+                            // TODO: Add complexity field to Method record
+                            // totalComplexity += method.complexity();
+                        }
+                    }
+
+                    if (totalMethods == 0) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                0.0,
+                                "complexity",
+                                "Average cyclomatic complexity for domain methods (no methods found)");
+                    }
+
+                    // TODO: Re-enable when Method record includes complexity field
+                    double averageComplexity = 0.0; // (double) totalComplexity / totalMethods;
+
+                    return Metric.of(
+                            METRIC_NAME,
+                            averageComplexity,
+                            "complexity",
+                            "Average cyclomatic complexity for domain methods (complexity calculation not yet available in v5 API)",
+                            MetricThreshold.greaterThan(WARNING_THRESHOLD));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        0.0,
+                        "complexity",
+                        "Average cyclomatic complexity for domain methods (domain index not available)"));
     }
 }

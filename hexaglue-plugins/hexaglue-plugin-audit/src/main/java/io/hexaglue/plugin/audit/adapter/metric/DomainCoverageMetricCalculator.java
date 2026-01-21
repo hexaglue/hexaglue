@@ -13,11 +13,12 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
 
 /**
  * Calculates domain layer coverage metrics.
@@ -46,23 +47,47 @@ public class DomainCoverageMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the percentage of domain types using the v5 ArchType API.
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for total type count
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
         long totalTypes = codebase.units().size();
 
         if (totalTypes == 0) {
             return Metric.of(METRIC_NAME, 0.0, "%", "Percentage of types in domain layer (no types found)");
         }
 
-        long domainTypes = codebase.unitsInLayer(LayerClassification.DOMAIN).size();
+        return model.domainIndex()
+                .map(domain -> {
+                    // Count all domain types
+                    long domainTypes = domain.aggregateRoots().count()
+                            + domain.entities().count()
+                            + domain.valueObjects().count()
+                            + domain.identifiers().count()
+                            + domain.domainEvents().count()
+                            + domain.domainServices().count();
 
-        double coverage = (double) domainTypes / totalTypes * 100.0;
+                    double coverage = (double) domainTypes / totalTypes * 100.0;
 
-        return Metric.of(
-                METRIC_NAME,
-                coverage,
-                "%",
-                "Percentage of types in domain layer",
-                MetricThreshold.lessThan(WARNING_THRESHOLD));
+                    return Metric.of(
+                            METRIC_NAME,
+                            coverage,
+                            "%",
+                            "Percentage of types in domain layer",
+                            MetricThreshold.lessThan(WARNING_THRESHOLD));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        0.0,
+                        "%",
+                        "Percentage of types in domain layer (domain index not available)",
+                        MetricThreshold.lessThan(WARNING_THRESHOLD)));
     }
 }

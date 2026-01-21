@@ -13,12 +13,14 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DomainType;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
@@ -108,31 +110,55 @@ public class DomainPurityMetricCalculator implements MetricCalculator {
         return METRIC_NAME;
     }
 
+    /**
+     * Calculates the percentage of pure domain types using the v5 ArchType API.
+     *
+     * @param model the architectural model containing v5 indices
+     * @param codebase the codebase for dependency graph access
+     * @param architectureQuery the query interface from Core (may be null)
+     * @return the calculated metric
+     * @since 5.0.0
+     */
     @Override
-    public Metric calculate(Codebase codebase) {
-        List<CodeUnit> domainTypes = codebase.unitsInLayer(LayerClassification.DOMAIN);
+    public Metric calculate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery) {
+        return model.domainIndex()
+                .map(domain -> {
+                    // Collect all domain types
+                    List<DomainType> domainTypes = new ArrayList<>();
+                    domain.aggregateRoots().forEach(domainTypes::add);
+                    domain.entities().forEach(domainTypes::add);
+                    domain.valueObjects().forEach(domainTypes::add);
+                    domain.identifiers().forEach(domainTypes::add);
+                    domain.domainEvents().forEach(domainTypes::add);
+                    domain.domainServices().forEach(domainTypes::add);
 
-        if (domainTypes.isEmpty()) {
-            return Metric.of(
-                    METRIC_NAME,
-                    100.0,
-                    "%",
-                    "Percentage of domain types without infrastructure dependencies (no domain types found)");
-        }
+                    if (domainTypes.isEmpty()) {
+                        return Metric.of(
+                                METRIC_NAME,
+                                100.0,
+                                "%",
+                                "Percentage of domain types without infrastructure dependencies (no domain types found)");
+                    }
 
-        // Count domain types that are pure (no infrastructure dependencies)
-        long pureTypes = domainTypes.stream()
-                .filter(domainType -> isPure(domainType, codebase))
-                .count();
+                    // Count domain types that are pure (no infrastructure dependencies)
+                    long pureTypes = domainTypes.stream()
+                            .filter(domainType -> isPure(domainType, codebase))
+                            .count();
 
-        double purity = (double) pureTypes / domainTypes.size() * 100.0;
+                    double purity = (double) pureTypes / domainTypes.size() * 100.0;
 
-        return Metric.of(
-                METRIC_NAME,
-                purity,
-                "%",
-                "Percentage of domain types without infrastructure dependencies",
-                MetricThreshold.lessThan(EXPECTED_PURITY));
+                    return Metric.of(
+                            METRIC_NAME,
+                            purity,
+                            "%",
+                            "Percentage of domain types without infrastructure dependencies",
+                            MetricThreshold.lessThan(EXPECTED_PURITY));
+                })
+                .orElse(Metric.of(
+                        METRIC_NAME,
+                        100.0,
+                        "%",
+                        "Percentage of domain types without infrastructure dependencies (domain index not available)"));
     }
 
     /**
@@ -145,8 +171,9 @@ public class DomainPurityMetricCalculator implements MetricCalculator {
      * @param codebase   the codebase containing dependency information
      * @return true if the type has no infrastructure dependencies
      */
-    private boolean isPure(CodeUnit domainType, Codebase codebase) {
-        Set<String> dependencies = codebase.dependencies().get(domainType.qualifiedName());
+    private boolean isPure(DomainType domainType, Codebase codebase) {
+        String qualifiedName = domainType.id().qualifiedName();
+        Set<String> dependencies = codebase.dependencies().get(qualifiedName);
 
         if (dependencies == null || dependencies.isEmpty()) {
             return true; // No dependencies means pure

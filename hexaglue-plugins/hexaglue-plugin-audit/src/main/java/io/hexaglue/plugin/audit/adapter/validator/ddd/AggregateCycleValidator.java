@@ -13,6 +13,8 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.plugin.audit.adapter.validator.util.CycleDetector;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.RelationshipEvidence;
@@ -20,9 +22,7 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -83,20 +83,37 @@ public class AggregateCycleValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates aggregate cycles using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types
+     * @param codebase the codebase for dependency analysis
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
+        // Check if domain index is available
+        if (model.domainIndex().isEmpty()) {
+            return violations; // Cannot validate without domain index
+        }
+
+        var domainIndex = model.domainIndex().get();
+
         // Get all aggregates
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
 
         if (aggregates.isEmpty()) {
             return violations; // No aggregates, no cycles
         }
 
         // Build set of aggregate qualified names
-        Set<String> aggregateNames =
-                aggregates.stream().map(CodeUnit::qualifiedName).collect(Collectors.toSet());
+        Set<String> aggregateNames = aggregates.stream()
+                .map(agg -> agg.id().qualifiedName())
+                .collect(Collectors.toSet());
 
         // Build aggregate-only dependency graph
         Map<String, Set<String>> aggregateDeps = buildAggregateDependencyGraph(codebase, aggregateNames);
@@ -106,7 +123,7 @@ public class AggregateCycleValidator implements ConstraintValidator {
 
         // Convert each cycle to a violation
         for (List<String> cycle : cycles) {
-            violations.add(cycleToViolation(cycle, codebase));
+            violations.add(cycleToViolation(cycle, aggregates));
         }
 
         return violations;
@@ -128,8 +145,9 @@ public class AggregateCycleValidator implements ConstraintValidator {
             Set<String> allDeps = codebase.dependencies().getOrDefault(aggregateName, Set.of());
 
             // Filter to only aggregate dependencies
-            Set<String> aggOnlyDeps =
-                    allDeps.stream().filter(aggregateNames::contains).collect(Collectors.toSet());
+            Set<String> aggOnlyDeps = allDeps.stream()
+                    .filter(aggregateNames::contains)
+                    .collect(Collectors.toSet());
 
             aggregateDeps.put(aggregateName, aggOnlyDeps);
         }
@@ -141,17 +159,18 @@ public class AggregateCycleValidator implements ConstraintValidator {
      * Converts a cycle path to a Violation.
      *
      * @param cycle the cycle path (list of qualified names)
-     * @param codebase the codebase (for looking up simple names)
+     * @param aggregates the list of aggregates (for looking up simple names)
      * @return a Violation describing the cycle
      */
-    private Violation cycleToViolation(List<String> cycle, Codebase codebase) {
+    private Violation cycleToViolation(List<String> cycle, List<AggregateRoot> aggregates) {
+        // Build map for quick lookup of simple names
+        Map<String, String> qnameToSimpleName = aggregates.stream()
+                .collect(Collectors.toMap(
+                        agg -> agg.id().qualifiedName(), agg -> agg.id().simpleName()));
+
         // Get simple names for readability
         List<String> simpleNames = cycle.stream()
-                .map(qname -> codebase.units().stream()
-                        .filter(u -> u.qualifiedName().equals(qname))
-                        .map(CodeUnit::simpleName)
-                        .findFirst()
-                        .orElse(qname))
+                .map(qname -> qnameToSimpleName.getOrDefault(qname, qname))
                 .toList();
 
         // Build cycle description

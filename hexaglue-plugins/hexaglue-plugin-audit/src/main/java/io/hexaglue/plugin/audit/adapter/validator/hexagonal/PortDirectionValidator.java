@@ -13,21 +13,22 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.ArchType;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.DependencyEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
-import io.hexaglue.spi.ir.PortDirection;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Validates that port direction (DRIVING/DRIVEN) is consistent with actual usage.
@@ -38,9 +39,9 @@ import java.util.Set;
  *   <li><b>DRIVEN ports</b> (outbound): Used/called by application services, implemented by adapters</li>
  * </ul>
  *
- * <p>This validator obtains port direction from the core's classification analysis via
- * {@link ArchitectureQuery#findPortDirection(String)}, ensuring consistency with the
- * deterministic classification performed by the core engine.
+ * <p>This validator uses the v5 PortIndex to access classified driving and driven ports
+ * directly from the architectural model, ensuring consistency with the classification
+ * performed by the core engine.
  *
  * <p><strong>Constraint:</strong> hexagonal:port-direction<br>
  * <strong>Severity:</strong> MAJOR<br>
@@ -58,35 +59,46 @@ public class PortDirectionValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates the port direction constraint using v5 ArchType API.
+     *
+     * <p>Checks that driven ports are used by application services and that
+     * driving ports are implemented by application services. Uses
+     * {@code model.portIndex()} for direct port access.
+     *
+     * @param model the architectural model containing v5 port index
+     * @param codebase the codebase for dependency graph access
+     * @param query architecture query (not used in this validator)
+     * @return list of violations found
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
-        if (query == null) {
-            // Cannot validate without architecture query
+        if (model.portIndex().isEmpty() || model.typeRegistry().isEmpty()) {
+            // No v5 model available - cannot validate
             return violations;
         }
 
-        // Get all ports
-        List<CodeUnit> ports = codebase.unitsWithRole(RoleClassification.PORT);
+        var portIndex = model.portIndex().get();
+        var registry = model.typeRegistry().get();
 
-        for (CodeUnit port : ports) {
-            // Get port direction from core's classification
-            Optional<PortDirection> direction = query.findPortDirection(port.qualifiedName());
+        // Get all application service qualified names
+        Set<String> applicationServiceQNames = registry.all(ArchType.class)
+                .filter(t -> t.kind().isApplication())
+                .map(t -> t.id().qualifiedName())
+                .collect(Collectors.toSet());
 
-            if (direction.isEmpty()) {
-                // Port direction not available from core - skip validation
-                continue;
-            }
+        // Validate driven ports (should be used by application services)
+        portIndex.drivenPorts().forEach(drivenPort -> {
+            violations.addAll(validateDrivenPort(drivenPort, applicationServiceQNames, codebase));
+        });
 
-            if (direction.get() == PortDirection.DRIVEN) {
-                // DRIVEN ports should be used by application services
-                violations.addAll(validateDrivenPort(port, codebase));
-            } else if (direction.get() == PortDirection.DRIVING) {
-                // DRIVING ports should be implemented by application services
-                violations.addAll(validateDrivingPort(port, codebase));
-            }
-        }
+        // Validate driving ports (should be referenced by application services)
+        portIndex.drivingPorts().forEach(drivingPort -> {
+            violations.addAll(validateDrivingPort(drivingPort, applicationServiceQNames, codebase));
+        });
 
         return violations;
     }
@@ -95,28 +107,32 @@ public class PortDirectionValidator implements ConstraintValidator {
      * Validates that a DRIVEN port is used by at least one application service.
      *
      * @param port the driven port to validate
+     * @param applicationServiceQNames the qualified names of application services
      * @param codebase the codebase
      * @return list of violations (empty if valid)
      */
-    private List<Violation> validateDrivenPort(CodeUnit port, Codebase codebase) {
+    private List<Violation> validateDrivenPort(
+            DrivenPort port, Set<String> applicationServiceQNames, Codebase codebase) {
         List<Violation> violations = new ArrayList<>();
 
-        // Find application services that use this port
-        boolean usedByApplicationService = codebase.unitsWithRole(RoleClassification.USE_CASE).stream()
-                .anyMatch(appService -> {
-                    Set<String> deps = codebase.dependencies().getOrDefault(appService.qualifiedName(), Set.of());
-                    return deps.contains(port.qualifiedName());
-                });
+        String portQualifiedName = port.id().qualifiedName();
+
+        // Check if any application service depends on this port
+        boolean usedByApplicationService = applicationServiceQNames.stream().anyMatch(appServiceQName -> {
+            Set<String> deps = codebase.dependencies().getOrDefault(appServiceQName, Set.of());
+            return deps.contains(portQualifiedName);
+        });
 
         if (!usedByApplicationService) {
             violations.add(Violation.builder(CONSTRAINT_ID)
                     .severity(Severity.MAJOR)
-                    .message("DRIVEN port '%s' is not used by any application service".formatted(port.simpleName()))
-                    .affectedType(port.qualifiedName())
-                    .location(SourceLocation.of(port.qualifiedName(), 1, 1))
+                    .message("DRIVEN port '%s' is not used by any application service".formatted(port.id()
+                            .simpleName()))
+                    .affectedType(portQualifiedName)
+                    .location(SourceLocation.of(portQualifiedName, 1, 1))
                     .evidence(DependencyEvidence.of(
                             "DRIVEN ports should be called by application services to interact with external systems",
-                            port.qualifiedName(),
+                            portQualifiedName,
                             "APPLICATION_SERVICES"))
                     .build());
         }
@@ -125,41 +141,43 @@ public class PortDirectionValidator implements ConstraintValidator {
     }
 
     /**
-     * Validates that a DRIVING port is implemented by at least one application service.
+     * Validates that a DRIVING port is implemented by or referenced by at least one application service.
      *
-     * <p>Since CodeUnit doesn't track implementations, we check if any application
-     * service depends on this port (as it would need to implement or use it).
+     * <p>Since the codebase doesn't track implementations, we check if any application
+     * service depends on this port (as it would need to implement or use it).</p>
      *
      * @param port the driving port to validate
+     * @param applicationServiceQNames the qualified names of application services
      * @param codebase the codebase
      * @return list of violations (empty if valid)
      */
-    private List<Violation> validateDrivingPort(CodeUnit port, Codebase codebase) {
+    private List<Violation> validateDrivingPort(
+            DrivingPort port, Set<String> applicationServiceQNames, Codebase codebase) {
         List<Violation> violations = new ArrayList<>();
 
-        // Check if application services reference this port
+        String portQualifiedName = port.id().qualifiedName();
+
+        // Check if any application service references this port
         // In hexagonal architecture, application services should implement driving ports
-        boolean referencedByApplicationService = codebase.unitsWithRole(RoleClassification.USE_CASE).stream()
-                .anyMatch(appService -> {
-                    Set<String> deps = codebase.dependencies().getOrDefault(appService.qualifiedName(), Set.of());
-                    return deps.contains(port.qualifiedName());
-                });
+        boolean referencedByApplicationService = applicationServiceQNames.stream().anyMatch(appServiceQName -> {
+            Set<String> deps = codebase.dependencies().getOrDefault(appServiceQName, Set.of());
+            return deps.contains(portQualifiedName);
+        });
 
-        // Also check reverse: is the port itself in the application layer?
+        // Also check reverse: is the port itself an application service?
         // Driving ports are often defined in the application layer
-        boolean inApplicationLayer = codebase.unitsWithRole(RoleClassification.USE_CASE).stream()
-                .anyMatch(unit -> unit.qualifiedName().equals(port.qualifiedName()));
+        boolean isApplicationService = applicationServiceQNames.contains(portQualifiedName);
 
-        if (!referencedByApplicationService && !inApplicationLayer) {
+        if (!referencedByApplicationService && !isApplicationService) {
             violations.add(Violation.builder(CONSTRAINT_ID)
                     .severity(Severity.MAJOR)
                     .message("DRIVING port '%s' is not implemented by any application service"
-                            .formatted(port.simpleName()))
-                    .affectedType(port.qualifiedName())
-                    .location(SourceLocation.of(port.qualifiedName(), 1, 1))
+                            .formatted(port.id().simpleName()))
+                    .affectedType(portQualifiedName)
+                    .location(SourceLocation.of(portQualifiedName, 1, 1))
                     .evidence(DependencyEvidence.of(
                             "DRIVING ports should be implemented by application services to provide use cases",
-                            port.qualifiedName(),
+                            portQualifiedName,
                             "APPLICATION_SERVICES"))
                     .build());
         }

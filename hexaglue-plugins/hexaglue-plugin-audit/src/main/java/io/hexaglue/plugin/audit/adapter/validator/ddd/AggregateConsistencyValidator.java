@@ -13,6 +13,8 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.RelationshipEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
@@ -20,17 +22,13 @@ import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.CodeUnit;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.RoleClassification;
 import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Validates aggregate consistency and boundary rules.
@@ -64,18 +62,34 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
         return CONSTRAINT_ID;
     }
 
+    /**
+     * Validates aggregate consistency using the v5 ArchitecturalModel API.
+     *
+     * @param model the architectural model containing domain types
+     * @param codebase the codebase (kept for potential future use)
+     * @param query the architecture query (not used in v5)
+     * @return list of violations
+     * @since 5.0.0
+     */
     @Override
-    public List<Violation> validate(Codebase codebase, ArchitectureQuery query) {
+    public List<Violation> validate(ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         List<Violation> violations = new ArrayList<>();
 
+        // Check if domain index is available
+        if (model.domainIndex().isEmpty()) {
+            return violations; // Cannot validate without domain index
+        }
+
+        var domainIndex = model.domainIndex().get();
+
         // Rule 1: Check entity belongs to single aggregate
-        violations.addAll(checkEntitySingleOwnership(codebase));
+        violations.addAll(checkEntitySingleOwnership(domainIndex));
 
         // Rule 2: Check aggregate size
-        violations.addAll(checkAggregateSize(codebase));
+        violations.addAll(checkAggregateSize(domainIndex));
 
-        // Rule 3: Check aggregate boundaries
-        violations.addAll(checkAggregateBoundaries(codebase));
+        // Rule 3: Check aggregate boundaries (already covered by AggregateBoundaryValidator)
+        // Skipping to avoid duplication
 
         return violations;
     }
@@ -86,36 +100,32 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
      * <p>Multiple ownership indicates unclear aggregate boundaries. An entity
      * should have a single aggregate root responsible for its consistency.
      *
-     * @param codebase the codebase to analyze
+     * @param domainIndex the domain index to analyze
      * @return list of violations for entities with multiple owners
      */
-    private List<Violation> checkEntitySingleOwnership(Codebase codebase) {
+    private List<Violation> checkEntitySingleOwnership(io.hexaglue.arch.model.index.DomainIndex domainIndex) {
         List<Violation> violations = new ArrayList<>();
 
         // Build map: entity -> list of aggregates that reference it
         Map<String, List<String>> entityToAggregates = new HashMap<>();
 
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
 
-        for (CodeUnit aggregate : aggregates) {
-            Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
+        for (AggregateRoot aggregate : aggregates) {
+            String aggregateQName = aggregate.id().qualifiedName();
 
-            for (String dep : deps) {
-                // Check if dependency is an entity
-                codebase.units().stream()
-                        .filter(u -> u.qualifiedName().equals(dep))
-                        .filter(u -> u.role() == RoleClassification.ENTITY)
-                        .findFirst()
-                        .ifPresent(entity -> entityToAggregates
-                                .computeIfAbsent(entity.qualifiedName(), k -> new ArrayList<>())
-                                .add(aggregate.qualifiedName()));
+            // Check entities referenced by this aggregate
+            for (TypeRef entityRef : aggregate.entities()) {
+                entityToAggregates
+                        .computeIfAbsent(entityRef.qualifiedName(), k -> new ArrayList<>())
+                        .add(aggregateQName);
             }
         }
 
         // Find entities owned by multiple aggregates
         for (Map.Entry<String, List<String>> entry : entityToAggregates.entrySet()) {
             if (entry.getValue().size() > 1) {
-                violations.add(createMultiOwnershipViolation(entry.getKey(), entry.getValue(), codebase));
+                violations.add(createMultiOwnershipViolation(entry.getKey(), entry.getValue()));
             }
         }
 
@@ -129,115 +139,31 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
      * cause performance issues and transaction boundary problems. The threshold
      * helps identify aggregates that should potentially be split.
      *
-     * @param codebase the codebase to analyze
+     * @param domainIndex the domain index to analyze
      * @return list of violations for oversized aggregates
      */
-    private List<Violation> checkAggregateSize(Codebase codebase) {
+    private List<Violation> checkAggregateSize(io.hexaglue.arch.model.index.DomainIndex domainIndex) {
         List<Violation> violations = new ArrayList<>();
 
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
+        List<AggregateRoot> aggregates = domainIndex.aggregateRoots().toList();
 
-        for (CodeUnit aggregate : aggregates) {
-            Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
-
-            // Count entities within this aggregate
-            long entityCount = deps.stream()
-                    .flatMap(dep -> codebase.units().stream()
-                            .filter(u -> u.qualifiedName().equals(dep)))
-                    .filter(u -> u.role() == RoleClassification.ENTITY)
-                    .count();
+        for (AggregateRoot aggregate : aggregates) {
+            int entityCount = aggregate.entities().size();
 
             if (entityCount > MAX_AGGREGATE_SIZE) {
-                violations.add(createSizeViolation(aggregate, (int) entityCount, codebase));
+                violations.add(createSizeViolation(aggregate, entityCount));
             }
         }
 
         return violations;
-    }
-
-    /**
-     * Checks that aggregate boundaries are respected.
-     *
-     * <p>Only the aggregate root should be accessible from outside the aggregate.
-     * Internal entities should not be referenced directly by external types,
-     * as this breaks encapsulation and can lead to invariant violations.
-     *
-     * @param codebase the codebase to analyze
-     * @return list of violations for boundary breaches
-     */
-    private List<Violation> checkAggregateBoundaries(Codebase codebase) {
-        List<Violation> violations = new ArrayList<>();
-
-        // Build map: aggregate -> set of its internal entities
-        Map<String, Set<String>> aggregateEntities = buildAggregateEntityMap(codebase);
-
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
-        Set<String> aggregateRoots =
-                aggregates.stream().map(CodeUnit::qualifiedName).collect(Collectors.toSet());
-
-        // Get all non-domain types (external to domain model)
-        List<CodeUnit> externalTypes = codebase.units().stream()
-                .filter(u -> u.layer() != LayerClassification.DOMAIN)
-                .toList();
-
-        // Check if external types reference internal entities
-        for (CodeUnit external : externalTypes) {
-            Set<String> deps = codebase.dependencies().getOrDefault(external.qualifiedName(), Set.of());
-
-            for (String dep : deps) {
-                // Skip if referencing aggregate root (allowed)
-                if (aggregateRoots.contains(dep)) {
-                    continue;
-                }
-
-                // Check if this is an internal entity of some aggregate
-                for (Map.Entry<String, Set<String>> entry : aggregateEntities.entrySet()) {
-                    if (entry.getValue().contains(dep)) {
-                        violations.add(createBoundaryViolation(external, dep, entry.getKey(), codebase));
-                    }
-                }
-            }
-        }
-
-        return violations;
-    }
-
-    /**
-     * Builds a map of aggregate root to its internal entities.
-     *
-     * @param codebase the codebase to analyze
-     * @return map of aggregate qualified name to set of entity qualified names
-     */
-    private Map<String, Set<String>> buildAggregateEntityMap(Codebase codebase) {
-        Map<String, Set<String>> aggregateEntities = new HashMap<>();
-
-        List<CodeUnit> aggregates = codebase.unitsWithRole(RoleClassification.AGGREGATE_ROOT);
-
-        for (CodeUnit aggregate : aggregates) {
-            Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
-
-            Set<String> entities = deps.stream()
-                    .flatMap(dep -> codebase.units().stream()
-                            .filter(u -> u.qualifiedName().equals(dep)))
-                    .filter(u -> u.role() == RoleClassification.ENTITY)
-                    .map(CodeUnit::qualifiedName)
-                    .collect(Collectors.toSet());
-
-            aggregateEntities.put(aggregate.qualifiedName(), entities);
-        }
-
-        return aggregateEntities;
     }
 
     /**
      * Creates a violation for an entity owned by multiple aggregates.
      */
-    private Violation createMultiOwnershipViolation(
-            String entityQName, List<String> aggregateQNames, Codebase codebase) {
-
-        String entityName = getSimpleName(entityQName, codebase);
-        List<String> aggregateNames =
-                aggregateQNames.stream().map(qn -> getSimpleName(qn, codebase)).toList();
+    private Violation createMultiOwnershipViolation(String entityQName, List<String> aggregateQNames) {
+        String entityName = getSimpleName(entityQName);
+        List<String> aggregateNames = aggregateQNames.stream().map(this::getSimpleName).toList();
 
         String message = ("Entity '%s' is referenced by multiple aggregates: %s. "
                         + "An entity should belong to exactly one aggregate.")
@@ -260,69 +186,34 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
     /**
      * Creates a violation for an oversized aggregate.
      */
-    private Violation createSizeViolation(CodeUnit aggregate, int entityCount, Codebase codebase) {
+    private Violation createSizeViolation(AggregateRoot aggregate, int entityCount) {
         String message = ("Aggregate '%s' contains %d entities (maximum: %d). "
                         + "Large aggregates are harder to maintain and can cause performance issues. "
                         + "Consider splitting into multiple aggregates.")
-                .formatted(aggregate.simpleName(), entityCount, MAX_AGGREGATE_SIZE);
+                .formatted(aggregate.id().simpleName(), entityCount, MAX_AGGREGATE_SIZE);
 
         // Get entity names for evidence
-        Set<String> deps = codebase.dependencies().getOrDefault(aggregate.qualifiedName(), Set.of());
-        List<String> entityNames = deps.stream()
-                .flatMap(dep ->
-                        codebase.units().stream().filter(u -> u.qualifiedName().equals(dep)))
-                .filter(u -> u.role() == RoleClassification.ENTITY)
-                .map(CodeUnit::simpleName)
+        List<String> entityNames = aggregate.entities().stream()
+                .map(TypeRef::simpleName)
                 .toList();
 
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)
                 .message(message)
-                .affectedType(aggregate.qualifiedName())
-                .location(SourceLocation.of(aggregate.qualifiedName(), 1, 1))
+                .affectedType(aggregate.id().qualifiedName())
+                .location(SourceLocation.of(aggregate.id().qualifiedName(), 1, 1))
                 .evidence(StructuralEvidence.of(
                         "Aggregate contains %d entities: %s".formatted(entityCount, String.join(", ", entityNames)),
-                        aggregate.qualifiedName()))
+                        aggregate.id().qualifiedName()))
                 .build();
     }
 
     /**
-     * Creates a violation for aggregate boundary breach.
+     * Gets the simple name from a qualified name.
      */
-    private Violation createBoundaryViolation(
-            CodeUnit external, String entityQName, String aggregateRootQName, Codebase codebase) {
-
-        String externalName = external.simpleName();
-        String entityName = getSimpleName(entityQName, codebase);
-        String aggregateName = getSimpleName(aggregateRootQName, codebase);
-
-        String message = ("External type '%s' directly references internal entity '%s' of aggregate '%s'. "
-                        + "Only the aggregate root should be accessible from outside.")
-                .formatted(externalName, entityName, aggregateName);
-
-        return Violation.builder(CONSTRAINT_ID)
-                .severity(Severity.MAJOR)
-                .message(message)
-                .affectedType(external.qualifiedName())
-                .location(SourceLocation.of(external.qualifiedName(), 1, 1))
-                .evidence(RelationshipEvidence.of(
-                        "External type bypassing aggregate root to access internal entity",
-                        List.of(external.qualifiedName(), entityQName),
-                        List.of(
-                                external.qualifiedName() + " -> " + entityQName,
-                                "Should use: " + external.qualifiedName() + " -> " + aggregateRootQName)))
-                .build();
-    }
-
-    /**
-     * Gets the simple name of a type from its qualified name.
-     */
-    private String getSimpleName(String qualifiedName, Codebase codebase) {
-        return codebase.units().stream()
-                .filter(u -> u.qualifiedName().equals(qualifiedName))
-                .map(CodeUnit::simpleName)
-                .findFirst()
-                .orElse(qualifiedName);
+    private String getSimpleName(String qualifiedName) {
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
     }
 
     @Override

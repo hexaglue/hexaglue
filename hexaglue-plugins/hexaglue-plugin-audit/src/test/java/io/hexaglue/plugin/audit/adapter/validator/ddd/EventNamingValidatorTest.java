@@ -15,17 +15,13 @@ package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.spi.audit.CodeMetrics;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.DocumentationInfo;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,7 +29,10 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link EventNamingValidator}.
  *
- * <p>Validates that domain events are correctly checked for past-tense naming.
+ * <p>Validates that domain events are correctly checked for past-tense naming
+ * using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class EventNamingValidatorTest {
 
@@ -50,10 +49,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'ed' suffix")
     void shouldPass_whenEventNamedWithEdSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderPlacedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlacedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -63,10 +65,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Created' suffix")
     void shouldPass_whenEventNamedWithCreatedSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("UserCreatedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".UserCreatedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -76,10 +81,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Deleted' suffix")
     void shouldPass_whenEventNamedWithDeletedSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("AccountDeletedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".AccountDeletedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -89,10 +97,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Failed' suffix")
     void shouldPass_whenEventNamedWithFailedSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("PaymentFailedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".PaymentFailedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -102,10 +113,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Completed' suffix")
     void shouldPass_whenEventNamedWithCompletedSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderCompletedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderCompletedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -115,10 +129,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Sent' suffix")
     void shouldPass_whenEventNamedWithSentSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("EmailSentEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".EmailSentEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -128,10 +145,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event is named with 'Received' suffix")
     void shouldPass_whenEventNamedWithReceivedSuffix() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("PaymentReceivedEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".PaymentReceivedEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -141,10 +161,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when event name without Event suffix is in past tense")
     void shouldPass_whenEventNameWithoutSuffixInPastTense() {
         // Given: Event without "Event" suffix but still identified as event
-        Codebase codebase = createCodebaseWithEvent("OrderPlacedNotification");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlacedNotification")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -154,10 +177,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should fail when event is named in present tense")
     void shouldFail_whenEventNamedInPresentTense() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderPlaceEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlaceEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -171,10 +197,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should fail when event is named as a noun")
     void shouldFail_whenEventNamedAsNoun() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -185,10 +214,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should fail when event is named with gerund form")
     void shouldFail_whenEventNamedWithGerund() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderPlacingEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlacingEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -199,10 +231,13 @@ class EventNamingValidatorTest {
     @DisplayName("Should fail when event is named in infinitive form")
     void shouldFail_whenEventNamedInInfinitiveForm() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderCreateEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderCreateEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -213,16 +248,17 @@ class EventNamingValidatorTest {
     @DisplayName("Should check multiple events with mixed naming")
     void shouldCheckMultipleEventsWithMixedNaming() {
         // Given: Mix of valid and invalid event names
-        Codebase codebase = createCodebaseWithEvents(
-                "OrderPlacedEvent", // Valid
-                "UserCreatedEvent", // Valid
-                "PaymentProcessEvent", // Invalid - present tense
-                "OrderCancelledEvent", // Valid
-                "EmailSendEvent" // Invalid - infinitive
-                );
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlacedEvent") // Valid
+                .addDomainEvent(BASE_PACKAGE + ".UserCreatedEvent") // Valid
+                .addDomainEvent(BASE_PACKAGE + ".PaymentProcessEvent") // Invalid - present tense
+                .addDomainEvent(BASE_PACKAGE + ".OrderCancelledEvent") // Valid
+                .addDomainEvent(BASE_PACKAGE + ".EmailSendEvent") // Invalid - infinitive
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then: Should find 2 violations
         assertThat(violations).hasSize(2);
@@ -235,11 +271,14 @@ class EventNamingValidatorTest {
     @Test
     @DisplayName("Should pass when codebase has no events")
     void shouldPass_whenNoEvents() {
-        // Given: Codebase with only regular value objects (no events)
-        Codebase codebase = createCodebaseWithValueObject("Address");
+        // Given: Model with only value objects (no events)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject(BASE_PACKAGE + ".Address")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -248,53 +287,28 @@ class EventNamingValidatorTest {
     @Test
     @DisplayName("Should pass when codebase is empty")
     void shouldPass_whenEmptyCodebase() {
-        // Given: Empty codebase
-        Codebase codebase = new Codebase("test", BASE_PACKAGE, List.of(), Map.of());
+        // Given: Empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
     }
 
     @Test
-    @DisplayName("Should ignore non-event value objects")
-    void shouldIgnore_nonEventValueObjects() {
-        // Given: Regular value objects without event naming
-        Codebase codebase = createCodebaseWithValueObjects("Address", "Money", "EmailAddress", "PhoneNumber");
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: Should not report violations for regular value objects
-        assertThat(violations).isEmpty();
-    }
-
-    @Test
-    @DisplayName("Should only check domain layer events")
-    void shouldOnlyCheckDomainLayerEvents() {
-        // Given: Events in different layers
-        CodeUnit domainEvent = createEvent("OrderPlaceEvent", LayerClassification.DOMAIN);
-        CodeUnit appEvent = createEvent("OrderPlaceEvent", LayerClassification.APPLICATION);
-        Codebase codebase = new Codebase("test", BASE_PACKAGE, List.of(domainEvent, appEvent), Map.of());
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then: Should only check domain layer event
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).affectedTypes()).contains(BASE_PACKAGE + ".OrderPlaceEvent");
-    }
-
-    @Test
     @DisplayName("Should provide structural evidence")
     void shouldProvideStructuralEvidence() {
         // Given
-        Codebase codebase = createCodebaseWithEvent("OrderPlaceEvent");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainEvent(BASE_PACKAGE + ".OrderPlaceEvent")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -317,74 +331,5 @@ class EventNamingValidatorTest {
     void shouldReturnCorrectConstraintId() {
         // When/Then
         assertThat(validator.constraintId().value()).isEqualTo("ddd:event-naming");
-    }
-
-    // === Helper Methods ===
-
-    /**
-     * Creates a codebase with a single event.
-     */
-    private Codebase createCodebaseWithEvent(String eventName) {
-        CodeUnit event = createEvent(eventName, LayerClassification.DOMAIN);
-        return new Codebase("test", BASE_PACKAGE, List.of(event), Map.of());
-    }
-
-    /**
-     * Creates a codebase with multiple events.
-     */
-    private Codebase createCodebaseWithEvents(String... eventNames) {
-        List<CodeUnit> events = List.of(eventNames).stream()
-                .map(name -> createEvent(name, LayerClassification.DOMAIN))
-                .toList();
-        return new Codebase("test", BASE_PACKAGE, events, Map.of());
-    }
-
-    /**
-     * Creates a codebase with a single value object (not an event).
-     */
-    private Codebase createCodebaseWithValueObject(String name) {
-        CodeUnit valueObject = createValueObject(name);
-        return new Codebase("test", BASE_PACKAGE, List.of(valueObject), Map.of());
-    }
-
-    /**
-     * Creates a codebase with multiple value objects (not events).
-     */
-    private Codebase createCodebaseWithValueObjects(String... names) {
-        List<CodeUnit> valueObjects =
-                List.of(names).stream().map(this::createValueObject).toList();
-        return new Codebase("test", BASE_PACKAGE, valueObjects, Map.of());
-    }
-
-    /**
-     * Creates an event code unit.
-     */
-    private CodeUnit createEvent(String simpleName, LayerClassification layer) {
-        String qualifiedName = BASE_PACKAGE + "." + simpleName;
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                layer,
-                RoleClassification.VALUE_OBJECT,
-                List.of(),
-                List.of(),
-                new CodeMetrics(0, 0, 0, 0, 100.0),
-                new DocumentationInfo(false, 0, List.of()));
-    }
-
-    /**
-     * Creates a regular value object code unit (not an event).
-     */
-    private CodeUnit createValueObject(String simpleName) {
-        String qualifiedName = BASE_PACKAGE + "." + simpleName;
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                LayerClassification.DOMAIN,
-                RoleClassification.VALUE_OBJECT,
-                List.of(),
-                List.of(),
-                new CodeMetrics(0, 0, 0, 0, 100.0),
-                new DocumentationInfo(false, 0, List.of()));
     }
 }
