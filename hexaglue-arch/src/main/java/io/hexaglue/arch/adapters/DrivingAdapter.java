@@ -17,8 +17,7 @@ import io.hexaglue.arch.ArchElement;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementId;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.arch.ElementRef;
-import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
 import java.util.Objects;
@@ -62,16 +61,17 @@ import java.util.Objects;
  *
  * @param id the unique identifier
  * @param adapterType the specific adapter type
- * @param calledPorts references to driving ports called by this adapter
+ * @param calledPorts type ids of driving ports called by this adapter
  * @param endpoints the endpoints exposed (for REST/GraphQL adapters)
  * @param syntax the syntax information (nullable)
  * @param classificationTrace the trace explaining the classification
  * @since 4.0.0
+ * @since 5.0.0 calledPorts changed from ElementRef to TypeId
  */
 public record DrivingAdapter(
         ElementId id,
         AdapterType adapterType,
-        List<ElementRef<DrivingPort>> calledPorts,
+        List<TypeId> calledPorts,
         List<String> endpoints,
         TypeSyntax syntax,
         ClassificationTrace classificationTrace)

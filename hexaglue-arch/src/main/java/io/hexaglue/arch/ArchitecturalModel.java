@@ -13,24 +13,13 @@
 
 package io.hexaglue.arch;
 
-import io.hexaglue.arch.adapters.DrivenAdapter;
-import io.hexaglue.arch.adapters.DrivingAdapter;
-import io.hexaglue.arch.domain.Aggregate;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.DomainEvent;
-import io.hexaglue.arch.domain.DomainService;
-import io.hexaglue.arch.domain.Identifier;
-import io.hexaglue.arch.domain.ValueObject;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.arch.model.report.PrioritizedRemediation;
-import io.hexaglue.arch.ports.ApplicationService;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
-import io.hexaglue.arch.query.DefaultModelQuery;
-import io.hexaglue.arch.query.ModelQuery;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -40,7 +29,7 @@ import java.util.stream.Stream;
  * The complete architectural model of an analyzed application.
  *
  * <p>This is the main entry point for accessing the architectural analysis results.
- * It contains the element registry (all classified types), relationship store
+ * It contains the type registry (all classified types), relationship store
  * (indexed relationships), and metadata about the analysis.</p>
  *
  * <h2>Usage</h2>
@@ -48,30 +37,40 @@ import java.util.stream.Stream;
  * // Built by ArchitecturalModelBuilder
  * ArchitecturalModel model = builder.build();
  *
- * // Access elements
- * model.aggregates().forEach(agg -> ...);
- * model.drivenPorts().filter(p -> p.isRepository()).forEach(repo -> ...);
+ * // Access domain types via DomainIndex
+ * model.domainIndex().ifPresent(domain -> {
+ *     domain.aggregateRoots().forEach(agg -> ...);
+ *     domain.entities().forEach(entity -> ...);
+ *     domain.valueObjects().forEach(vo -> ...);
+ * });
  *
- * // Resolve references
- * Optional<Aggregate> agg = model.resolve(aggregateRef);
+ * // Access ports via PortIndex
+ * model.portIndex().ifPresent(ports -> {
+ *     ports.drivingPorts().forEach(port -> ...);
+ *     ports.repositories().forEach(repo -> ...);
+ *     ports.gateways().forEach(gw -> ...);
+ * });
  *
  * // Query relationships (O(1))
- * Optional<DrivenPort> repo = model.repositoryFor(aggregate.id());
+ * Optional<DrivenPort> repo = model.repositoryFor(aggregate.id().toElementId());
  *
- * // New v4.1.0 API
- * model.typeRegistry().ifPresent(reg -> reg.all().forEach(...));
- * model.classificationReport().ifPresent(report -> report.remediations().forEach(...));
+ * // Access classification report
+ * model.classificationReport().ifPresent(report -> {
+ *     report.remediations().forEach(r -> ...);
+ *     report.actionRequired().forEach(u -> ...);
+ * });
  * }</pre>
  *
  * @param project project context information
- * @param registry the element registry containing all classified types
+ * @param registry the element registry (legacy, for backward compatibility)
  * @param relationships the relationship store for O(1) lookups
  * @param analysisMetadata metadata about the analysis process
- * @param typeRegistryV2 the new type registry (v4.1.0), may be null for legacy usage
- * @param classificationReportV2 the classification report (v4.1.0), may be null for legacy usage
- * @param domainIndexV2 the domain index (v4.1.0), may be null for legacy usage
- * @param portIndexV2 the port index (v4.1.0), may be null for legacy usage
+ * @param typeRegistryV2 the type registry containing all ArchType instances
+ * @param classificationReportV2 the classification report with stats and remediations
+ * @param domainIndexV2 the domain index for domain type access
+ * @param portIndexV2 the port index for port type access
  * @since 4.0.0
+ * @since 5.0.0 removed deprecated methods using legacy types
  */
 public record ArchitecturalModel(
         ProjectContext project,
@@ -181,266 +180,6 @@ public record ArchitecturalModel(
                 .toList();
     }
 
-    // === Domain Element Access (Legacy - Deprecated) ===
-
-    /**
-     * Returns all aggregates in the model.
-     *
-     * @return stream of aggregates
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#aggregateRoots()} instead.
-     *     The new API provides enriched types with computed metadata (identity field, entities, etc.).
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.aggregates().forEach(agg -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain ->
-     *         domain.aggregateRoots().forEach(agg -> {
-     *             Field identity = agg.identityField();
-     *             List<TypeRef> entities = agg.entities();
-     *         }));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<Aggregate> aggregates() {
-        return registry.all(Aggregate.class);
-    }
-
-    /**
-     * Returns all domain entities in the model.
-     *
-     * @return stream of domain entities
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#aggregateRoots()} and
-     *     {@link DomainIndex#entities()} instead. The new API separates aggregate roots from
-     *     child entities and provides enriched structure access.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.domainEntities().filter(DomainEntity::isAggregateRoot).forEach(...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain -> {
-     *         domain.aggregateRoots().forEach(agg -> ...);  // Aggregate roots
-     *         domain.entities().forEach(entity -> ...);     // Child entities
-     *     });
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DomainEntity> domainEntities() {
-        return registry.all(DomainEntity.class);
-    }
-
-    /**
-     * Returns all value objects in the model.
-     *
-     * @return stream of value objects
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#valueObjects()} instead.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.valueObjects().forEach(vo -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain ->
-     *         domain.valueObjects().forEach(vo -> vo.structure().fields()...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<ValueObject> valueObjects() {
-        return registry.all(ValueObject.class);
-    }
-
-    /**
-     * Returns all identifiers in the model.
-     *
-     * @return stream of identifiers
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#identifiers()} instead.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.identifiers().forEach(id -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain ->
-     *         domain.identifiers().forEach(id -> id.wrappedType()...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<Identifier> identifiers() {
-        return registry.all(Identifier.class);
-    }
-
-    /**
-     * Returns all domain events in the model.
-     *
-     * @return stream of domain events
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#domainEvents()} instead.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.domainEvents().forEach(event -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain ->
-     *         domain.domainEvents().forEach(event -> event.structure()...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DomainEvent> domainEvents() {
-        return registry.all(DomainEvent.class);
-    }
-
-    /**
-     * Returns all domain services in the model.
-     *
-     * @return stream of domain services
-     * @deprecated Use {@link #domainIndex()} with {@link DomainIndex#domainServices()} instead.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.domainServices().forEach(svc -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.domainIndex().ifPresent(domain ->
-     *         domain.domainServices().forEach(svc -> svc.structure()...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DomainService> domainServices() {
-        return registry.all(DomainService.class);
-    }
-
-    // === Port Access (Legacy - Deprecated) ===
-
-    /**
-     * Returns all driving ports in the model.
-     *
-     * @return stream of driving ports
-     * @deprecated Use {@link #portIndex()} with {@link PortIndex#drivingPorts()} instead.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.drivingPorts().forEach(port -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.portIndex().ifPresent(ports ->
-     *         ports.drivingPorts().forEach(port -> port.structure()...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DrivingPort> drivingPorts() {
-        return registry.all(DrivingPort.class);
-    }
-
-    /**
-     * Returns all driven ports in the model.
-     *
-     * @return stream of driven ports
-     * @deprecated Use {@link #portIndex()} with {@link PortIndex#drivenPorts()} instead.
-     *     The new API provides {@link io.hexaglue.arch.model.DrivenPort} with enriched
-     *     metadata including {@code DrivenPortType} and {@code managedAggregate()}.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.drivenPorts().filter(p -> p.isRepository()).forEach(...);
-     *
-     *     // After (v4.1.0)
-     *     model.portIndex().ifPresent(ports -> {
-     *         ports.repositories().forEach(repo -> repo.managedAggregate()...);
-     *         ports.gateways().forEach(gw -> ...);
-     *     });
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DrivenPort> drivenPorts() {
-        return registry.all(DrivenPort.class);
-    }
-
-    /**
-     * Returns all application services in the model.
-     *
-     * @return stream of application services
-     * @deprecated Use {@link #domainIndex()} with appropriate query methods instead.
-     *     Application services will be accessible via the type registry.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.applicationServices().forEach(svc -> ...);
-     *
-     *     // After (v4.1.0)
-     *     model.typeRegistry().ifPresent(reg ->
-     *         reg.all(ApplicationService.class).forEach(svc -> ...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<ApplicationService> applicationServices() {
-        return registry.all(ApplicationService.class);
-    }
-
-    // === Adapter Access (Legacy - Deprecated) ===
-
-    /**
-     * Returns all driving adapters in the model.
-     *
-     * <p>Note: Adapters are generated by plugins, not classified by the core engine.
-     * They are outside the classification perimeter.</p>
-     *
-     * @return stream of driving adapters
-     * @deprecated Adapters are generated by plugins and should not be accessed via the model.
-     *     Use the type registry for generic access if needed.
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DrivingAdapter> drivingAdapters() {
-        return registry.all(DrivingAdapter.class);
-    }
-
-    /**
-     * Returns all driven adapters in the model.
-     *
-     * <p>Note: Adapters are generated by plugins, not classified by the core engine.
-     * They are outside the classification perimeter.</p>
-     *
-     * @return stream of driven adapters
-     * @deprecated Adapters are generated by plugins and should not be accessed via the model.
-     *     Use the type registry for generic access if needed.
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<DrivenAdapter> drivenAdapters() {
-        return registry.all(DrivenAdapter.class);
-    }
-
-    /**
-     * Returns all unclassified types in the model.
-     *
-     * @return stream of unclassified types
-     * @deprecated Use {@link #classificationReport()} with {@link ClassificationReport#actionRequired()}
-     *     for types needing attention, or {@link #typeRegistry()} with
-     *     {@link TypeRegistry#all(Class)} for all unclassified types.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     model.unclassifiedTypes().forEach(u -> ...);
-     *
-     *     // After (v4.1.0) - Types requiring action
-     *     model.classificationReport().ifPresent(report ->
-     *         report.actionRequired().forEach(u -> {
-     *             UnclassifiedCategory category = u.category();
-     *             List<RemediationHint> hints = u.classification().remediationHints();
-     *         }));
-     *
-     *     // After (v4.1.0) - All unclassified types
-     *     model.typeRegistry().ifPresent(reg ->
-     *         reg.all(io.hexaglue.arch.model.UnclassifiedType.class).forEach(...));
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public Stream<UnclassifiedType> unclassifiedTypes() {
-        return registry.all(UnclassifiedType.class);
-    }
-
     // === Reference Resolution ===
 
     /**
@@ -471,11 +210,17 @@ public record ArchitecturalModel(
     /**
      * Finds the repository that manages an aggregate (O(1) lookup).
      *
+     * <p>Uses the port index if available, falls back to relationship store lookup.</p>
+     *
      * @param aggregateId the aggregate identifier
      * @return the repository, if found
+     * @since 5.0.0 updated to return model.DrivenPort
      */
     public Optional<DrivenPort> repositoryFor(ElementId aggregateId) {
-        return relationships.repositoryFor(aggregateId).flatMap(id -> registry.get(id, DrivenPort.class));
+        if (portIndexV2 != null) {
+            return portIndexV2.repositoryFor(TypeId.fromElementId(aggregateId));
+        }
+        return Optional.empty();
     }
 
     /**
@@ -485,7 +230,7 @@ public record ArchitecturalModel(
      * @return true if a repository exists
      */
     public boolean hasRepository(ElementId aggregateId) {
-        return relationships.repositoryFor(aggregateId).isPresent();
+        return repositoryFor(aggregateId).isPresent();
     }
 
     // === Statistics ===
@@ -497,74 +242,6 @@ public record ArchitecturalModel(
      */
     public int size() {
         return registry.size();
-    }
-
-    /**
-     * Returns the number of unclassified types.
-     *
-     * @return the unclassified count
-     * @deprecated Use {@link #classificationReport()} with {@link ClassificationReport#stats()}
-     *     for accurate statistics.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     long count = model.unclassifiedCount();
-     *
-     *     // After (v4.1.0)
-     *     model.classificationReport().ifPresent(report -> {
-     *         int total = report.stats().unclassifiedCount();
-     *         double rate = report.stats().classificationRate();
-     *     });
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public long unclassifiedCount() {
-        return unclassifiedTypes().count();
-    }
-
-    /**
-     * Returns whether the model has any unclassified types.
-     *
-     * @return true if unclassified types exist
-     * @deprecated Use {@link #hasClassificationIssues()} instead for a more accurate assessment
-     *     that includes conflicts and ambiguous classifications.
-     *     <pre>{@code
-     *     // Before (v4.0.0)
-     *     if (model.hasUnclassified()) { ... }
-     *
-     *     // After (v4.1.0)
-     *     if (model.hasClassificationIssues()) {
-     *         model.classificationReport().ifPresent(report ->
-     *             report.actionRequired().forEach(...));
-     *     }
-     *     }</pre>
-     * @since 4.0.0
-     */
-    @Deprecated(since = "4.1.0", forRemoval = true)
-    public boolean hasUnclassified() {
-        return unclassifiedTypes().findAny().isPresent();
-    }
-
-    // === Query API ===
-
-    /**
-     * Returns a fluent query interface for navigating the model.
-     *
-     * <p>The query API provides immutable, reusable queries with specialized
-     * methods for each element type.</p>
-     *
-     * <h2>Example</h2>
-     * <pre>{@code
-     * model.query()
-     *      .aggregates()
-     *      .withRepository()
-     *      .forEach(agg -> process(agg));
-     * }</pre>
-     *
-     * @return a new model query
-     */
-    public ModelQuery query() {
-        return new DefaultModelQuery(registry, relationships);
     }
 
     // === Builder ===
