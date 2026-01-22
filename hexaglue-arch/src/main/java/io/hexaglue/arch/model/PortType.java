@@ -36,17 +36,4 @@ package io.hexaglue.arch.model;
  *
  * @since 4.1.0
  */
-public sealed interface PortType extends ArchType permits DrivingPort, DrivenPort, PortType.Marker {
-
-    /**
-     * Temporary marker interface for testing and migration.
-     *
-     * <p>This allows creating test implementations of PortType.
-     * The concrete records (DrivingPort, DrivenPort) are the primary implementations.</p>
-     *
-     * @since 4.1.0
-     * @deprecated Use concrete record types instead
-     */
-    @Deprecated(forRemoval = true)
-    non-sealed interface Marker extends PortType {}
-}
+public sealed interface PortType extends ArchType permits DrivingPort, DrivenPort {}
