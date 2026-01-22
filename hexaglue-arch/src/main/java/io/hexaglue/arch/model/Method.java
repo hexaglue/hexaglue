@@ -139,7 +139,14 @@ public record Method(
      */
     public static Method of(String name, TypeRef returnType) {
         return new Method(
-                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), Set.of(),
+                name,
+                returnType,
+                List.of(),
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Set.of(),
                 OptionalInt.empty());
     }
 
@@ -156,7 +163,14 @@ public record Method(
      */
     public static Method of(String name, TypeRef returnType, Set<MethodRole> roles) {
         return new Method(
-                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles,
+                name,
+                returnType,
+                List.of(),
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                roles,
                 OptionalInt.empty());
     }
 
@@ -174,7 +188,14 @@ public record Method(
      */
     public static Method of(String name, TypeRef returnType, Set<MethodRole> roles, int complexity) {
         return new Method(
-                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles,
+                name,
+                returnType,
+                List.of(),
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                roles,
                 OptionalInt.of(complexity));
     }
 

@@ -289,7 +289,14 @@ class UseCaseTest {
 
     private Method createMethod(String name, TypeRef returnType, List<Parameter> parameters) {
         return new Method(
-                name, returnType, parameters, Set.of(), List.of(), Optional.empty(), List.of(), Set.of(),
+                name,
+                returnType,
+                parameters,
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Set.of(),
                 OptionalInt.empty());
     }
 

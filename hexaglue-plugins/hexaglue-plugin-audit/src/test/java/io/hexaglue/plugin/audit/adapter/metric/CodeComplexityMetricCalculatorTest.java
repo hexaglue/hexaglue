@@ -111,17 +111,11 @@ class CodeComplexityMetricCalculatorTest {
     @DisplayName("Should handle multiple domain type categories")
     void shouldHandleMultipleDomainTypeCategories() {
         // Given: Various domain type categories with methods
-        List<Method> aggMethods = List.of(
-                method("process", "void"),
-                method("validate", "boolean"));
+        List<Method> aggMethods = List.of(method("process", "void"), method("validate", "boolean"));
 
-        List<Method> entityMethods = List.of(
-                method("getId", "java.lang.Long"),
-                method("update", "void"));
+        List<Method> entityMethods = List.of(method("getId", "java.lang.Long"), method("update", "void"));
 
-        List<Method> voMethods = List.of(
-                method("add", "Money"),
-                method("subtract", "Money"));
+        List<Method> voMethods = List.of(method("add", "Money"), method("subtract", "Money"));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Order", aggMethods)
@@ -141,9 +135,7 @@ class CodeComplexityMetricCalculatorTest {
     @DisplayName("Should skip interfaces - no implementation methods")
     void shouldSkipInterfaces() {
         // Given: Domain layer with both interface and class
-        List<Method> interfaceMethods = List.of(
-                method("save", "void"),
-                method("findById", "Order"));
+        List<Method> interfaceMethods = List.of(method("save", "void"), method("findById", "Order"));
 
         List<Method> classMethods = List.of(method("process", "void"));
 
@@ -197,9 +189,8 @@ class CodeComplexityMetricCalculatorTest {
     @DisplayName("Should include domain services in analysis")
     void shouldIncludeDomainServicesInAnalysis() {
         // Given: Domain service with methods
-        List<Method> serviceMethods = List.of(
-                method("calculateTotal", "java.math.BigDecimal"),
-                method("transfer", "void"));
+        List<Method> serviceMethods =
+                List.of(method("calculateTotal", "java.math.BigDecimal"), method("transfer", "void"));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addDomainServiceWithStructure("com.example.domain.PaymentService", serviceMethods)
@@ -218,8 +209,7 @@ class CodeComplexityMetricCalculatorTest {
     void shouldNotExceedThresholdWithLowComplexity() {
         // Given: Domain type with simple methods (complexity 1)
         List<Method> methods = List.of(
-                methodWithComplexity("simpleMethod", "void", 1),
-                methodWithComplexity("anotherMethod", "void", 3));
+                methodWithComplexity("simpleMethod", "void", 1), methodWithComplexity("anotherMethod", "void", 3));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Order", methods)
@@ -239,8 +229,7 @@ class CodeComplexityMetricCalculatorTest {
     void shouldExceedThresholdWithHighComplexity() {
         // Given: Domain type with complex methods
         List<Method> methods = List.of(
-                methodWithComplexity("complexMethod", "void", 15),
-                methodWithComplexity("anotherComplex", "void", 20));
+                methodWithComplexity("complexMethod", "void", 15), methodWithComplexity("anotherComplex", "void", 20));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Order", methods)

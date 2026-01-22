@@ -52,14 +52,14 @@ public final class PortContentSelector {
     }
 
     public List<PortDoc> selectDrivingPorts() {
-        PortIndex portIndex = model.portIndex()
-                .orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
+        PortIndex portIndex =
+                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
         return portIndex.drivingPorts().map(this::toDoc).toList();
     }
 
     public List<PortDoc> selectDrivenPorts() {
-        PortIndex portIndex = model.portIndex()
-                .orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
+        PortIndex portIndex =
+                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
         return portIndex.drivenPorts().map(this::toDoc).toList();
     }
 
@@ -83,9 +83,8 @@ public final class PortContentSelector {
         String simpleName = port.id().simpleName();
 
         // Extract managed types
-        List<String> managedTypes = port.managedAggregate()
-                .map(ref -> List.of(ref.qualifiedName()))
-                .orElse(List.of());
+        List<String> managedTypes =
+                port.managedAggregate().map(ref -> List.of(ref.qualifiedName())).orElse(List.of());
 
         return new PortDoc(
                 simpleName,
@@ -99,12 +98,9 @@ public final class PortContentSelector {
     }
 
     private MethodDoc toMethodDoc(Method method) {
-        String returnType = method.returnType() != null
-                ? method.returnType().qualifiedName()
-                : "void";
-        List<String> parameters = method.parameters().stream()
-                .map(p -> p.type().qualifiedName())
-                .collect(Collectors.toList());
+        String returnType = method.returnType() != null ? method.returnType().qualifiedName() : "void";
+        List<String> parameters =
+                method.parameters().stream().map(p -> p.type().qualifiedName()).collect(Collectors.toList());
         return new MethodDoc(method.name(), returnType, parameters);
     }
 
@@ -114,9 +110,8 @@ public final class PortContentSelector {
         int lineStart = 0;
         int lineEnd = 0;
 
-        List<String> annotations = structure.annotations().stream()
-                .map(a -> "@" + a.simpleName())
-                .collect(Collectors.toList());
+        List<String> annotations =
+                structure.annotations().stream().map(a -> "@" + a.simpleName()).collect(Collectors.toList());
 
         return new DebugInfo(qualifiedName, annotations, sourceFile, lineStart, lineEnd);
     }

@@ -72,8 +72,7 @@ class CohesionMetricCalculatorTest {
     @DisplayName("Should return one for cohesive class")
     void shouldReturnOne_forCohesiveClass() {
         // Given: Aggregate with all methods accessing the same non-common type field
-        List<Field> fields = List.of(
-                field("customer", "com.example.domain.Customer"));
+        List<Field> fields = List.of(field("customer", "com.example.domain.Customer"));
 
         List<Method> methods = List.of(
                 methodWithParams("getCustomer", "com.example.domain.Customer", List.of()),
@@ -98,8 +97,7 @@ class CohesionMetricCalculatorTest {
     void shouldReturnTwo_forClassWithTwoGroups() {
         // Given: Aggregate with two separate groups of methods using non-common types
         List<Field> fields = List.of(
-                field("customer", "com.example.domain.Customer"),
-                field("product", "com.example.domain.Product"));
+                field("customer", "com.example.domain.Customer"), field("product", "com.example.domain.Product"));
 
         List<Method> methods = List.of(
                 // Group 1: Methods working with customer
@@ -180,8 +178,7 @@ class CohesionMetricCalculatorTest {
         // Given: Aggregate with methods but no fields
         List<Field> fields = List.of();
         List<Method> methods = List.of(
-                methodWithParams("process", "void", List.of()),
-                methodWithParams("validate", "boolean", List.of()));
+                methodWithParams("process", "void", List.of()), methodWithParams("validate", "boolean", List.of()));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithFieldsAndMethods("com.example.domain.Order", fields, methods)
@@ -246,9 +243,7 @@ class CohesionMetricCalculatorTest {
                 methodWithParams("getTotal", "java.math.BigDecimal", List.of()));
 
         // Aggregate with 2 groups
-        List<Field> fields2 = List.of(
-                field("id", "java.lang.Long"),
-                field("name", "java.lang.String"));
+        List<Field> fields2 = List.of(field("id", "java.lang.Long"), field("name", "java.lang.String"));
         List<Method> methods2 = List.of(
                 methodWithParams("getId", "java.lang.Long", List.of()),
                 methodWithParams("getName", "java.lang.String", List.of()));
@@ -287,8 +282,7 @@ class CohesionMetricCalculatorTest {
     void shouldConnectMethodsBySharedFields() {
         // Given: Methods that share fields through type matching with domain types
         List<Field> fields = List.of(
-                field("customer", "com.example.domain.Customer"),
-                field("product", "com.example.domain.Product"));
+                field("customer", "com.example.domain.Customer"), field("product", "com.example.domain.Product"));
 
         List<Method> methods = List.of(
                 // These methods share customer field by type
@@ -314,8 +308,7 @@ class CohesionMetricCalculatorTest {
     void shouldHandleGetterSetterPattern() {
         // Given: Standard getter/setter methods with non-common types
         List<Field> fields = List.of(
-                field("customer", "com.example.domain.Customer"),
-                field("product", "com.example.domain.Product"));
+                field("customer", "com.example.domain.Customer"), field("product", "com.example.domain.Product"));
 
         List<Method> methods = List.of(
                 methodWithParams("getCustomer", "com.example.domain.Customer", List.of()),
@@ -340,8 +333,7 @@ class CohesionMetricCalculatorTest {
     void shouldTreatConstructorAsCohesive() {
         // Given: Aggregate with constructor (empty return type signifies constructor)
         List<Field> fields = List.of(
-                field("customer", "com.example.domain.Customer"),
-                field("product", "com.example.domain.Product"));
+                field("customer", "com.example.domain.Customer"), field("product", "com.example.domain.Product"));
 
         List<Method> methods = List.of(
                 // Constructor (empty return type, multiple params)

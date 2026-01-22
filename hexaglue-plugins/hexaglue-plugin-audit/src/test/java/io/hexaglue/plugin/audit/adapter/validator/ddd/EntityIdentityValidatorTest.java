@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
@@ -27,7 +28,6 @@ import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
-import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
@@ -96,8 +96,9 @@ class EntityIdentityValidatorTest {
     @DisplayName("Should pass when aggregate has identity field")
     void shouldPass_whenAggregateHasIdentity() {
         // Given - aggregate root always has identity (by design in v5 API)
-        ArchitecturalModel model =
-                new TestModelBuilder().addAggregateRoot("com.example.domain.Customer").build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Customer")
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -211,7 +212,8 @@ class EntityIdentityValidatorTest {
         TypeStructure lineItemStructure = TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))
                 .build();
-        ClassificationTrace lineItemTrace = ClassificationTrace.highConfidence(ElementKind.ENTITY, "test", "Test entity");
+        ClassificationTrace lineItemTrace =
+                ClassificationTrace.highConfidence(ElementKind.ENTITY, "test", "Test entity");
         Entity lineItem = Entity.of(lineItemId, lineItemStructure, lineItemTrace, Optional.empty(), Optional.empty());
 
         TypeRegistry.Builder registryBuilder = TypeRegistry.builder();

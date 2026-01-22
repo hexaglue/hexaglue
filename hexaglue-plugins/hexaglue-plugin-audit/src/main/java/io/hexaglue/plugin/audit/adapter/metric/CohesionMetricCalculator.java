@@ -93,7 +93,10 @@ public class CohesionMetricCalculator implements MetricCalculator {
 
                     if (aggregateCount == 0) {
                         return Metric.of(
-                                METRIC_NAME, 0.0, "components", "Average LCOM4 cohesion for aggregates (no aggregates found)");
+                                METRIC_NAME,
+                                0.0,
+                                "components",
+                                "Average LCOM4 cohesion for aggregates (no aggregates found)");
                     }
 
                     double avgLcom4 = domain.aggregateRoots()

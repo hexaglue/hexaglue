@@ -72,9 +72,8 @@ class MethodTest {
             Set<MethodRole> roles = Set.of(MethodRole.QUERY);
 
             // when
-            Method method =
-                    new Method(name, returnType, params, modifiers, annotations, doc, exceptions, roles,
-                            OptionalInt.empty());
+            Method method = new Method(
+                    name, returnType, params, modifiers, annotations, doc, exceptions, roles, OptionalInt.empty());
 
             // then
             assertThat(method.name()).isEqualTo(name);

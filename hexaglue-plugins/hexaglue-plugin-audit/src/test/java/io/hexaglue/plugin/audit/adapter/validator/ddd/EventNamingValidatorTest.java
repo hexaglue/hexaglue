@@ -272,9 +272,8 @@ class EventNamingValidatorTest {
     @DisplayName("Should pass when codebase has no events")
     void shouldPass_whenNoEvents() {
         // Given: Model with only value objects (no events)
-        ArchitecturalModel model = new TestModelBuilder()
-                .addValueObject(BASE_PACKAGE + ".Address")
-                .build();
+        ArchitecturalModel model =
+                new TestModelBuilder().addValueObject(BASE_PACKAGE + ".Address").build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When

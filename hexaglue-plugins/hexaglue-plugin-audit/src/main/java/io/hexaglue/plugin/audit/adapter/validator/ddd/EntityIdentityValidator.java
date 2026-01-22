@@ -74,7 +74,8 @@ public class EntityIdentityValidator implements ConstraintValidator {
             if (!hasIdentity(entity)) {
                 violations.add(Violation.builder(CONSTRAINT_ID)
                         .severity(Severity.CRITICAL)
-                        .message("Entity '%s' has no identity field".formatted(entity.id().simpleName()))
+                        .message("Entity '%s' has no identity field"
+                                .formatted(entity.id().simpleName()))
                         .affectedType(entity.id().qualifiedName())
                         .location(SourceLocation.of(entity.id().qualifiedName(), 1, 1))
                         .evidence(StructuralEvidence.of(

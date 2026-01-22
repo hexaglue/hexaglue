@@ -110,8 +110,8 @@ public class LayerIsolationValidator implements ConstraintValidator {
         var registry = model.typeRegistry().get();
 
         // Create type lookup map (qualified name -> ArchType)
-        Map<String, ArchType> typeMap = registry.all(ArchType.class)
-                .collect(Collectors.toMap(t -> t.id().qualifiedName(), t -> t));
+        Map<String, ArchType> typeMap =
+                registry.all(ArchType.class).collect(Collectors.toMap(t -> t.id().qualifiedName(), t -> t));
 
         // Check each layer's dependencies
         for (Layer layer : ALLOWED_DEPENDENCIES.keySet()) {
@@ -134,8 +134,9 @@ public class LayerIsolationValidator implements ConstraintValidator {
         Set<Layer> allowedLayers = ALLOWED_DEPENDENCIES.get(layer);
 
         // Get types in this layer
-        List<ArchType> layerTypes =
-                typeMap.values().stream().filter(t -> getLayer(t.kind()) == layer).toList();
+        List<ArchType> layerTypes = typeMap.values().stream()
+                .filter(t -> getLayer(t.kind()) == layer)
+                .toList();
 
         for (ArchType type : layerTypes) {
             String qualifiedName = type.id().qualifiedName();
@@ -154,8 +155,10 @@ public class LayerIsolationValidator implements ConstraintValidator {
                             .severity(Severity.MAJOR)
                             .message("%s type '%s' depends on %s type '%s' (not allowed)"
                                     .formatted(
-                                            layer.name(), type.id().simpleName(), depLayer.name(), depType.id()
-                                                    .simpleName()))
+                                            layer.name(),
+                                            type.id().simpleName(),
+                                            depLayer.name(),
+                                            depType.id().simpleName()))
                             .affectedType(qualifiedName)
                             .location(SourceLocation.of(qualifiedName, 1, 1))
                             .evidence(DependencyEvidence.of(

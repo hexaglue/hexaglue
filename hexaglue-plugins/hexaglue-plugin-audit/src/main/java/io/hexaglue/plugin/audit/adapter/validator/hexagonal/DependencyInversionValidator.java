@@ -86,26 +86,25 @@ public class DependencyInversionValidator implements ConstraintValidator {
         var registry = model.typeRegistry().get();
 
         // Get application layer types
-        List<ArchType> applicationTypes =
-                registry.all(ArchType.class).filter(t -> t.kind().isApplication()).toList();
+        List<ArchType> applicationTypes = registry.all(ArchType.class)
+                .filter(t -> t.kind().isApplication())
+                .toList();
 
         // Get all ports (interfaces that application should depend on)
         Set<String> portQualifiedNames = Set.of();
         if (model.portIndex().isPresent()) {
             var portIndex = model.portIndex().get();
-            portQualifiedNames = portIndex.drivingPorts()
-                    .map(p -> p.id().qualifiedName())
-                    .collect(Collectors.toSet());
-            Set<String> drivenPortNames = portIndex.drivenPorts()
-                    .map(p -> p.id().qualifiedName())
-                    .collect(Collectors.toSet());
+            portQualifiedNames =
+                    portIndex.drivingPorts().map(p -> p.id().qualifiedName()).collect(Collectors.toSet());
+            Set<String> drivenPortNames =
+                    portIndex.drivenPorts().map(p -> p.id().qualifiedName()).collect(Collectors.toSet());
             portQualifiedNames = new java.util.HashSet<>(portQualifiedNames);
             portQualifiedNames.addAll(drivenPortNames);
         }
 
         // Create type lookup map (qualified name -> ArchType)
-        Map<String, ArchType> typeMap = registry.all(ArchType.class)
-                .collect(Collectors.toMap(t -> t.id().qualifiedName(), t -> t));
+        Map<String, ArchType> typeMap =
+                registry.all(ArchType.class).collect(Collectors.toMap(t -> t.id().qualifiedName(), t -> t));
 
         // Check each application layer type
         for (ArchType appType : applicationTypes) {
@@ -158,12 +157,15 @@ public class DependencyInversionValidator implements ConstraintValidator {
                             .severity(Severity.CRITICAL)
                             .message(("Application type '%s' depends on concrete Infrastructure type '%s' "
                                             + "(should depend on abstraction/interface)")
-                                    .formatted(appType.id().simpleName(), depType.id().simpleName()))
+                                    .formatted(
+                                            appType.id().simpleName(),
+                                            depType.id().simpleName()))
                             .affectedType(qualifiedName)
                             .location(SourceLocation.of(qualifiedName, 1, 1))
                             .evidence(DependencyEvidence.of(
                                     ("Dependency Inversion Principle violated: depends on concrete %s instead of interface")
-                                            .formatted(depType.structure().nature().name()),
+                                            .formatted(
+                                                    depType.structure().nature().name()),
                                     qualifiedName,
                                     depName))
                             .build());

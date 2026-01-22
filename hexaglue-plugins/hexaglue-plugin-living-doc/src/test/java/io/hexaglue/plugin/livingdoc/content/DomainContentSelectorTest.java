@@ -293,8 +293,8 @@ class DomainContentSelectorTest {
             DomainService svc = domainService(PKG + ".PricingService");
             ApplicationService appSvc = applicationService(PKG + ".OrderAppService");
 
-            ArchitecturalModel model =
-                    createModel(ProjectContext.forTesting("app", PKG), aggRoot, entityItem, money, orderId, event, svc, appSvc);
+            ArchitecturalModel model = createModel(
+                    ProjectContext.forTesting("app", PKG), aggRoot, entityItem, money, orderId, event, svc, appSvc);
 
             DomainContentSelector selector = new DomainContentSelector(model);
 

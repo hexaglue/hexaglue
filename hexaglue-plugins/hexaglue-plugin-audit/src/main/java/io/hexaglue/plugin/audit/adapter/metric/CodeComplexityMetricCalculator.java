@@ -95,9 +95,8 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
                     int totalComplexity = 0;
 
                     // Process all domain types
-                    for (DomainType domainType : domain.aggregateRoots()
-                            .map(agg -> (DomainType) agg)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.aggregateRoots().map(agg -> (DomainType) agg).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         // Skip interfaces as they don't have method implementations
@@ -112,9 +111,8 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
                     }
 
                     // Add entities
-                    for (DomainType domainType : domain.entities()
-                            .map(entity -> (DomainType) entity)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.entities().map(entity -> (DomainType) entity).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface()) {
@@ -128,9 +126,8 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
                     }
 
                     // Add value objects
-                    for (DomainType domainType : domain.valueObjects()
-                            .map(vo -> (DomainType) vo)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.valueObjects().map(vo -> (DomainType) vo).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface()) {
@@ -144,9 +141,8 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
                     }
 
                     // Add domain services
-                    for (DomainType domainType : domain.domainServices()
-                            .map(svc -> (DomainType) svc)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.domainServices().map(svc -> (DomainType) svc).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface()) {

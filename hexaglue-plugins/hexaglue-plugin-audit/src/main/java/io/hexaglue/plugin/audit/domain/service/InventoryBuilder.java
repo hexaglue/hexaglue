@@ -81,7 +81,8 @@ public class InventoryBuilder {
         // List<Identifier> identifiers = domainIndex.identifiers().toList();
         List<DomainEvent> domainEvents = domainIndex.domainEvents().toList();
         List<DomainService> domainServices = domainIndex.domainServices().toList();
-        List<ApplicationService> appServices = registry.all(ApplicationService.class).toList();
+        List<ApplicationService> appServices =
+                registry.all(ApplicationService.class).toList();
         List<DrivingPort> drivingPorts = portIndex.drivingPorts().toList();
         List<DrivenPort> drivenPorts = portIndex.drivenPorts().toList();
 
@@ -149,17 +150,20 @@ public class InventoryBuilder {
 
         for (BoundedContextInfo bcInfo : boundedContexts) {
             // Count aggregates in this bounded context
-            int aggregateCount = (int) domainIndex.aggregateRoots()
+            int aggregateCount = (int) domainIndex
+                    .aggregateRoots()
                     .filter(agg -> bcInfo.typeNames().contains(agg.id().qualifiedName()))
                     .count();
 
             // Count entities
-            int entityCount = (int) domainIndex.entities()
+            int entityCount = (int) domainIndex
+                    .entities()
                     .filter(e -> bcInfo.typeNames().contains(e.id().qualifiedName()))
                     .count();
 
             // Count value objects
-            int voCount = (int) domainIndex.valueObjects()
+            int voCount = (int) domainIndex
+                    .valueObjects()
                     .filter(vo -> bcInfo.typeNames().contains(vo.id().qualifiedName()))
                     .count();
 

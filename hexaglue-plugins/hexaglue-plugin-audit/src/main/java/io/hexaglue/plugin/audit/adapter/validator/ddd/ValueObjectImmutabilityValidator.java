@@ -89,9 +89,7 @@ public class ValueObjectImmutabilityValidator implements ConstraintValidator {
                 // Add evidence for each setter
                 for (Method setter : setters) {
                     builder.evidence(BehavioralEvidence.of(
-                            "Setter method detected: " + setter.name(),
-                            vo.id().qualifiedName(),
-                            setter.name()));
+                            "Setter method detected: " + setter.name(), vo.id().qualifiedName(), setter.name()));
                 }
 
                 violations.add(builder.build());

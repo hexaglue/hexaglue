@@ -103,7 +103,9 @@ public class PortInterfaceValidator implements ConstraintValidator {
             violations.add(Violation.builder(CONSTRAINT_ID)
                     .severity(Severity.CRITICAL)
                     .message("Port '%s' is not an interface (found: %s)"
-                            .formatted(port.id().simpleName(), port.structure().nature().name()))
+                            .formatted(
+                                    port.id().simpleName(),
+                                    port.structure().nature().name()))
                     .affectedType(port.id().qualifiedName())
                     .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
                     .evidence(StructuralEvidence.of(
@@ -128,7 +130,9 @@ public class PortInterfaceValidator implements ConstraintValidator {
             violations.add(Violation.builder(CONSTRAINT_ID)
                     .severity(Severity.CRITICAL)
                     .message("Port '%s' is not an interface (found: %s)"
-                            .formatted(port.id().simpleName(), port.structure().nature().name()))
+                            .formatted(
+                                    port.id().simpleName(),
+                                    port.structure().nature().name()))
                     .affectedType(port.id().qualifiedName())
                     .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
                     .evidence(StructuralEvidence.of(

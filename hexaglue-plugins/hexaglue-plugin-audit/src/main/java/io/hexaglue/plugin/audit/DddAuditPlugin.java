@@ -876,10 +876,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
                 .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                        field.name(),
-                        field.type().qualifiedName(),
-                        Set.of(),
-                        Set.of()))
+                        field.name(), field.type().qualifiedName(), Set.of(), Set.of()))
                 .toList();
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
@@ -907,10 +904,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
                 .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                        field.name(),
-                        field.type().qualifiedName(),
-                        Set.of(),
-                        Set.of()))
+                        field.name(), field.type().qualifiedName(), Set.of(), Set.of()))
                 .toList();
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
@@ -938,10 +932,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
                 .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                        field.name(),
-                        field.type().qualifiedName(),
-                        Set.of(),
-                        Set.of()))
+                        field.name(), field.type().qualifiedName(), Set.of(), Set.of()))
                 .toList();
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
@@ -969,10 +960,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
                 .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                        field.name(),
-                        field.type().qualifiedName(),
-                        Set.of(),
-                        Set.of()))
+                        field.name(), field.type().qualifiedName(), Set.of(), Set.of()))
                 .toList();
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
@@ -999,10 +987,7 @@ public class DddAuditPlugin implements AuditPlugin {
 
         List<io.hexaglue.spi.audit.FieldDeclaration> fieldDecls = structure.fields().stream()
                 .map(field -> new io.hexaglue.spi.audit.FieldDeclaration(
-                        field.name(),
-                        field.type().qualifiedName(),
-                        Set.of(),
-                        Set.of()))
+                        field.name(), field.type().qualifiedName(), Set.of(), Set.of()))
                 .toList();
 
         List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
@@ -1025,8 +1010,9 @@ public class DddAuditPlugin implements AuditPlugin {
      * Converts a v5 DrivingPort to a CodeUnit.
      */
     private CodeUnit toCodeUnitV5(DrivingPort port) {
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
-                port.structure().methods().stream().map(this::toMethodDeclarationV5).toList();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.structure().methods().stream()
+                .map(this::toMethodDeclarationV5)
+                .toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), 0, 100.0);
 
@@ -1045,8 +1031,9 @@ public class DddAuditPlugin implements AuditPlugin {
      * Converts a v5 DrivenPort to a CodeUnit.
      */
     private CodeUnit toCodeUnitV5(DrivenPort port) {
-        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls =
-                port.structure().methods().stream().map(this::toMethodDeclarationV5).toList();
+        List<io.hexaglue.spi.audit.MethodDeclaration> methodDecls = port.structure().methods().stream()
+                .map(this::toMethodDeclarationV5)
+                .toList();
 
         CodeMetrics codeMetrics = new CodeMetrics(0, 0, methodDecls.size(), 0, 100.0);
 
@@ -1070,8 +1057,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * Converts a v5 Method to a MethodDeclaration.
      */
     private io.hexaglue.spi.audit.MethodDeclaration toMethodDeclarationV5(io.hexaglue.arch.model.Method method) {
-        String returnType =
-                method.returnType() != null ? method.returnType().qualifiedName() : "void";
+        String returnType = method.returnType() != null ? method.returnType().qualifiedName() : "void";
         List<String> paramTypes =
                 method.parameters().stream().map(p -> p.type().qualifiedName()).toList();
 

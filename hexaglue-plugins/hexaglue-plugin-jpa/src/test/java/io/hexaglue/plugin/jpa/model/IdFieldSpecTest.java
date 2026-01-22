@@ -39,7 +39,10 @@ class IdFieldSpecTest {
         return Annotation.of(
                 "jakarta.persistence.GeneratedValue",
                 Map.of("strategy", strategy),
-                Map.of("strategy", new io.hexaglue.arch.model.AnnotationValue.EnumVal("jakarta.persistence.GenerationType", strategy)));
+                Map.of(
+                        "strategy",
+                        new io.hexaglue.arch.model.AnnotationValue.EnumVal(
+                                "jakarta.persistence.GenerationType", strategy)));
     }
 
     @Test

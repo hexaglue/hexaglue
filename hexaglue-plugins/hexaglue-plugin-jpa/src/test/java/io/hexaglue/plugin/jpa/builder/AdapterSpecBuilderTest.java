@@ -170,8 +170,12 @@ class AdapterSpecBuilderTest {
             DrivenPort port = createPortWithOperations(
                     "OrderRepository",
                     List.of(
-                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order"))),
-                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID"))),
+                            operationToMethod(
+                                    "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order"))),
+                            operationToMethod(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.util.UUID"))),
                             operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             // When
@@ -201,15 +205,19 @@ class AdapterSpecBuilderTest {
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
                     List.of(operationToMethod(
-                            "findById",
-                            TypeRef.of("java.util.Optional"),
-                            List.of(TypeRef.of("java.util.UUID")))));
+                            "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")))));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
                     List.of(
-                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID"))),
-                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")))));
+                            operationToMethod(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.util.UUID"))),
+                            operationToMethod(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Order"),
+                                    List.of(TypeRef.of(TEST_PKG + ".Order")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -239,13 +247,12 @@ class AdapterSpecBuilderTest {
             DrivenPort port1 = createPortWithOperations(
                     "ReadableOrderRepository",
                     List.of(operationToMethod(
-                            "findById",
-                            TypeRef.of("java.util.Optional"),
-                            List.of(TypeRef.of("java.util.UUID")))));
+                            "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.util.UUID")))));
 
             DrivenPort port2 = createPortWithOperations(
                     "WritableOrderRepository",
-                    List.of(operationToMethod("save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")))));
+                    List.of(operationToMethod(
+                            "save", TypeRef.of(TEST_PKG + ".Order"), List.of(TypeRef.of(TEST_PKG + ".Order")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()
@@ -421,14 +428,23 @@ class AdapterSpecBuilderTest {
             DrivenPort readPort = createPortWithOperations(
                     "PokemonReadRepository",
                     List.of(
-                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer"))),
+                            operationToMethod(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.lang.Integer"))),
                             operationToMethod("findAll", TypeRef.of("java.util.List"), List.of())));
 
             DrivenPort writePort = createPortWithOperations(
                     "PokemonWriteRepository",
                     List.of(
-                            operationToMethod("save", TypeRef.of(TEST_PKG + ".Pokemon"), List.of(TypeRef.of(TEST_PKG + ".Pokemon"))),
-                            operationToMethod("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("java.lang.Integer")))));
+                            operationToMethod(
+                                    "save",
+                                    TypeRef.of(TEST_PKG + ".Pokemon"),
+                                    List.of(TypeRef.of(TEST_PKG + ".Pokemon"))),
+                            operationToMethod(
+                                    "findById",
+                                    TypeRef.of("java.util.Optional"),
+                                    List.of(TypeRef.of("java.lang.Integer")))));
 
             // When
             AdapterSpec spec = AdapterSpecBuilder.builder()

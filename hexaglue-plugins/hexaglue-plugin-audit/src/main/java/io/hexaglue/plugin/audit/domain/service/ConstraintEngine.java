@@ -67,7 +67,10 @@ public class ConstraintEngine {
      * @since 5.0.0
      */
     public List<Violation> executeConstraints(
-            ArchitecturalModel model, Codebase codebase, ArchitectureQuery query, Set<ConstraintId> enabledConstraints) {
+            ArchitecturalModel model,
+            Codebase codebase,
+            ArchitectureQuery query,
+            Set<ConstraintId> enabledConstraints) {
         Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(codebase, "codebase required");
         Objects.requireNonNull(enabledConstraints, "enabledConstraints required");

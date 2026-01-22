@@ -13,7 +13,6 @@
 
 package io.hexaglue.core.engine;
 
-import io.hexaglue.arch.AnalysisMetadata;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.core.builder.NewArchitecturalModelBuilder;

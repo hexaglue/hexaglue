@@ -89,9 +89,8 @@ class AggregateBoundaryMetricCalculatorTest {
     @DisplayName("Should return 0% when entities but no aggregates")
     void shouldReturn0Percent_whenEntitiesButNoAggregates() {
         // Given: Entity without aggregate
-        ArchitecturalModel model = new TestModelBuilder()
-                .addEntity("com.example.domain.OrderLine")
-                .build();
+        ArchitecturalModel model =
+                new TestModelBuilder().addEntity("com.example.domain.OrderLine").build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -108,9 +107,7 @@ class AggregateBoundaryMetricCalculatorTest {
     void shouldReturn100Percent_whenAllEntitiesEncapsulated() {
         // Given: Aggregate with entity in same package, no external dependencies
         ArchitecturalModel model = createModelWithPackages(
-                "com.example.domain.order.Order",
-                new String[] {"com.example.domain.order.OrderLine"},
-                new String[] {});
+                "com.example.domain.order.Order", new String[] {"com.example.domain.order.OrderLine"}, new String[] {});
 
         TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // Entity depends on aggregate (internal to aggregate)
@@ -204,7 +201,8 @@ class AggregateBoundaryMetricCalculatorTest {
 
         TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // Validator in sub-package depends on entity (allowed)
-        codebaseBuilder.addDependency("com.example.domain.order.validation.OrderValidator", "com.example.domain.order.OrderLine");
+        codebaseBuilder.addDependency(
+                "com.example.domain.order.validation.OrderValidator", "com.example.domain.order.OrderLine");
         Codebase codebase = codebaseBuilder.build();
 
         // When
@@ -250,7 +248,8 @@ class AggregateBoundaryMetricCalculatorTest {
 
         // Product aggregate (has leak)
         registryBuilder.add(createAggregateRoot("com.example.domain.product.Product"));
-        registryBuilder.add(createEntity("com.example.domain.product.ProductSpec", "com.example.domain.product.Product"));
+        registryBuilder.add(
+                createEntity("com.example.domain.product.ProductSpec", "com.example.domain.product.Product"));
 
         // External service
         registryBuilder.add(createDomainService("com.example.domain.InventoryService"));
@@ -392,8 +391,8 @@ class AggregateBoundaryMetricCalculatorTest {
         TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))
                 .build();
-        ClassificationTrace trace = ClassificationTrace.highConfidence(
-                ElementKind.AGGREGATE_ROOT, "test", "Test aggregate");
+        ClassificationTrace trace =
+                ClassificationTrace.highConfidence(ElementKind.AGGREGATE_ROOT, "test", "Test aggregate");
 
         Field idField = Field.builder("id", TypeRef.of("java.lang.Long"))
                 .modifiers(Set.of(Modifier.PRIVATE))
@@ -408,8 +407,7 @@ class AggregateBoundaryMetricCalculatorTest {
         TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))
                 .build();
-        ClassificationTrace trace = ClassificationTrace.highConfidence(
-                ElementKind.ENTITY, "test", "Test entity");
+        ClassificationTrace trace = ClassificationTrace.highConfidence(ElementKind.ENTITY, "test", "Test entity");
 
         Field idField = Field.builder("id", TypeRef.of("java.lang.Long"))
                 .modifiers(Set.of(Modifier.PRIVATE))
@@ -424,8 +422,8 @@ class AggregateBoundaryMetricCalculatorTest {
         TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))
                 .build();
-        ClassificationTrace trace = ClassificationTrace.highConfidence(
-                ElementKind.DOMAIN_SERVICE, "test", "Test service");
+        ClassificationTrace trace =
+                ClassificationTrace.highConfidence(ElementKind.DOMAIN_SERVICE, "test", "Test service");
 
         return DomainService.of(id, structure, trace);
     }

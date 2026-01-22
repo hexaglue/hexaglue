@@ -15,13 +15,14 @@ package io.hexaglue.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.arch.ArchElement;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ConfidenceLevel;
-import io.hexaglue.arch.ElementId;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.ArchKind;
+import io.hexaglue.arch.model.ArchType;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
@@ -134,14 +135,16 @@ public final class HexaGlueTestHarness {
      * @param expectedKind the expected element kind
      * @return this harness for chaining
      * @since 4.0.0 Changed parameter from ElementKind to ElementKind
+     * @since 5.0.0 Updated to use typeRegistry() API
      */
     public HexaGlueTestHarness assertDomainType(String qualifiedName, ElementKind expectedKind) {
         requireAnalyzed();
-        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
-        assertThat(element).as("Domain type '%s' should exist", qualifiedName).isPresent();
-        assertThat(element.get().kind())
+        Optional<ArchType> archType = result.model().typeRegistry().flatMap(reg -> reg.get(TypeId.of(qualifiedName)));
+        assertThat(archType).as("Domain type '%s' should exist", qualifiedName).isPresent();
+        ArchKind expectedArchKind = ArchKind.fromElementKind(expectedKind);
+        assertThat(archType.get().kind())
                 .as("Domain type '%s' should be %s", qualifiedName, expectedKind)
-                .isEqualTo(expectedKind);
+                .isEqualTo(expectedArchKind);
         return this;
     }
 
@@ -152,12 +155,13 @@ public final class HexaGlueTestHarness {
      * @param minConfidence the minimum required confidence level
      * @return this harness for chaining
      * @since 4.0.0 Changed parameter from spi.ir.ConfidenceLevel to arch.ConfidenceLevel
+     * @since 5.0.0 Updated to use typeRegistry() API
      */
     public HexaGlueTestHarness assertConfidenceAtLeast(String qualifiedName, ConfidenceLevel minConfidence) {
         requireAnalyzed();
-        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
-        assertThat(element).isPresent();
-        ConfidenceLevel actual = element.get().classificationTrace().confidence();
+        Optional<ArchType> archType = result.model().typeRegistry().flatMap(reg -> reg.get(TypeId.of(qualifiedName)));
+        assertThat(archType).isPresent();
+        ConfidenceLevel actual = archType.get().classification().confidence();
         // Compare by ordinal (HIGH=0, MEDIUM=1, LOW=2, so lower is better)
         assertThat(actual.ordinal())
                 .as("'%s' confidence should be at least %s but was %s", qualifiedName, minConfidence, actual)
@@ -172,14 +176,16 @@ public final class HexaGlueTestHarness {
      * @param expectedKind the expected element kind (DRIVING_PORT or DRIVEN_PORT)
      * @return this harness for chaining
      * @since 4.0.0 Simplified to use ElementKind instead of PortKind and PortDirection
+     * @since 5.0.0 Updated to use typeRegistry() API
      */
     public HexaGlueTestHarness assertPort(String qualifiedName, ElementKind expectedKind) {
         requireAnalyzed();
-        Optional<ArchElement> element = result.model().registry().get(ElementId.of(qualifiedName));
-        assertThat(element).as("Port '%s' should exist", qualifiedName).isPresent();
-        assertThat(element.get().kind())
+        Optional<ArchType> archType = result.model().typeRegistry().flatMap(reg -> reg.get(TypeId.of(qualifiedName)));
+        assertThat(archType).as("Port '%s' should exist", qualifiedName).isPresent();
+        ArchKind expectedArchKind = ArchKind.fromElementKind(expectedKind);
+        assertThat(archType.get().kind())
                 .as("Port '%s' should be %s", qualifiedName, expectedKind)
-                .isEqualTo(expectedKind);
+                .isEqualTo(expectedArchKind);
         return this;
     }
 
@@ -193,11 +199,9 @@ public final class HexaGlueTestHarness {
      */
     public HexaGlueTestHarness assertDrivingPort(String qualifiedName) {
         requireAnalyzed();
-        Optional<DrivingPort> port = result.model()
-                .portIndex()
-                .flatMap(pi -> pi.drivingPorts()
-                        .filter(p -> p.id().qualifiedName().equals(qualifiedName))
-                        .findFirst());
+        Optional<DrivingPort> port = result.model().portIndex().flatMap(pi -> pi.drivingPorts()
+                .filter(p -> p.id().qualifiedName().equals(qualifiedName))
+                .findFirst());
         assertThat(port).as("Driving port '%s' should exist", qualifiedName).isPresent();
         return this;
     }
@@ -212,11 +216,9 @@ public final class HexaGlueTestHarness {
      */
     public HexaGlueTestHarness assertDrivenPort(String qualifiedName) {
         requireAnalyzed();
-        Optional<DrivenPort> port = result.model()
-                .portIndex()
-                .flatMap(pi -> pi.drivenPorts()
-                        .filter(p -> p.id().qualifiedName().equals(qualifiedName))
-                        .findFirst());
+        Optional<DrivenPort> port = result.model().portIndex().flatMap(pi -> pi.drivenPorts()
+                .filter(p -> p.id().qualifiedName().equals(qualifiedName))
+                .findFirst());
         assertThat(port).as("Driven port '%s' should exist", qualifiedName).isPresent();
         return this;
     }

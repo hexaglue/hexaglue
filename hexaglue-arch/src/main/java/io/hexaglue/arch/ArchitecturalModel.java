@@ -23,7 +23,6 @@ import io.hexaglue.arch.model.report.PrioritizedRemediation;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * The complete architectural model of an analyzed application.
@@ -62,7 +61,6 @@ import java.util.stream.Stream;
  * }</pre>
  *
  * @param project project context information
- * @param registry the element registry (legacy, for backward compatibility)
  * @param relationships the relationship store for O(1) lookups
  * @param analysisMetadata metadata about the analysis process
  * @param typeRegistryV2 the type registry containing all ArchType instances
@@ -70,11 +68,10 @@ import java.util.stream.Stream;
  * @param domainIndexV2 the domain index for domain type access
  * @param portIndexV2 the port index for port type access
  * @since 4.0.0
- * @since 5.0.0 removed deprecated methods using legacy types
+ * @since 5.0.0 removed ElementRegistry, ElementRef, and related legacy types
  */
 public record ArchitecturalModel(
         ProjectContext project,
-        ElementRegistry registry,
         RelationshipStore relationships,
         AnalysisMetadata analysisMetadata,
         TypeRegistry typeRegistryV2,
@@ -85,23 +82,21 @@ public record ArchitecturalModel(
     /**
      * Creates a new ArchitecturalModel instance.
      *
-     * <p>Legacy fields (project, registry, relationships, analysisMetadata) are required.
-     * New v4.1.0 fields (typeRegistryV2, classificationReportV2, domainIndexV2, portIndexV2)
-     * may be null for backward compatibility.</p>
+     * <p>Core fields (project, relationships, analysisMetadata) are required.
+     * V5 fields (typeRegistryV2, classificationReportV2, domainIndexV2, portIndexV2)
+     * may be null for backward compatibility during migration.</p>
      *
      * @param project the project context, must not be null
-     * @param registry the element registry, must not be null
      * @param relationships the relationship store, must not be null
      * @param analysisMetadata the analysis metadata, must not be null
-     * @param typeRegistryV2 the type registry (v4.1.0), may be null
-     * @param classificationReportV2 the classification report (v4.1.0), may be null
-     * @param domainIndexV2 the domain index (v4.1.0), may be null
-     * @param portIndexV2 the port index (v4.1.0), may be null
+     * @param typeRegistryV2 the type registry, may be null
+     * @param classificationReportV2 the classification report, may be null
+     * @param domainIndexV2 the domain index, may be null
+     * @param portIndexV2 the port index, may be null
      * @throws NullPointerException if any required field is null
      */
     public ArchitecturalModel {
         Objects.requireNonNull(project, "project must not be null");
-        Objects.requireNonNull(registry, "registry must not be null");
         Objects.requireNonNull(relationships, "relationships must not be null");
         Objects.requireNonNull(analysisMetadata, "analysisMetadata must not be null");
         // typeRegistryV2, classificationReportV2, domainIndexV2, portIndexV2 may be null
@@ -180,31 +175,6 @@ public record ArchitecturalModel(
                 .toList();
     }
 
-    // === Reference Resolution ===
-
-    /**
-     * Resolves an element reference.
-     *
-     * @param ref the reference to resolve
-     * @param <T> the expected element type
-     * @return the resolved element, if found and type matches
-     */
-    public <T extends ArchElement> Optional<T> resolve(ElementRef<T> ref) {
-        return ref.resolveOpt(registry);
-    }
-
-    /**
-     * Resolves an element reference or throws.
-     *
-     * @param ref the reference to resolve
-     * @param <T> the expected element type
-     * @return the resolved element
-     * @throws UnresolvedReferenceException if resolution fails
-     */
-    public <T extends ArchElement> T get(ElementRef<T> ref) {
-        return ref.resolveOrThrow(registry);
-    }
-
     // === Relationship Queries (O(1)) ===
 
     /**
@@ -239,9 +209,10 @@ public record ArchitecturalModel(
      * Returns the total number of elements in the model.
      *
      * @return the element count
+     * @since 5.0.0 updated to use typeRegistry
      */
     public int size() {
-        return registry.size();
+        return typeRegistryV2 != null ? typeRegistryV2.size() : 0;
     }
 
     // === Builder ===
@@ -258,13 +229,14 @@ public record ArchitecturalModel(
 
     /**
      * Builder for ArchitecturalModel.
+     *
+     * @since 5.0.0 removed ElementRegistry support, use typeRegistry() instead
      */
     public static final class Builder {
         private final ProjectContext project;
-        private final ElementRegistry.Builder registryBuilder;
         private final RelationshipStore.Builder relationshipsBuilder;
 
-        // New v4.1.0 fields
+        // V5 fields
         private TypeRegistry typeRegistryV2;
         private ClassificationReport classificationReportV2;
         private DomainIndex domainIndexV2;
@@ -272,19 +244,7 @@ public record ArchitecturalModel(
 
         private Builder(ProjectContext project) {
             this.project = Objects.requireNonNull(project, "project must not be null");
-            this.registryBuilder = ElementRegistry.builder();
             this.relationshipsBuilder = RelationshipStore.builder();
-        }
-
-        /**
-         * Adds an element to the model.
-         *
-         * @param element the element to add
-         * @return this builder
-         */
-        public Builder add(ArchElement element) {
-            registryBuilder.add(element);
-            return this;
         }
 
         /**
@@ -381,7 +341,6 @@ public record ArchitecturalModel(
         public ArchitecturalModel build(AnalysisMetadata metadata) {
             return new ArchitecturalModel(
                     project,
-                    registryBuilder.build(),
                     relationshipsBuilder.build(),
                     metadata,
                     typeRegistryV2,
@@ -394,14 +353,14 @@ public record ArchitecturalModel(
          * Builds the model with auto-generated metadata.
          *
          * @return the built ArchitecturalModel
+         * @since 5.0.0 updated to use typeRegistry for size calculation
          */
         public ArchitecturalModel build() {
-            ElementRegistry registry = registryBuilder.build();
+            int size = typeRegistryV2 != null ? typeRegistryV2.size() : 0;
             return new ArchitecturalModel(
                     project,
-                    registry,
                     relationshipsBuilder.build(),
-                    AnalysisMetadata.forTesting(registry.size()),
+                    AnalysisMetadata.forTesting(size),
                     typeRegistryV2,
                     classificationReportV2,
                     domainIndexV2,

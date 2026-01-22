@@ -18,28 +18,28 @@ import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivenPortType;
-import io.hexaglue.arch.model.DomainEvent;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
+import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.UnclassifiedType;
+import io.hexaglue.arch.model.UnclassifiedType.UnclassifiedCategory;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
-import io.hexaglue.arch.model.ApplicationService;
-import io.hexaglue.arch.model.DomainService;
-import io.hexaglue.arch.model.Identifier;
-import io.hexaglue.arch.model.Method;
-import io.hexaglue.arch.model.MethodRole;
-import io.hexaglue.arch.model.UnclassifiedType;
-import io.hexaglue.arch.model.UnclassifiedType.UnclassifiedCategory;
-import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
@@ -285,9 +285,8 @@ public class TestModelBuilder {
      */
     public TestModelBuilder addDrivingPortWithNature(String qualifiedName, TypeNature nature) {
         TypeId id = TypeId.of(qualifiedName);
-        TypeStructure structure = TypeStructure.builder(nature)
-                .modifiers(Set.of(Modifier.PUBLIC))
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(nature).modifiers(Set.of(Modifier.PUBLIC)).build();
         ClassificationTrace trace = defaultTrace(ElementKind.DRIVING_PORT);
 
         DrivingPort port = DrivingPort.of(id, structure, trace);
@@ -305,9 +304,8 @@ public class TestModelBuilder {
      */
     public TestModelBuilder addDrivenPortWithNature(String qualifiedName, DrivenPortType portType, TypeNature nature) {
         TypeId id = TypeId.of(qualifiedName);
-        TypeStructure structure = TypeStructure.builder(nature)
-                .modifiers(Set.of(Modifier.PUBLIC))
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(nature).modifiers(Set.of(Modifier.PUBLIC)).build();
         ClassificationTrace trace = defaultTrace(ElementKind.DRIVEN_PORT);
 
         DrivenPort port = DrivenPort.of(id, structure, trace, portType);
@@ -350,11 +348,11 @@ public class TestModelBuilder {
      * @param nature the type nature
      * @return this builder
      */
-    public TestModelBuilder addUnclassifiedType(String qualifiedName, UnclassifiedCategory category, TypeNature nature) {
+    public TestModelBuilder addUnclassifiedType(
+            String qualifiedName, UnclassifiedCategory category, TypeNature nature) {
         TypeId id = TypeId.of(qualifiedName);
-        TypeStructure structure = TypeStructure.builder(nature)
-                .modifiers(Set.of(Modifier.PUBLIC))
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(nature).modifiers(Set.of(Modifier.PUBLIC)).build();
         ClassificationTrace trace = defaultTrace(ElementKind.UNCLASSIFIED);
 
         UnclassifiedType type = UnclassifiedType.of(id, structure, trace, category);
@@ -422,7 +420,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }
@@ -453,7 +452,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }
@@ -536,7 +536,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }
@@ -630,7 +631,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }
@@ -656,7 +658,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }
@@ -685,7 +688,8 @@ public class TestModelBuilder {
                 .roles(Set.of(FieldRole.IDENTITY))
                 .build();
 
-        AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField).build();
+        AggregateRoot aggregate =
+                AggregateRoot.builder(id, structure, trace, idField).build();
         aggregateRoots.add(aggregate);
         return this;
     }

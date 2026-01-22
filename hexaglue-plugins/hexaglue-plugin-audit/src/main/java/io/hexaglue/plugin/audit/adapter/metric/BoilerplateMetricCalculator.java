@@ -82,9 +82,8 @@ public class BoilerplateMetricCalculator implements MetricCalculator {
                     int boilerplateMethods = 0;
 
                     // Process all domain types
-                    for (DomainType domainType : domain.aggregateRoots()
-                            .map(agg -> (DomainType) agg)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.aggregateRoots().map(agg -> (DomainType) agg).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         // Skip interfaces and records as they don't have boilerplate implementations
@@ -101,9 +100,8 @@ public class BoilerplateMetricCalculator implements MetricCalculator {
                     }
 
                     // Add entities
-                    for (DomainType domainType : domain.entities()
-                            .map(entity -> (DomainType) entity)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.entities().map(entity -> (DomainType) entity).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface() || structure.isRecord()) {
@@ -119,9 +117,8 @@ public class BoilerplateMetricCalculator implements MetricCalculator {
                     }
 
                     // Add value objects
-                    for (DomainType domainType : domain.valueObjects()
-                            .map(vo -> (DomainType) vo)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.valueObjects().map(vo -> (DomainType) vo).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface() || structure.isRecord()) {
@@ -137,9 +134,8 @@ public class BoilerplateMetricCalculator implements MetricCalculator {
                     }
 
                     // Add domain services
-                    for (DomainType domainType : domain.domainServices()
-                            .map(svc -> (DomainType) svc)
-                            .toList()) {
+                    for (DomainType domainType :
+                            domain.domainServices().map(svc -> (DomainType) svc).toList()) {
                         TypeStructure structure = domainType.structure();
 
                         if (structure.isInterface() || structure.isRecord()) {
@@ -156,7 +152,10 @@ public class BoilerplateMetricCalculator implements MetricCalculator {
 
                     if (totalMethods == 0) {
                         return Metric.of(
-                                METRIC_NAME, 0.0, "%", "Percentage of boilerplate code in domain types (no methods found)");
+                                METRIC_NAME,
+                                0.0,
+                                "%",
+                                "Percentage of boilerplate code in domain types (no methods found)");
                     }
 
                     double ratio = (double) boilerplateMethods / totalMethods * 100.0;

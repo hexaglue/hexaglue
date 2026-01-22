@@ -164,7 +164,6 @@ public record DrivenAdapter(
      * @since 5.0.0 portRef changed from ElementRef to TypeId
      */
     public static DrivenAdapter jpaRepository(String qualifiedName, TypeId portId, ClassificationTrace trace) {
-        return new DrivenAdapter(
-                ElementId.of(qualifiedName), AdapterType.JPA_REPOSITORY, List.of(portId), null, trace);
+        return new DrivenAdapter(ElementId.of(qualifiedName), AdapterType.JPA_REPOSITORY, List.of(portId), null, trace);
     }
 }

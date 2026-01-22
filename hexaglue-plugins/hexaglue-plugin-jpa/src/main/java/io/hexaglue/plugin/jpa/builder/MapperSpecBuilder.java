@@ -399,7 +399,8 @@ public final class MapperSpecBuilder {
      * @return list of Value Object mapping specifications
      * @since 5.0.0
      */
-    private List<ValueObjectMappingSpec> detectValueObjectMappingsFromFields(List<Field> fields, String identityTypeName) {
+    private List<ValueObjectMappingSpec> detectValueObjectMappingsFromFields(
+            List<Field> fields, String identityTypeName) {
         Set<String> processedTypes = new HashSet<>();
         List<ValueObjectMappingSpec> mappings = new ArrayList<>();
 

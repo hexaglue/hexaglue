@@ -212,9 +212,7 @@ class BoilerplateMetricCalculatorTest {
     @DisplayName("Should skip interface types")
     void shouldNotCountInterfaceMethods() {
         // Given: Interface with method declarations
-        List<Method> methods = List.of(
-                getter("getName", "java.lang.String"),
-                getter("getAge", "int"));
+        List<Method> methods = List.of(getter("getName", "java.lang.String"), getter("getAge", "int"));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateAsInterface("com.example.domain.Person", methods)
@@ -349,10 +347,8 @@ class BoilerplateMetricCalculatorTest {
     void shouldAnalyzeAllDomainTypeKinds() {
         // Given: Mix of domain types with methods
         // Aggregate: 2 boilerplate, 1 business
-        List<Method> aggMethods = List.of(
-                getter("getName", "java.lang.String"),
-                setter("setName"),
-                businessMethod("process", "void"));
+        List<Method> aggMethods =
+                List.of(getter("getName", "java.lang.String"), setter("setName"), businessMethod("process", "void"));
 
         // Entity: 1 boilerplate, 2 business
         List<Method> entityMethods = List.of(
@@ -361,14 +357,11 @@ class BoilerplateMetricCalculatorTest {
                 businessMethod("validate", "boolean"));
 
         // Value object: 1 boilerplate, 1 business
-        List<Method> voMethods = List.of(
-                getter("getValue", "int"),
-                businessMethod("add", "com.example.domain.Money"));
+        List<Method> voMethods = List.of(getter("getValue", "int"), businessMethod("add", "com.example.domain.Money"));
 
         // Domain service: 0 boilerplate, 2 business
-        List<Method> serviceMethods = List.of(
-                businessMethod("calculate", "java.math.BigDecimal"),
-                businessMethod("transfer", "void"));
+        List<Method> serviceMethods =
+                List.of(businessMethod("calculate", "java.math.BigDecimal"), businessMethod("transfer", "void"));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Order", aggMethods)
@@ -390,10 +383,8 @@ class BoilerplateMetricCalculatorTest {
     @DisplayName("Should recognize lifecycle methods as boilerplate")
     void shouldRecognizeLifecycleMethods_asBoilerplate() {
         // Given: Class with lifecycle callback methods
-        List<Method> methods = List.of(
-                lifecycleMethod("init"),
-                lifecycleMethod("destroy"),
-                businessMethod("process", "void"));
+        List<Method> methods =
+                List.of(lifecycleMethod("init"), lifecycleMethod("destroy"), businessMethod("process", "void"));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Service", methods)
