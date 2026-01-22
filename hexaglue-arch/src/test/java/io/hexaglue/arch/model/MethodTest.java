@@ -20,6 +20,7 @@ import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -71,7 +72,9 @@ class MethodTest {
             Set<MethodRole> roles = Set.of(MethodRole.QUERY);
 
             // when
-            Method method = new Method(name, returnType, params, modifiers, annotations, doc, exceptions, roles);
+            Method method =
+                    new Method(name, returnType, params, modifiers, annotations, doc, exceptions, roles,
+                            OptionalInt.empty());
 
             // then
             assertThat(method.name()).isEqualTo(name);
@@ -82,6 +85,7 @@ class MethodTest {
             assertThat(method.documentation()).contains("Finds an order by ID");
             assertThat(method.thrownExceptions()).hasSize(1);
             assertThat(method.roles()).containsExactly(MethodRole.QUERY);
+            assertThat(method.cyclomaticComplexity()).isEmpty();
         }
 
         @Test
@@ -137,7 +141,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.signature()).isEqualTo("setName(String)");
@@ -158,7 +163,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.signature()).isEqualTo("transfer(Account, Account, BigDecimal)");
@@ -181,7 +187,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -200,7 +207,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -219,7 +227,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.isPublic()).isFalse();
@@ -244,7 +253,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // when/then
             assertThatThrownBy(() -> method.parameters().add(Parameter.of("extra", TypeRef.of("String"))))
@@ -263,7 +273,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of());
+                    Set.of(),
+                    OptionalInt.empty());
 
             // when/then
             assertThatThrownBy(() -> method.modifiers().add(Modifier.STATIC))
@@ -425,7 +436,8 @@ class MethodTest {
                     List.of(),
                     Optional.empty(),
                     List.of(),
-                    Set.of(MethodRole.QUERY, MethodRole.COMMAND));
+                    Set.of(MethodRole.QUERY, MethodRole.COMMAND),
+                    OptionalInt.empty());
 
             // then
             assertThat(method.hasRole(MethodRole.QUERY)).isTrue();

@@ -31,10 +31,8 @@ import org.junit.jupiter.api.Test;
  * Tests for {@link CodeComplexityMetricCalculator}.
  *
  * <p>Validates that cyclomatic complexity is correctly calculated using the v5 ArchType API.
- *
- * <p><strong>Note:</strong> The v5 API does not yet include method complexity in the Method record.
- * Therefore, the calculator returns 0.0 as a placeholder. These tests document expected behavior
- * once complexity is available.
+ * Methods can have explicit complexity values, or default to 1 (simple method) when
+ * complexity is not specified.
  *
  * @since 5.0.0 Migrated to v5 ArchType API
  */
@@ -88,10 +86,9 @@ class CodeComplexityMetricCalculatorTest {
     }
 
     @Test
-    @DisplayName("Should return zero - complexity not yet available in v5 API")
-    void shouldReturnZero_complexityNotYetAvailable() {
-        // Given: Domain type with simple methods
-        // Note: In v5 API, complexity field is not yet available in Method record
+    @DisplayName("Should return default complexity when method complexity not specified")
+    void shouldReturnDefaultComplexity_whenMethodComplexityNotSpecified() {
+        // Given: Domain type with simple methods (no explicit complexity - defaults to 1)
         List<Method> methods = List.of(
                 method("getId", "java.lang.Long"),
                 method("getName", "java.lang.String"),
@@ -105,9 +102,8 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Returns 0.0 as placeholder since complexity is not yet in v5 API
-        // TODO: Update expected values when complexity is added to Method record
-        assertThat(metric.value()).isEqualTo(0.0);
+        // Then: Returns 1.0 as default complexity for each method
+        assertThat(metric.value()).isEqualTo(1.0); // 3 methods with complexity 1 each = avg 1.0
         assertThat(metric.exceedsThreshold()).isFalse();
     }
 
@@ -137,9 +133,8 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Returns 0.0 as placeholder
-        // TODO: Update when complexity is available - expected: average of all method complexities
-        assertThat(metric.value()).isEqualTo(0.0);
+        // Then: 6 methods total, each with default complexity 1 = avg 1.0
+        assertThat(metric.value()).isEqualTo(1.0);
     }
 
     @Test
@@ -161,9 +156,8 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Only the class methods should be counted, interface is skipped
-        // Returns 0.0 as placeholder since complexity not yet available
-        assertThat(metric.value()).isEqualTo(0.0);
+        // Then: Only the class methods should be counted (1 method), interface is skipped
+        assertThat(metric.value()).isEqualTo(1.0);
     }
 
     @Test
@@ -180,8 +174,8 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Only domain types are analyzed
-        assertThat(metric.value()).isEqualTo(0.0); // Placeholder
+        // Then: Only domain types are analyzed (1 method with default complexity 1)
+        assertThat(metric.value()).isEqualTo(1.0);
     }
 
     @Test
@@ -215,19 +209,17 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Domain services are included
-        // Returns 0.0 as placeholder
-        assertThat(metric.value()).isEqualTo(0.0);
+        // Then: Domain services are included (2 methods with default complexity 1)
+        assertThat(metric.value()).isEqualTo(1.0);
     }
 
     @Test
-    @DisplayName("Should document complexity threshold behavior")
-    void shouldDocumentComplexityThresholdBehavior() {
-        // Given: Domain type with methods
-        // Note: When complexity is available, threshold is > 10
+    @DisplayName("Should not exceed threshold with low complexity")
+    void shouldNotExceedThresholdWithLowComplexity() {
+        // Given: Domain type with simple methods (complexity 1)
         List<Method> methods = List.of(
-                method("simpleMethod", "void"),
-                method("complexMethod", "void"));
+                methodWithComplexity("simpleMethod", "void", 1),
+                methodWithComplexity("anotherMethod", "void", 3));
 
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateWithStructure("com.example.domain.Order", methods)
@@ -237,11 +229,29 @@ class CodeComplexityMetricCalculatorTest {
         // When
         Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Currently returns 0.0 (below threshold of 10)
-        // TODO: When complexity is available:
-        //   - Methods with complexity <= 10: exceedsThreshold = false
-        //   - Methods with complexity > 10: exceedsThreshold = true
-        assertThat(metric.value()).isEqualTo(0.0);
+        // Then: Average complexity is (1+3)/2 = 2.0 (below threshold of 10)
+        assertThat(metric.value()).isEqualTo(2.0);
         assertThat(metric.exceedsThreshold()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should exceed threshold with high complexity")
+    void shouldExceedThresholdWithHighComplexity() {
+        // Given: Domain type with complex methods
+        List<Method> methods = List.of(
+                methodWithComplexity("complexMethod", "void", 15),
+                methodWithComplexity("anotherComplex", "void", 20));
+
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateWithStructure("com.example.domain.Order", methods)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then: Average complexity is (15+20)/2 = 17.5 (exceeds threshold of 10)
+        assertThat(metric.value()).isEqualTo(17.5);
+        assertThat(metric.exceedsThreshold()).isTrue();
     }
 }

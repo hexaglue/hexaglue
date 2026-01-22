@@ -45,6 +45,7 @@ import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 
 /**
@@ -753,7 +754,8 @@ public class TestModelBuilder {
                 List.of(),
                 Optional.empty(),
                 List.of(),
-                Set.of());
+                Set.of(),
+                OptionalInt.empty());
     }
 
     /**
@@ -777,7 +779,30 @@ public class TestModelBuilder {
                 List.of(),
                 Optional.empty(),
                 List.of(),
-                Set.of());
+                Set.of(),
+                OptionalInt.empty());
+    }
+
+    /**
+     * Creates a Method with specified cyclomatic complexity (for metric calculator tests).
+     *
+     * @param name the method name
+     * @param returnType the return type
+     * @param complexity the cyclomatic complexity value
+     * @return a new Method with the specified complexity
+     * @since 5.0.0
+     */
+    public static Method methodWithComplexity(String name, String returnType, int complexity) {
+        return new Method(
+                name,
+                TypeRef.of(returnType),
+                List.of(),
+                Set.of(Modifier.PUBLIC),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Set.of(),
+                OptionalInt.of(complexity));
     }
 
     /**
@@ -929,7 +954,8 @@ public class TestModelBuilder {
                 List.of(),
                 Optional.empty(),
                 List.of(),
-                Set.of(MethodRole.SETTER));
+                Set.of(MethodRole.SETTER),
+                OptionalInt.empty());
 
         return TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))

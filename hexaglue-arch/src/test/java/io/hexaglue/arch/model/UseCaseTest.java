@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -287,7 +288,9 @@ class UseCaseTest {
     }
 
     private Method createMethod(String name, TypeRef returnType, List<Parameter> parameters) {
-        return new Method(name, returnType, parameters, Set.of(), List.of(), Optional.empty(), List.of(), Set.of());
+        return new Method(
+                name, returnType, parameters, Set.of(), List.of(), Optional.empty(), List.of(), Set.of(),
+                OptionalInt.empty());
     }
 
     private Parameter param(String name, TypeRef type) {

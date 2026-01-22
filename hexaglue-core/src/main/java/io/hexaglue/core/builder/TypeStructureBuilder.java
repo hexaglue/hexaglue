@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -245,6 +246,8 @@ public final class TypeStructureBuilder {
 
         Set<MethodRole> roles = methodRoleDetector.detect(methodNode, declaringType);
 
+        OptionalInt complexity = methodNode.cyclomaticComplexity();
+
         return new Method(
                 methodNode.simpleName(),
                 returnType,
@@ -253,7 +256,8 @@ public final class TypeStructureBuilder {
                 annotations,
                 Optional.empty(),
                 thrownExceptions,
-                roles);
+                roles,
+                complexity);
     }
 
     private Constructor buildConstructor(ConstructorNode constructorNode) {
