@@ -40,7 +40,6 @@ import java.util.Set;
 public final class RepositoryInterfaceCriterion implements ClassificationCriterion {
 
     private static final int EXPLICIT_PRIORITY = 100;
-    private static final int NAMING_PRIORITY = 75;
     private static final Set<String> REPOSITORY_ANNOTATIONS = Set.of("Repository");
 
     @Override

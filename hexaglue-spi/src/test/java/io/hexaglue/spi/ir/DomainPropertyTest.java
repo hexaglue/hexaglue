@@ -55,7 +55,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return true when relationInfo is set")
         void returnsTrueWhenRelationInfoSet() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "com.example.Item");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_MANY, "com.example.Item", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "items",
                     TypeRef.parameterized("java.util.List", TypeRef.of("com.example.Item")),
@@ -118,7 +119,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return false for properties with relations")
         void returnsFalseForPropertiesWithRelations() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.MANY_TO_ONE, "com.example.Order");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.MANY_TO_ONE, "com.example.Order", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "order",
                     TypeRef.of("com.example.Order"),
@@ -139,7 +141,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return true for ONE_TO_MANY non-embedded collection")
         void returnsTrueForOneToManyNonEmbedded() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "com.example.LineItem");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_MANY, "com.example.LineItem", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "items",
                     TypeRef.parameterized("java.util.List", TypeRef.of("com.example.LineItem")),
@@ -155,7 +158,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return false for ELEMENT_COLLECTION")
         void returnsFalseForElementCollection() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.ELEMENT_COLLECTION, "com.example.Tag");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.ELEMENT_COLLECTION, "com.example.Tag", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "tags",
                     TypeRef.parameterized("java.util.Set", TypeRef.of("com.example.Tag")),
@@ -189,8 +193,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return true for ELEMENT_COLLECTION")
         void returnsTrueForElementCollection() {
-            RelationInfo relationInfo =
-                    RelationInfo.unidirectional(RelationKind.ELEMENT_COLLECTION, "com.example.Address");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.ELEMENT_COLLECTION, "com.example.Address", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "addresses",
                     TypeRef.parameterized("java.util.List", TypeRef.of("com.example.Address")),
@@ -206,7 +210,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return false for ONE_TO_MANY")
         void returnsFalseForOneToMany() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "com.example.LineItem");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_MANY, "com.example.LineItem", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "items",
                     TypeRef.parameterized("java.util.List", TypeRef.of("com.example.LineItem")),
@@ -236,7 +241,8 @@ class DomainPropertyTest {
         @Test
         @DisplayName("should return present when set")
         void returnsPresentWhenSet() {
-            RelationInfo relationInfo = RelationInfo.unidirectional(RelationKind.EMBEDDED, "com.example.Address");
+            RelationInfo relationInfo = RelationInfo.unidirectional(
+                    RelationKind.EMBEDDED, "com.example.Address", CascadeType.NONE, FetchType.LAZY, null);
             DomainProperty property = new DomainProperty(
                     "address",
                     TypeRef.of("com.example.Address"),

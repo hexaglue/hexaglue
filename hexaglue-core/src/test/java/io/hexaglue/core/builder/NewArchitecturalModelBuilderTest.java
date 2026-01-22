@@ -20,9 +20,7 @@ import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
-import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.model.NodeId;
-import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.graph.testing.TestGraphBuilder;
 import java.util.List;
@@ -45,20 +43,6 @@ class NewArchitecturalModelBuilderTest {
     @BeforeEach
     void setUp() {
         builder = new NewArchitecturalModelBuilder();
-    }
-
-    private TypeNode createTypeNode(String qualifiedName, JavaForm form) {
-        int lastDot = qualifiedName.lastIndexOf('.');
-        String simpleName = lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
-        String packageName = lastDot >= 0 ? qualifiedName.substring(0, lastDot) : "";
-
-        return TypeNode.builder()
-                .id(NodeId.type(qualifiedName))
-                .simpleName(simpleName)
-                .qualifiedName(qualifiedName)
-                .packageName(packageName)
-                .form(form)
-                .build();
     }
 
     private ClassificationResult createAggregateResult(String qualifiedName) {

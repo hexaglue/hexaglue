@@ -543,7 +543,7 @@ public final class ProgressiveClassifier {
                 // Unclassified
                 ReasonTrace trace = ReasonTrace.builder().build();
 
-                ClassificationResult result = ClassificationResult.unclassified(type.id(), trace);
+                ClassificationResult result = ClassificationResult.unclassifiedDomain(type.id(), trace);
 
                 resultMap.put(type.id(), result);
             }

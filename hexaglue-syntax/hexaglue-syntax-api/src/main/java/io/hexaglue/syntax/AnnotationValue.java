@@ -149,7 +149,6 @@ public sealed interface AnnotationValue {
          * @param <E> the enum type
          * @return the enum constant
          */
-        @SuppressWarnings("unchecked")
         public <E extends Enum<E>> E asEnum(Class<E> enumClass) {
             return Enum.valueOf(enumClass, constantName);
         }

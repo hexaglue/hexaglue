@@ -54,15 +54,6 @@ public final class ConsoleReportGenerator implements ReportGenerator {
     // Box drawing characters
     private static final String BOX_HORIZONTAL = "─";
     private static final String BOX_VERTICAL = "│";
-    private static final String BOX_TOP_LEFT = "┌";
-    private static final String BOX_TOP_RIGHT = "┐";
-    private static final String BOX_BOTTOM_LEFT = "└";
-    private static final String BOX_BOTTOM_RIGHT = "┘";
-    private static final String BOX_VERTICAL_RIGHT = "├";
-    private static final String BOX_VERTICAL_LEFT = "┤";
-    private static final String BOX_HORIZONTAL_DOWN = "┬";
-    private static final String BOX_HORIZONTAL_UP = "┴";
-    private static final String BOX_CROSS = "┼";
 
     private final boolean useColors;
 
