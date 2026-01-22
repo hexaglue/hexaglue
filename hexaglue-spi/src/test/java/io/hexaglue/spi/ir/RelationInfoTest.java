@@ -31,7 +31,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("unidirectional should create owning relation")
         void unidirectionalCreatesOwningRelation() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "com.example.LineItem");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_MANY, "com.example.LineItem", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
             assertThat(info.targetType()).isEqualTo("com.example.LineItem");
@@ -42,7 +43,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("owning should create owning side relation")
         void owningCreatesOwningSide() {
-            RelationInfo info = RelationInfo.owning(RelationKind.MANY_TO_ONE, "com.example.Order");
+            RelationInfo info = RelationInfo.owning(
+                    RelationKind.MANY_TO_ONE, "com.example.Order", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.owning()).isTrue();
             assertThat(info.isBidirectional()).isFalse();
@@ -51,7 +53,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("inverse should create non-owning side with mappedBy")
         void inverseCreatesNonOwningSide() {
-            RelationInfo info = RelationInfo.inverse(RelationKind.ONE_TO_MANY, "com.example.LineItem", "order");
+            RelationInfo info = RelationInfo.inverse(
+                    RelationKind.ONE_TO_MANY, "com.example.LineItem", "order", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.owning()).isFalse();
             assertThat(info.mappedBy()).isEqualTo("order");
@@ -65,9 +68,9 @@ class RelationInfoTest {
 
         @Test
         @DisplayName("mappedByOpt should return Optional with value when set")
-        @SuppressWarnings("deprecation")
         void mappedByOptWithValue() {
-            RelationInfo info = RelationInfo.inverse(RelationKind.ONE_TO_MANY, "com.example.Item", "parent");
+            RelationInfo info = RelationInfo.inverse(
+                    RelationKind.ONE_TO_MANY, "com.example.Item", "parent", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.mappedByOpt()).isPresent().contains("parent");
         }
@@ -75,7 +78,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("mappedByOpt should return empty when null")
         void mappedByOptEmpty() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.MANY_TO_ONE, "com.example.Order");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.MANY_TO_ONE, "com.example.Order", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.mappedByOpt()).isEmpty();
         }
@@ -83,7 +87,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isCollection should return true for ONE_TO_MANY")
         void isCollectionForOneToMany() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "com.example.Item");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_MANY, "com.example.Item", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isCollection()).isTrue();
         }
@@ -91,7 +96,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isCollection should return true for MANY_TO_MANY")
         void isCollectionForManyToMany() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.MANY_TO_MANY, "com.example.Tag");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.MANY_TO_MANY, "com.example.Tag", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isCollection()).isTrue();
         }
@@ -99,7 +105,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isCollection should return true for ELEMENT_COLLECTION")
         void isCollectionForElementCollection() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.ELEMENT_COLLECTION, "com.example.Address");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.ELEMENT_COLLECTION, "com.example.Address", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isCollection()).isTrue();
         }
@@ -107,7 +114,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isCollection should return false for ONE_TO_ONE")
         void isCollectionFalseForOneToOne() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.ONE_TO_ONE, "com.example.Profile");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.ONE_TO_ONE, "com.example.Profile", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isCollection()).isFalse();
         }
@@ -115,7 +123,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isCollection should return false for MANY_TO_ONE")
         void isCollectionFalseForManyToOne() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.MANY_TO_ONE, "com.example.Order");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.MANY_TO_ONE, "com.example.Order", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isCollection()).isFalse();
         }
@@ -123,7 +132,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isEmbedded should return true for EMBEDDED")
         void isEmbeddedForEmbedded() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.EMBEDDED, "com.example.Address");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.EMBEDDED, "com.example.Address", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isEmbedded()).isTrue();
         }
@@ -131,7 +141,8 @@ class RelationInfoTest {
         @Test
         @DisplayName("isEmbedded should return true for ELEMENT_COLLECTION")
         void isEmbeddedForElementCollection() {
-            RelationInfo info = RelationInfo.unidirectional(RelationKind.ELEMENT_COLLECTION, "com.example.Tag");
+            RelationInfo info = RelationInfo.unidirectional(
+                    RelationKind.ELEMENT_COLLECTION, "com.example.Tag", CascadeType.NONE, FetchType.LAZY, null);
 
             assertThat(info.isEmbedded()).isTrue();
         }
@@ -139,15 +150,20 @@ class RelationInfoTest {
         @Test
         @DisplayName("isEmbedded should return false for entity relations")
         void isEmbeddedFalseForEntityRelations() {
-            assertThat(RelationInfo.unidirectional(RelationKind.ONE_TO_MANY, "X")
+            assertThat(RelationInfo.unidirectional(
+                                    RelationKind.ONE_TO_MANY, "X", CascadeType.NONE, FetchType.LAZY, null)
                             .isEmbedded())
                     .isFalse();
-            assertThat(RelationInfo.unidirectional(RelationKind.MANY_TO_ONE, "X")
+            assertThat(RelationInfo.unidirectional(
+                                    RelationKind.MANY_TO_ONE, "X", CascadeType.NONE, FetchType.LAZY, null)
                             .isEmbedded())
                     .isFalse();
-            assertThat(RelationInfo.unidirectional(RelationKind.ONE_TO_ONE, "X").isEmbedded())
+            assertThat(RelationInfo.unidirectional(
+                                    RelationKind.ONE_TO_ONE, "X", CascadeType.NONE, FetchType.LAZY, null)
+                            .isEmbedded())
                     .isFalse();
-            assertThat(RelationInfo.unidirectional(RelationKind.MANY_TO_MANY, "X")
+            assertThat(RelationInfo.unidirectional(
+                                    RelationKind.MANY_TO_MANY, "X", CascadeType.NONE, FetchType.LAZY, null)
                             .isEmbedded())
                     .isFalse();
         }

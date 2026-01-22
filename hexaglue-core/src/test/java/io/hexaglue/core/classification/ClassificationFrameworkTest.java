@@ -293,13 +293,13 @@ class ClassificationFrameworkTest {
         void shouldCreateUnclassifiedResult() {
             NodeId nodeId = NodeId.type("com.example.Unknown");
 
-            ClassificationResult result = ClassificationResult.unclassified(nodeId);
+            ClassificationResult result = ClassificationResult.unclassifiedDomain(nodeId, null);
 
             assertThat(result.isClassified()).isFalse();
             assertThat(result.isUnclassified()).isTrue();
             assertThat(result.status()).isEqualTo(ClassificationStatus.UNCLASSIFIED);
-            assertThat(result.kind()).isNull();
-            assertThat(result.kindOpt()).isEmpty();
+            assertThat(result.kind()).isEqualTo("UNCLASSIFIED");
+            assertThat(result.kindOpt()).contains("UNCLASSIFIED");
         }
 
         @Test
@@ -332,12 +332,12 @@ class ClassificationFrameworkTest {
                     List.of(),
                     List.of());
 
-            ClassificationResult unclassified = ClassificationResult.unclassified(nodeId);
+            ClassificationResult unclassified = ClassificationResult.unclassifiedDomain(nodeId, null);
 
             assertThat(classified.kindOpt()).contains("ENTITY");
             assertThat(classified.confidenceOpt()).contains(ConfidenceLevel.HIGH);
 
-            assertThat(unclassified.kindOpt()).isEmpty();
+            assertThat(unclassified.kindOpt()).contains("UNCLASSIFIED");
             assertThat(unclassified.confidenceOpt()).isEmpty();
         }
     }

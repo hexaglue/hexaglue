@@ -68,6 +68,7 @@ class PortIndexTest {
         return DrivenPort.of(id, interfaceStructure, trace, DrivenPortType.GATEWAY);
     }
 
+    @SuppressWarnings({"unused"})
     private DrivenPort createEventPublisher(TypeId id) {
         ClassificationTrace trace = ClassificationTrace.highConfidence(ElementKind.DRIVEN_PORT, "test", "Test");
         return DrivenPort.of(id, interfaceStructure, trace, DrivenPortType.EVENT_PUBLISHER);

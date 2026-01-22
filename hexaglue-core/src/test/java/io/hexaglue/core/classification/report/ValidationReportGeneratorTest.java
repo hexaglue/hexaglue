@@ -404,6 +404,6 @@ class ValidationReportGeneratorTest {
     }
 
     private ClassificationResult createUnclassifiedResult(String fqn) {
-        return ClassificationResult.unclassified(NodeId.type(fqn));
+        return ClassificationResult.unclassifiedDomain(NodeId.type(fqn), null);
     }
 }
