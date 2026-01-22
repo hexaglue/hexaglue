@@ -38,18 +38,4 @@ package io.hexaglue.arch.model;
  *
  * @since 4.1.0
  */
-public sealed interface ApplicationType extends ArchType
-        permits ApplicationService, CommandHandler, QueryHandler, ApplicationType.Marker {
-
-    /**
-     * Temporary marker interface for testing and migration.
-     *
-     * <p>This allows creating test implementations of ApplicationType.
-     * The concrete records (ApplicationService, CommandHandler, QueryHandler) are the primary implementations.</p>
-     *
-     * @since 4.1.0
-     * @deprecated Use concrete record types instead
-     */
-    @Deprecated(forRemoval = true)
-    non-sealed interface Marker extends ApplicationType {}
-}
+public sealed interface ApplicationType extends ArchType permits ApplicationService, CommandHandler, QueryHandler {}

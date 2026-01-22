@@ -63,10 +63,10 @@ import java.util.Optional;
  * @param project project context information
  * @param relationships the relationship store for O(1) lookups
  * @param analysisMetadata metadata about the analysis process
- * @param typeRegistryV2 the type registry containing all ArchType instances
- * @param classificationReportV2 the classification report with stats and remediations
- * @param domainIndexV2 the domain index for domain type access
- * @param portIndexV2 the port index for port type access
+ * @param typeRegistryInternal the type registry containing all ArchType instances (internal field)
+ * @param classificationReportInternal the classification report with stats and remediations (internal field)
+ * @param domainIndexInternal the domain index for domain type access (internal field)
+ * @param portIndexInternal the port index for port type access (internal field)
  * @since 4.0.0
  * @since 5.0.0 removed ElementRegistry, ElementRef, and related legacy types
  */
@@ -74,32 +74,32 @@ public record ArchitecturalModel(
         ProjectContext project,
         RelationshipStore relationships,
         AnalysisMetadata analysisMetadata,
-        TypeRegistry typeRegistryV2,
-        ClassificationReport classificationReportV2,
-        DomainIndex domainIndexV2,
-        PortIndex portIndexV2) {
+        TypeRegistry typeRegistryInternal,
+        ClassificationReport classificationReportInternal,
+        DomainIndex domainIndexInternal,
+        PortIndex portIndexInternal) {
 
     /**
      * Creates a new ArchitecturalModel instance.
      *
      * <p>Core fields (project, relationships, analysisMetadata) are required.
-     * V5 fields (typeRegistryV2, classificationReportV2, domainIndexV2, portIndexV2)
+     * Index fields (typeRegistry, classificationReport, domainIndex, portIndex)
      * may be null for backward compatibility during migration.</p>
      *
      * @param project the project context, must not be null
      * @param relationships the relationship store, must not be null
      * @param analysisMetadata the analysis metadata, must not be null
-     * @param typeRegistryV2 the type registry, may be null
-     * @param classificationReportV2 the classification report, may be null
-     * @param domainIndexV2 the domain index, may be null
-     * @param portIndexV2 the port index, may be null
+     * @param typeRegistryInternal the type registry, may be null
+     * @param classificationReportInternal the classification report, may be null
+     * @param domainIndexInternal the domain index, may be null
+     * @param portIndexInternal the port index, may be null
      * @throws NullPointerException if any required field is null
      */
     public ArchitecturalModel {
         Objects.requireNonNull(project, "project must not be null");
         Objects.requireNonNull(relationships, "relationships must not be null");
         Objects.requireNonNull(analysisMetadata, "analysisMetadata must not be null");
-        // typeRegistryV2, classificationReportV2, domainIndexV2, portIndexV2 may be null
+        // typeRegistryInternal, classificationReportInternal, domainIndexInternal, portIndexInternal may be null
     }
 
     // === New v4.1.0 API ===
@@ -111,7 +111,7 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public Optional<TypeRegistry> typeRegistry() {
-        return Optional.ofNullable(typeRegistryV2);
+        return Optional.ofNullable(typeRegistryInternal);
     }
 
     /**
@@ -121,7 +121,7 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public Optional<ClassificationReport> classificationReport() {
-        return Optional.ofNullable(classificationReportV2);
+        return Optional.ofNullable(classificationReportInternal);
     }
 
     /**
@@ -131,7 +131,7 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public Optional<DomainIndex> domainIndex() {
-        return Optional.ofNullable(domainIndexV2);
+        return Optional.ofNullable(domainIndexInternal);
     }
 
     /**
@@ -141,7 +141,7 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public Optional<PortIndex> portIndex() {
-        return Optional.ofNullable(portIndexV2);
+        return Optional.ofNullable(portIndexInternal);
     }
 
     /**
@@ -153,7 +153,7 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public boolean hasClassificationIssues() {
-        return classificationReportV2 != null && classificationReportV2.hasIssues();
+        return classificationReportInternal != null && classificationReportInternal.hasIssues();
     }
 
     /**
@@ -166,10 +166,10 @@ public record ArchitecturalModel(
      * @since 4.1.0
      */
     public List<PrioritizedRemediation> topRemediations(int limit) {
-        if (classificationReportV2 == null) {
+        if (classificationReportInternal == null) {
             return List.of();
         }
-        return classificationReportV2.remediations().stream()
+        return classificationReportInternal.remediations().stream()
                 .sorted()
                 .limit(limit)
                 .toList();
@@ -187,8 +187,8 @@ public record ArchitecturalModel(
      * @since 5.0.0 updated to return model.DrivenPort
      */
     public Optional<DrivenPort> repositoryFor(ElementId aggregateId) {
-        if (portIndexV2 != null) {
-            return portIndexV2.repositoryFor(TypeId.fromElementId(aggregateId));
+        if (portIndexInternal != null) {
+            return portIndexInternal.repositoryFor(TypeId.fromElementId(aggregateId));
         }
         return Optional.empty();
     }
@@ -212,7 +212,7 @@ public record ArchitecturalModel(
      * @since 5.0.0 updated to use typeRegistry
      */
     public int size() {
-        return typeRegistryV2 != null ? typeRegistryV2.size() : 0;
+        return typeRegistryInternal != null ? typeRegistryInternal.size() : 0;
     }
 
     // === Builder ===
@@ -236,11 +236,11 @@ public record ArchitecturalModel(
         private final ProjectContext project;
         private final RelationshipStore.Builder relationshipsBuilder;
 
-        // V5 fields
-        private TypeRegistry typeRegistryV2;
-        private ClassificationReport classificationReportV2;
-        private DomainIndex domainIndexV2;
-        private PortIndex portIndexV2;
+        // Index fields
+        private TypeRegistry typeRegistry;
+        private ClassificationReport classificationReport;
+        private DomainIndex domainIndex;
+        private PortIndex portIndex;
 
         private Builder(ProjectContext project) {
             this.project = Objects.requireNonNull(project, "project must not be null");
@@ -292,7 +292,7 @@ public record ArchitecturalModel(
          * @since 4.1.0
          */
         public Builder typeRegistry(TypeRegistry typeRegistry) {
-            this.typeRegistryV2 = typeRegistry;
+            this.typeRegistry = typeRegistry;
             return this;
         }
 
@@ -304,7 +304,7 @@ public record ArchitecturalModel(
          * @since 4.1.0
          */
         public Builder classificationReport(ClassificationReport report) {
-            this.classificationReportV2 = report;
+            this.classificationReport = report;
             return this;
         }
 
@@ -316,7 +316,7 @@ public record ArchitecturalModel(
          * @since 4.1.0
          */
         public Builder domainIndex(DomainIndex domainIndex) {
-            this.domainIndexV2 = domainIndex;
+            this.domainIndex = domainIndex;
             return this;
         }
 
@@ -328,7 +328,7 @@ public record ArchitecturalModel(
          * @since 4.1.0
          */
         public Builder portIndex(PortIndex portIndex) {
-            this.portIndexV2 = portIndex;
+            this.portIndex = portIndex;
             return this;
         }
 
@@ -343,10 +343,10 @@ public record ArchitecturalModel(
                     project,
                     relationshipsBuilder.build(),
                     metadata,
-                    typeRegistryV2,
-                    classificationReportV2,
-                    domainIndexV2,
-                    portIndexV2);
+                    this.typeRegistry,
+                    this.classificationReport,
+                    this.domainIndex,
+                    this.portIndex);
         }
 
         /**
@@ -356,15 +356,15 @@ public record ArchitecturalModel(
          * @since 5.0.0 updated to use typeRegistry for size calculation
          */
         public ArchitecturalModel build() {
-            int size = typeRegistryV2 != null ? typeRegistryV2.size() : 0;
+            int size = this.typeRegistry != null ? this.typeRegistry.size() : 0;
             return new ArchitecturalModel(
                     project,
                     relationshipsBuilder.build(),
                     AnalysisMetadata.forTesting(size),
-                    typeRegistryV2,
-                    classificationReportV2,
-                    domainIndexV2,
-                    portIndexV2);
+                    this.typeRegistry,
+                    this.classificationReport,
+                    this.domainIndex,
+                    this.portIndex);
         }
     }
 }

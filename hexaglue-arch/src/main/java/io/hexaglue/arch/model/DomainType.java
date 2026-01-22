@@ -40,17 +40,4 @@ package io.hexaglue.arch.model;
  * @since 4.1.0
  */
 public sealed interface DomainType extends ArchType
-        permits AggregateRoot, Entity, ValueObject, Identifier, DomainEvent, DomainService, DomainType.Marker {
-
-    /**
-     * Temporary marker interface for testing and migration.
-     *
-     * <p>This allows creating test implementations of DomainType.
-     * The concrete records (AggregateRoot, Entity, etc.) are the primary implementations.</p>
-     *
-     * @since 4.1.0
-     * @deprecated Use concrete record types instead
-     */
-    @Deprecated(forRemoval = true)
-    non-sealed interface Marker extends DomainType {}
-}
+        permits AggregateRoot, Entity, ValueObject, Identifier, DomainEvent, DomainService {}
