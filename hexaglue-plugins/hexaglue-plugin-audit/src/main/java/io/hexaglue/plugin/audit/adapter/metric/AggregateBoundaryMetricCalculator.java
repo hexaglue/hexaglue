@@ -144,8 +144,7 @@ public class AggregateBoundaryMetricCalculator implements MetricCalculator {
      * @param domain the domain index
      * @return map of entity qualified name to aggregate qualified name
      */
-    private Map<String, String> buildEntityToAggregateMap(
-            io.hexaglue.arch.model.index.DomainIndex domain) {
+    private Map<String, String> buildEntityToAggregateMap(io.hexaglue.arch.model.index.DomainIndex domain) {
         Map<String, String> map = new HashMap<>();
 
         for (Entity entity : domain.entities().toList()) {

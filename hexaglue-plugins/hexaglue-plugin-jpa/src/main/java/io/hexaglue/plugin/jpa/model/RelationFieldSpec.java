@@ -435,17 +435,19 @@ public record RelationFieldSpec(
             var typeRegistry = typeRegistryOpt.get();
 
             // Check if it's an aggregate root
-            if (typeRegistry.all(AggregateRoot.class)
+            if (typeRegistry
+                    .all(AggregateRoot.class)
                     .anyMatch(agg -> agg.id().qualifiedName().equals(qualifiedName))) {
                 return ElementKind.AGGREGATE_ROOT;
             }
             // Check if it's an entity
-            if (typeRegistry.all(Entity.class)
-                    .anyMatch(e -> e.id().qualifiedName().equals(qualifiedName))) {
+            if (typeRegistry.all(Entity.class).anyMatch(e -> e.id().qualifiedName()
+                    .equals(qualifiedName))) {
                 return ElementKind.ENTITY;
             }
             // Check if it's a value object
-            if (typeRegistry.all(ValueObject.class)
+            if (typeRegistry
+                    .all(ValueObject.class)
                     .anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
                 return ElementKind.VALUE_OBJECT;
             }

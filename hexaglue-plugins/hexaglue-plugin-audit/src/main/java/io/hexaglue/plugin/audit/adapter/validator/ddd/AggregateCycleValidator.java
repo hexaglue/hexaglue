@@ -111,9 +111,8 @@ public class AggregateCycleValidator implements ConstraintValidator {
         }
 
         // Build set of aggregate qualified names
-        Set<String> aggregateNames = aggregates.stream()
-                .map(agg -> agg.id().qualifiedName())
-                .collect(Collectors.toSet());
+        Set<String> aggregateNames =
+                aggregates.stream().map(agg -> agg.id().qualifiedName()).collect(Collectors.toSet());
 
         // Build aggregate-only dependency graph
         Map<String, Set<String>> aggregateDeps = buildAggregateDependencyGraph(codebase, aggregateNames);
@@ -145,9 +144,8 @@ public class AggregateCycleValidator implements ConstraintValidator {
             Set<String> allDeps = codebase.dependencies().getOrDefault(aggregateName, Set.of());
 
             // Filter to only aggregate dependencies
-            Set<String> aggOnlyDeps = allDeps.stream()
-                    .filter(aggregateNames::contains)
-                    .collect(Collectors.toSet());
+            Set<String> aggOnlyDeps =
+                    allDeps.stream().filter(aggregateNames::contains).collect(Collectors.toSet());
 
             aggregateDeps.put(aggregateName, aggOnlyDeps);
         }

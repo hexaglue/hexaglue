@@ -54,28 +54,24 @@ public final class DocumentationModelFactory {
 
         DomainIndex domain = model.domainIndex()
                 .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
-        PortIndex ports = model.portIndex()
-                .orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
+        PortIndex ports =
+                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
 
         List<DocType> aggregateRoots = domain.aggregateRoots()
                 .map(DocumentationModelFactory::toDocType)
                 .toList();
 
-        List<DocType> entities = domain.entities()
-                .map(DocumentationModelFactory::toDocType)
-                .toList();
+        List<DocType> entities =
+                domain.entities().map(DocumentationModelFactory::toDocType).toList();
 
-        List<DocType> valueObjects = domain.valueObjects()
-                .map(DocumentationModelFactory::toDocType)
-                .toList();
+        List<DocType> valueObjects =
+                domain.valueObjects().map(DocumentationModelFactory::toDocType).toList();
 
-        List<DocPort> drivingPorts = ports.drivingPorts()
-                .map(DocumentationModelFactory::toDocPort)
-                .toList();
+        List<DocPort> drivingPorts =
+                ports.drivingPorts().map(DocumentationModelFactory::toDocPort).toList();
 
-        List<DocPort> drivenPorts = ports.drivenPorts()
-                .map(DocumentationModelFactory::toDocPort)
-                .toList();
+        List<DocPort> drivenPorts =
+                ports.drivenPorts().map(DocumentationModelFactory::toDocPort).toList();
 
         return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
     }

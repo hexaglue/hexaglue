@@ -69,7 +69,10 @@ public class MetricAggregator {
      * @since 5.0.0
      */
     public Map<String, Metric> calculateMetrics(
-            ArchitecturalModel model, Codebase codebase, ArchitectureQuery architectureQuery, Set<String> enabledMetrics) {
+            ArchitecturalModel model,
+            Codebase codebase,
+            ArchitectureQuery architectureQuery,
+            Set<String> enabledMetrics) {
         Objects.requireNonNull(model, "model required");
         Objects.requireNonNull(codebase, "codebase required");
         Objects.requireNonNull(enabledMetrics, "enabledMetrics required");

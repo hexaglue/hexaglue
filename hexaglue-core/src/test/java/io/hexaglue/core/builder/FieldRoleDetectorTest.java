@@ -109,7 +109,8 @@ class FieldRoleDetectorTest {
         @DisplayName("should not detect field ending with 'Id' when it's a foreign key reference")
         void shouldNotDetectForeignKeyAsIdentity() {
             // productId in OrderLine is a foreign key reference, not an identity
-            FieldNode field = createFieldInType("productId", "com.example.ProductId", List.of(), "com.example.OrderLine");
+            FieldNode field =
+                    createFieldInType("productId", "com.example.ProductId", List.of(), "com.example.OrderLine");
 
             Set<FieldRole> roles = detector.detect(field, context);
 

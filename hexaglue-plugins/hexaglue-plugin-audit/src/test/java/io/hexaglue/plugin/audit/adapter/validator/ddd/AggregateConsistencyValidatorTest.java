@@ -69,10 +69,7 @@ class AggregateConsistencyValidatorTest {
     void shouldPass_whenEntityBelongsToSingleAggregate() {
         // Given: Order aggregate with OrderLine entity
         ArchitecturalModel model = new TestModelBuilder()
-                .addAggregateRoot(
-                        "com.example.domain.Order",
-                        List.of("com.example.domain.OrderLine"),
-                        List.of())
+                .addAggregateRoot("com.example.domain.Order", List.of("com.example.domain.OrderLine"), List.of())
                 .addEntity("com.example.domain.OrderLine", "com.example.domain.Order")
                 .addAggregateRoot("com.example.domain.Customer")
                 .build();
@@ -90,14 +87,8 @@ class AggregateConsistencyValidatorTest {
     void shouldFail_whenEntityBelongsToMultipleAggregates() {
         // Given: Address entity referenced by both Customer and Order
         ArchitecturalModel model = new TestModelBuilder()
-                .addAggregateRoot(
-                        "com.example.domain.Customer",
-                        List.of("com.example.domain.Address"),
-                        List.of())
-                .addAggregateRoot(
-                        "com.example.domain.Order",
-                        List.of("com.example.domain.Address"),
-                        List.of())
+                .addAggregateRoot("com.example.domain.Customer", List.of("com.example.domain.Address"), List.of())
+                .addAggregateRoot("com.example.domain.Order", List.of("com.example.domain.Address"), List.of())
                 .addEntity("com.example.domain.Address")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
@@ -120,17 +111,11 @@ class AggregateConsistencyValidatorTest {
         // Given: Shared entity referenced by 3 aggregates
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot(
-                        "com.example.domain.Aggregate1",
-                        List.of("com.example.domain.SharedEntity"),
-                        List.of())
+                        "com.example.domain.Aggregate1", List.of("com.example.domain.SharedEntity"), List.of())
                 .addAggregateRoot(
-                        "com.example.domain.Aggregate2",
-                        List.of("com.example.domain.SharedEntity"),
-                        List.of())
+                        "com.example.domain.Aggregate2", List.of("com.example.domain.SharedEntity"), List.of())
                 .addAggregateRoot(
-                        "com.example.domain.Aggregate3",
-                        List.of("com.example.domain.SharedEntity"),
-                        List.of())
+                        "com.example.domain.Aggregate3", List.of("com.example.domain.SharedEntity"), List.of())
                 .addEntity("com.example.domain.SharedEntity")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
@@ -140,8 +125,7 @@ class AggregateConsistencyValidatorTest {
 
         // Then: Single violation listing all three aggregates
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message())
-                .contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
+        assertThat(violations.get(0).message()).contains("SharedEntity", "Aggregate1", "Aggregate2", "Aggregate3");
     }
 
     // === Rule 2: Size Limit ===

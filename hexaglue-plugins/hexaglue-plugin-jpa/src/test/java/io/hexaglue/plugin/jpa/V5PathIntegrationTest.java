@@ -57,12 +57,13 @@ class V5PathIntegrationTest {
         void shouldHaveRequiredIdentityField() {
             // Given: A v5 AggregateRoot with proper identity field
             Field identityField = createIdentityField("id", "java.util.UUID");
-            TypeStructure structure =
-                    createStructureWithFields(TypeNature.RECORD, List.of(identityField, createSimpleField("name", "java.lang.String")));
+            TypeStructure structure = createStructureWithFields(
+                    TypeNature.RECORD, List.of(identityField, createSimpleField("name", "java.lang.String")));
             ClassificationTrace trace = createTrace(ElementKind.AGGREGATE_ROOT);
 
             // When: Creating the AggregateRoot
-            AggregateRoot order = AggregateRoot.builder(TypeId.of("com.example.domain.Order"), structure, trace, identityField)
+            AggregateRoot order = AggregateRoot.builder(
+                            TypeId.of("com.example.domain.Order"), structure, trace, identityField)
                     .effectiveIdentityType(TypeRef.of("java.util.UUID"))
                     .build();
 
@@ -80,11 +81,13 @@ class V5PathIntegrationTest {
             Field nameField = createSimpleField("name", "java.lang.String");
             Field statusField = createSimpleField("status", "java.lang.String");
 
-            TypeStructure structure = createStructureWithFields(TypeNature.RECORD, List.of(idField, nameField, statusField));
+            TypeStructure structure =
+                    createStructureWithFields(TypeNature.RECORD, List.of(idField, nameField, statusField));
             ClassificationTrace trace = createTrace(ElementKind.AGGREGATE_ROOT);
 
-            AggregateRoot order =
-                    AggregateRoot.builder(TypeId.of("com.example.domain.Order"), structure, trace, idField).build();
+            AggregateRoot order = AggregateRoot.builder(
+                            TypeId.of("com.example.domain.Order"), structure, trace, idField)
+                    .build();
 
             // Then: Structure fields should be accessible for JPA generation
             assertThat(order.structure().fields()).hasSize(3);
@@ -99,9 +102,11 @@ class V5PathIntegrationTest {
             TypeStructure structure = createStructureWithFields(TypeNature.RECORD, List.of(idField));
             ClassificationTrace trace = createTrace(ElementKind.AGGREGATE_ROOT);
 
-            AggregateRoot order = AggregateRoot.builder(TypeId.of("com.example.domain.Order"), structure, trace, idField)
+            AggregateRoot order = AggregateRoot.builder(
+                            TypeId.of("com.example.domain.Order"), structure, trace, idField)
                     .entities(List.of(TypeRef.of("com.example.domain.OrderLine")))
-                    .valueObjects(List.of(TypeRef.of("com.example.domain.Money"), TypeRef.of("com.example.domain.Address")))
+                    .valueObjects(
+                            List.of(TypeRef.of("com.example.domain.Money"), TypeRef.of("com.example.domain.Address")))
                     .build();
 
             // Then: Aggregate should track its components
@@ -117,7 +122,8 @@ class V5PathIntegrationTest {
             TypeStructure structure = createStructureWithFields(TypeNature.RECORD, List.of(idField));
             ClassificationTrace trace = createTrace(ElementKind.AGGREGATE_ROOT);
 
-            AggregateRoot order = AggregateRoot.builder(TypeId.of("com.example.domain.Order"), structure, trace, idField)
+            AggregateRoot order = AggregateRoot.builder(
+                            TypeId.of("com.example.domain.Order"), structure, trace, idField)
                     .drivenPort(TypeRef.of("com.example.domain.OrderRepository"))
                     .build();
 
@@ -217,7 +223,8 @@ class V5PathIntegrationTest {
         @DisplayName("should return wrapped field type for JPA mapping")
         void shouldReturnWrappedFieldTypeForJpaMapping() {
             // Given: A single-value ValueObject wrapping UUID
-            Field valueField = Field.builder("value", TypeRef.of("java.util.UUID")).build();
+            Field valueField =
+                    Field.builder("value", TypeRef.of("java.util.UUID")).build();
             TypeStructure structure = createStructureWithFields(TypeNature.RECORD, List.of(valueField));
             ClassificationTrace trace = createTrace(ElementKind.VALUE_OBJECT);
 

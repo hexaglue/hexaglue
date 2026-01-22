@@ -158,9 +158,8 @@ class AggregateCycleValidatorTest {
     @DisplayName("Should detect self-cycle")
     void shouldDetectSelfCycle() {
         // Given: A -> A (self reference)
-        ArchitecturalModel model = new TestModelBuilder()
-                .addAggregateRoot("com.example.domain.A")
-                .build();
+        ArchitecturalModel model =
+                new TestModelBuilder().addAggregateRoot("com.example.domain.A").build();
         Codebase codebase = new TestCodebaseBuilder()
                 .addDependency("com.example.domain.A", "com.example.domain.A")
                 .build();

@@ -234,7 +234,8 @@ public final class DocumentationGenerator {
     private void appendDomainTypesByKind(StringBuilder md, ArchitecturalModel model) {
         DomainIndex domainIndex = model.domainIndex().orElseThrow();
         // Entities
-        List<Entity> entities = domainIndex.entities()
+        List<Entity> entities = domainIndex
+                .entities()
                 .sorted(Comparator.comparing(e -> e.id().simpleName()))
                 .toList();
         if (!entities.isEmpty()) {
@@ -252,7 +253,8 @@ public final class DocumentationGenerator {
         }
 
         // Value Objects
-        List<ValueObject> valueObjects = domainIndex.valueObjects()
+        List<ValueObject> valueObjects = domainIndex
+                .valueObjects()
                 .sorted(Comparator.comparing(vo -> vo.id().simpleName()))
                 .toList();
         if (!valueObjects.isEmpty()) {
@@ -270,7 +272,8 @@ public final class DocumentationGenerator {
         }
 
         // Domain Events
-        List<DomainEvent> events = domainIndex.domainEvents()
+        List<DomainEvent> events = domainIndex
+                .domainEvents()
                 .sorted(Comparator.comparing(ev -> ev.id().simpleName()))
                 .toList();
         if (!events.isEmpty()) {
@@ -288,7 +291,8 @@ public final class DocumentationGenerator {
         }
 
         // Domain Services
-        List<DomainService> services = domainIndex.domainServices()
+        List<DomainService> services = domainIndex
+                .domainServices()
                 .sorted(Comparator.comparing(s -> s.id().simpleName()))
                 .toList();
         if (!services.isEmpty()) {

@@ -135,10 +135,7 @@ public interface GeneratorPlugin extends HexaGluePlugin {
     default void execute(PluginContext context) {
         try {
             GeneratorContext generatorContext = new GeneratorContext(
-                    ArtifactWriter.of(context.writer()),
-                    context.diagnostics(),
-                    context.config(),
-                    context);
+                    ArtifactWriter.of(context.writer()), context.diagnostics(), context.config(), context);
             generate(generatorContext);
         } catch (Exception e) {
             context.diagnostics().error("Generator plugin execution failed: " + id(), e);

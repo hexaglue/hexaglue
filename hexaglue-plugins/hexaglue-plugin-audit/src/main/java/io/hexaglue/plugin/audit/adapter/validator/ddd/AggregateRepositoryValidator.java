@@ -87,8 +87,8 @@ public class AggregateRepositoryValidator implements ConstraintValidator {
             boolean hasRepositoryViaModel = aggregate.hasDrivenPort();
 
             // Also check if there's a repository that manages this aggregate
-            boolean hasRepositoryViaPortIndex = repositories.stream()
-                    .anyMatch(repo -> isRepositoryFor(repo, aggregate));
+            boolean hasRepositoryViaPortIndex =
+                    repositories.stream().anyMatch(repo -> isRepositoryFor(repo, aggregate));
 
             if (!hasRepositoryViaModel && !hasRepositoryViaPortIndex) {
                 violations.add(Violation.builder(CONSTRAINT_ID)

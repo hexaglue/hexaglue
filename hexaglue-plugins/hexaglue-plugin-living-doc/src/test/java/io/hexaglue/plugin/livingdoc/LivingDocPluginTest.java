@@ -51,7 +51,8 @@ class LivingDocPluginTest {
     void setUp() {
         // Create test domain types using V5TestModelBuilder
         AggregateRoot orderAggregate = aggregateRoot(PKG + ".Order", "id", TypeRef.of(PKG + ".OrderId"));
-        ValueObject moneyVo = valueObject(PKG + ".Money", field("amount", "java.math.BigDecimal"), field("currency", "java.lang.String"));
+        ValueObject moneyVo = valueObject(
+                PKG + ".Money", field("amount", "java.math.BigDecimal"), field("currency", "java.lang.String"));
 
         // Create test ports
         Method findById = method("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of(PKG + ".OrderId")));
@@ -60,13 +61,14 @@ class LivingDocPluginTest {
         DrivenPort orderRepository =
                 drivenPort("com.example.ports.out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save));
 
-        Method placeOrder = method("placeOrder", TypeRef.of(PKG + ".OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
+        Method placeOrder =
+                method("placeOrder", TypeRef.of(PKG + ".OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
 
         DrivingPort orderUseCase = drivingPort("com.example.ports.in.OrderingProducts", List.of(placeOrder));
 
         // Build the model using V5TestModelBuilder
-        testModel =
-                createModel(ProjectContext.forTesting("app", PKG), orderAggregate, moneyVo, orderRepository, orderUseCase);
+        testModel = createModel(
+                ProjectContext.forTesting("app", PKG), orderAggregate, moneyVo, orderRepository, orderUseCase);
     }
 
     @Test

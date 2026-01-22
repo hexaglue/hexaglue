@@ -156,7 +156,8 @@ public class PortCoverageValidator implements ConstraintValidator {
     private Violation createViolation(DrivingPort port) {
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)
-                .message("Port '%s' has no adapter implementation".formatted(port.id().simpleName()))
+                .message("Port '%s' has no adapter implementation"
+                        .formatted(port.id().simpleName()))
                 .affectedType(port.id().qualifiedName())
                 .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
                 .evidence(StructuralEvidence.of(
@@ -174,7 +175,8 @@ public class PortCoverageValidator implements ConstraintValidator {
     private Violation createViolation(DrivenPort port) {
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)
-                .message("Port '%s' has no adapter implementation".formatted(port.id().simpleName()))
+                .message("Port '%s' has no adapter implementation"
+                        .formatted(port.id().simpleName()))
                 .affectedType(port.id().qualifiedName())
                 .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
                 .evidence(StructuralEvidence.of(

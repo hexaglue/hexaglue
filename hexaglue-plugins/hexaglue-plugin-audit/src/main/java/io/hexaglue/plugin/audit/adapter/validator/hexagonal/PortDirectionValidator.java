@@ -126,8 +126,8 @@ public class PortDirectionValidator implements ConstraintValidator {
         if (!usedByApplicationService) {
             violations.add(Violation.builder(CONSTRAINT_ID)
                     .severity(Severity.MAJOR)
-                    .message("DRIVEN port '%s' is not used by any application service".formatted(port.id()
-                            .simpleName()))
+                    .message("DRIVEN port '%s' is not used by any application service"
+                            .formatted(port.id().simpleName()))
                     .affectedType(portQualifiedName)
                     .location(SourceLocation.of(portQualifiedName, 1, 1))
                     .evidence(DependencyEvidence.of(
@@ -159,10 +159,11 @@ public class PortDirectionValidator implements ConstraintValidator {
 
         // Check if any application service references this port
         // In hexagonal architecture, application services should implement driving ports
-        boolean referencedByApplicationService = applicationServiceQNames.stream().anyMatch(appServiceQName -> {
-            Set<String> deps = codebase.dependencies().getOrDefault(appServiceQName, Set.of());
-            return deps.contains(portQualifiedName);
-        });
+        boolean referencedByApplicationService = applicationServiceQNames.stream()
+                .anyMatch(appServiceQName -> {
+                    Set<String> deps = codebase.dependencies().getOrDefault(appServiceQName, Set.of());
+                    return deps.contains(portQualifiedName);
+                });
 
         // Also check reverse: is the port itself an application service?
         // Driving ports are often defined in the application layer

@@ -126,9 +126,8 @@ class DomainPurityValidatorTest {
     @DisplayName("Should fail when domain type imports Jakarta persistence")
     void shouldFail_whenJakartaPersistence() {
         // Given: Domain entity with Jakarta persistence dependency
-        ArchitecturalModel model = new TestModelBuilder()
-                .addEntity("com.example.domain.Product")
-                .build();
+        ArchitecturalModel model =
+                new TestModelBuilder().addEntity("com.example.domain.Product").build();
         Codebase codebase = new TestCodebaseBuilder()
                 .addDependency("com.example.domain.Product", "jakarta.persistence.Entity")
                 .build();

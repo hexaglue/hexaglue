@@ -104,7 +104,10 @@ public record PropertyFieldSpec(
      * @since 5.0.0
      */
     public static PropertyFieldSpec fromV5(
-            Field field, ArchitecturalModel model, Map<String, String> embeddableMapping, String infrastructurePackage) {
+            Field field,
+            ArchitecturalModel model,
+            Map<String, String> embeddableMapping,
+            String infrastructurePackage) {
         // Skip identity fields - they are handled by IdFieldSpec
         if (field.hasRole(FieldRole.IDENTITY)) {
             throw new IllegalArgumentException(
@@ -189,7 +192,10 @@ public record PropertyFieldSpec(
         // Only substitute if it's a VALUE_OBJECT that is NOT a simple wrapper
         // Simple wrappers (like Quantity) should be unwrapped to their primitive type
         // Complex VALUE_OBJECTs (like Money with 2 fields) should use @Embedded with the embeddable type
-        if (embeddableMapping != null && !embeddableMapping.isEmpty() && !isSimpleWrapper && !isIdentifier
+        if (embeddableMapping != null
+                && !embeddableMapping.isEmpty()
+                && !isSimpleWrapper
+                && !isIdentifier
                 && embeddableMapping.containsKey(typeQualifiedName)) {
             String embeddableFqn = embeddableMapping.get(typeQualifiedName);
             TypeName embeddableType = ClassName.bestGuess(embeddableFqn);

@@ -52,7 +52,9 @@ class PortContentSelectorTest {
         void shouldSelectDrivingPorts() {
             // Given
             Method placeOrder = method(
-                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
+                    "placeOrder",
+                    TypeRef.of("com.example.domain.OrderId"),
+                    List.of(TypeRef.of("com.example.OrderRequest")));
 
             DrivingPort orderUseCase = drivingPort(PKG + ".in.OrderingProducts", List.of(placeOrder));
 
@@ -77,9 +79,10 @@ class PortContentSelectorTest {
         void shouldTransformMethodsCorrectly() {
             // Given
             Method placeOrder = method(
-                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
-            Method cancelOrder =
-                    voidMethod("cancelOrder", List.of(TypeRef.of("com.example.domain.OrderId")));
+                    "placeOrder",
+                    TypeRef.of("com.example.domain.OrderId"),
+                    List.of(TypeRef.of("com.example.OrderRequest")));
+            Method cancelOrder = voidMethod("cancelOrder", List.of(TypeRef.of("com.example.domain.OrderId")));
 
             DrivingPort orderUseCase = drivingPort(PKG + ".in.OrderingProducts", List.of(placeOrder, cancelOrder));
 
@@ -146,8 +149,8 @@ class PortContentSelectorTest {
             Method save = method("save", TypeRef.of("com.example.Order"), List.of(TypeRef.of("com.example.Order")));
             Method delete = voidMethod("delete", List.of(TypeRef.of("com.example.OrderId")));
 
-            DrivenPort orderRepository =
-                    drivenPort(PKG + ".out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save, delete));
+            DrivenPort orderRepository = drivenPort(
+                    PKG + ".out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save, delete));
 
             ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), orderRepository);
 
@@ -250,8 +253,8 @@ class PortContentSelectorTest {
             DrivenPort drivenPort1 = drivenPort(PKG + ".out.Repository1", DrivenPortType.REPOSITORY);
             DrivenPort drivenPort2 = drivenPort(PKG + ".out.Gateway1", DrivenPortType.GATEWAY);
 
-            ArchitecturalModel model =
-                    createModel(ProjectContext.forTesting("app", PKG), drivingPort1, drivingPort2, drivenPort1, drivenPort2);
+            ArchitecturalModel model = createModel(
+                    ProjectContext.forTesting("app", PKG), drivingPort1, drivingPort2, drivenPort1, drivenPort2);
 
             PortContentSelector selector = new PortContentSelector(model);
 

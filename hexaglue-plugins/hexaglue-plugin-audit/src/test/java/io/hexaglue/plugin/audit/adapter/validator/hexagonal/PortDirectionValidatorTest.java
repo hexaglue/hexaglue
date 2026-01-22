@@ -197,8 +197,7 @@ class PortDirectionValidatorTest {
         assertThat(violations).hasSize(2);
         assertThat(violations)
                 .flatExtracting(v -> v.affectedTypes())
-                .containsExactlyInAnyOrder(
-                        PORT_PACKAGE + ".OrderRepository", PORT_PACKAGE + ".OrderService");
+                .containsExactlyInAnyOrder(PORT_PACKAGE + ".OrderRepository", PORT_PACKAGE + ".OrderService");
     }
 
     @Test

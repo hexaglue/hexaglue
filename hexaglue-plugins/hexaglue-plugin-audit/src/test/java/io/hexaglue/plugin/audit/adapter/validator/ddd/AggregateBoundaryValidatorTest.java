@@ -62,8 +62,9 @@ class AggregateBoundaryValidatorTest {
     @DisplayName("Should pass when no entities exist")
     void shouldPass_whenNoEntitiesExist() {
         // Given - model with only aggregate root, no entities
-        ArchitecturalModel model =
-                new TestModelBuilder().addAggregateRoot("com.example.domain.Order").build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -114,7 +115,10 @@ class AggregateBoundaryValidatorTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).constraintId().value()).isEqualTo("ddd:aggregate-boundary");
         assertThat(violations.get(0).severity()).isEqualTo(Severity.MAJOR);
-        assertThat(violations.get(0).message()).contains("OrderLine").contains("Order").contains("accessible outside");
+        assertThat(violations.get(0).message())
+                .contains("OrderLine")
+                .contains("Order")
+                .contains("accessible outside");
         assertThat(violations.get(0).affectedTypes()).containsExactly("com.example.domain.OrderLine");
     }
 
@@ -212,7 +216,8 @@ class AggregateBoundaryValidatorTest {
         assertThat(violations.get(0).evidence()).isNotEmpty();
         assertThat(violations.get(0).evidence().get(0)).isInstanceOf(StructuralEvidence.class);
 
-        StructuralEvidence evidence = (StructuralEvidence) violations.get(0).evidence().get(0);
+        StructuralEvidence evidence =
+                (StructuralEvidence) violations.get(0).evidence().get(0);
         assertThat(evidence.description()).contains("aggregate root");
         assertThat(evidence.involvedTypes()).containsExactly("com.example.domain.OrderLine");
     }

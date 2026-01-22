@@ -93,7 +93,8 @@ class PortInterfaceValidatorTest {
                 .addDrivingPort(BASE_PACKAGE + ".ValidPort") // Valid - interface
                 .addDrivingPortWithNature(BASE_PACKAGE + ".InvalidPort1", TypeNature.CLASS) // Invalid - class
                 .addDrivenPort(BASE_PACKAGE + ".AnotherValidPort", DrivenPortType.GATEWAY) // Valid - interface
-                .addDrivenPortWithNature(BASE_PACKAGE + ".InvalidPort2", DrivenPortType.OTHER, TypeNature.ENUM) // Invalid - enum
+                .addDrivenPortWithNature(
+                        BASE_PACKAGE + ".InvalidPort2", DrivenPortType.OTHER, TypeNature.ENUM) // Invalid - enum
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 

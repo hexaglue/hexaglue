@@ -163,7 +163,8 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
      */
     private Violation createMultiOwnershipViolation(String entityQName, List<String> aggregateQNames) {
         String entityName = getSimpleName(entityQName);
-        List<String> aggregateNames = aggregateQNames.stream().map(this::getSimpleName).toList();
+        List<String> aggregateNames =
+                aggregateQNames.stream().map(this::getSimpleName).toList();
 
         String message = ("Entity '%s' is referenced by multiple aggregates: %s. "
                         + "An entity should belong to exactly one aggregate.")
@@ -193,9 +194,8 @@ public class AggregateConsistencyValidator implements ConstraintValidator {
                 .formatted(aggregate.id().simpleName(), entityCount, MAX_AGGREGATE_SIZE);
 
         // Get entity names for evidence
-        List<String> entityNames = aggregate.entities().stream()
-                .map(TypeRef::simpleName)
-                .toList();
+        List<String> entityNames =
+                aggregate.entities().stream().map(TypeRef::simpleName).toList();
 
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)

@@ -179,8 +179,8 @@ class HexaGlueEngineTest {
 
             // Identifiers or Value Objects (ProductId may be classified as either)
             // depending on the classification criteria used
-            long identifierOrValueObjectCount =
-                    domainIndex.identifiers().count() + domainIndex.valueObjects().count();
+            long identifierOrValueObjectCount = domainIndex.identifiers().count()
+                    + domainIndex.valueObjects().count();
             assertThat(identifierOrValueObjectCount).isGreaterThanOrEqualTo(1);
 
             // Ports via portIndex
@@ -215,11 +215,8 @@ class HexaGlueEngineTest {
             assertThat(result.isSuccess()).isTrue();
 
             assertThat(result.model().domainIndex()).isPresent();
-            List<AggregateRoot> aggregateRoots = result.model()
-                    .domainIndex()
-                    .get()
-                    .aggregateRoots()
-                    .toList();
+            List<AggregateRoot> aggregateRoots =
+                    result.model().domainIndex().get().aggregateRoots().toList();
             assertThat(aggregateRoots).hasSize(1);
             assertThat(aggregateRoots.get(0).id().qualifiedName()).isEqualTo("com.example.Customer");
         }

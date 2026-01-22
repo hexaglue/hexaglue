@@ -280,8 +280,7 @@ class ValueObjectBuilderTest {
                     .build();
 
             ClassificationResult classification = createClassification(typeNode, "VALUE_OBJECT");
-            BuilderContext context =
-                    createContextWithFields(typeNode, classification, List.of(streetField, cityField));
+            BuilderContext context = createContextWithFields(typeNode, classification, List.of(streetField, cityField));
 
             ValueObject valueObject = builder.build(typeNode, classification, context);
 

@@ -74,9 +74,18 @@ class PortCoverageMetricCalculatorTest {
                 .addAggregateRoot("com.example.domain.Order")
                 .addAggregateRoot("com.example.domain.Customer")
                 .addAggregateRoot("com.example.domain.Product")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.CustomerRepository", DrivenPortType.REPOSITORY, "com.example.domain.Customer")
-                .addDrivenPort("com.example.domain.port.ProductRepository", DrivenPortType.REPOSITORY, "com.example.domain.Product")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.CustomerRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Customer")
+                .addDrivenPort(
+                        "com.example.domain.port.ProductRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Product")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -95,7 +104,10 @@ class PortCoverageMetricCalculatorTest {
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
                 .addAggregateRoot("com.example.domain.Customer")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -131,7 +143,10 @@ class PortCoverageMetricCalculatorTest {
         // Given: Repository explicitly managing the aggregate
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -148,7 +163,10 @@ class PortCoverageMetricCalculatorTest {
         // Given: Repository managing a different aggregate
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.CustomerRepository", DrivenPortType.REPOSITORY, "com.example.domain.Customer")
+                .addDrivenPort(
+                        "com.example.domain.port.CustomerRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Customer")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -168,9 +186,18 @@ class PortCoverageMetricCalculatorTest {
                 .addAggregateRoot("com.example.domain.Aggregate2")
                 .addAggregateRoot("com.example.domain.Aggregate3")
                 .addAggregateRoot("com.example.domain.Aggregate4")
-                .addDrivenPort("com.example.domain.port.Aggregate1Repository", DrivenPortType.REPOSITORY, "com.example.domain.Aggregate1")
-                .addDrivenPort("com.example.domain.port.Aggregate2Repository", DrivenPortType.REPOSITORY, "com.example.domain.Aggregate2")
-                .addDrivenPort("com.example.domain.port.Aggregate3Repository", DrivenPortType.REPOSITORY, "com.example.domain.Aggregate3")
+                .addDrivenPort(
+                        "com.example.domain.port.Aggregate1Repository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Aggregate1")
+                .addDrivenPort(
+                        "com.example.domain.port.Aggregate2Repository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Aggregate2")
+                .addDrivenPort(
+                        "com.example.domain.port.Aggregate3Repository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Aggregate3")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -217,7 +244,10 @@ class PortCoverageMetricCalculatorTest {
         // Given: All aggregates have repositories (100%)
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -264,8 +294,14 @@ class PortCoverageMetricCalculatorTest {
         // Given: More repositories than aggregates (orphaned repositories)
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.CustomerRepository", DrivenPortType.REPOSITORY, "com.example.domain.Customer")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.CustomerRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Customer")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -282,7 +318,10 @@ class PortCoverageMetricCalculatorTest {
         // Given: Single aggregate with repository
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 

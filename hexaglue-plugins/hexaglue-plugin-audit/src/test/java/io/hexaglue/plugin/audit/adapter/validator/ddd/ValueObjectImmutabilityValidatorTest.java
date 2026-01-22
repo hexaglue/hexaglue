@@ -48,8 +48,9 @@ class ValueObjectImmutabilityValidatorTest {
     @DisplayName("Should pass when value object has no setters")
     void shouldPass_whenValueObjectHasNoSetters() {
         // Given - immutable value object
-        ArchitecturalModel model =
-                new TestModelBuilder().addValueObject("com.example.domain.Money", false).build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject("com.example.domain.Money", false)
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -63,8 +64,9 @@ class ValueObjectImmutabilityValidatorTest {
     @DisplayName("Should fail when value object has setter")
     void shouldFail_whenValueObjectHasSetter() {
         // Given - value object with setter
-        ArchitecturalModel model =
-                new TestModelBuilder().addValueObject("com.example.domain.Money", true).build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject("com.example.domain.Money", true)
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -117,8 +119,9 @@ class ValueObjectImmutabilityValidatorTest {
     @DisplayName("Should provide behavioral evidence")
     void shouldProvideBehavioralEvidence() {
         // Given
-        ArchitecturalModel model =
-                new TestModelBuilder().addValueObject("com.example.domain.Money", true).build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject("com.example.domain.Money", true)
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -129,7 +132,8 @@ class ValueObjectImmutabilityValidatorTest {
         assertThat(violations.get(0).evidence()).isNotEmpty();
         assertThat(violations.get(0).evidence().get(0)).isInstanceOf(BehavioralEvidence.class);
 
-        BehavioralEvidence evidence = (BehavioralEvidence) violations.get(0).evidence().get(0);
+        BehavioralEvidence evidence =
+                (BehavioralEvidence) violations.get(0).evidence().get(0);
         assertThat(evidence.description()).contains("Setter method detected");
         assertThat(evidence.methodName()).isEqualTo("setValue");
     }

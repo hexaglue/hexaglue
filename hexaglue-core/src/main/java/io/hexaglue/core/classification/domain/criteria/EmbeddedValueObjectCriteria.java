@@ -129,8 +129,9 @@ public final class EmbeddedValueObjectCriteria implements ClassificationCriteria
         }
 
         // Separate aggregate containers for reporting purposes
-        List<TypeNode> aggregateContainers =
-                eligibleContainers.stream().filter(c -> hasIdentityField(c, query)).toList();
+        List<TypeNode> aggregateContainers = eligibleContainers.stream()
+                .filter(c -> hasIdentityField(c, query))
+                .toList();
 
         // Check if this type is immutable (record or has only final fields)
         String containerNames =

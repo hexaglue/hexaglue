@@ -96,7 +96,6 @@ public final class V5TestModelBuilder {
         return ClassificationTrace.highConfidence(kind, "test", "Test classification");
     }
 
-
     // === TypeStructure Factory ===
 
     /**
@@ -222,8 +221,9 @@ public final class V5TestModelBuilder {
      * @return a ValueObject
      */
     public static ValueObject valueObject(String qualifiedName, List<String> fieldNames) {
-        List<Field> fields =
-                fieldNames.stream().map(name -> Field.of(name, TypeRef.of("java.lang.String"))).toList();
+        List<Field> fields = fieldNames.stream()
+                .map(name -> Field.of(name, TypeRef.of("java.lang.String")))
+                .toList();
 
         TypeStructure structure =
                 TypeStructure.builder(TypeNature.RECORD).fields(fields).build();
@@ -256,9 +256,8 @@ public final class V5TestModelBuilder {
      * @return an Identifier
      */
     public static Identifier identifier(String qualifiedName, TypeRef wrappedType) {
-        Field valueField = Field.builder("value", wrappedType)
-                .wrappedType(wrappedType)
-                .build();
+        Field valueField =
+                Field.builder("value", wrappedType).wrappedType(wrappedType).build();
 
         TypeStructure structure = TypeStructure.builder(TypeNature.RECORD)
                 .fields(List.of(valueField))
@@ -286,7 +285,8 @@ public final class V5TestModelBuilder {
      * @return a DomainEvent
      */
     public static DomainEvent domainEvent(String qualifiedName) {
-        return DomainEvent.of(TypeId.of(qualifiedName), emptyRecordStructure(), highConfidence(ElementKind.DOMAIN_EVENT));
+        return DomainEvent.of(
+                TypeId.of(qualifiedName), emptyRecordStructure(), highConfidence(ElementKind.DOMAIN_EVENT));
     }
 
     /**
@@ -339,9 +339,8 @@ public final class V5TestModelBuilder {
      * @return a DrivingPort
      */
     public static DrivingPort drivingPort(String qualifiedName, List<Method> methods) {
-        TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
-                .methods(methods)
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.INTERFACE).methods(methods).build();
 
         return DrivingPort.of(TypeId.of(qualifiedName), structure, highConfidence(ElementKind.DRIVING_PORT));
     }
@@ -368,9 +367,8 @@ public final class V5TestModelBuilder {
      * @return a DrivenPort
      */
     public static DrivenPort drivenPort(String qualifiedName, DrivenPortType portType, List<Method> methods) {
-        TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
-                .methods(methods)
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.INTERFACE).methods(methods).build();
 
         return DrivenPort.of(TypeId.of(qualifiedName), structure, highConfidence(ElementKind.DRIVEN_PORT), portType);
     }
@@ -384,10 +382,7 @@ public final class V5TestModelBuilder {
      */
     public static DrivenPort drivenPort(String qualifiedName, DrivenPortType portType) {
         return DrivenPort.of(
-                TypeId.of(qualifiedName),
-                emptyInterfaceStructure(),
-                highConfidence(ElementKind.DRIVEN_PORT),
-                portType);
+                TypeId.of(qualifiedName), emptyInterfaceStructure(), highConfidence(ElementKind.DRIVEN_PORT), portType);
     }
 
     /**
@@ -399,9 +394,8 @@ public final class V5TestModelBuilder {
      * @return a DrivenPort
      */
     public static DrivenPort repository(String qualifiedName, TypeRef aggregateType, List<Method> methods) {
-        TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
-                .methods(methods)
-                .build();
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.INTERFACE).methods(methods).build();
 
         return DrivenPort.repository(
                 TypeId.of(qualifiedName), structure, highConfidence(ElementKind.DRIVEN_PORT), aggregateType);
@@ -434,7 +428,15 @@ public final class V5TestModelBuilder {
                 .toList();
 
         return new Method(
-                name, returnType, params, Set.of(), List.of(), Optional.empty(), List.of(), Set.of(), OptionalInt.empty());
+                name,
+                returnType,
+                params,
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Set.of(),
+                OptionalInt.empty());
     }
 
     /**

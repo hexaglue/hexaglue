@@ -68,10 +68,7 @@ import java.util.Optional;
  * @since 5.0.0 - Removed deprecated snapshot field
  */
 public record GeneratorContext(
-        ArtifactWriter writer,
-        DiagnosticReporter diagnostics,
-        PluginConfig config,
-        PluginContext pluginContext) {
+        ArtifactWriter writer, DiagnosticReporter diagnostics, PluginConfig config, PluginContext pluginContext) {
 
     /**
      * Compact constructor with validation.

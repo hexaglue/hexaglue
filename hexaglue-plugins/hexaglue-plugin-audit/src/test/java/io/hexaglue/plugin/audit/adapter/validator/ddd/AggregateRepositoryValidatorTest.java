@@ -50,7 +50,10 @@ class AggregateRepositoryValidatorTest {
         // Given - aggregate with matching repository
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -65,8 +68,9 @@ class AggregateRepositoryValidatorTest {
     @DisplayName("Should fail when aggregate is missing repository")
     void shouldFail_whenAggregateMissingRepository() {
         // Given - aggregate without repository
-        ArchitecturalModel model =
-                new TestModelBuilder().addAggregateRoot("com.example.domain.Order").build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
@@ -85,7 +89,10 @@ class AggregateRepositoryValidatorTest {
         // Given - some aggregates with repositories, some without
         ArchitecturalModel model = new TestModelBuilder()
                 .addAggregateRoot("com.example.domain.Order")
-                .addDrivenPort("com.example.domain.port.OrderRepository", DrivenPortType.REPOSITORY, "com.example.domain.Order")
+                .addDrivenPort(
+                        "com.example.domain.port.OrderRepository",
+                        DrivenPortType.REPOSITORY,
+                        "com.example.domain.Order")
                 .addAggregateRoot("com.example.domain.Customer")
                 .addAggregateRoot("com.example.domain.Product") // Missing repository
                 .build();
@@ -120,8 +127,9 @@ class AggregateRepositoryValidatorTest {
     @DisplayName("Should provide structural evidence")
     void shouldProvideStructuralEvidence() {
         // Given
-        ArchitecturalModel model =
-                new TestModelBuilder().addAggregateRoot("com.example.domain.Order").build();
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
         // When

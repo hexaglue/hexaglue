@@ -86,8 +86,9 @@ public class DependencyDirectionValidator implements ConstraintValidator {
         List<ArchType> domainTypes =
                 registry.all(ArchType.class).filter(t -> t.kind().isDomain()).toList();
 
-        List<ArchType> applicationTypes =
-                registry.all(ArchType.class).filter(t -> t.kind().isApplication()).toList();
+        List<ArchType> applicationTypes = registry.all(ArchType.class)
+                .filter(t -> t.kind().isApplication())
+                .toList();
 
         List<ArchType> infrastructureTypes = registry.all(ArchType.class)
                 .filter(t -> !t.kind().isDomain()
@@ -97,8 +98,9 @@ public class DependencyDirectionValidator implements ConstraintValidator {
                 .toList();
 
         // Create a quick lookup for infrastructure types
-        Set<String> infraQualifiedNames =
-                infrastructureTypes.stream().map(t -> t.id().qualifiedName()).collect(java.util.stream.Collectors.toSet());
+        Set<String> infraQualifiedNames = infrastructureTypes.stream()
+                .map(t -> t.id().qualifiedName())
+                .collect(java.util.stream.Collectors.toSet());
 
         // Check domain layer dependencies
         violations.addAll(validateLayerDependencies(codebase, domainTypes, infraQualifiedNames, "DOMAIN"));

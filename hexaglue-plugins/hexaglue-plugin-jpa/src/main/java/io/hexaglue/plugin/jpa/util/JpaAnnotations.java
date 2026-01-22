@@ -516,10 +516,7 @@ public final class JpaAnnotations {
     public static AnnotationSpec mapper() {
         return AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("componentModel", "$S", "spring")
-                .addMember(
-                        "unmappedTargetPolicy",
-                        "$T.IGNORE",
-                        ClassName.get("org.mapstruct", "ReportingPolicy"))
+                .addMember("unmappedTargetPolicy", "$T.IGNORE", ClassName.get("org.mapstruct", "ReportingPolicy"))
                 .build();
     }
 

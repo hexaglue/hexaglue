@@ -96,7 +96,8 @@ public final class DomainContentSelector {
 
     public List<DomainTypeDoc> selectApplicationServices() {
         return model.typeRegistry()
-                .map(registry -> registry.all(ApplicationService.class).map(this::toDoc).toList())
+                .map(registry ->
+                        registry.all(ApplicationService.class).map(this::toDoc).toList())
                 .orElse(List.of());
     }
 
@@ -265,9 +266,8 @@ public final class DomainContentSelector {
         TypeRef idType = idField.type();
 
         String typeName = idType.simpleName();
-        String unwrappedTypeName = idField.wrappedType()
-                .map(TypeRef::simpleName)
-                .orElse(typeName);
+        String unwrappedTypeName =
+                idField.wrappedType().map(TypeRef::simpleName).orElse(typeName);
 
         return new IdentityDoc(
                 fieldName,
@@ -281,15 +281,14 @@ public final class DomainContentSelector {
     }
 
     private IdentityDoc toIdentityDoc(Entity entity) {
-        Field idField = entity.identityField()
-                .orElseThrow(() -> new IllegalStateException("Entity must have identity field"));
+        Field idField =
+                entity.identityField().orElseThrow(() -> new IllegalStateException("Entity must have identity field"));
         String fieldName = idField.name();
         TypeRef idType = idField.type();
 
         String typeName = idType.simpleName();
-        String unwrappedTypeName = idField.wrappedType()
-                .map(TypeRef::simpleName)
-                .orElse(typeName);
+        String unwrappedTypeName =
+                idField.wrappedType().map(TypeRef::simpleName).orElse(typeName);
 
         return new IdentityDoc(
                 fieldName,
@@ -332,9 +331,8 @@ public final class DomainContentSelector {
         int lineStart = 0;
         int lineEnd = 0;
 
-        List<String> annotations = structure.annotations().stream()
-                .map(a -> "@" + a.simpleName())
-                .collect(Collectors.toList());
+        List<String> annotations =
+                structure.annotations().stream().map(a -> "@" + a.simpleName()).collect(Collectors.toList());
 
         return new DebugInfo(qualifiedName, annotations, sourceFile, lineStart, lineEnd);
     }
