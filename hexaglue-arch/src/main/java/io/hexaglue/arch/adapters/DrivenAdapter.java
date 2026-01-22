@@ -17,8 +17,7 @@ import io.hexaglue.arch.ArchElement;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementId;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.arch.ElementRef;
-import io.hexaglue.arch.ports.DrivenPort;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.syntax.TypeSyntax;
 import java.util.List;
 import java.util.Objects;
@@ -62,15 +61,16 @@ import java.util.Objects;
  *
  * @param id the unique identifier
  * @param adapterType the specific adapter type
- * @param implementedPorts references to driven ports implemented
+ * @param implementedPorts type ids of driven ports implemented
  * @param syntax the syntax information (nullable)
  * @param classificationTrace the trace explaining the classification
  * @since 4.0.0
+ * @since 5.0.0 implementedPorts changed from ElementRef to TypeId
  */
 public record DrivenAdapter(
         ElementId id,
         AdapterType adapterType,
-        List<ElementRef<DrivenPort>> implementedPorts,
+        List<TypeId> implementedPorts,
         TypeSyntax syntax,
         ClassificationTrace classificationTrace)
         implements ArchElement.Marker {
@@ -158,13 +158,13 @@ public record DrivenAdapter(
      * Creates a JPA repository adapter for testing.
      *
      * @param qualifiedName the fully qualified name
-     * @param portRef reference to the implemented port
+     * @param portId the type id of the implemented port
      * @param trace the classification trace
      * @return a new DrivenAdapter
+     * @since 5.0.0 portRef changed from ElementRef to TypeId
      */
-    public static DrivenAdapter jpaRepository(
-            String qualifiedName, ElementRef<DrivenPort> portRef, ClassificationTrace trace) {
+    public static DrivenAdapter jpaRepository(String qualifiedName, TypeId portId, ClassificationTrace trace) {
         return new DrivenAdapter(
-                ElementId.of(qualifiedName), AdapterType.JPA_REPOSITORY, List.of(portRef), null, trace);
+                ElementId.of(qualifiedName), AdapterType.JPA_REPOSITORY, List.of(portId), null, trace);
     }
 }

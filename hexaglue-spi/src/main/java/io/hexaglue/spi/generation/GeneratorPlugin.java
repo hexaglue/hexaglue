@@ -134,13 +134,11 @@ public interface GeneratorPlugin extends HexaGluePlugin {
     @Override
     default void execute(PluginContext context) {
         try {
-            // v4.1.0: pass pluginContext to enable model access from GeneratorContext
             GeneratorContext generatorContext = new GeneratorContext(
-                    null, // snapshot deprecated since v4.0, use context.model() instead
                     ArtifactWriter.of(context.writer()),
                     context.diagnostics(),
                     context.config(),
-                    context); // v4.1.0: include pluginContext for model access
+                    context);
             generate(generatorContext);
         } catch (Exception e) {
             context.diagnostics().error("Generator plugin execution failed: " + id(), e);

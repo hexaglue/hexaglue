@@ -13,18 +13,13 @@
 
 package io.hexaglue.core.audit;
 
-import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.spi.audit.*;
-import io.hexaglue.spi.ir.DomainModel;
-import io.hexaglue.spi.ir.DomainType;
-import io.hexaglue.spi.ir.Port;
 import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortModel;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,57 +33,15 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     private final ApplicationGraph graph;
     private final Map<String, PortDirection> portDirections;
-    private final List<Port> ports;
-    private final DomainModel domainModel;
 
     /**
-     * Creates a new architecture query with graph only (no port or domain information).
+     * Creates a new architecture query with graph only.
      *
      * @param graph the application graph
-     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel, DomainModel)} for full support
      */
-    @Deprecated(since = "3.0.0", forRemoval = false)
     public DefaultArchitectureQuery(ApplicationGraph graph) {
-        this(graph, null, null);
-    }
-
-    /**
-     * Creates a new architecture query with graph and port model.
-     *
-     * @param graph the application graph
-     * @param portModel the port model containing classified ports (may be null)
-     * @deprecated Use {@link #DefaultArchitectureQuery(ApplicationGraph, PortModel, DomainModel)} for full support
-     */
-    @Deprecated(since = "3.0.0", forRemoval = false)
-    public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel) {
-        this(graph, portModel, null);
-    }
-
-    /**
-     * Creates a new architecture query with graph, port model, and domain model.
-     *
-     * @param graph the application graph
-     * @param portModel the port model containing classified ports (may be null)
-     * @param domainModel the domain model containing classified domain types (may be null)
-     */
-    public DefaultArchitectureQuery(ApplicationGraph graph, PortModel portModel, DomainModel domainModel) {
         this.graph = Objects.requireNonNull(graph, "graph cannot be null");
-        this.portDirections = buildPortDirectionMap(portModel);
-        this.ports = portModel != null && portModel.ports() != null ? List.copyOf(portModel.ports()) : List.of();
-        this.domainModel = domainModel;
-    }
-
-    private static Map<String, PortDirection> buildPortDirectionMap(PortModel portModel) {
-        if (portModel == null || portModel.ports() == null) {
-            return Map.of();
-        }
-        Map<String, PortDirection> map = new HashMap<>();
-        for (Port port : portModel.ports()) {
-            if (port.direction() != null) {
-                map.put(port.qualifiedName(), port.direction());
-            }
-        }
-        return Map.copyOf(map);
+        this.portDirections = Map.of();
     }
 
     // === Cycle detection ===
@@ -570,95 +523,6 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     @Override
     public List<AggregateInfo> findAggregates() {
-        // If we have a domain model, use the classified types
-        if (domainModel != null) {
-            return findAggregatesFromDomainModel();
-        }
-
-        // Fallback: use heuristic (deprecated path)
-        return findAggregatesFromHeuristic();
-    }
-
-    /**
-     * Finds aggregates using the classified domain model.
-     * This is the preferred method as it uses proper DDD classification.
-     */
-    private List<AggregateInfo> findAggregatesFromDomainModel() {
-        List<AggregateInfo> aggregates = new ArrayList<>();
-
-        // Get all aggregate roots from the domain model
-        List<DomainType> aggregateRoots = domainModel.aggregateRoots();
-
-        // Build a map of all domain types for quick lookup
-        Map<String, DomainType> typeByName = new HashMap<>();
-        for (DomainType type : domainModel.types()) {
-            typeByName.put(type.qualifiedName(), type);
-        }
-
-        for (DomainType root : aggregateRoots) {
-            List<String> entities = new ArrayList<>();
-            List<String> valueObjects = new ArrayList<>();
-
-            // Find members of this aggregate by analyzing relationships
-            Set<String> members = findAggregateMembersFromRoot(root.qualifiedName(), typeByName);
-
-            for (String memberName : members) {
-                DomainType member = typeByName.get(memberName);
-                if (member != null) {
-                    if (member.kind() == ElementKind.ENTITY) {
-                        entities.add(memberName);
-                    } else if (member.kind() == ElementKind.VALUE_OBJECT || member.kind() == ElementKind.IDENTIFIER) {
-                        valueObjects.add(memberName);
-                    }
-                }
-            }
-
-            aggregates.add(new AggregateInfo(root.qualifiedName(), entities, valueObjects));
-        }
-
-        return aggregates;
-    }
-
-    /**
-     * Finds members of an aggregate by analyzing structural relationships from the root.
-     */
-    private Set<String> findAggregateMembersFromRoot(String rootQualifiedName, Map<String, DomainType> typeByName) {
-        Set<String> members = new HashSet<>();
-        Optional<TypeNode> rootNode = graph.typeNode(rootQualifiedName);
-
-        if (rootNode.isEmpty()) {
-            return members;
-        }
-
-        // Find types directly referenced by the aggregate root
-        Set<NodeId> directRefs = graph.edgesFrom(rootNode.get().id()).stream()
-                .filter(e -> isStructuralEdge(e.kind()))
-                .map(Edge::to)
-                .filter(NodeId::isType)
-                .collect(Collectors.toSet());
-
-        for (NodeId refId : directRefs) {
-            String refName = extractQualifiedNameFromNodeId(refId);
-            DomainType refType = typeByName.get(refName);
-
-            // Only include entities and value objects (not other aggregate roots)
-            if (refType != null) {
-                if (refType.kind() == ElementKind.ENTITY
-                        || refType.kind() == ElementKind.VALUE_OBJECT
-                        || refType.kind() == ElementKind.IDENTIFIER) {
-                    members.add(refName);
-                }
-            }
-        }
-
-        return members;
-    }
-
-    /**
-     * Fallback: finds aggregates using naming heuristics.
-     * This is less accurate than using the domain model.
-     */
-    private List<AggregateInfo> findAggregatesFromHeuristic() {
         List<AggregateInfo> aggregates = new ArrayList<>();
 
         for (TypeNode type : graph.typeNodes()) {
@@ -974,33 +838,15 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
             return Optional.empty();
         }
 
-        // Find a repository port that manages this aggregate
-        for (Port port : ports) {
-            if (port.isRepository()) {
-                // Check if this repository manages the aggregate
-                if (aggregateRootType.equals(port.primaryManagedType())) {
-                    return Optional.of(port.qualifiedName());
-                }
-                // Also check managed types list
-                if (port.managedTypes() != null && port.managedTypes().contains(aggregateRootType)) {
-                    return Optional.of(port.qualifiedName());
-                }
-            }
-        }
-
-        // Fallback: try to match by naming convention
         String simpleAggregateName = extractSimpleName(aggregateRootType);
-        for (Port port : ports) {
-            if (port.isRepository()) {
-                String simplePortName = port.simpleName();
-                // Check if repository name contains aggregate name (e.g., OrderRepository for Order)
-                if (simplePortName.startsWith(simpleAggregateName) || simplePortName.contains(simpleAggregateName)) {
-                    return Optional.of(port.qualifiedName());
-                }
-            }
-        }
 
-        return Optional.empty();
+        // Find repository by naming convention (e.g., OrderRepository for Order)
+        return graph.typeNodes().stream()
+                .filter(t -> t.simpleName().endsWith("Repository"))
+                .filter(t -> t.simpleName().startsWith(simpleAggregateName)
+                        || t.simpleName().contains(simpleAggregateName))
+                .map(TypeNode::qualifiedName)
+                .findFirst();
     }
 
     private String extractSimpleName(String qualifiedName) {

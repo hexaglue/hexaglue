@@ -17,7 +17,6 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.index.PortIndex;
-import io.hexaglue.spi.ir.Port;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
@@ -54,25 +53,6 @@ public record PortMatrixEntry(
         if (methodCount < 0) {
             throw new IllegalArgumentException("methodCount cannot be negative: " + methodCount);
         }
-    }
-
-    /**
-     * Creates a PortMatrixEntry from a Port.
-     *
-     * @param port       the port to convert
-     * @param hasAdapter whether this port has an adapter implementation
-     * @return a new PortMatrixEntry
-     */
-    public static PortMatrixEntry from(Port port, boolean hasAdapter) {
-        Objects.requireNonNull(port, "port required");
-        return new PortMatrixEntry(
-                port.simpleName(),
-                port.qualifiedName(),
-                port.direction().name(),
-                port.kind().name(),
-                port.primaryManagedType(),
-                port.methods() != null ? port.methods().size() : 0,
-                hasAdapter);
     }
 
     /**

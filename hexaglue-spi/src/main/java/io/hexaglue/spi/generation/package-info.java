@@ -22,8 +22,7 @@
  * <h2>Key Types</h2>
  * <ul>
  *   <li>{@link io.hexaglue.spi.generation.GeneratorPlugin} - Plugin interface for generators</li>
- *   <li>{@link io.hexaglue.spi.generation.GeneratorContext} - Context with classification data and writers</li>
- *   <li>{@link io.hexaglue.spi.generation.ClassificationSnapshot} - Analyzed domain model view</li>
+ *   <li>{@link io.hexaglue.spi.generation.GeneratorContext} - Context with model access and writers</li>
  *   <li>{@link io.hexaglue.spi.generation.ArtifactWriter} - File writer for generated artifacts</li>
  *   <li>{@link io.hexaglue.spi.generation.PluginCategory} - Plugin categorization</li>
  * </ul>

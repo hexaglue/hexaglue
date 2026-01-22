@@ -18,10 +18,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementId;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.arch.ElementRef;
 import io.hexaglue.arch.UnclassifiedType;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
+import io.hexaglue.arch.model.TypeId;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -109,14 +107,13 @@ class AdapterTypesTest {
         @DisplayName("should track called ports")
         void shouldTrackCalledPorts() {
             // given
-            ElementRef<DrivingPort> useCase =
-                    ElementRef.of(ElementId.of("com.example.PlaceOrderUseCase"), DrivingPort.class);
+            TypeId useCaseId = TypeId.of("com.example.PlaceOrderUseCase");
 
             // when
             DrivingAdapter adapter = new DrivingAdapter(
                     ElementId.of(PKG + ".OrderController"),
                     AdapterType.REST_CONTROLLER,
-                    List.of(useCase),
+                    List.of(useCaseId),
                     List.of(),
                     null,
                     highConfidence(ElementKind.DRIVING_ADAPTER));
@@ -185,13 +182,13 @@ class AdapterTypesTest {
         @DisplayName("should track implemented ports")
         void shouldTrackImplementedPorts() {
             // given
-            ElementRef<DrivenPort> repo = ElementRef.of(ElementId.of("com.example.OrderRepository"), DrivenPort.class);
+            TypeId repoId = TypeId.of("com.example.OrderRepository");
 
             // when
             DrivenAdapter adapter = new DrivenAdapter(
                     ElementId.of(PKG + ".JpaOrderRepository"),
                     AdapterType.JPA_REPOSITORY,
-                    List.of(repo),
+                    List.of(repoId),
                     null,
                     highConfidence(ElementKind.DRIVEN_ADAPTER));
 

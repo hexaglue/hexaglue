@@ -13,8 +13,9 @@
 
 package io.hexaglue.core.engine;
 
+import io.hexaglue.arch.AnalysisMetadata;
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.builder.ArchitecturalModelBuilder;
+import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.core.builder.NewArchitecturalModelBuilder;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
@@ -36,8 +37,6 @@ import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
-import io.hexaglue.syntax.SyntaxProvider;
-import io.hexaglue.syntax.spoon.SpoonSyntaxProvider;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -258,26 +257,23 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      * Builds the ArchitecturalModel with v5 indices from NewArchitecturalModelBuilder.
      *
      * <p>This creates the unified model that plugins can access via ArchModelPluginContext.
-     * The model includes both v4 legacy API and v5 enriched indices (domainIndex, portIndex).</p>
+     * The model includes v5 enriched indices (domainIndex, portIndex, typeRegistry).</p>
      *
      * @param config the engine configuration
      * @param v5Result the v5 model result containing type registry and indices
      * @return the built ArchitecturalModel
-     * @since 5.0.0
+     * @since 5.0.0 updated to use direct ArchitecturalModel.builder (legacy builder removed)
      */
     private ArchitecturalModel buildArchitecturalModel(
             EngineConfig config, NewArchitecturalModelBuilder.Result v5Result) {
-        // Build SyntaxProvider with the same sources as the main pipeline
-        SyntaxProvider syntaxProvider = SpoonSyntaxProvider.builder()
-                .basePackage(config.basePackage())
-                .sourceDirectories(config.sourceRoots())
-                .javaVersion(config.javaVersion())
-                .build();
+        // Create project context
+        ProjectContext projectContext = ProjectContext.of(
+                config.projectName() != null ? config.projectName() : "hexaglue-project",
+                config.basePackage(),
+                config.sourceRoots().isEmpty() ? null : config.sourceRoots().get(0));
 
-        // Build ArchitecturalModel using the v4 builder, enriched with v5 indices
-        return ArchitecturalModelBuilder.builder(syntaxProvider)
-                .projectName(config.projectName())
-                .basePackage(config.basePackage())
+        // Build ArchitecturalModel directly with v5 indices
+        return ArchitecturalModel.builder(projectContext)
                 .typeRegistry(v5Result.typeRegistry())
                 .classificationReport(v5Result.classificationReport())
                 .domainIndex(v5Result.domainIndex())
