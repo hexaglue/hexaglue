@@ -13,13 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.port;
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.withUnits;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,9 +31,14 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link PortInterfaceValidator}.
  *
- * <p>Validates that ports are correctly checked to be interfaces, not classes.
+ * <p>Validates that ports are correctly checked to be interfaces, not classes,
+ * using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class PortInterfaceValidatorTest {
+
+    private static final String BASE_PACKAGE = "com.example.domain.port";
 
     private PortInterfaceValidator validator;
 
@@ -43,11 +50,14 @@ class PortInterfaceValidatorTest {
     @Test
     @DisplayName("Should pass when port is interface")
     void shouldPass_whenPortIsInterface() {
-        // Given
-        Codebase codebase = withUnits(port("OrderService", CodeUnitKind.INTERFACE));
+        // Given - driving port as interface (default)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivingPort(BASE_PACKAGE + ".OrderService")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -56,11 +66,14 @@ class PortInterfaceValidatorTest {
     @Test
     @DisplayName("Should fail when port is class")
     void shouldFail_whenPortIsClass() {
-        // Given
-        Codebase codebase = withUnits(port("OrderService", CodeUnitKind.CLASS));
+        // Given - driving port as class (invalid)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivingPortWithNature(BASE_PACKAGE + ".OrderService", TypeNature.CLASS)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -75,16 +88,17 @@ class PortInterfaceValidatorTest {
     @Test
     @DisplayName("Should check all ports")
     void shouldCheckAllPorts() {
-        // Given
-        Codebase codebase = withUnits(
-                port("ValidPort", CodeUnitKind.INTERFACE), // Valid
-                port("InvalidPort1", CodeUnitKind.CLASS), // Invalid
-                port("AnotherValidPort", CodeUnitKind.INTERFACE), // Valid
-                port("InvalidPort2", CodeUnitKind.ENUM) // Invalid
-                );
+        // Given - mix of valid and invalid ports
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivingPort(BASE_PACKAGE + ".ValidPort") // Valid - interface
+                .addDrivingPortWithNature(BASE_PACKAGE + ".InvalidPort1", TypeNature.CLASS) // Invalid - class
+                .addDrivenPort(BASE_PACKAGE + ".AnotherValidPort", DrivenPortType.GATEWAY) // Valid - interface
+                .addDrivenPortWithNature(BASE_PACKAGE + ".InvalidPort2", DrivenPortType.OTHER, TypeNature.ENUM) // Invalid - enum
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(2);
@@ -97,11 +111,12 @@ class PortInterfaceValidatorTest {
     @Test
     @DisplayName("Should pass when codebase has no ports")
     void shouldPass_whenNoPorts() {
-        // Given
-        Codebase codebase = withUnits();
+        // Given - empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -111,10 +126,13 @@ class PortInterfaceValidatorTest {
     @DisplayName("Should provide structural evidence")
     void shouldProvideStructuralEvidence() {
         // Given
-        Codebase codebase = withUnits(port("OrderService", CodeUnitKind.CLASS));
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivingPortWithNature(BASE_PACKAGE + ".OrderService", TypeNature.CLASS)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -136,5 +154,22 @@ class PortInterfaceValidatorTest {
     void shouldReturnCorrectConstraintId() {
         // When/Then
         assertThat(validator.constraintId().value()).isEqualTo("hexagonal:port-interface");
+    }
+
+    @Test
+    @DisplayName("Should check driven ports as well")
+    void shouldCheckDrivenPorts() {
+        // Given - driven port as class (invalid)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivenPortWithNature(BASE_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY, TypeNature.CLASS)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("OrderRepository");
     }
 }
