@@ -25,6 +25,7 @@ import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 /**
@@ -365,13 +366,13 @@ public final class JsonReportGenerator implements ReportGenerator {
                         .append(m.efferentCoupling())
                         .append(",\n");
                 json.append("        \"instability\": ")
-                        .append(String.format("%.4f", m.instability()))
+                        .append(String.format(Locale.US, "%.4f", m.instability()))
                         .append(",\n");
                 json.append("        \"abstractness\": ")
-                        .append(String.format("%.4f", m.abstractness()))
+                        .append(String.format(Locale.US, "%.4f", m.abstractness()))
                         .append(",\n");
                 json.append("        \"distance\": ")
-                        .append(String.format("%.4f", m.distance()))
+                        .append(String.format(Locale.US, "%.4f", m.distance()))
                         .append(",\n");
                 json.append("        \"zoneOfPain\": ")
                         .append(m.isInZoneOfPain())
@@ -460,13 +461,13 @@ public final class JsonReportGenerator implements ReportGenerator {
     private void appendTechnicalDebt(StringBuilder json, TechnicalDebtSummary debt) {
         json.append("  \"technicalDebt\": {\n");
         json.append("    \"totalDays\": ")
-                .append(String.format("%.2f", debt.totalDays()))
+                .append(String.format(Locale.US, "%.2f", debt.totalDays()))
                 .append(",\n");
         json.append("    \"totalCost\": ")
-                .append(String.format("%.2f", debt.totalCost()))
+                .append(String.format(Locale.US, "%.2f", debt.totalCost()))
                 .append(",\n");
         json.append("    \"monthlyInterest\": ")
-                .append(String.format("%.2f", debt.monthlyInterest()))
+                .append(String.format(Locale.US, "%.2f", debt.monthlyInterest()))
                 .append(",\n");
         json.append("    \"breakdown\": ");
         if (debt.breakdown() == null || debt.breakdown().isEmpty()) {
@@ -480,10 +481,10 @@ public final class JsonReportGenerator implements ReportGenerator {
                         .append(quote(cat.category()))
                         .append(",\n");
                 json.append("        \"days\": ")
-                        .append(String.format("%.2f", cat.days()))
+                        .append(String.format(Locale.US, "%.2f", cat.days()))
                         .append(",\n");
                 json.append("        \"cost\": ")
-                        .append(String.format("%.2f", cat.cost()))
+                        .append(String.format(Locale.US, "%.2f", cat.cost()))
                         .append(",\n");
                 json.append("        \"description\": ")
                         .append(quote(cat.description()))
@@ -523,7 +524,7 @@ public final class JsonReportGenerator implements ReportGenerator {
                 }
                 json.append("],\n");
                 json.append("      \"estimatedEffort\": ")
-                        .append(String.format("%.2f", r.estimatedEffort()))
+                        .append(String.format(Locale.US, "%.2f", r.estimatedEffort()))
                         .append(",\n");
                 json.append("      \"expectedImpact\": ")
                         .append(quote(r.expectedImpact()))
