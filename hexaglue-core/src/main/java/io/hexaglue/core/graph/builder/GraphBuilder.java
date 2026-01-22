@@ -14,6 +14,7 @@
 package io.hexaglue.core.graph.builder;
 
 import io.hexaglue.core.frontend.*;
+import io.hexaglue.core.frontend.spoon.adapters.SpoonMethodAdapter;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.*;
 import io.hexaglue.core.graph.style.StyleDetectionResult;
@@ -21,6 +22,7 @@ import io.hexaglue.core.graph.style.StyleDetector;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import spoon.reflect.declaration.CtMethod;
 
 /**
  * Builds an {@link ApplicationGraph} from a {@link JavaSemanticModel}.
@@ -38,22 +40,29 @@ public final class GraphBuilder {
 
     private final boolean computeDerivedEdges;
     private final StyleDetector styleDetector;
+    private final CachedSpoonAnalyzer spoonAnalyzer;
 
     /**
-     * Creates a builder that computes derived edges.
+     * Creates a builder with complexity calculation.
+     *
+     * @param spoonAnalyzer the analyzer for method complexity
+     * @since 5.0.0
      */
-    public GraphBuilder() {
-        this(true);
+    public GraphBuilder(CachedSpoonAnalyzer spoonAnalyzer) {
+        this(true, spoonAnalyzer);
     }
 
     /**
-     * Creates a builder with optional derived edge computation.
+     * Creates a builder with optional derived edges and complexity calculation.
      *
      * @param computeDerivedEdges whether to compute derived edges
+     * @param spoonAnalyzer the analyzer for method complexity
+     * @since 5.0.0
      */
-    public GraphBuilder(boolean computeDerivedEdges) {
+    public GraphBuilder(boolean computeDerivedEdges, CachedSpoonAnalyzer spoonAnalyzer) {
         this.computeDerivedEdges = computeDerivedEdges;
         this.styleDetector = new StyleDetector();
+        this.spoonAnalyzer = Objects.requireNonNull(spoonAnalyzer, "spoonAnalyzer cannot be null");
     }
 
     /**
@@ -220,6 +229,9 @@ public final class GraphBuilder {
     }
 
     private void addMethod(ApplicationGraph graph, JavaMethod method, NodeId typeId, Set<String> knownTypes) {
+        // Calculate complexity from Spoon AST
+        OptionalInt complexity = calculateComplexity(method);
+
         MethodNode methodNode = MethodNode.builder()
                 .declaringTypeName(extractTypeName(typeId))
                 .simpleName(method.simpleName())
@@ -228,6 +240,7 @@ public final class GraphBuilder {
                 .modifiers(method.modifiers())
                 .annotations(toAnnotationRefs(method.annotations()))
                 .sourceRef(method.sourceRef().orElse(null))
+                .cyclomaticComplexity(complexity)
                 .build();
 
         addMemberNode(graph, methodNode, typeId, knownTypes);
@@ -243,6 +256,23 @@ public final class GraphBuilder {
 
         // PARAMETER_TYPE edges
         addParameterTypeEdges(graph, methodNode.id(), method.parameters(), knownTypes);
+    }
+
+    /**
+     * Calculates cyclomatic complexity for a method.
+     *
+     * @param method the method to analyze
+     * @return the complexity, or empty for abstract methods
+     * @since 5.0.0
+     */
+    private OptionalInt calculateComplexity(JavaMethod method) {
+        if (method instanceof SpoonMethodAdapter adapter) {
+            CtMethod<?> ctMethod = adapter.getCtMethod();
+            if (ctMethod.getBody() != null) {
+                return OptionalInt.of(spoonAnalyzer.analyzeMethodBody(ctMethod).cyclomaticComplexity());
+            }
+        }
+        return OptionalInt.empty();
     }
 
     private void addConstructor(ApplicationGraph graph, JavaConstructor ctor, NodeId typeId, Set<String> knownTypes) {

@@ -50,7 +50,8 @@ class ProgressiveClassifierIntegrationTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        graphBuilder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        graphBuilder = new GraphBuilder(true, analyzer);
     }
 
     private void writeSource(String relativePath, String content) throws IOException {

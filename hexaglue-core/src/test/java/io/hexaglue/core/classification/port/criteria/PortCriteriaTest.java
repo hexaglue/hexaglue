@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.MatchResult;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -50,7 +51,8 @@ class PortCriteriaTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer);
     }
 
     // =========================================================================

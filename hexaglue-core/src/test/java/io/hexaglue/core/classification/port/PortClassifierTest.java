@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -52,7 +53,8 @@ class PortClassifierTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer);
         classifier = new PortClassifier();
     }
 

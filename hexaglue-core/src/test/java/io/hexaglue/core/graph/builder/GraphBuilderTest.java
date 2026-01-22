@@ -15,6 +15,7 @@ package io.hexaglue.core.graph.builder;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -40,7 +41,8 @@ class GraphBuilderTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(false); // Disable derived edges for focused testing
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(false, analyzer); // Disable derived edges for focused testing
     }
 
     // === Basic type creation ===

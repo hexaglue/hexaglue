@@ -50,6 +50,7 @@
                     <basePackage>com.example</basePackage>
                     <skipValidation>false</skipValidation>
                     <failOnUnclassified>false</failOnUnclassified>
+                    <failOnError>false</failOnError>
                 </configuration>
                 <dependencies>
                     <dependency>

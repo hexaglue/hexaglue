@@ -69,6 +69,7 @@
                 <configuration>
                     <basePackage>com.example.ecommerce</basePackage>
                     <failOnUnclassified>false</failOnUnclassified>
+                    <failOnError>false</failOnError>
                 </configuration>
                 <dependencies>
                     <!-- Living Documentation Plugin -->

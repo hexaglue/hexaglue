@@ -15,6 +15,7 @@ package io.hexaglue.core.graph;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaModifier;
@@ -314,7 +315,8 @@ class GraphInvariantsTest {
 
         private ApplicationGraph buildGraph() {
             SpoonFrontend frontend = new SpoonFrontend();
-            GraphBuilder builder = new GraphBuilder(true);
+            CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+            GraphBuilder builder = new GraphBuilder(true, analyzer);
 
             JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
@@ -509,7 +511,8 @@ class GraphInvariantsTest {
 
         private ApplicationGraph buildGraph() {
             SpoonFrontend frontend = new SpoonFrontend();
-            GraphBuilder builder = new GraphBuilder(true);
+            CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+            GraphBuilder builder = new GraphBuilder(true, analyzer);
 
             JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
 
