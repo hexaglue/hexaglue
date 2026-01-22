@@ -34,6 +34,7 @@ import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -483,7 +484,8 @@ class AdapterSpecBuilderTest {
                 List.of(),
                 Optional.empty(),
                 List.of(),
-                Set.of());
+                Set.of(),
+                OptionalInt.empty());
 
         TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
                 .modifiers(Set.of(Modifier.PUBLIC))
@@ -524,6 +526,7 @@ class AdapterSpecBuilderTest {
                 List.of(),
                 Optional.empty(),
                 List.of(),
-                Set.of());
+                Set.of(),
+                OptionalInt.empty());
     }
 }

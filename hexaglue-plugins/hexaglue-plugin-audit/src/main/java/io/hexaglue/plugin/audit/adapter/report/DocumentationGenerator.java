@@ -21,7 +21,6 @@ import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
-import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.diagram.C4DiagramBuilder;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;

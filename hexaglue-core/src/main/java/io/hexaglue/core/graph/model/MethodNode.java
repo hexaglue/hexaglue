@@ -19,6 +19,7 @@ import io.hexaglue.core.frontend.TypeRef;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -37,6 +38,7 @@ public final class MethodNode extends MemberNode {
     private final Set<JavaModifier> modifiers;
     private final List<AnnotationRef> annotations;
     private final SourceRef sourceRef;
+    private final OptionalInt cyclomaticComplexity;
 
     private MethodNode(Builder builder) {
         this.id = Objects.requireNonNull(builder.id, "id is required");
@@ -49,6 +51,8 @@ public final class MethodNode extends MemberNode {
         this.modifiers = builder.modifiers != null ? Set.copyOf(builder.modifiers) : Set.of();
         this.annotations = builder.annotations != null ? List.copyOf(builder.annotations) : List.of();
         this.sourceRef = builder.sourceRef;
+        this.cyclomaticComplexity =
+                builder.cyclomaticComplexity != null ? builder.cyclomaticComplexity : OptionalInt.empty();
     }
 
     public static Builder builder() {
@@ -114,6 +118,20 @@ public final class MethodNode extends MemberNode {
      */
     public List<TypeRef> thrownTypes() {
         return thrownTypes;
+    }
+
+    /**
+     * Returns the cyclomatic complexity of this method, if calculated.
+     *
+     * <p>Cyclomatic complexity measures the number of linearly independent paths
+     * through a method's control flow. A value of 1 indicates a method with no
+     * branching, while higher values indicate more complex control flow.
+     *
+     * @return the cyclomatic complexity, or empty if not calculated
+     * @since 5.0.0
+     */
+    public OptionalInt cyclomaticComplexity() {
+        return cyclomaticComplexity;
     }
 
     /**
@@ -185,6 +203,7 @@ public final class MethodNode extends MemberNode {
         private Set<JavaModifier> modifiers;
         private List<AnnotationRef> annotations;
         private SourceRef sourceRef;
+        private OptionalInt cyclomaticComplexity;
 
         private Builder() {}
 
@@ -238,6 +257,18 @@ public final class MethodNode extends MemberNode {
 
         public Builder sourceRef(SourceRef sourceRef) {
             this.sourceRef = sourceRef;
+            return this;
+        }
+
+        /**
+         * Sets the cyclomatic complexity of the method.
+         *
+         * @param complexity the cyclomatic complexity value
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder cyclomaticComplexity(int complexity) {
+            this.cyclomaticComplexity = OptionalInt.of(complexity);
             return this;
         }
 

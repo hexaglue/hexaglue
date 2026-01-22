@@ -77,9 +77,9 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
     /**
      * Calculates the average cyclomatic complexity using the v5 ArchType API.
      *
-     * <p>Note: Since the v5 API does not yet expose method complexity in the Method record,
-     * this implementation returns 0.0 as a placeholder. The complexity calculation will be
-     * re-enabled when the Method record includes a complexity field.</p>
+     * <p>This implementation calculates the average cyclomatic complexity across all
+     * methods in domain types (aggregate roots, entities, value objects, domain services).
+     * Methods without a calculated complexity value default to 1 (simple method).</p>
      *
      * @param model the architectural model containing v5 indices
      * @param codebase the codebase for legacy access
@@ -107,8 +107,7 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
 
                         for (Method method : structure.methods()) {
                             totalMethods++;
-                            // TODO: Add complexity field to Method record
-                            // totalComplexity += method.complexity();
+                            totalComplexity += method.cyclomaticComplexity().orElse(1);
                         }
                     }
 
@@ -124,8 +123,7 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
 
                         for (Method method : structure.methods()) {
                             totalMethods++;
-                            // TODO: Add complexity field to Method record
-                            // totalComplexity += method.complexity();
+                            totalComplexity += method.cyclomaticComplexity().orElse(1);
                         }
                     }
 
@@ -141,8 +139,7 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
 
                         for (Method method : structure.methods()) {
                             totalMethods++;
-                            // TODO: Add complexity field to Method record
-                            // totalComplexity += method.complexity();
+                            totalComplexity += method.cyclomaticComplexity().orElse(1);
                         }
                     }
 
@@ -158,8 +155,7 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
 
                         for (Method method : structure.methods()) {
                             totalMethods++;
-                            // TODO: Add complexity field to Method record
-                            // totalComplexity += method.complexity();
+                            totalComplexity += method.cyclomaticComplexity().orElse(1);
                         }
                     }
 
@@ -171,14 +167,13 @@ public class CodeComplexityMetricCalculator implements MetricCalculator {
                                 "Average cyclomatic complexity for domain methods (no methods found)");
                     }
 
-                    // TODO: Re-enable when Method record includes complexity field
-                    double averageComplexity = 0.0; // (double) totalComplexity / totalMethods;
+                    double averageComplexity = (double) totalComplexity / totalMethods;
 
                     return Metric.of(
                             METRIC_NAME,
                             averageComplexity,
                             "complexity",
-                            "Average cyclomatic complexity for domain methods (complexity calculation not yet available in v5 API)",
+                            "Average cyclomatic complexity for domain methods",
                             MetricThreshold.greaterThan(WARNING_THRESHOLD));
                 })
                 .orElse(Metric.of(

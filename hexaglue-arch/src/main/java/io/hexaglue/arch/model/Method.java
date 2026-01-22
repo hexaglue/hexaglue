@@ -18,6 +18,7 @@ import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -77,8 +78,9 @@ import java.util.stream.Collectors;
  * @param documentation the method's documentation (if present)
  * @param thrownExceptions the exceptions declared to be thrown (immutable)
  * @param roles the semantic roles of this method (immutable)
+ * @param cyclomaticComplexity the cyclomatic complexity of the method body, if calculated
  * @since 4.1.0
- * @since 5.0.0 Added roles parameter
+ * @since 5.0.0 Added roles and cyclomaticComplexity parameters
  */
 public record Method(
         String name,
@@ -88,7 +90,8 @@ public record Method(
         List<Annotation> annotations,
         Optional<String> documentation,
         List<TypeRef> thrownExceptions,
-        Set<MethodRole> roles) {
+        Set<MethodRole> roles,
+        OptionalInt cyclomaticComplexity) {
 
     /**
      * Creates a new Method.
@@ -101,6 +104,7 @@ public record Method(
      * @param documentation the documentation, must not be null
      * @param thrownExceptions the thrown exceptions, must not be null
      * @param roles the semantic roles, must not be null
+     * @param cyclomaticComplexity the cyclomatic complexity, must not be null
      * @throws NullPointerException if any argument is null
      * @throws IllegalArgumentException if name is blank
      */
@@ -113,6 +117,7 @@ public record Method(
         Objects.requireNonNull(documentation, "documentation must not be null");
         Objects.requireNonNull(thrownExceptions, "thrownExceptions must not be null");
         Objects.requireNonNull(roles, "roles must not be null");
+        Objects.requireNonNull(cyclomaticComplexity, "cyclomaticComplexity must not be null");
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
@@ -133,7 +138,9 @@ public record Method(
      * @throws IllegalArgumentException if name is blank
      */
     public static Method of(String name, TypeRef returnType) {
-        return new Method(name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), Set.of());
+        return new Method(
+                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), Set.of(),
+                OptionalInt.empty());
     }
 
     /**
@@ -148,7 +155,27 @@ public record Method(
      * @since 5.0.0
      */
     public static Method of(String name, TypeRef returnType, Set<MethodRole> roles) {
-        return new Method(name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles);
+        return new Method(
+                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles,
+                OptionalInt.empty());
+    }
+
+    /**
+     * Creates a method with the given name, return type, roles, and cyclomatic complexity.
+     *
+     * @param name the method name
+     * @param returnType the return type
+     * @param roles the semantic roles
+     * @param complexity the cyclomatic complexity
+     * @return a new Method
+     * @throws NullPointerException if any argument is null
+     * @throws IllegalArgumentException if name is blank
+     * @since 5.0.0
+     */
+    public static Method of(String name, TypeRef returnType, Set<MethodRole> roles, int complexity) {
+        return new Method(
+                name, returnType, List.of(), Set.of(), List.of(), Optional.empty(), List.of(), roles,
+                OptionalInt.of(complexity));
     }
 
     /**
