@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.*;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.domain.DomainClassifier;
 import io.hexaglue.core.classification.port.PortClassifier;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -64,7 +65,8 @@ class IrExporterPropertyEdgeCasesTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer);
         domainClassifier = new DomainClassifier();
         portClassifier = new PortClassifier();
         exporter = new IrExporter();

@@ -15,6 +15,7 @@ package io.hexaglue.core.classification;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -54,7 +55,8 @@ class ClassificationConfigIntegrationTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer);
     }
 
     @Nested

@@ -22,6 +22,7 @@ import io.hexaglue.core.classification.ClassificationStatus;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
 import io.hexaglue.core.classification.SinglePassClassifier;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -113,9 +114,10 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      * @return a new engine with default settings
      */
     public static DefaultHexaGlueEngine withDefaults() {
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
         return new DefaultHexaGlueEngine(
                 new SpoonFrontend(),
-                new GraphBuilder(true), // compute derived edges
+                new GraphBuilder(true, analyzer), // compute derived edges with complexity
                 null); // classifier created dynamically based on config profile
     }
 

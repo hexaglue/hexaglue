@@ -272,6 +272,18 @@ public final class MethodNode extends MemberNode {
             return this;
         }
 
+        /**
+         * Sets the cyclomatic complexity from an OptionalInt.
+         *
+         * @param complexity the complexity or empty
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder cyclomaticComplexity(OptionalInt complexity) {
+            this.cyclomaticComplexity = complexity != null ? complexity : OptionalInt.empty();
+            return this;
+        }
+
         public MethodNode build() {
             // Auto-compute id if not set
             if (this.id == null && this.declaringTypeName != null && this.simpleName != null) {

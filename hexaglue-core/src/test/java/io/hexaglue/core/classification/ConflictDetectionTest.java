@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.domain.DomainClassifier;
 import io.hexaglue.core.classification.port.PortClassifier;
 import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.classification.port.PortKind;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -62,7 +63,8 @@ class ConflictDetectionTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer);
         domainClassifier = new DomainClassifier();
         portClassifier = new PortClassifier();
     }

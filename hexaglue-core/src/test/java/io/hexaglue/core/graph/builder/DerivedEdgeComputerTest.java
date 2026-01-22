@@ -15,6 +15,7 @@ package io.hexaglue.core.graph.builder;
 
 import static org.assertj.core.api.Assertions.*;
 
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -44,7 +45,8 @@ class DerivedEdgeComputerTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true); // Enable derived edges
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, analyzer); // Enable derived edges
     }
 
     // === USES_IN_SIGNATURE ===

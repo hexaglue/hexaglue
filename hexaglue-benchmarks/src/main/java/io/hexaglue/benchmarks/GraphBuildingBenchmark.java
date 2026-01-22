@@ -13,6 +13,7 @@
 
 package io.hexaglue.benchmarks;
 
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -72,7 +73,8 @@ public class GraphBuildingBenchmark {
     @Setup(Level.Trial)
     public void setup() {
         // Create graph builder with derived edges enabled
-        graphBuilder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        graphBuilder = new GraphBuilder(true, analyzer);
 
         // Parse semantic models once during setup
         JavaFrontend frontend = new SpoonFrontend();

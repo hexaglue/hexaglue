@@ -13,19 +13,17 @@
 
 package io.hexaglue.plugin.livingdoc;
 
+import static io.hexaglue.plugin.livingdoc.V5TestModelBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.ClassificationTrace;
-import io.hexaglue.arch.ElementId;
-import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
-import io.hexaglue.arch.domain.DomainEntity;
-import io.hexaglue.arch.domain.ValueObject;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
-import io.hexaglue.arch.ports.PortClassification;
-import io.hexaglue.arch.ports.PortOperation;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
@@ -34,14 +32,14 @@ import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for LivingDocPlugin using v4 ArchitecturalModel API.
+ * Unit tests for LivingDocPlugin using v5 ArchitecturalModel API.
  *
  * @since 4.0.0
+ * @since 5.0.0 - Migrated to v5 ArchType API
  */
 class LivingDocPluginTest {
 
@@ -49,59 +47,26 @@ class LivingDocPluginTest {
 
     private ArchitecturalModel testModel;
 
-    private ClassificationTrace highConfidence(ElementKind kind) {
-        return ClassificationTrace.highConfidence(kind, "test", "Test classification");
-    }
-
     @BeforeEach
     void setUp() {
-        // Create test domain types
-        DomainEntity orderAggregate = new DomainEntity(
-                ElementId.of(PKG + ".Order"),
-                ElementKind.AGGREGATE_ROOT,
-                "id",
-                TypeRef.of(PKG + ".OrderId"),
-                Optional.empty(),
-                List.of(),
-                null,
-                highConfidence(ElementKind.AGGREGATE_ROOT));
-
-        ValueObject moneyVo =
-                ValueObject.of(PKG + ".Money", List.of("amount", "currency"), highConfidence(ElementKind.VALUE_OBJECT));
+        // Create test domain types using V5TestModelBuilder
+        AggregateRoot orderAggregate = aggregateRoot(PKG + ".Order", "id", TypeRef.of(PKG + ".OrderId"));
+        ValueObject moneyVo = valueObject(PKG + ".Money", field("amount", "java.math.BigDecimal"), field("currency", "java.lang.String"));
 
         // Create test ports
-        PortOperation findById = new PortOperation(
-                "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of(PKG + ".OrderId")), null);
-        PortOperation save =
-                new PortOperation("save", TypeRef.of(PKG + ".Order"), List.of(TypeRef.of(PKG + ".Order")), null);
+        Method findById = method("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of(PKG + ".OrderId")));
+        Method save = method("save", TypeRef.of(PKG + ".Order"), List.of(TypeRef.of(PKG + ".Order")));
 
-        DrivenPort orderRepository = new DrivenPort(
-                ElementId.of("com.example.ports.out.OrderRepository"),
-                PortClassification.REPOSITORY,
-                List.of(findById, save),
-                Optional.empty(),
-                List.of(),
-                null,
-                highConfidence(ElementKind.DRIVEN_PORT));
+        DrivenPort orderRepository =
+                drivenPort("com.example.ports.out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save));
 
-        PortOperation placeOrder = new PortOperation(
-                "placeOrder", TypeRef.of(PKG + ".OrderId"), List.of(TypeRef.of("com.example.OrderRequest")), null);
+        Method placeOrder = method("placeOrder", TypeRef.of(PKG + ".OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
 
-        DrivingPort orderUseCase = new DrivingPort(
-                ElementId.of("com.example.ports.in.OrderingProducts"),
-                PortClassification.USE_CASE,
-                List.of(placeOrder),
-                List.of(),
-                null,
-                highConfidence(ElementKind.DRIVING_PORT));
+        DrivingPort orderUseCase = drivingPort("com.example.ports.in.OrderingProducts", List.of(placeOrder));
 
-        // Build the model
-        testModel = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                .add(orderAggregate)
-                .add(moneyVo)
-                .add(orderRepository)
-                .add(orderUseCase)
-                .build();
+        // Build the model using V5TestModelBuilder
+        testModel =
+                createModel(ProjectContext.forTesting("app", PKG), orderAggregate, moneyVo, orderRepository, orderUseCase);
     }
 
     @Test

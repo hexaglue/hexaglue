@@ -71,7 +71,7 @@ plugins:
   # DDD Audit Plugin
   audit:
     enabled: true
-    failOnBlocker: false
-    failOnCritical: false
+    # Allow violations without failing the build (for demo purposes)
+    allowCriticalViolations: true
     # Generate separate documentation files (ARCHITECTURE-OVERVIEW.md, etc.)
     generateDocs: true

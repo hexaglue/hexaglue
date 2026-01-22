@@ -19,6 +19,7 @@ import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
@@ -53,7 +54,8 @@ class RelationAnalyzerTest {
     @BeforeEach
     void setUp() {
         frontend = new SpoonFrontend();
-        builder = new GraphBuilder(true);
+        CachedSpoonAnalyzer spoonAnalyzer = new CachedSpoonAnalyzer();
+        builder = new GraphBuilder(true, spoonAnalyzer);
         analyzer = new RelationAnalyzer();
     }
 

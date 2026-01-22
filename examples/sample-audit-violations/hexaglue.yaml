@@ -19,8 +19,8 @@ plugins:
   # All constraints are enabled by default
   audit:
     enabled: true
-    failOnBlocker: false
-    failOnCritical: false
+    # Allow violations without failing the build (for demo purposes)
+    allowCriticalViolations: true
     # enabledConstraints: omit to enable ALL constraints (default)
     # Or explicitly list to enable only specific ones:
     # enabledConstraints:

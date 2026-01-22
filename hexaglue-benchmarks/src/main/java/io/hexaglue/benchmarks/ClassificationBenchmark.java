@@ -15,6 +15,7 @@ package io.hexaglue.benchmarks;
 
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.SinglePassClassifier;
+import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
@@ -75,7 +76,8 @@ public class ClassificationBenchmark {
 
         // Build graphs once during setup
         JavaFrontend frontend = new SpoonFrontend();
-        GraphBuilder graphBuilder = new GraphBuilder(true);
+        CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
+        GraphBuilder graphBuilder = new GraphBuilder(true, analyzer);
         Path benchmarksDir = Paths.get(System.getProperty("user.dir"));
 
         // Load and build small corpus graph

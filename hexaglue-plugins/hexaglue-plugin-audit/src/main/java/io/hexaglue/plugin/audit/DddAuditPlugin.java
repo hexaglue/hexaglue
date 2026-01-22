@@ -29,6 +29,7 @@ import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.CodeComplexityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
@@ -309,6 +310,7 @@ public class DddAuditPlugin implements AuditPlugin {
         AggregateBoundaryMetricCalculator aggregateBoundaryMetric = new AggregateBoundaryMetricCalculator();
         AggregateMetricCalculator aggregateMetric = new AggregateMetricCalculator();
         BoilerplateMetricCalculator boilerplateMetric = new BoilerplateMetricCalculator();
+        CodeComplexityMetricCalculator codeComplexityMetric = new CodeComplexityMetricCalculator();
         CouplingMetricCalculator couplingMetric = new CouplingMetricCalculator();
         DomainCoverageMetricCalculator domainCoverageMetric = new DomainCoverageMetricCalculator();
         DomainPurityMetricCalculator domainPurityMetric = new DomainPurityMetricCalculator();
@@ -318,6 +320,7 @@ public class DddAuditPlugin implements AuditPlugin {
         map.put(aggregateBoundaryMetric.metricName(), aggregateBoundaryMetric);
         map.put(aggregateMetric.metricName(), aggregateMetric);
         map.put(boilerplateMetric.metricName(), boilerplateMetric);
+        map.put(codeComplexityMetric.metricName(), codeComplexityMetric);
         map.put(couplingMetric.metricName(), couplingMetric);
         map.put(domainCoverageMetric.metricName(), domainCoverageMetric);
         map.put(domainPurityMetric.metricName(), domainPurityMetric);

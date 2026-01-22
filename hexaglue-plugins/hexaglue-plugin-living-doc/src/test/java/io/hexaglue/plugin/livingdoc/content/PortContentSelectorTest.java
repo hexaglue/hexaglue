@@ -13,41 +13,35 @@
 
 package io.hexaglue.plugin.livingdoc.content;
 
+import static io.hexaglue.plugin.livingdoc.V5TestModelBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
-import io.hexaglue.arch.ClassificationTrace;
-import io.hexaglue.arch.ElementId;
-import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
-import io.hexaglue.arch.ports.DrivenPort;
-import io.hexaglue.arch.ports.DrivingPort;
-import io.hexaglue.arch.ports.PortClassification;
-import io.hexaglue.arch.ports.PortOperation;
+import io.hexaglue.arch.model.DrivenPort;
+import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Method;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.spi.ir.PortDirection;
 import io.hexaglue.spi.ir.PortKind;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
-import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit tests for PortContentSelector using v4 ArchitecturalModel API.
+ * Unit tests for PortContentSelector using v5 ArchitecturalModel API.
  *
  * @since 4.0.0
+ * @since 5.0.0 - Migrated to v5 ArchType API
  */
 @DisplayName("PortContentSelector")
 class PortContentSelectorTest {
 
     private static final String PKG = "com.example.ports";
-
-    private ClassificationTrace highConfidence(ElementKind kind) {
-        return ClassificationTrace.highConfidence(kind, "test", "Test classification");
-    }
 
     @Nested
     @DisplayName("Driving Port Selection")
@@ -57,23 +51,12 @@ class PortContentSelectorTest {
         @DisplayName("should select driving ports")
         void shouldSelectDrivingPorts() {
             // Given
-            PortOperation placeOrder = new PortOperation(
-                    "placeOrder",
-                    TypeRef.of("com.example.domain.OrderId"),
-                    List.of(TypeRef.of("com.example.OrderRequest")),
-                    null);
+            Method placeOrder = method(
+                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
 
-            DrivingPort orderUseCase = new DrivingPort(
-                    ElementId.of(PKG + ".in.OrderingProducts"),
-                    PortClassification.USE_CASE,
-                    List.of(placeOrder),
-                    List.of(), // implementedBy
-                    null, // syntax
-                    highConfidence(ElementKind.DRIVING_PORT));
+            DrivingPort orderUseCase = drivingPort(PKG + ".in.OrderingProducts", List.of(placeOrder));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(orderUseCase)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), orderUseCase);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -93,25 +76,14 @@ class PortContentSelectorTest {
         @DisplayName("should transform methods correctly")
         void shouldTransformMethodsCorrectly() {
             // Given
-            PortOperation placeOrder = new PortOperation(
-                    "placeOrder",
-                    TypeRef.of("com.example.domain.OrderId"),
-                    List.of(TypeRef.of("com.example.OrderRequest")),
-                    null);
-            PortOperation cancelOrder =
-                    new PortOperation("cancelOrder", null, List.of(TypeRef.of("com.example.domain.OrderId")), null);
+            Method placeOrder = method(
+                    "placeOrder", TypeRef.of("com.example.domain.OrderId"), List.of(TypeRef.of("com.example.OrderRequest")));
+            Method cancelOrder =
+                    voidMethod("cancelOrder", List.of(TypeRef.of("com.example.domain.OrderId")));
 
-            DrivingPort orderUseCase = new DrivingPort(
-                    ElementId.of(PKG + ".in.OrderingProducts"),
-                    PortClassification.USE_CASE,
-                    List.of(placeOrder, cancelOrder),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVING_PORT));
+            DrivingPort orderUseCase = drivingPort(PKG + ".in.OrderingProducts", List.of(placeOrder, cancelOrder));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(orderUseCase)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), orderUseCase);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -141,29 +113,15 @@ class PortContentSelectorTest {
         @DisplayName("should select driven ports")
         void shouldSelectDrivenPorts() {
             // Given
-            PortOperation findById = new PortOperation(
-                    "findById",
-                    TypeRef.of("java.util.Optional"),
-                    List.of(TypeRef.of("com.example.domain.OrderId")),
-                    null);
-            PortOperation save = new PortOperation(
-                    "save",
-                    TypeRef.of("com.example.domain.Order"),
-                    List.of(TypeRef.of("com.example.domain.Order")),
-                    null);
+            Method findById = method(
+                    "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("com.example.domain.OrderId")));
+            Method save = method(
+                    "save", TypeRef.of("com.example.domain.Order"), List.of(TypeRef.of("com.example.domain.Order")));
 
-            DrivenPort orderRepository = new DrivenPort(
-                    ElementId.of(PKG + ".out.OrderRepository"),
-                    PortClassification.REPOSITORY,
-                    List.of(findById, save),
-                    Optional.empty(), // primaryManagedType
-                    List.of(), // managedTypes
-                    null, // syntax
-                    highConfidence(ElementKind.DRIVEN_PORT));
+            DrivenPort orderRepository =
+                    drivenPort(PKG + ".out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(orderRepository)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), orderRepository);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -183,24 +141,15 @@ class PortContentSelectorTest {
         @DisplayName("should transform repository methods")
         void shouldTransformRepositoryMethods() {
             // Given
-            PortOperation findById = new PortOperation(
-                    "findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("com.example.OrderId")), null);
-            PortOperation save = new PortOperation(
-                    "save", TypeRef.of("com.example.Order"), List.of(TypeRef.of("com.example.Order")), null);
-            PortOperation delete = new PortOperation("delete", null, List.of(TypeRef.of("com.example.OrderId")), null);
+            Method findById =
+                    method("findById", TypeRef.of("java.util.Optional"), List.of(TypeRef.of("com.example.OrderId")));
+            Method save = method("save", TypeRef.of("com.example.Order"), List.of(TypeRef.of("com.example.Order")));
+            Method delete = voidMethod("delete", List.of(TypeRef.of("com.example.OrderId")));
 
-            DrivenPort orderRepository = new DrivenPort(
-                    ElementId.of(PKG + ".out.OrderRepository"),
-                    PortClassification.REPOSITORY,
-                    List.of(findById, save, delete),
-                    Optional.empty(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVEN_PORT));
+            DrivenPort orderRepository =
+                    drivenPort(PKG + ".out.OrderRepository", DrivenPortType.REPOSITORY, List.of(findById, save, delete));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(orderRepository)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), orderRepository);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -222,96 +171,69 @@ class PortContentSelectorTest {
         @DisplayName("should transform method with no parameters")
         void shouldTransformMethodWithNoParameters() {
             // Given
-            PortOperation getAll = new PortOperation("getAll", TypeRef.of("java.util.List"), List.of(), null);
+            Method getAll = method("getAll", TypeRef.of("java.util.List"));
 
-            DrivingPort port = new DrivingPort(
-                    ElementId.of(PKG + ".in.OrderQuery"),
-                    PortClassification.QUERY_HANDLER,
-                    List.of(getAll),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVING_PORT));
+            DrivingPort port = drivingPort(PKG + ".in.OrderQuery", List.of(getAll));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(port)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), port);
 
             PortContentSelector selector = new PortContentSelector(model);
 
             // When
             List<PortDoc> results = selector.selectDrivingPorts();
-            MethodDoc method = results.get(0).methods().get(0);
+            MethodDoc methodDoc = results.get(0).methods().get(0);
 
             // Then
-            assertThat(method.name()).isEqualTo("getAll");
-            assertThat(method.returnType()).isEqualTo("java.util.List");
-            assertThat(method.parameters()).isEmpty();
+            assertThat(methodDoc.name()).isEqualTo("getAll");
+            assertThat(methodDoc.returnType()).isEqualTo("java.util.List");
+            assertThat(methodDoc.parameters()).isEmpty();
         }
 
         @Test
         @DisplayName("should transform void method")
         void shouldTransformVoidMethod() {
             // Given: void method (null return type)
-            PortOperation notify =
-                    new PortOperation("notifyCustomer", null, List.of(TypeRef.of("java.lang.String")), null);
+            Method notify = voidMethod("notifyCustomer", List.of(TypeRef.of("java.lang.String")));
 
-            DrivenPort port = new DrivenPort(
-                    ElementId.of(PKG + ".out.NotificationGateway"),
-                    PortClassification.GATEWAY,
-                    List.of(notify),
-                    Optional.empty(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVEN_PORT));
+            DrivenPort port = drivenPort(PKG + ".out.NotificationGateway", DrivenPortType.GATEWAY, List.of(notify));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(port)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), port);
 
             PortContentSelector selector = new PortContentSelector(model);
 
             // When
             List<PortDoc> results = selector.selectDrivenPorts();
-            MethodDoc method = results.get(0).methods().get(0);
+            MethodDoc methodDoc = results.get(0).methods().get(0);
 
             // Then
-            assertThat(method.returnType()).isEqualTo("void");
+            assertThat(methodDoc.returnType()).isEqualTo("void");
         }
 
         @Test
         @DisplayName("should preserve parameter order")
         void shouldPreserveParameterOrder() {
             // Given
-            PortOperation create = new PortOperation(
+            Method create = method(
                     "createOrder",
                     TypeRef.of("OrderId"),
                     List.of(
                             TypeRef.of("CustomerId"),
                             TypeRef.of("List<OrderLineItem>"),
                             TypeRef.of("Address"),
-                            TypeRef.of("Money")),
-                    null);
+                            TypeRef.of("Money")));
 
-            DrivingPort port = new DrivingPort(
-                    ElementId.of(PKG + ".in.OrderCreation"),
-                    PortClassification.COMMAND_HANDLER,
-                    List.of(create),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVING_PORT));
+            DrivingPort port = drivingPort(PKG + ".in.OrderCreation", List.of(create));
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(port)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), port);
 
             PortContentSelector selector = new PortContentSelector(model);
 
             // When
             List<PortDoc> results = selector.selectDrivingPorts();
-            MethodDoc method = results.get(0).methods().get(0);
+            MethodDoc methodDoc = results.get(0).methods().get(0);
 
             // Then
-            assertThat(method.parameters()).containsExactly("CustomerId", "List<OrderLineItem>", "Address", "Money");
+            assertThat(methodDoc.parameters()).containsExactly("CustomerId", "List<OrderLineItem>", "Address", "Money");
         }
     }
 
@@ -323,17 +245,13 @@ class PortContentSelectorTest {
         @DisplayName("should select only driving ports")
         void shouldSelectOnlyDrivingPorts() {
             // Given
-            DrivingPort drivingPort1 = DrivingPort.of(PKG + ".in.UseCase1", highConfidence(ElementKind.DRIVING_PORT));
-            DrivingPort drivingPort2 = DrivingPort.of(PKG + ".in.UseCase2", highConfidence(ElementKind.DRIVING_PORT));
-            DrivenPort drivenPort1 = DrivenPort.of(PKG + ".out.Repository1", highConfidence(ElementKind.DRIVEN_PORT));
-            DrivenPort drivenPort2 = DrivenPort.of(PKG + ".out.Gateway1", highConfidence(ElementKind.DRIVEN_PORT));
+            DrivingPort drivingPort1 = drivingPort(PKG + ".in.UseCase1");
+            DrivingPort drivingPort2 = drivingPort(PKG + ".in.UseCase2");
+            DrivenPort drivenPort1 = drivenPort(PKG + ".out.Repository1", DrivenPortType.REPOSITORY);
+            DrivenPort drivenPort2 = drivenPort(PKG + ".out.Gateway1", DrivenPortType.GATEWAY);
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(drivingPort1)
-                    .add(drivingPort2)
-                    .add(drivenPort1)
-                    .add(drivenPort2)
-                    .build();
+            ArchitecturalModel model =
+                    createModel(ProjectContext.forTesting("app", PKG), drivingPort1, drivingPort2, drivenPort1, drivenPort2);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -350,15 +268,12 @@ class PortContentSelectorTest {
         @DisplayName("should select only driven ports")
         void shouldSelectOnlyDrivenPorts() {
             // Given
-            DrivingPort drivingPort1 = DrivingPort.of(PKG + ".in.UseCase1", highConfidence(ElementKind.DRIVING_PORT));
-            DrivenPort drivenPort1 = DrivenPort.of(PKG + ".out.Repository1", highConfidence(ElementKind.DRIVEN_PORT));
-            DrivenPort drivenPort2 = DrivenPort.of(PKG + ".out.Gateway1", highConfidence(ElementKind.DRIVEN_PORT));
+            DrivingPort drivingPort1 = drivingPort(PKG + ".in.UseCase1");
+            DrivenPort drivenPort1 = drivenPort(PKG + ".out.Repository1", DrivenPortType.REPOSITORY);
+            DrivenPort drivenPort2 = drivenPort(PKG + ".out.Gateway1", DrivenPortType.GATEWAY);
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(drivingPort1)
-                    .add(drivenPort1)
-                    .add(drivenPort2)
-                    .build();
+            ArchitecturalModel model =
+                    createModel(ProjectContext.forTesting("app", PKG), drivingPort1, drivenPort1, drivenPort2);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -380,8 +295,7 @@ class PortContentSelectorTest {
         @DisplayName("should return empty list when no driving ports")
         void shouldReturnEmptyListWhenNoDrivingPorts() {
             // Given
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG));
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -393,8 +307,7 @@ class PortContentSelectorTest {
         @DisplayName("should return empty list when no driven ports")
         void shouldReturnEmptyListWhenNoDrivenPorts() {
             // Given
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG));
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -408,71 +321,12 @@ class PortContentSelectorTest {
     class PortClassificationVariations {
 
         @Test
-        @DisplayName("should handle command handler")
-        void shouldHandleCommandHandler() {
-            // Given
-            DrivingPort commandPort = new DrivingPort(
-                    ElementId.of(PKG + ".in.CreateOrderCommand"),
-                    PortClassification.COMMAND_HANDLER,
-                    List.of(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVING_PORT));
-
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(commandPort)
-                    .build();
-
-            PortContentSelector selector = new PortContentSelector(model);
-
-            // When
-            List<PortDoc> results = selector.selectDrivingPorts();
-
-            // Then
-            assertThat(results.get(0).kind()).isEqualTo(PortKind.COMMAND);
-        }
-
-        @Test
-        @DisplayName("should handle query handler")
-        void shouldHandleQueryHandler() {
-            // Given
-            DrivingPort queryPort = new DrivingPort(
-                    ElementId.of(PKG + ".in.GetOrderQuery"),
-                    PortClassification.QUERY_HANDLER,
-                    List.of(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVING_PORT));
-
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(queryPort)
-                    .build();
-
-            PortContentSelector selector = new PortContentSelector(model);
-
-            // When
-            List<PortDoc> results = selector.selectDrivingPorts();
-
-            // Then
-            assertThat(results.get(0).kind()).isEqualTo(PortKind.QUERY);
-        }
-
-        @Test
         @DisplayName("should handle event publisher")
         void shouldHandleEventPublisher() {
             // Given
-            DrivenPort eventPort = new DrivenPort(
-                    ElementId.of(PKG + ".out.OrderEventPublisher"),
-                    PortClassification.EVENT_PUBLISHER,
-                    List.of(),
-                    Optional.empty(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVEN_PORT));
+            DrivenPort eventPort = drivenPort(PKG + ".out.OrderEventPublisher", DrivenPortType.EVENT_PUBLISHER);
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(eventPort)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), eventPort);
 
             PortContentSelector selector = new PortContentSelector(model);
 
@@ -487,18 +341,9 @@ class PortContentSelectorTest {
         @DisplayName("should handle gateway")
         void shouldHandleGateway() {
             // Given
-            DrivenPort gatewayPort = new DrivenPort(
-                    ElementId.of(PKG + ".out.ExternalService"),
-                    PortClassification.GATEWAY,
-                    List.of(),
-                    Optional.empty(),
-                    List.of(),
-                    null,
-                    highConfidence(ElementKind.DRIVEN_PORT));
+            DrivenPort gatewayPort = drivenPort(PKG + ".out.ExternalService", DrivenPortType.GATEWAY);
 
-            ArchitecturalModel model = ArchitecturalModel.builder(ProjectContext.forTesting("app", PKG))
-                    .add(gatewayPort)
-                    .build();
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), gatewayPort);
 
             PortContentSelector selector = new PortContentSelector(model);
 
