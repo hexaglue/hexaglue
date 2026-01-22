@@ -13,21 +13,15 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.applicationClass;
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.domainClass;
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.infraClass;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
-import io.hexaglue.spi.audit.CodeMetrics;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.DocumentationInfo;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.RoleClassification;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,9 +30,24 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link LayerIsolationValidator}.
  *
- * <p>Validates that layers respect isolation rules (Domain -> nothing, Application -> Domain, Infrastructure -> all).
+ * <p>Validates that layers respect isolation rules using the v5 ArchType API:
+ * <ul>
+ *   <li>Domain → Domain only</li>
+ *   <li>Application → Domain and Ports only</li>
+ *   <li>Ports → Domain only</li>
+ * </ul>
+ *
+ * <p><strong>Note:</strong> In v5 API, the validator uses ArchKind to determine layers.
+ * Infrastructure types are not part of the classified model, so infrastructure layer
+ * violations are only detectable when dependencies point to external types.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class LayerIsolationValidatorTest {
+
+    private static final String DOMAIN_PACKAGE = "com.example.domain";
+    private static final String APP_PACKAGE = "com.example.application";
+    private static final String PORT_PACKAGE = "com.example.domain.port";
 
     private LayerIsolationValidator validator;
 
@@ -51,14 +60,16 @@ class LayerIsolationValidatorTest {
     @DisplayName("Should pass when domain depends only on domain")
     void shouldPass_whenDomainDependsOnlyOnDomain() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addEntity(DOMAIN_PACKAGE + ".Customer")
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(domainClass("Customer"))
-                .addDependency("com.example.domain.Order", "com.example.domain.Customer")
+                .addDependency(DOMAIN_PACKAGE + ".Order", DOMAIN_PACKAGE + ".Customer")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -68,33 +79,35 @@ class LayerIsolationValidatorTest {
     @DisplayName("Should pass when application depends on domain")
     void shouldPass_whenApplicationDependsOnDomain() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addApplicationService(APP_PACKAGE + ".OrderService")
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(applicationClass("OrderService"))
-                .addUnit(domainClass("Order"))
-                .addDependency("com.example.application.OrderService", "com.example.domain.Order")
+                .addDependency(APP_PACKAGE + ".OrderService", DOMAIN_PACKAGE + ".Order")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
     }
 
     @Test
-    @DisplayName("Should pass when infrastructure depends on all layers")
-    void shouldPass_whenInfrastructureDependsOnAllLayers() {
+    @DisplayName("Should pass when application depends on ports")
+    void shouldPass_whenApplicationDependsOnPorts() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addApplicationService(APP_PACKAGE + ".OrderService")
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(infraClass("JpaOrderRepository"))
-                .addUnit(domainClass("Order"))
-                .addUnit(applicationClass("OrderService"))
-                .addDependency("com.example.infrastructure.JpaOrderRepository", "com.example.domain.Order")
-                .addDependency("com.example.infrastructure.JpaOrderRepository", "com.example.application.OrderService")
+                .addDependency(APP_PACKAGE + ".OrderService", PORT_PACKAGE + ".OrderRepository")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -104,14 +117,16 @@ class LayerIsolationValidatorTest {
     @DisplayName("Should fail when domain depends on application")
     void shouldFail_whenDomainDependsOnApplication() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addApplicationService(APP_PACKAGE + ".OrderService")
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(applicationClass("OrderService"))
-                .addDependency("com.example.domain.Order", "com.example.application.OrderService")
+                .addDependency(DOMAIN_PACKAGE + ".Order", APP_PACKAGE + ".OrderService")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
@@ -125,94 +140,42 @@ class LayerIsolationValidatorTest {
     }
 
     @Test
-    @DisplayName("Should fail when domain depends on infrastructure")
-    void shouldFail_whenDomainDependsOnInfrastructure() {
-        // Given
+    @DisplayName("Should fail when domain depends on port")
+    void shouldFail_whenDomainDependsOnPort() {
+        // Given - Domain should not depend on ports
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(infraClass("JpaOrderRepository"))
-                .addDependency("com.example.domain.Order", "com.example.infrastructure.JpaOrderRepository")
+                .addDependency(DOMAIN_PACKAGE + ".Order", PORT_PACKAGE + ".OrderRepository")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("DOMAIN").contains("INFRASTRUCTURE");
-    }
-
-    @Test
-    @DisplayName("Should fail when application depends on infrastructure")
-    void shouldFail_whenApplicationDependsOnInfrastructure() {
-        // Given
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(applicationClass("OrderService"))
-                .addUnit(infraClass("JpaRepository"))
-                .addDependency("com.example.application.OrderService", "com.example.infrastructure.JpaRepository")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("APPLICATION").contains("INFRASTRUCTURE");
-    }
-
-    @Test
-    @DisplayName("Should fail when application depends on presentation")
-    void shouldFail_whenApplicationDependsOnPresentation() {
-        // Given: Application should not depend on Presentation
-        CodeUnit appService = new CodeUnit(
-                "com.example.application.OrderService",
-                CodeUnitKind.CLASS,
-                LayerClassification.APPLICATION,
-                RoleClassification.USE_CASE,
-                List.of(),
-                List.of(),
-                new CodeMetrics(50, 5, 3, 2, 80.0),
-                new DocumentationInfo(true, 100, List.of()));
-
-        CodeUnit controller = new CodeUnit(
-                "com.example.presentation.OrderController",
-                CodeUnitKind.CLASS,
-                LayerClassification.PRESENTATION,
-                RoleClassification.ADAPTER,
-                List.of(),
-                List.of(),
-                new CodeMetrics(50, 5, 3, 2, 80.0),
-                new DocumentationInfo(true, 100, List.of()));
-
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(appService)
-                .addUnit(controller)
-                .addDependency("com.example.application.OrderService", "com.example.presentation.OrderController")
-                .build();
-
-        // When
-        List<Violation> violations = validator.validate(codebase, null);
-
-        // Then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("APPLICATION");
+        assertThat(violations.get(0).message()).contains("DOMAIN").contains("PORT");
     }
 
     @Test
     @DisplayName("Should detect multiple layer violations")
     void shouldDetectMultipleLayerViolations() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addApplicationService(APP_PACKAGE + ".Service1")
+                .addApplicationService(APP_PACKAGE + ".Service2")
+                .addDrivenPort(PORT_PACKAGE + ".Repo", DrivenPortType.REPOSITORY)
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(applicationClass("Service1"))
-                .addUnit(applicationClass("Service2"))
-                .addUnit(infraClass("Infra"))
-                .addDependency("com.example.domain.Order", "com.example.application.Service1")
-                .addDependency("com.example.domain.Order", "com.example.infrastructure.Infra")
+                .addDependency(DOMAIN_PACKAGE + ".Order", APP_PACKAGE + ".Service1")
+                .addDependency(DOMAIN_PACKAGE + ".Order", PORT_PACKAGE + ".Repo")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(2);
@@ -222,13 +185,14 @@ class LayerIsolationValidatorTest {
     @DisplayName("Should pass when codebase has no dependencies")
     void shouldPass_whenNoDependencies() {
         // Given
-        Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(applicationClass("Service"))
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addApplicationService(APP_PACKAGE + ".Service")
                 .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).isEmpty();
@@ -238,19 +202,35 @@ class LayerIsolationValidatorTest {
     @DisplayName("Should provide dependency evidence")
     void shouldProvideDependencyEvidence() {
         // Given
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .addApplicationService(APP_PACKAGE + ".OrderService")
+                .build();
         Codebase codebase = new TestCodebaseBuilder()
-                .addUnit(domainClass("Order"))
-                .addUnit(applicationClass("OrderService"))
-                .addDependency("com.example.domain.Order", "com.example.application.OrderService")
+                .addDependency(DOMAIN_PACKAGE + ".Order", APP_PACKAGE + ".OrderService")
                 .build();
 
         // When
-        List<Violation> violations = validator.validate(codebase, null);
+        List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).evidence()).isNotEmpty();
         assertThat(violations.get(0).evidence().get(0).description()).contains("Layer DOMAIN can only depend on");
+    }
+
+    @Test
+    @DisplayName("Should pass when model has no type registry")
+    void shouldPass_whenNoTypeRegistry() {
+        // Given - empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then
+        assertThat(violations).isEmpty();
     }
 
     @Test
@@ -265,5 +245,63 @@ class LayerIsolationValidatorTest {
     void shouldReturnCorrectConstraintId() {
         // When/Then
         assertThat(validator.constraintId().value()).isEqualTo("hexagonal:layer-isolation");
+    }
+
+    @Test
+    @DisplayName("Should ignore external dependencies")
+    void shouldIgnoreExternalDependencies() {
+        // Given - Domain depends on external library (not in model)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency(DOMAIN_PACKAGE + ".Order", "java.util.List")
+                .addDependency(DOMAIN_PACKAGE + ".Order", "org.slf4j.Logger")
+                .build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then - external deps are ignored
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should allow port to depend on domain")
+    void shouldAllowPortToDependOnDomain() {
+        // Given - Port using domain types (for parameters/return types)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addAggregateRoot(DOMAIN_PACKAGE + ".Order")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency(PORT_PACKAGE + ".OrderRepository", DOMAIN_PACKAGE + ".Order")
+                .build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should fail when port depends on application")
+    void shouldFail_whenPortDependsOnApplication() {
+        // Given - Port should not depend on application
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addApplicationService(APP_PACKAGE + ".OrderService")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency(PORT_PACKAGE + ".OrderRepository", APP_PACKAGE + ".OrderService")
+                .build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then
+        assertThat(violations).hasSize(1);
+        assertThat(violations.get(0).message()).contains("PORT").contains("APPLICATION");
     }
 }

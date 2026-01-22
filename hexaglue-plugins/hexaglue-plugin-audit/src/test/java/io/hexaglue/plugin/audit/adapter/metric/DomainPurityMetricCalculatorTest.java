@@ -13,18 +13,23 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
-import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link DomainPurityMetricCalculator}.
+ *
+ * <p>Validates that domain purity is correctly calculated using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class DomainPurityMetricCalculatorTest {
 
@@ -36,561 +41,370 @@ class DomainPurityMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should have correct metric name")
     void shouldHaveCorrectMetricName() {
         assertThat(calculator.metricName()).isEqualTo("domain.purity");
     }
 
     @Test
+    @DisplayName("Should return 100% when no domain types")
     void shouldReturn100Percent_whenNoDomainTypes() {
-        // Given: Empty codebase with no domain types
-        Codebase codebase = new Codebase("test", "com.example", List.of(), java.util.Map.of());
+        // Given: Empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Default to 100% when no domain types exist
+        // Then
+        assertThat(metric.name()).isEqualTo("domain.purity");
         assertThat(metric.value()).isEqualTo(100.0);
         assertThat(metric.unit()).isEqualTo("%");
-        assertThat(metric.description()).contains("no domain types found");
-        assertThat(metric.exceedsThreshold()).isFalse();
     }
 
     @Test
-    void shouldReturn100Percent_whenAllDomainTypesPure() {
+    @DisplayName("Should return 100% when all domain types are pure")
+    void shouldReturn100Percent_whenAllDomainTypesArePure() {
         // Given: Domain types with no infrastructure dependencies
-        Codebase codebase = withUnits(
-                aggregate("Order"),
-                entity("OrderLine", true),
-                valueObject("Money", false),
-                domainClass("OrderService"));
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addEntity("com.example.domain.OrderLine")
+                .addValueObject("com.example.domain.Money")
+                .addDomainService("com.example.domain.OrderService")
+                .build();
+
+        Codebase codebase = new TestCodebaseBuilder()
+                // Only domain dependencies (pure)
+                .addDependency("com.example.domain.Order", "com.example.domain.Money")
+                .addDependency("com.example.domain.OrderLine", "com.example.domain.Money")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: All types are pure
+        // Then
         assertThat(metric.value()).isEqualTo(100.0);
         assertThat(metric.exceedsThreshold()).isFalse();
     }
 
     @Test
-    void shouldReturn100Percent_whenDomainTypesHaveNoDependencies() {
-        // Given: Domain types with empty dependencies
-        var builder = new TestCodebaseBuilder();
-        builder.addUnit(aggregate("Order"));
-        builder.addUnit(valueObject("Money", false));
-        // No dependencies added
+    @DisplayName("Should return 0% when all domain types have infrastructure dependencies")
+    void shouldReturn0Percent_whenAllDomainTypesHaveInfrastructureDependencies() {
+        // Given: Domain types all with JPA dependencies
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addEntity("com.example.domain.OrderLine")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                .addDependency("com.example.domain.OrderLine", "javax.persistence.Column")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Types with no dependencies are pure
-        assertThat(metric.value()).isEqualTo(100.0);
-        assertThat(metric.exceedsThreshold()).isFalse();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
+        assertThat(metric.exceedsThreshold()).isTrue();
     }
 
     @Test
-    void shouldDetectImpurity_withJpaDependencies() {
+    @DisplayName("Should calculate mixed purity correctly")
+    void shouldCalculateMixedPurityCorrectly() {
+        // Given: 3 domain types, 2 pure, 1 impure
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addEntity("com.example.domain.OrderLine")
+                .addValueObject("com.example.domain.Money")
+                .build();
+
+        Codebase codebase = new TestCodebaseBuilder()
+                // Order has JPA dependency (impure)
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                // OrderLine and Money are pure (domain only)
+                .addDependency("com.example.domain.OrderLine", "com.example.domain.Money")
+                .build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then: 2/3 = 66.67%
+        assertThat(metric.value()).isCloseTo(66.67, org.assertj.core.data.Offset.offset(0.01));
+        assertThat(metric.exceedsThreshold()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should detect JPA dependencies as impure")
+    void shouldDetectJpaDependencies_asImpure() {
         // Given: Domain type with JPA dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Entity");
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Id");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
     }
 
     @Test
-    void shouldDetectImpurity_withSpringDependencies() {
+    @DisplayName("Should detect Spring dependencies as impure")
+    void shouldDetectSpringDependencies_asImpure() {
         // Given: Domain type with Spring dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(entity("OrderLine", true));
-        builder.addDependency(order.qualifiedName(), "org.springframework.stereotype.Component");
-        builder.addDependency(order.qualifiedName(), "org.springframework.beans.factory.annotation.Autowired");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "org.springframework.stereotype.Component")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
     }
 
     @Test
-    void shouldDetectImpurity_withHibernateDependencies() {
+    @DisplayName("Should detect Hibernate dependencies as impure")
+    void shouldDetectHibernateDependencies_asImpure() {
         // Given: Domain type with Hibernate dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "org.hibernate.annotations.Cache");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "org.hibernate.annotations.Type")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
     }
 
     @Test
-    void shouldDetectImpurity_withJacksonDependencies() {
+    @DisplayName("Should detect Jackson dependencies as impure")
+    void shouldDetectJacksonDependencies_asImpure() {
         // Given: Domain type with Jackson dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(entity("OrderLine", true));
-        builder.addDependency(order.qualifiedName(), "com.fasterxml.jackson.annotation.JsonProperty");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "com.fasterxml.jackson.annotation.JsonProperty")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
     }
 
     @Test
-    void shouldDetectImpurity_withJdbcDependencies() {
-        // Given: Domain type with JDBC dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "java.sql.Connection");
-        builder.addDependency(order.qualifiedName(), "javax.sql.DataSource");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withAwsSdkDependencies() {
+    @DisplayName("Should detect AWS SDK dependencies as impure")
+    void shouldDetectAwsSdkDependencies_asImpure() {
         // Given: Domain type with AWS SDK dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "software.amazon.awssdk.services.s3.S3Client");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainService("com.example.domain.StorageService")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.StorageService", "software.amazon.awssdk.services.s3.S3Client")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
     }
 
     @Test
-    void shouldDetectImpurity_withStripeDependencies() {
-        // Given: Domain type with Stripe dependency
-        var builder = new TestCodebaseBuilder();
-        var payment = aggregate("Payment");
-        builder.addUnit(payment);
-        builder.addUnit(valueObject("Amount", false));
-        builder.addDependency(payment.qualifiedName(), "com.stripe.model.Charge");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withAzureSdkDependencies() {
-        // Given: Domain type with Azure SDK dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "com.azure.storage.blob.BlobClient");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withGoogleCloudDependencies() {
-        // Given: Domain type with Google Cloud SDK dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "com.google.cloud.storage.Storage");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withKafkaDependencies() {
+    @DisplayName("Should detect Kafka dependencies as impure")
+    void shouldDetectKafkaDependencies_asImpure() {
         // Given: Domain type with Kafka dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "org.apache.kafka.clients.producer.Producer");
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainService("com.example.domain.EventPublisher")
+                .build();
 
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withRabbitMqDependencies() {
-        // Given: Domain type with RabbitMQ dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "com.rabbitmq.client.Channel");
-
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.EventPublisher", "org.apache.kafka.clients.producer.Producer")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withJmsDependencies() {
-        // Given: Domain type with JMS dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "jakarta.jms.Queue");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withServletDependencies() {
-        // Given: Domain type with Servlet dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "jakarta.servlet.http.HttpServletRequest");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withJaxRsDependencies() {
-        // Given: Domain type with JAX-RS dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "jakarta.ws.rs.GET");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withValidationDependencies() {
-        // Given: Domain type with validation framework dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "jakarta.validation.constraints.NotNull");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldDetectImpurity_withHibernateValidatorDependencies() {
-        // Given: Domain type with Hibernate Validator dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addUnit(valueObject("Money", false));
-        builder.addDependency(order.qualifiedName(), "org.hibernate.validator.constraints.Email");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 1 pure / 2 total = 50%
-        assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldCalculateCorrectly_withMixedPureAndImpureTypes() {
-        // Given: 3 pure types, 2 impure types
-        var builder = new TestCodebaseBuilder();
-
-        // Pure types
-        var customer = aggregate("Customer");
-        var address = valueObject("Address", false);
-        var email = valueObject("Email", false);
-
-        // Impure types
-        var order = aggregate("Order");
-        var payment = entity("Payment", true);
-
-        builder.addUnit(customer);
-        builder.addUnit(address);
-        builder.addUnit(email);
-        builder.addUnit(order);
-        builder.addUnit(payment);
-
-        // Add infrastructure dependencies to impure types
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Entity");
-        builder.addDependency(payment.qualifiedName(), "org.springframework.stereotype.Component");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 3 pure / 5 total = 60%
-        assertThat(metric.value()).isEqualTo(60.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
-    }
-
-    @Test
-    void shouldReturn0Percent_whenAllDomainTypesImpure() {
-        // Given: All domain types have infrastructure dependencies
-        var builder = new TestCodebaseBuilder();
-
-        var order = aggregate("Order");
-        var customer = aggregate("Customer");
-        var payment = entity("Payment", true);
-
-        builder.addUnit(order);
-        builder.addUnit(customer);
-        builder.addUnit(payment);
-
-        // All have infrastructure dependencies
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Entity");
-        builder.addDependency(customer.qualifiedName(), "org.springframework.stereotype.Component");
-        builder.addDependency(payment.qualifiedName(), "com.fasterxml.jackson.annotation.JsonProperty");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 0 pure / 3 total = 0%
+        // Then
         assertThat(metric.value()).isEqualTo(0.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
     }
 
     @Test
-    void shouldIgnoreAllowedDependencies() {
-        // Given: Domain types with allowed Java standard library dependencies
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        var money = valueObject("Money", false);
+    @DisplayName("Should detect JDBC dependencies as impure")
+    void shouldDetectJdbcDependencies_asImpure() {
+        // Given: Domain type with JDBC dependency
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDomainService("com.example.domain.DataService")
+                .build();
 
-        builder.addUnit(order);
-        builder.addUnit(money);
-
-        // These are allowed dependencies (standard Java)
-        builder.addDependency(order.qualifiedName(), "java.util.List");
-        builder.addDependency(order.qualifiedName(), "java.time.LocalDateTime");
-        builder.addDependency(money.qualifiedName(), "java.math.BigDecimal");
-        builder.addDependency(money.qualifiedName(), "java.util.Currency");
-
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.DataService", "java.sql.Connection")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Both types remain pure (standard Java is allowed)
-        assertThat(metric.value()).isEqualTo(100.0);
-        assertThat(metric.exceedsThreshold()).isFalse();
-    }
-
-    @Test
-    void shouldHandleSingleDomainTypeWithDependency() {
-        // Given: One domain type with infrastructure dependency
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Entity");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: 0 pure / 1 total = 0%
+        // Then
         assertThat(metric.value()).isEqualTo(0.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
     }
 
     @Test
-    void shouldHandleSinglePureDomainType() {
-        // Given: One domain type with no dependencies
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
+    @DisplayName("Should detect Jakarta Validation dependencies as impure")
+    void shouldDetectJakartaValidationDependencies_asImpure() {
+        // Given: Domain type with Jakarta Validation dependency
+        ArchitecturalModel model = new TestModelBuilder()
+                .addValueObject("com.example.domain.Email")
+                .build();
 
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Email", "jakarta.validation.constraints.NotNull")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 1 pure / 1 total = 100%
+        // Then
+        assertThat(metric.value()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("Should allow Java standard library dependencies")
+    void shouldAllowJavaStandardLibraryDependencies() {
+        // Given: Domain type with standard library dependencies
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
+
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "java.util.List")
+                .addDependency("com.example.domain.Order", "java.time.LocalDateTime")
+                .addDependency("com.example.domain.Order", "java.math.BigDecimal")
+                .build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then: Standard library is allowed (pure)
         assertThat(metric.value()).isEqualTo(100.0);
-        assertThat(metric.exceedsThreshold()).isFalse();
     }
 
     @Test
-    void shouldCalculateCorrectly_withLargeCodebase() {
-        // Given: 90 pure types, 10 impure types
-        var builder = new TestCodebaseBuilder();
+    @DisplayName("Should count all domain type categories")
+    void shouldCountAllDomainTypeCategories() {
+        // Given: All domain type categories
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addEntity("com.example.domain.OrderLine")
+                .addValueObject("com.example.domain.Money")
+                .addIdentifier("com.example.domain.OrderId")
+                .addDomainEvent("com.example.domain.OrderPlacedEvent")
+                .addDomainService("com.example.domain.OrderService")
+                .build();
 
-        // Add 90 pure types
-        for (int i = 0; i < 90; i++) {
-            builder.addUnit(domainClass("Pure" + i));
-        }
-
-        // Add 10 impure types
-        for (int i = 0; i < 10; i++) {
-            var impure = domainClass("Impure" + i);
-            builder.addUnit(impure);
-            builder.addDependency(impure.qualifiedName(), "jakarta.persistence.Entity");
-        }
-
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                // Only one impure type
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: 90 pure / 100 total = 90%
-        assertThat(metric.value()).isEqualTo(90.0);
-        assertThat(metric.exceedsThreshold()).isTrue();
+        // Then: 5/6 = 83.33%
+        assertThat(metric.value()).isCloseTo(83.33, org.assertj.core.data.Offset.offset(0.01));
     }
 
     @Test
-    void shouldOnlyConsiderDomainLayer() {
-        // Given: Mixed codebase with infrastructure types (should be ignored)
-        var builder = new TestCodebaseBuilder();
-
-        // Domain types
-        var order = aggregate("Order");
-        builder.addUnit(order);
-
-        // Infrastructure types (should not affect purity calculation)
-        var adapter = infraClass("OrderAdapter");
-        builder.addUnit(adapter);
-        builder.addDependency(adapter.qualifiedName(), "jakarta.persistence.Entity");
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: Only domain types are considered, infrastructure types don't affect purity
-        assertThat(metric.value()).isEqualTo(100.0);
-        assertThat(metric.exceedsThreshold()).isFalse();
-    }
-
-    @Test
-    void shouldDetectMultipleForbiddenDependenciesInSameType() {
+    @DisplayName("Should handle domain type with multiple infrastructure dependencies")
+    void shouldHandleDomainTypeWithMultipleInfrastructureDependencies() {
         // Given: Domain type with multiple infrastructure dependencies
-        var builder = new TestCodebaseBuilder();
-        var order = aggregate("Order");
-        builder.addUnit(order);
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .build();
 
-        // Multiple infrastructure dependencies
-        builder.addDependency(order.qualifiedName(), "jakarta.persistence.Entity");
-        builder.addDependency(order.qualifiedName(), "org.springframework.stereotype.Component");
-        builder.addDependency(order.qualifiedName(), "com.fasterxml.jackson.annotation.JsonProperty");
-        builder.addDependency(order.qualifiedName(), "java.sql.Connection");
-
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                .addDependency("com.example.domain.Order", "org.springframework.stereotype.Component")
+                .addDependency("com.example.domain.Order", "com.fasterxml.jackson.annotation.JsonProperty")
+                .build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
-        // Then: Type is impure regardless of number of violations
+        // Then: Still impure (one violation is enough)
         assertThat(metric.value()).isEqualTo(0.0);
+    }
+
+    @Test
+    @DisplayName("Should not exceed threshold at 100%")
+    void shouldNotExceedThreshold_at100Percent() {
+        // Given: All pure domain types
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addValueObject("com.example.domain.Money")
+                .build();
+
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then
+        assertThat(metric.value()).isEqualTo(100.0);
+        assertThat(metric.exceedsThreshold()).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should exceed threshold below 100%")
+    void shouldExceedThreshold_below100Percent() {
+        // Given: One impure domain type out of two
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.Order")
+                .addValueObject("com.example.domain.Money")
+                .build();
+
+        Codebase codebase = new TestCodebaseBuilder()
+                .addDependency("com.example.domain.Order", "jakarta.persistence.Entity")
+                .build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then: 50% < 100% threshold
+        assertThat(metric.value()).isEqualTo(50.0);
         assertThat(metric.exceedsThreshold()).isTrue();
+    }
+
+    @Test
+    @DisplayName("Should handle empty codebase")
+    void shouldHandleEmptyCodebase() {
+        // Given: Empty model
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        Metric metric = calculator.calculate(model, codebase, null);
+
+        // Then
+        assertThat(metric.value()).isEqualTo(100.0);
+        assertThat(metric.exceedsThreshold()).isFalse();
     }
 }

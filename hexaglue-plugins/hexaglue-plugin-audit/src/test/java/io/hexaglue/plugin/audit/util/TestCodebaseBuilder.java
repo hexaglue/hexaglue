@@ -300,6 +300,39 @@ public class TestCodebaseBuilder {
                 defaultDocumentation());
     }
 
+    /**
+     * Adds a simple code unit with the given qualified name.
+     *
+     * <p>Creates a domain-layer class unit for the given qualified name.
+     * This is useful for tests that need to match model types with codebase units.
+     *
+     * @param qualifiedName the fully qualified class name
+     * @return this builder
+     */
+    public TestCodebaseBuilder addType(String qualifiedName) {
+        return addType(qualifiedName, LayerClassification.DOMAIN);
+    }
+
+    /**
+     * Adds a simple code unit with the given qualified name and layer.
+     *
+     * @param qualifiedName the fully qualified class name
+     * @param layer         the layer classification
+     * @return this builder
+     */
+    public TestCodebaseBuilder addType(String qualifiedName, LayerClassification layer) {
+        CodeUnit unit = new CodeUnit(
+                qualifiedName,
+                CodeUnitKind.CLASS,
+                layer,
+                layer == LayerClassification.DOMAIN ? RoleClassification.ENTITY : RoleClassification.SERVICE,
+                List.of(),
+                List.of(),
+                defaultMetrics(),
+                defaultDocumentation());
+        return addUnit(unit);
+    }
+
     // === Helper Methods ===
 
     /**

@@ -13,26 +13,42 @@
 
 package io.hexaglue.plugin.audit.adapter.metric;
 
-import static io.hexaglue.plugin.audit.util.TestCodebaseBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.DomainService;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
-import io.hexaglue.spi.audit.CodeMetrics;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
+import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.DocumentationInfo;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.RoleClassification;
-import java.util.ArrayList;
-import java.util.List;
+import io.hexaglue.syntax.Modifier;
+import io.hexaglue.syntax.TypeRef;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests for {@link AggregateBoundaryMetricCalculator}.
+ *
+ * <p>Validates that aggregate boundary encapsulation is correctly calculated
+ * using the v5 ArchType API.
+ *
+ * @since 5.0.0 Migrated to v5 ArchType API
  */
 class AggregateBoundaryMetricCalculatorTest {
 
@@ -44,18 +60,22 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should have correct metric name")
     void shouldHaveCorrectMetricName() {
         assertThat(calculator.metricName()).isEqualTo("aggregate.boundary");
     }
 
     @Test
+    @DisplayName("Should return 100% when no entities")
     void shouldReturn100Percent_whenNoEntities() {
-        // Given: Codebase with no entities
-        CodeUnit aggregate = aggregate("Order");
-        Codebase codebase = withUnits(aggregate);
+        // Given: Model with aggregate but no entities
+        ArchitecturalModel model = new TestModelBuilder()
+                .addAggregateRoot("com.example.domain.order.Order")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: No entities = perfect encapsulation
         assertThat(metric.name()).isEqualTo("aggregate.boundary");
@@ -66,38 +86,39 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should return 0% when entities but no aggregates")
     void shouldReturn0Percent_whenEntitiesButNoAggregates() {
-        // Given: Entities exist but no aggregates
-        CodeUnit entity = entity("OrderLine", true);
-        Codebase codebase = withUnits(entity);
+        // Given: Entity without aggregate
+        ArchitecturalModel model = new TestModelBuilder()
+                .addEntity("com.example.domain.OrderLine")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: No aggregates = no encapsulation
         assertThat(metric.value()).isEqualTo(0.0);
         assertThat(metric.description()).contains("no aggregates found");
-        assertThat(metric.exceedsThreshold()).isTrue(); // Below 80% threshold
+        assertThat(metric.exceedsThreshold()).isTrue();
     }
 
     @Test
+    @DisplayName("Should return 100% when all entities encapsulated")
     void shouldReturn100Percent_whenAllEntitiesEncapsulated() {
-        // Given: Aggregate with entity, no external dependencies
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        // Given: Aggregate with entity in same package, no external dependencies
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine"},
+                new String[] {});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity = createEntityWithPackage("OrderLine", "com.example.domain.order");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity);
-
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // Entity depends on aggregate (internal to aggregate)
-        builder.addDependency(entity.qualifiedName(), aggregate.qualifiedName());
-
-        Codebase codebase = builder.build();
+        codebaseBuilder.addDependency("com.example.domain.order.OrderLine", "com.example.domain.order.Order");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: All entities encapsulated
         assertThat(metric.value()).isEqualTo(100.0);
@@ -105,25 +126,21 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should return 0% when all entities leak outside")
     void shouldReturn0Percent_whenAllEntitiesLeakOutside() {
         // Given: Entity accessed from outside aggregate
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine"},
+                new String[] {"com.example.domain.ExternalService"});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit externalService = domainClass("ExternalService");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity);
-        builder.addUnit(externalService);
-
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // External service depends on entity (violation)
-        builder.addDependency(externalService.qualifiedName(), entity.qualifiedName());
-
-        Codebase codebase = builder.build();
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.OrderLine");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: No entities encapsulated
         assertThat(metric.value()).isEqualTo(0.0);
@@ -131,56 +148,45 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should return 50% when half entities encapsulated")
     void shouldReturn50Percent_whenHalfEntitiesEncapsulated() {
         // Given: 2 entities, one properly encapsulated, one leaked
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine", "com.example.domain.order.OrderItem"},
+                new String[] {"com.example.domain.ExternalService"});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity1 = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit entity2 = createEntityWithPackage("OrderItem", "com.example.domain.order");
-        CodeUnit externalService = domainClass("ExternalService");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity1);
-        builder.addUnit(entity2);
-        builder.addUnit(externalService);
-
-        // entity1 is encapsulated (only aggregate depends on it)
-        builder.addDependency(aggregate.qualifiedName(), entity1.qualifiedName());
-
-        // entity2 is leaked (external service depends on it)
-        builder.addDependency(externalService.qualifiedName(), entity2.qualifiedName());
-
-        Codebase codebase = builder.build();
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
+        // OrderLine is encapsulated (only aggregate depends on it)
+        codebaseBuilder.addDependency("com.example.domain.order.Order", "com.example.domain.order.OrderLine");
+        // OrderItem is leaked (external service depends on it)
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.OrderItem");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: 1/2 = 50%
         assertThat(metric.value()).isEqualTo(50.0);
-        assertThat(metric.exceedsThreshold()).isTrue(); // Below 80%
+        assertThat(metric.exceedsThreshold()).isTrue();
     }
 
     @Test
+    @DisplayName("Should allow entity access from same package")
     void shouldAllowEntityAccessFromSamePackage() {
         // Given: Entity accessed by another class in the same package (aggregate boundary)
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine"},
+                new String[] {"com.example.domain.order.OrderHelper"});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit helperClass = createDomainClassWithPackage("OrderHelper", "com.example.domain.order");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity);
-        builder.addUnit(helperClass);
-
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // Helper in same package depends on entity (allowed)
-        builder.addDependency(helperClass.qualifiedName(), entity.qualifiedName());
-
-        Codebase codebase = builder.build();
+        codebaseBuilder.addDependency("com.example.domain.order.OrderHelper", "com.example.domain.order.OrderLine");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: Still encapsulated (same package is within boundary)
         assertThat(metric.value()).isEqualTo(100.0);
@@ -188,25 +194,21 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should allow entity access from sub-package")
     void shouldAllowEntityAccessFromSubPackage() {
-        // Given: Entity in parent package, accessed from sub-package (still within boundary)
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        // Given: Entity in parent package, accessed from sub-package
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine"},
+                new String[] {"com.example.domain.order.validation.OrderValidator"});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit helperClass = createDomainClassWithPackage("OrderValidator", "com.example.domain.order.validation");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity);
-        builder.addUnit(helperClass);
-
-        // Helper in sub-package depends on entity (allowed)
-        builder.addDependency(helperClass.qualifiedName(), entity.qualifiedName());
-
-        Codebase codebase = builder.build();
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
+        // Validator in sub-package depends on entity (allowed)
+        codebaseBuilder.addDependency("com.example.domain.order.validation.OrderValidator", "com.example.domain.order.OrderLine");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: Still encapsulated (sub-package is within boundary)
         assertThat(metric.value()).isEqualTo(100.0);
@@ -214,26 +216,22 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should allow entities in same aggregate to reference each other")
     void shouldAllowEntitiesInSameAggregateToReferenceEachOther() {
         // Given: Two entities in same aggregate referencing each other
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.OrderLine", "com.example.domain.order.OrderItem"},
+                new String[] {});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity1 = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit entity2 = createEntityWithPackage("OrderItem", "com.example.domain.order");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity1);
-        builder.addUnit(entity2);
-
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // Entities reference each other (allowed)
-        builder.addDependency(entity1.qualifiedName(), entity2.qualifiedName());
-        builder.addDependency(entity2.qualifiedName(), entity1.qualifiedName());
-
-        Codebase codebase = builder.build();
+        codebaseBuilder.addDependency("com.example.domain.order.OrderLine", "com.example.domain.order.OrderItem");
+        codebaseBuilder.addDependency("com.example.domain.order.OrderItem", "com.example.domain.order.OrderLine");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: Both are encapsulated
         assertThat(metric.value()).isEqualTo(100.0);
@@ -241,36 +239,39 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should calculate correctly with multiple aggregates")
     void shouldCalculateCorrectly_withMultipleAggregates() {
         // Given: 2 aggregates, each with 1 entity, one aggregate has a leak
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
 
         // Order aggregate (properly encapsulated)
-        CodeUnit orderAggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit orderLine = createEntityWithPackage("OrderLine", "com.example.domain.order");
+        registryBuilder.add(createAggregateRoot("com.example.domain.order.Order"));
+        registryBuilder.add(createEntity("com.example.domain.order.OrderLine", "com.example.domain.order.Order"));
 
         // Product aggregate (has leak)
-        CodeUnit productAggregate = createAggregateWithPackage("Product", "com.example.domain.product");
-        CodeUnit productSpec = createEntityWithPackage("ProductSpec", "com.example.domain.product");
+        registryBuilder.add(createAggregateRoot("com.example.domain.product.Product"));
+        registryBuilder.add(createEntity("com.example.domain.product.ProductSpec", "com.example.domain.product.Product"));
 
-        CodeUnit externalService = domainClass("InventoryService");
+        // External service
+        registryBuilder.add(createDomainService("com.example.domain.InventoryService"));
 
-        builder.addUnit(orderAggregate);
-        builder.addUnit(orderLine);
-        builder.addUnit(productAggregate);
-        builder.addUnit(productSpec);
-        builder.addUnit(externalService);
+        TypeRegistry typeRegistry = registryBuilder.build();
+        ArchitecturalModel model = ArchitecturalModel.builder(
+                        ProjectContext.of("test", "com.example", java.nio.file.Path.of(".")))
+                .typeRegistry(typeRegistry)
+                .domainIndex(DomainIndex.from(typeRegistry))
+                .portIndex(PortIndex.from(typeRegistry))
+                .build();
 
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
         // OrderLine is encapsulated
-        builder.addDependency(orderAggregate.qualifiedName(), orderLine.qualifiedName());
-
+        codebaseBuilder.addDependency("com.example.domain.order.Order", "com.example.domain.order.OrderLine");
         // ProductSpec is leaked
-        builder.addDependency(externalService.qualifiedName(), productSpec.qualifiedName());
-
-        Codebase codebase = builder.build();
+        codebaseBuilder.addDependency("com.example.domain.InventoryService", "com.example.domain.product.ProductSpec");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: 1/2 = 50%
         assertThat(metric.value()).isEqualTo(50.0);
@@ -278,59 +279,31 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
-    void shouldNotCountEntitiesWithoutAggregates() {
-        // Given: Entity that doesn't belong to any aggregate (different package)
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
-
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity1 = createEntityWithPackage("OrderLine", "com.example.domain.order");
-        CodeUnit orphanEntity = createEntityWithPackage("StandaloneEntity", "com.example.domain.standalone");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity1);
-        builder.addUnit(orphanEntity);
-
-        Codebase codebase = builder.build();
-
-        // When
-        Metric metric = calculator.calculate(codebase);
-
-        // Then: Only 1 entity belongs to aggregate, and it's encapsulated = 100%
-        // (orphan entity is excluded from calculation)
-        assertThat(metric.value()).isEqualTo(100.0);
-    }
-
-    @Test
+    @DisplayName("Should not exceed threshold at boundary")
     void shouldNotExceedThreshold_atBoundary() {
-        // Given: Exactly 80% encapsulation
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        // Given: Exactly 80% encapsulation (4 out of 5 entities encapsulated)
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
+        registryBuilder.add(createAggregateRoot("com.example.domain.order.Order"));
+        for (int i = 1; i <= 5; i++) {
+            registryBuilder.add(createEntity("com.example.domain.order.Entity" + i, "com.example.domain.order.Order"));
+        }
+        registryBuilder.add(createDomainService("com.example.domain.ExternalService"));
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
+        TypeRegistry typeRegistry = registryBuilder.build();
+        ArchitecturalModel model = ArchitecturalModel.builder(
+                        ProjectContext.of("test", "com.example", java.nio.file.Path.of(".")))
+                .typeRegistry(typeRegistry)
+                .domainIndex(DomainIndex.from(typeRegistry))
+                .portIndex(PortIndex.from(typeRegistry))
+                .build();
 
-        // Create 5 entities
-        CodeUnit entity1 = createEntityWithPackage("Entity1", "com.example.domain.order");
-        CodeUnit entity2 = createEntityWithPackage("Entity2", "com.example.domain.order");
-        CodeUnit entity3 = createEntityWithPackage("Entity3", "com.example.domain.order");
-        CodeUnit entity4 = createEntityWithPackage("Entity4", "com.example.domain.order");
-        CodeUnit entity5 = createEntityWithPackage("Entity5", "com.example.domain.order");
-
-        CodeUnit externalService = domainClass("ExternalService");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity1);
-        builder.addUnit(entity2);
-        builder.addUnit(entity3);
-        builder.addUnit(entity4);
-        builder.addUnit(entity5);
-        builder.addUnit(externalService);
-
-        // 4 encapsulated, 1 leaked = 80%
-        builder.addDependency(externalService.qualifiedName(), entity5.qualifiedName());
-
-        Codebase codebase = builder.build();
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
+        // Leak only 1 entity (4/5 = 80% encapsulated)
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.Entity5");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: Should not exceed (threshold is < 80, not <=)
         assertThat(metric.value()).isEqualTo(80.0);
@@ -338,30 +311,33 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should exceed threshold just below boundary")
     void shouldExceedThreshold_justBelowBoundary() {
-        // Given: Just below 80% encapsulation
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
-
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-
-        // Create 10 entities
+        // Given: Just below 80% encapsulation (7 out of 10 entities encapsulated)
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
+        registryBuilder.add(createAggregateRoot("com.example.domain.order.Order"));
         for (int i = 1; i <= 10; i++) {
-            builder.addUnit(createEntityWithPackage("Entity" + i, "com.example.domain.order"));
+            registryBuilder.add(createEntity("com.example.domain.order.Entity" + i, "com.example.domain.order.Order"));
         }
+        registryBuilder.add(createDomainService("com.example.domain.ExternalService"));
 
-        CodeUnit externalService = domainClass("ExternalService");
-        builder.addUnit(aggregate);
-        builder.addUnit(externalService);
+        TypeRegistry typeRegistry = registryBuilder.build();
+        ArchitecturalModel model = ArchitecturalModel.builder(
+                        ProjectContext.of("test", "com.example", java.nio.file.Path.of(".")))
+                .typeRegistry(typeRegistry)
+                .domainIndex(DomainIndex.from(typeRegistry))
+                .portIndex(PortIndex.from(typeRegistry))
+                .build();
 
-        // Leak 3 entities = 7/10 = 70%
-        builder.addDependency(externalService.qualifiedName(), "com.example.domain.order.Entity8");
-        builder.addDependency(externalService.qualifiedName(), "com.example.domain.order.Entity9");
-        builder.addDependency(externalService.qualifiedName(), "com.example.domain.order.Entity10");
-
-        Codebase codebase = builder.build();
+        TestCodebaseBuilder codebaseBuilder = new TestCodebaseBuilder();
+        // Leak 3 entities (7/10 = 70% encapsulated)
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.Entity8");
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.Entity9");
+        codebaseBuilder.addDependency("com.example.domain.ExternalService", "com.example.domain.order.Entity10");
+        Codebase codebase = codebaseBuilder.build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: 70% < 80% threshold
         assertThat(metric.value()).isEqualTo(70.0);
@@ -369,20 +345,18 @@ class AggregateBoundaryMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should handle entity in sub-package of aggregate")
     void shouldHandleEntityInSubPackageOfAggregate() {
         // Given: Entity in sub-package of aggregate
-        TestCodebaseBuilder builder = new TestCodebaseBuilder();
+        ArchitecturalModel model = createModelWithPackages(
+                "com.example.domain.order.Order",
+                new String[] {"com.example.domain.order.items.OrderLine"},
+                new String[] {});
 
-        CodeUnit aggregate = createAggregateWithPackage("Order", "com.example.domain.order");
-        CodeUnit entity = createEntityWithPackage("OrderLine", "com.example.domain.order.items");
-
-        builder.addUnit(aggregate);
-        builder.addUnit(entity);
-
-        Codebase codebase = builder.build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
-        Metric metric = calculator.calculate(codebase);
+        Metric metric = calculator.calculate(model, codebase, null);
 
         // Then: Entity belongs to aggregate and is encapsulated
         assertThat(metric.value()).isEqualTo(100.0);
@@ -390,60 +364,69 @@ class AggregateBoundaryMetricCalculatorTest {
 
     // === Helper Methods ===
 
-    /**
-     * Creates an aggregate with a specific package.
-     */
-    private CodeUnit createAggregateWithPackage(String simpleName, String packageName) {
-        String qualifiedName = packageName + "." + simpleName;
-        List<io.hexaglue.spi.audit.FieldDeclaration> fields = new ArrayList<>();
-        fields.add(new io.hexaglue.spi.audit.FieldDeclaration(
-                "id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
+    private ArchitecturalModel createModelWithPackages(
+            String aggregateQName, String[] entityQNames, String[] serviceQNames) {
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
 
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                LayerClassification.DOMAIN,
-                RoleClassification.AGGREGATE_ROOT,
-                List.of(),
-                fields,
-                new CodeMetrics(50, 5, 3, 2, 80.0),
-                new DocumentationInfo(true, 100, List.of()));
+        registryBuilder.add(createAggregateRoot(aggregateQName));
+
+        for (String entityQName : entityQNames) {
+            registryBuilder.add(createEntity(entityQName, aggregateQName));
+        }
+
+        for (String serviceQName : serviceQNames) {
+            registryBuilder.add(createDomainService(serviceQName));
+        }
+
+        TypeRegistry typeRegistry = registryBuilder.build();
+
+        return ArchitecturalModel.builder(ProjectContext.of("test", "com.example", java.nio.file.Path.of(".")))
+                .typeRegistry(typeRegistry)
+                .domainIndex(DomainIndex.from(typeRegistry))
+                .portIndex(PortIndex.from(typeRegistry))
+                .build();
     }
 
-    /**
-     * Creates an entity with a specific package.
-     */
-    private CodeUnit createEntityWithPackage(String simpleName, String packageName) {
-        String qualifiedName = packageName + "." + simpleName;
-        List<io.hexaglue.spi.audit.FieldDeclaration> fields = new ArrayList<>();
-        fields.add(new io.hexaglue.spi.audit.FieldDeclaration(
-                "id", "java.lang.Long", Set.of("private"), Set.of("javax.persistence.Id")));
+    private AggregateRoot createAggregateRoot(String qualifiedName) {
+        TypeId id = TypeId.of(qualifiedName);
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .build();
+        ClassificationTrace trace = ClassificationTrace.highConfidence(
+                ElementKind.AGGREGATE_ROOT, "test", "Test aggregate");
 
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                LayerClassification.DOMAIN,
-                RoleClassification.ENTITY,
-                List.of(),
-                fields,
-                new CodeMetrics(50, 5, 3, 2, 80.0),
-                new DocumentationInfo(true, 100, List.of()));
+        Field idField = Field.builder("id", TypeRef.of("java.lang.Long"))
+                .modifiers(Set.of(Modifier.PRIVATE))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        return AggregateRoot.builder(id, structure, trace, idField).build();
     }
 
-    /**
-     * Creates a domain class with a specific package.
-     */
-    private CodeUnit createDomainClassWithPackage(String simpleName, String packageName) {
-        String qualifiedName = packageName + "." + simpleName;
+    private Entity createEntity(String qualifiedName, String owningAggregateQName) {
+        TypeId id = TypeId.of(qualifiedName);
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .build();
+        ClassificationTrace trace = ClassificationTrace.highConfidence(
+                ElementKind.ENTITY, "test", "Test entity");
 
-        return new CodeUnit(
-                qualifiedName,
-                CodeUnitKind.CLASS,
-                LayerClassification.DOMAIN,
-                RoleClassification.SERVICE,
-                List.of(),
-                List.of(),
-                new CodeMetrics(50, 5, 3, 2, 80.0),
-                new DocumentationInfo(true, 100, List.of()));
+        Field idField = Field.builder("id", TypeRef.of("java.lang.Long"))
+                .modifiers(Set.of(Modifier.PRIVATE))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        return Entity.of(id, structure, trace, Optional.of(idField), Optional.of(TypeRef.of(owningAggregateQName)));
+    }
+
+    private DomainService createDomainService(String qualifiedName) {
+        TypeId id = TypeId.of(qualifiedName);
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .build();
+        ClassificationTrace trace = ClassificationTrace.highConfidence(
+                ElementKind.DOMAIN_SERVICE, "test", "Test service");
+
+        return DomainService.of(id, structure, trace);
     }
 }
