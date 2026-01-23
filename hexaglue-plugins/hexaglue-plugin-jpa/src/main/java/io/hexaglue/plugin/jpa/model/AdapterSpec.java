@@ -64,6 +64,7 @@ import java.util.List;
  * @param mapperClass the JavaPoet type of the MapStruct mapper
  * @param methods the list of methods to implement
  * @param idInfo the identity information for ID handling (may be null)
+ * @param isDomainRecord true if the domain class is a Java record
  * @since 2.0.0
  */
 public record AdapterSpec(
@@ -75,7 +76,8 @@ public record AdapterSpec(
         TypeName repositoryClass,
         TypeName mapperClass,
         List<AdapterMethodSpec> methods,
-        AdapterContext.IdInfo idInfo) {
+        AdapterContext.IdInfo idInfo,
+        boolean isDomainRecord) {
 
     public AdapterSpec {
         implementedPorts = implementedPorts != null ? List.copyOf(implementedPorts) : null;

@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.5.9</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.regression</groupId>
+    <artifactId>sample-regression-tests</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>HexaGlue Sample - Regression Tests</name>
+    <description>
+        Comprehensive example that exercises all CRITIQUE, HAUTE, and MOYENNE corrections.
+        This sample validates:
+        - C1: getById/loadById/fetchById methods in repository ports
+        - C2: Cross-aggregate identifiers (CustomerId in Order)
+        - C3: SQL reserved word "order" → "orders" table
+        - C4: JpaRepository signatures with unwrapped identifier types
+        - C5: JSON decimal format (Locale.US)
+        - H1: UseCase/UseCases driving port detection
+        - H2: Enum classification as VALUE_OBJECT (OrderStatus)
+        - H3: Coupling metric threshold direction
+        - H4: Classification rate display (* 100)
+        - M3: Nullability NON_NULL for primitives
+        - M4: Cardinality COLLECTION for List
+        - M5: Identity field not duplicated in diagrams
+        - M6: Valid Mermaid diagrams (empty subgraphs with placeholder)
+        - M7: Full generic types (List of Customer not just List)
+        - M9: DomainEvent interface not classified as DRIVING port
+        - M11: @AttributeOverrides for multiple embedded fields of same type
+        - M12: Adapter generation for boolean return types (existsByEmail)
+        - M13: No embeddable for simple wrappers (Quantity)
+        - M14: Collection relations displayed in diagrams
+    </description>
+
+    <properties>
+        <java.version>17</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <dependencies>
+        <!-- Spring Boot Starter Data JPA -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- H2 Database for testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+
+        <!-- MapStruct for mappers -->
+        <dependency>
+            <groupId>org.mapstruct</groupId>
+            <artifactId>mapstruct</artifactId>
+            <version>1.6.3</version>
+        </dependency>
+
+        <!-- Testing -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>io.hexaglue</groupId>
+                <artifactId>hexaglue-maven-plugin</artifactId>
+                <version>5.0.0-SNAPSHOT</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <basePackage>com.regression</basePackage>
+                </configuration>
+                <dependencies>
+                    <!-- Living Documentation Plugin -->
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-living-doc</artifactId>
+                        <version>2.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <!-- JPA Plugin -->
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-jpa</artifactId>
+                        <version>2.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <!-- DDD Audit Plugin -->
+                    <dependency>
+                        <groupId>io.hexaglue.plugins</groupId>
+                        <artifactId>hexaglue-plugin-audit</artifactId>
+                        <version>2.0.0-SNAPSHOT</version>
+                    </dependency>
+                    <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
+                    <dependency>
+                        <groupId>jakarta.persistence</groupId>
+                        <artifactId>jakarta.persistence-api</artifactId>
+                        <version>3.2.0</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>add-source</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.build.directory}/hexaglue/generated-sources</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>1.6.3</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>

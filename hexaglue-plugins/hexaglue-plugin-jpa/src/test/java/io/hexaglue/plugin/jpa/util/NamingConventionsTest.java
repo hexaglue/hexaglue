@@ -370,6 +370,46 @@ class NamingConventionsTest {
                 .hasMessage("Field name cannot be null or empty");
     }
 
+    @Test
+    void toColumnName_shouldSuffixReservedWordValue() {
+        // "value" is a SQL reserved word - generates invalid SQL if used as column name
+        String result = NamingConventions.toColumnName("value");
+
+        assertThat(result)
+                .as("SQL reserved word 'value' should be suffixed with '_col'")
+                .isEqualTo("value_col");
+    }
+
+    @Test
+    void toColumnName_shouldSuffixReservedWordKey() {
+        // "key" is a SQL reserved word
+        String result = NamingConventions.toColumnName("key");
+
+        assertThat(result)
+                .as("SQL reserved word 'key' should be suffixed with '_col'")
+                .isEqualTo("key_col");
+    }
+
+    @Test
+    void toColumnName_shouldSuffixReservedWordOrder() {
+        // "order" is a SQL reserved word
+        String result = NamingConventions.toColumnName("order");
+
+        assertThat(result)
+                .as("SQL reserved word 'order' should be suffixed with '_col'")
+                .isEqualTo("order_col");
+    }
+
+    @Test
+    void toColumnName_shouldNotSuffixNonReservedWords() {
+        // "email" is not a reserved word
+        String result = NamingConventions.toColumnName("email");
+
+        assertThat(result)
+                .as("Non-reserved word should not be suffixed")
+                .isEqualTo("email");
+    }
+
     // =====================================================================
     // toForeignKeyColumnName tests
     // =====================================================================

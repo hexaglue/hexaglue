@@ -320,13 +320,15 @@ public final class EntitySpecBuilder {
     /**
      * Detects embedded field conflicts and adds @AttributeOverride annotations.
      *
-     * <p>When multiple embedded fields of the same type exist in an entity, JPA requires
-     * {@code @AttributeOverride} annotations to specify distinct column names. This method:
+     * <p>This method adds {@code @AttributeOverride} annotations in two cases:
      * <ol>
-     *   <li>Groups embedded properties by their type qualified name</li>
-     *   <li>For types with multiple instances, retrieves the embeddable's fields</li>
-     *   <li>Generates attribute overrides with field-name-prefixed column names</li>
+     *   <li>When multiple embedded fields of the same type exist (column name conflicts)</li>
+     *   <li>When embedded attributes have SQL reserved word names (e.g., "value", "key")</li>
      * </ol>
+     *
+     * <p>For type conflicts, attribute overrides use field-name-prefixed column names.
+     * For SQL reserved words, the {@link NamingConventions#toColumnName} method handles
+     * the renaming (e.g., "value" → "value_col").
      *
      * @param properties the list of property field specs
      * @return the updated list with attribute overrides added where needed
@@ -341,18 +343,24 @@ public final class EntitySpecBuilder {
             }
         }
 
-        // Build list of types that need overrides (more than one instance)
+        // Build list of types that need overrides:
+        // 1. Types with multiple instances (column name conflicts)
+        // 2. Types with SQL reserved word attribute names
         Map<String, List<String>> typeToAttributeNames = new HashMap<>();
         for (Map.Entry<String, List<PropertyFieldSpec>> entry : embeddedByType.entrySet()) {
-            if (entry.getValue().size() > 1) {
-                List<String> attributeNames = findEmbeddableAttributeNames(entry.getKey());
-                if (!attributeNames.isEmpty()) {
+            List<String> attributeNames = findEmbeddableAttributeNames(entry.getKey());
+            if (!attributeNames.isEmpty()) {
+                boolean hasMultipleInstances = entry.getValue().size() > 1;
+                boolean hasReservedWordAttributes = attributeNames.stream()
+                        .anyMatch(attr -> !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
+
+                if (hasMultipleInstances || hasReservedWordAttributes) {
                     typeToAttributeNames.put(entry.getKey(), attributeNames);
                 }
             }
         }
 
-        // If no conflicts, return as-is
+        // If no overrides needed, return as-is
         if (typeToAttributeNames.isEmpty()) {
             return properties;
         }
@@ -363,10 +371,19 @@ public final class EntitySpecBuilder {
             if (prop.shouldBeEmbedded() && typeToAttributeNames.containsKey(prop.typeQualifiedName())) {
                 // Create attribute overrides for this field
                 List<String> attributeNames = typeToAttributeNames.get(prop.typeQualifiedName());
+                boolean hasMultipleInstances = embeddedByType.get(prop.typeQualifiedName()).size() > 1;
                 List<AttributeOverride> overrides = new ArrayList<>();
+
                 for (String attrName : attributeNames) {
-                    String columnName = NamingConventions.toSnakeCase(prop.fieldName())
-                            + "_" + NamingConventions.toSnakeCase(attrName);
+                    String columnName;
+                    if (hasMultipleInstances) {
+                        // Multiple instances: prefix with field name
+                        columnName = NamingConventions.toSnakeCase(prop.fieldName())
+                                + "_" + NamingConventions.toColumnName(attrName);
+                    } else {
+                        // Single instance with reserved word: just use safe column name
+                        columnName = NamingConventions.toColumnName(attrName);
+                    }
                     overrides.add(new AttributeOverride(attrName, columnName));
                 }
 
@@ -466,8 +483,11 @@ public final class EntitySpecBuilder {
     /**
      * Detects embedded relation conflicts and adds @AttributeOverride annotations.
      *
-     * <p>When multiple EMBEDDED relations of the same type exist in an entity, JPA requires
-     * {@code @AttributeOverride} annotations to specify distinct column names.
+     * <p>This method adds {@code @AttributeOverride} annotations in two cases:
+     * <ol>
+     *   <li>When multiple EMBEDDED relations of the same type exist (column name conflicts)</li>
+     *   <li>When embedded attributes have SQL reserved word names (e.g., "value", "key")</li>
+     * </ol>
      *
      * @param relations the list of relation field specs
      * @return the updated list with attribute overrides added where needed
@@ -484,21 +504,28 @@ public final class EntitySpecBuilder {
             }
         }
 
-        // Build list of types that need overrides (more than one instance)
+        // Build list of types that need overrides:
+        // 1. Types with multiple instances (column name conflicts)
+        // 2. Types with SQL reserved word attribute names
         Map<String, List<String>> typeToAttributeNames = new HashMap<>();
         for (Map.Entry<String, List<RelationFieldSpec>> entry : embeddedByType.entrySet()) {
-            if (entry.getValue().size() > 1) {
-                // Find the domain type from embeddable mapping
-                String embeddableFqn = entry.getKey();
-                String domainType = findDomainTypeFromEmbeddable(embeddableFqn);
-                List<String> attributeNames = findEmbeddableAttributeNames(domainType);
-                if (!attributeNames.isEmpty()) {
+            // Find the domain type from embeddable mapping
+            String embeddableFqn = entry.getKey();
+            String domainType = findDomainTypeFromEmbeddable(embeddableFqn);
+            List<String> attributeNames = findEmbeddableAttributeNames(domainType);
+
+            if (!attributeNames.isEmpty()) {
+                boolean hasMultipleInstances = entry.getValue().size() > 1;
+                boolean hasReservedWordAttributes = attributeNames.stream()
+                        .anyMatch(attr -> !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
+
+                if (hasMultipleInstances || hasReservedWordAttributes) {
                     typeToAttributeNames.put(embeddableFqn, attributeNames);
                 }
             }
         }
 
-        // If no conflicts, return as-is
+        // If no overrides needed, return as-is
         if (typeToAttributeNames.isEmpty()) {
             return relations;
         }
@@ -511,10 +538,19 @@ public final class EntitySpecBuilder {
                     && typeToAttributeNames.containsKey(targetTypeName)) {
                 // Create attribute overrides for this relation
                 List<String> attributeNames = typeToAttributeNames.get(targetTypeName);
+                boolean hasMultipleInstances = embeddedByType.get(targetTypeName).size() > 1;
                 List<AttributeOverride> overrides = new ArrayList<>();
+
                 for (String attrName : attributeNames) {
-                    String columnName = NamingConventions.toSnakeCase(rel.fieldName())
-                            + "_" + NamingConventions.toSnakeCase(attrName);
+                    String columnName;
+                    if (hasMultipleInstances) {
+                        // Multiple instances: prefix with field name
+                        columnName = NamingConventions.toSnakeCase(rel.fieldName())
+                                + "_" + NamingConventions.toColumnName(attrName);
+                    } else {
+                        // Single instance with reserved word: just use safe column name
+                        columnName = NamingConventions.toColumnName(attrName);
+                    }
                     overrides.add(new AttributeOverride(attrName, columnName));
                 }
 
@@ -569,6 +605,11 @@ public final class EntitySpecBuilder {
             return false;
         }
 
+        // Enums should NOT be treated as relations - they use @Enumerated(EnumType.STRING)
+        if (isEnumType(field)) {
+            return false;
+        }
+
         // Check roles
         if (field.hasRole(FieldRole.COLLECTION)
                 || field.hasRole(FieldRole.AGGREGATE_REFERENCE)
@@ -610,6 +651,29 @@ public final class EntitySpecBuilder {
         String typeFqn = field.type().qualifiedName();
         return domainIndex.identifiers()
                 .anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
+    }
+
+    /**
+     * Checks if a field's type is an enum in the domain model.
+     *
+     * <p>Enum types classified as VALUE_OBJECT should be persisted with
+     * {@code @Enumerated(EnumType.STRING)}, not as embedded relations.
+     *
+     * @param field the field to check
+     * @return true if the field type is a VALUE_OBJECT with TypeNature.ENUM
+     * @since 2.0.0
+     */
+    private boolean isEnumType(Field field) {
+        var domainIndexOpt = architecturalModel.domainIndex();
+        if (domainIndexOpt.isEmpty()) {
+            return false;
+        }
+        var domainIndex = domainIndexOpt.get();
+        String typeFqn = field.type().qualifiedName();
+        return domainIndex.valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(typeFqn))
+                .anyMatch(vo -> vo.structure() != null
+                        && vo.structure().nature() == io.hexaglue.arch.model.TypeNature.ENUM);
     }
 
     /**

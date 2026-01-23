@@ -235,7 +235,8 @@ public final class NamingConventions {
     /**
      * Generates a database column name from a field name.
      *
-     * <p>Simply converts the field name to snake_case following SQL conventions.
+     * <p>Converts the field name to snake_case following SQL conventions.
+     * SQL reserved words are suffixed with {@code _col} to avoid syntax errors.
      *
      * <p>Examples:
      * <ul>
@@ -243,18 +244,28 @@ public final class NamingConventions {
      *   <li>{@code id} → {@code id}</li>
      *   <li>{@code totalAmount} → {@code total_amount}</li>
      *   <li>{@code createdAt} → {@code created_at}</li>
+     *   <li>{@code value} → {@code value_col} (reserved word)</li>
+     *   <li>{@code key} → {@code key_col} (reserved word)</li>
      * </ul>
      *
      * @param fieldName the Java field name in camelCase
      * @return the database column name in snake_case
      * @throws IllegalArgumentException if fieldName is null or empty
+     * @since 2.0.0
      */
     public static String toColumnName(String fieldName) {
         if (fieldName == null || fieldName.isEmpty()) {
             throw new IllegalArgumentException("Field name cannot be null or empty");
         }
 
-        return toSnakeCase(fieldName);
+        String columnName = toSnakeCase(fieldName);
+
+        // Handle SQL reserved words by adding _col suffix
+        if (SQL_RESERVED_WORDS.contains(columnName)) {
+            columnName = columnName + "_col";
+        }
+
+        return columnName;
     }
 
     /**
