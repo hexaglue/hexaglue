@@ -20,6 +20,7 @@ import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.Conflict;
 import io.hexaglue.core.classification.ConflictSeverity;
 import io.hexaglue.core.classification.MatchResult;
+import io.hexaglue.core.classification.domain.criteria.DomainEnumCriteria;
 import io.hexaglue.core.classification.domain.criteria.EmbeddedValueObjectCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitAggregateRootCriteria;
 import io.hexaglue.core.classification.domain.criteria.ExplicitDomainEventCriteria;
@@ -106,6 +107,8 @@ public final class DomainClassifier {
                 new RecordSingleIdCriteria(),
                 // Inherited classification (priority 75)
                 new InheritedClassificationCriteria(),
+                // Enum classification (priority 72)
+                new DomainEnumCriteria(),
                 // Medium heuristics (priority 70)
                 new EmbeddedValueObjectCriteria());
     }

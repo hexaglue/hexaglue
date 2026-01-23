@@ -120,8 +120,16 @@ public final class SignatureBasedDrivenPortCriteria implements PortClassificatio
 
     private boolean looksLikeDrivingPort(TypeNode node) {
         String name = node.simpleName();
+        String pkg = node.packageName();
+
+        // Skip interfaces in driving port packages
+        if (pkg.contains(".ports.in") || pkg.contains(".port.in") || pkg.endsWith(".api")) {
+            return true;
+        }
+
         // Skip use case / command / query patterns
         return name.endsWith("UseCase")
+                || name.endsWith("UseCases") // plural form
                 || name.endsWith("Command")
                 || name.endsWith("Query")
                 || name.endsWith("Handler")
