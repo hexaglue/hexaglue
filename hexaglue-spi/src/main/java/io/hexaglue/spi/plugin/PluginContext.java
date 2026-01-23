@@ -205,7 +205,7 @@ public interface PluginContext {
      * <pre>{@code
      * context.classificationReport().ifPresent(report -> {
      *     diagnostics().info("Classification rate: " +
-     *         report.stats().classificationRate() + "%");
+     *         (report.stats().classificationRate() * 100) + "%");
      *
      *     report.actionRequired().forEach(unclassified ->
      *         diagnostics().warn("Needs attention: " +

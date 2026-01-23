@@ -96,7 +96,7 @@ public class CouplingMetricCalculator implements MetricCalculator {
                     0.0,
                     "ratio",
                     "Average package coupling (no packages found)",
-                    MetricThreshold.lessThan(WARNING_THRESHOLD));
+                    MetricThreshold.greaterThan(WARNING_THRESHOLD));
         }
 
         // Calculate average instability (judgment)
@@ -114,7 +114,7 @@ public class CouplingMetricCalculator implements MetricCalculator {
                 averageCoupling, problematicCount, allMetrics.size());
 
         return Metric.of(
-                METRIC_NAME, averageCoupling, "ratio", description, MetricThreshold.lessThan(WARNING_THRESHOLD));
+                METRIC_NAME, averageCoupling, "ratio", description, MetricThreshold.greaterThan(WARNING_THRESHOLD));
     }
 
     /**

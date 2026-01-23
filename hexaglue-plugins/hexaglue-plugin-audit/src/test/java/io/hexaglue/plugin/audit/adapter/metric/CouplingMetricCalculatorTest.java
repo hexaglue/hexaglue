@@ -340,6 +340,61 @@ class CouplingMetricCalculatorTest {
     }
 
     @Test
+    @DisplayName("Should NOT exceed threshold when low instability with ArchitectureQuery")
+    void shouldNotExceedThreshold_whenLowInstabilityWithArchitectureQuery() {
+        // Given: Mock ArchitectureQuery with LOW instability (good coupling)
+        ArchitectureQuery mockQuery = mock(ArchitectureQuery.class);
+        Codebase mockCodebase = mock(Codebase.class);
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+
+        // CouplingMetrics(packageName, Ca, Ce, abstractness)
+        // Instability I = Ce / (Ca + Ce)
+        // pkg1: Ca=4, Ce=1 → I = 1/5 = 0.2
+        // pkg2: Ca=3, Ce=1 → I = 1/4 = 0.25
+        CouplingMetrics pkg1Metrics = new CouplingMetrics("com.example.pkg1", 4, 1, 0.5);
+        CouplingMetrics pkg2Metrics = new CouplingMetrics("com.example.pkg2", 3, 1, 0.5);
+
+        when(mockQuery.analyzeAllPackageCoupling()).thenReturn(List.of(pkg1Metrics, pkg2Metrics));
+
+        // When
+        Metric metric = calculator.calculate(model, mockCodebase, mockQuery);
+
+        // Then: Average instability = (0.2 + 0.25) / 2 = 0.225, well below threshold of 0.7
+        assertThat(metric.value()).isCloseTo(0.225, org.assertj.core.data.Offset.offset(0.01));
+        // BUG H3: This should be FALSE (low instability is good), but bug causes TRUE
+        assertThat(metric.exceedsThreshold())
+                .as("Low instability (0.225) should NOT exceed threshold (0.7)")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("Should exceed threshold when HIGH instability with ArchitectureQuery")
+    void shouldExceedThreshold_whenHighInstabilityWithArchitectureQuery() {
+        // Given: Mock ArchitectureQuery with HIGH instability (bad coupling)
+        ArchitectureQuery mockQuery = mock(ArchitectureQuery.class);
+        Codebase mockCodebase = mock(Codebase.class);
+        ArchitecturalModel model = TestModelBuilder.emptyModel();
+
+        // CouplingMetrics(packageName, Ca, Ce, abstractness)
+        // Instability I = Ce / (Ca + Ce)
+        // pkg1: Ca=1, Ce=4 → I = 4/5 = 0.8
+        // pkg2: Ca=1, Ce=9 → I = 9/10 = 0.9
+        CouplingMetrics pkg1Metrics = new CouplingMetrics("com.example.pkg1", 1, 4, 0.5);
+        CouplingMetrics pkg2Metrics = new CouplingMetrics("com.example.pkg2", 1, 9, 0.5);
+
+        when(mockQuery.analyzeAllPackageCoupling()).thenReturn(List.of(pkg1Metrics, pkg2Metrics));
+
+        // When
+        Metric metric = calculator.calculate(model, mockCodebase, mockQuery);
+
+        // Then: Average instability = (0.8 + 0.9) / 2 = 0.85, above threshold of 0.7
+        assertThat(metric.value()).isCloseTo(0.85, org.assertj.core.data.Offset.offset(0.01));
+        assertThat(metric.exceedsThreshold())
+                .as("High instability (0.85) SHOULD exceed threshold (0.7)")
+                .isTrue();
+    }
+
+    @Test
     @DisplayName("Should fallback to legacy when ArchitectureQuery is null")
     void shouldFallbackToLegacy_whenArchitectureQueryIsNull() {
         // Given: Model with aggregates but no ArchitectureQuery

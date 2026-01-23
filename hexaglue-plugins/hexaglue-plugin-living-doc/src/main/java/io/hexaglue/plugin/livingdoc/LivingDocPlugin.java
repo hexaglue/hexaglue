@@ -184,12 +184,12 @@ public final class LivingDocPlugin implements GeneratorPlugin {
             if (report.hasIssues()) {
                 diagnostics.warn(String.format(
                         "Classification quality: %.1f%% (%d types may need review)",
-                        report.stats().classificationRate(),
+                        report.stats().classificationRate() * 100,
                         report.actionRequired().size()));
             } else {
                 diagnostics.info(String.format(
                         "Classification quality: %.1f%% (all types classified)",
-                        report.stats().classificationRate()));
+                        report.stats().classificationRate() * 100));
             }
         });
     }

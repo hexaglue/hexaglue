@@ -528,7 +528,7 @@ public final class JpaPlugin implements GeneratorPlugin {
             if (report.hasIssues()) {
                 diagnostics.info(String.format(
                         "Classification rate: %.1f%% (%d types need attention)",
-                        report.stats().classificationRate(),
+                        report.stats().classificationRate() * 100,
                         report.actionRequired().size()));
 
                 report.actionRequired().stream().limit(5).forEach(unclassified -> {
