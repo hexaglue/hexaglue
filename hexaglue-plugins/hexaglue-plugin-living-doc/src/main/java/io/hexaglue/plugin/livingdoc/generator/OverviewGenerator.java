@@ -72,6 +72,7 @@ public final class OverviewGenerator {
                 .row("Aggregate Roots", String.valueOf(model.aggregateRoots().size()))
                 .row("Entities", String.valueOf(model.entities().size()))
                 .row("Value Objects", String.valueOf(model.valueObjects().size()))
+                .row("Identifiers", String.valueOf(model.identifiers().size()))
                 .row("Driving Ports", String.valueOf(model.drivingPorts().size()))
                 .row("Driven Ports", String.valueOf(model.drivenPorts().size()))
                 .end();
@@ -176,6 +177,16 @@ public final class OverviewGenerator {
             var table = md.table("Name", "Package", "Type");
             for (DocType vo : valueObjects) {
                 table.row(vo.simpleName(), "`" + vo.packageName() + "`", vo.construct());
+            }
+            table.end();
+        }
+
+        List<DocType> identifiers = model.identifiers();
+        if (!identifiers.isEmpty()) {
+            md.h3("Identifiers");
+            var table = md.table("Name", "Package", "Type");
+            for (DocType id : identifiers) {
+                table.row(id.simpleName(), "`" + id.packageName() + "`", id.construct());
             }
             table.end();
         }

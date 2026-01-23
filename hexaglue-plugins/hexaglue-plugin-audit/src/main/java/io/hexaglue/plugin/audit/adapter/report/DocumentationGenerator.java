@@ -582,9 +582,8 @@ public final class DocumentationGenerator {
             md.append("|---------|:--:|:--:|:-:|:-:|:-:|------|\n");
 
             for (var m : couplingMetrics) {
-                String zone = "";
-                if (m.isInZoneOfPain()) zone = "Pain";
-                if (m.isInZoneOfUselessness()) zone = "Useless";
+                // B3: Use context-aware zone labels for domain packages
+                String zone = m.getZoneLabel();
                 md.append("| `")
                         .append(m.packageName())
                         .append("` | ")

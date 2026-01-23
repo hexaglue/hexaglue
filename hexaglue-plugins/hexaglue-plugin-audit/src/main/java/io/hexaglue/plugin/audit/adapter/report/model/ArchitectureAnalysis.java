@@ -260,5 +260,58 @@ public record ArchitectureAnalysis(
             // Zone of uselessness: high instability (unstable) and high abstractness
             return instability > 0.7 && abstractness > 0.7;
         }
+
+        /**
+         * Returns true if this package is a domain/core package where stability is expected.
+         *
+         * <p>Domain packages in DDD/Hexagonal architecture are expected to be stable
+         * and concrete. Being in the "Zone of Pain" is normal for these packages.
+         *
+         * @return true if package name suggests it's a domain package
+         * @since 5.0.0
+         */
+        public boolean isDomainPackage() {
+            String lower = packageName.toLowerCase();
+            return lower.contains(".domain")
+                    || lower.contains(".core")
+                    || lower.contains(".model")
+                    || lower.endsWith("domain")
+                    || lower.endsWith("core");
+        }
+
+        /**
+         * Returns the zone label with context for domain packages.
+         *
+         * <p>For domain packages in Zone of Pain, returns "Stable Core" instead
+         * of "Pain" to indicate this is expected behavior.
+         *
+         * @return the zone label with appropriate context
+         * @since 5.0.0
+         */
+        public String getZoneLabel() {
+            if (isInZoneOfPain()) {
+                return isDomainPackage() ? "Stable Core" : "Pain";
+            }
+            if (isInZoneOfUselessness()) {
+                return "Useless";
+            }
+            return "";
+        }
+
+        /**
+         * Returns the zone emoji with context for domain packages.
+         *
+         * @return emoji representation of the zone
+         * @since 5.0.0
+         */
+        public String getZoneEmoji() {
+            if (isInZoneOfPain()) {
+                return isDomainPackage() ? "✅" : "🔥";
+            }
+            if (isInZoneOfUselessness()) {
+                return "⚠️";
+            }
+            return "";
+        }
     }
 }

@@ -81,4 +81,20 @@ public record RepositorySpec(
         int lastDot = domainQualifiedName.lastIndexOf('.');
         return lastDot < 0 ? domainQualifiedName : domainQualifiedName.substring(lastDot + 1);
     }
+
+    /**
+     * Returns the simple name of the JPA entity.
+     *
+     * @return the simple name extracted from entityType
+     * @since 2.0.0
+     */
+    public String entitySimpleName() {
+        if (entityType instanceof com.palantir.javapoet.ClassName className) {
+            return className.simpleName();
+        }
+        // Fallback: extract from toString() if not a ClassName
+        String typeString = entityType.toString();
+        int lastDot = typeString.lastIndexOf('.');
+        return lastDot < 0 ? typeString : typeString.substring(lastDot + 1);
+    }
 }

@@ -128,15 +128,31 @@ public final class PortContentSelector {
     }
 
     private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {
-        // TypeStructure doesn't track source location - provide defaults
-        String sourceFile = null;
-        int lineStart = 0;
+        // B4: TypeStructure doesn't track exact source location, but we can derive
+        // the expected file path from the qualified name
+        String sourceFile = deriveSourceFilePath(qualifiedName);
+        int lineStart = 0; // Exact line numbers not available without syntax-level info
         int lineEnd = 0;
 
+        // B6: Store annotation qualified names (renderer adds "@" prefix and simplifies)
         List<String> annotations =
-                structure.annotations().stream().map(a -> "@" + a.simpleName()).collect(Collectors.toList());
+                structure.annotations().stream().map(a -> a.qualifiedName()).collect(Collectors.toList());
 
         return new DebugInfo(qualifiedName, annotations, sourceFile, lineStart, lineEnd);
+    }
+
+    /**
+     * Derives the expected source file path from a fully qualified class name.
+     *
+     * @param qualifiedName the fully qualified class name
+     * @return the expected source file path
+     * @since 5.0.0
+     */
+    private String deriveSourceFilePath(String qualifiedName) {
+        if (qualifiedName == null || qualifiedName.isEmpty()) {
+            return null;
+        }
+        return qualifiedName.replace('.', '/') + ".java";
     }
 
     private PortKind toPortKind(DrivenPortType portType) {

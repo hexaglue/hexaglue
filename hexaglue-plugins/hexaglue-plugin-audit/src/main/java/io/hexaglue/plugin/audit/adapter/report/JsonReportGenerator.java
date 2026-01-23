@@ -379,7 +379,14 @@ public final class JsonReportGenerator implements ReportGenerator {
                         .append(",\n");
                 json.append("        \"zoneOfUselessness\": ")
                         .append(m.isInZoneOfUselessness())
-                        .append("\n");
+                        .append(",\n");
+                // B3: Add context for domain packages where stability is expected
+                json.append("        \"isDomainPackage\": ")
+                        .append(m.isDomainPackage())
+                        .append(",\n");
+                json.append("        \"zoneContext\": \"")
+                        .append(m.getZoneLabel())
+                        .append("\"\n");
                 json.append("      }");
                 if (i < metrics.size() - 1) json.append(",");
                 json.append("\n");

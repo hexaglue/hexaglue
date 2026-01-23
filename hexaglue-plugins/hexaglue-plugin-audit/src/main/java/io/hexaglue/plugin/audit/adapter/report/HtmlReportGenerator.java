@@ -396,8 +396,13 @@ public final class HtmlReportGenerator implements ReportGenerator {
                         .append(String.format("%.2f", m.distance()))
                         .append("</td>\n");
                 html.append("          <td>");
+                // B3: Use context-aware zone labels for domain packages
                 if (m.isInZoneOfPain()) {
-                    html.append("<span class=\"badge badge-error\">Zone of Pain</span>");
+                    if (m.isDomainPackage()) {
+                        html.append("<span class=\"badge badge-ok\">Stable Core</span>");
+                    } else {
+                        html.append("<span class=\"badge badge-error\">Zone of Pain</span>");
+                    }
                 } else if (m.isInZoneOfUselessness()) {
                     html.append("<span class=\"badge badge-warning\">Zone of Uselessness</span>");
                 } else {

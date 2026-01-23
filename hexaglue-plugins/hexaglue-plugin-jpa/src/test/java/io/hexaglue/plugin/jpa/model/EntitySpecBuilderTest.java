@@ -56,7 +56,8 @@ class EntitySpecBuilderTest {
                 "java.lang.String",
                 false,
                 null,
-                null);
+                null,
+                java.util.List.of());
 
         PropertyFieldSpec property2 = new PropertyFieldSpec(
                 "email",
@@ -69,7 +70,8 @@ class EntitySpecBuilderTest {
                 "java.lang.String",
                 false,
                 null,
-                null);
+                null,
+                java.util.List.of());
 
         RelationFieldSpec relation = new RelationFieldSpec(
                 "address",
@@ -292,7 +294,8 @@ class EntitySpecBuilderTest {
                 "java.lang.String",
                 false,
                 null,
-                null);
+                null,
+                java.util.List.of());
 
         // When: Building spec
         EntitySpec spec = EntitySpec.builder()

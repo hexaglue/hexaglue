@@ -507,7 +507,7 @@ public record AuditReport(
                 violation.message(),
                 affectedType,
                 location,
-                ""); // evidence not in SPI yet
+                violation.evidence());
     }
 
     private static MetricEntry convertMetric(Metric metric) {

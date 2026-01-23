@@ -28,6 +28,7 @@ import java.util.List;
  *   <li>A descriptive message</li>
  *   <li>The types affected by the violation</li>
  *   <li>The source location where the violation occurred</li>
+ *   <li>Evidence supporting the violation detection</li>
  * </ul>
  *
  * @param ruleId        the unique identifier of the violated rule
@@ -35,6 +36,7 @@ import java.util.List;
  * @param message       the human-readable violation description
  * @param affectedTypes the fully qualified names of types affected by this violation
  * @param location      the source code location where the violation occurred
+ * @param evidence      textual evidence supporting the violation detection
  * @since 3.0.0
  */
 public record RuleViolation(
@@ -42,13 +44,15 @@ public record RuleViolation(
         Severity severity,
         String message,
         List<String> affectedTypes,
-        SourceLocation location) {
+        SourceLocation location,
+        String evidence) {
 
     /**
      * Compact constructor with defensive copy.
      */
     public RuleViolation {
         affectedTypes = affectedTypes != null ? List.copyOf(affectedTypes) : List.of();
+        evidence = evidence != null ? evidence : "";
     }
 
     /**
@@ -62,7 +66,7 @@ public record RuleViolation(
      * @since 5.0.0
      */
     public static RuleViolation of(String ruleId, Severity severity, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, severity, message, List.of(), location);
+        return new RuleViolation(ruleId, severity, message, List.of(), location, "");
     }
 
     /**
@@ -74,7 +78,7 @@ public record RuleViolation(
      * @return a new RuleViolation
      */
     public static RuleViolation info(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.INFO, message, List.of(), location);
+        return new RuleViolation(ruleId, Severity.INFO, message, List.of(), location, "");
     }
 
     /**
@@ -89,7 +93,7 @@ public record RuleViolation(
      */
     public static RuleViolation info(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.INFO, message, affectedTypes, location);
+        return new RuleViolation(ruleId, Severity.INFO, message, affectedTypes, location, "");
     }
 
     /**
@@ -101,7 +105,7 @@ public record RuleViolation(
      * @return a new RuleViolation
      */
     public static RuleViolation warning(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.MAJOR, message, List.of(), location);
+        return new RuleViolation(ruleId, Severity.MAJOR, message, List.of(), location, "");
     }
 
     /**
@@ -116,7 +120,7 @@ public record RuleViolation(
      */
     public static RuleViolation warning(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.MAJOR, message, affectedTypes, location);
+        return new RuleViolation(ruleId, Severity.MAJOR, message, affectedTypes, location, "");
     }
 
     /**
@@ -128,7 +132,7 @@ public record RuleViolation(
      * @return a new RuleViolation
      */
     public static RuleViolation error(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.CRITICAL, message, List.of(), location);
+        return new RuleViolation(ruleId, Severity.CRITICAL, message, List.of(), location, "");
     }
 
     /**
@@ -143,7 +147,7 @@ public record RuleViolation(
      */
     public static RuleViolation error(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.CRITICAL, message, affectedTypes, location);
+        return new RuleViolation(ruleId, Severity.CRITICAL, message, affectedTypes, location, "");
     }
 
     /**
