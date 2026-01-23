@@ -212,16 +212,74 @@ class NamingConventionsTest {
 
     @Test
     void toTableName_shouldConvertWithoutPrefix() {
+        String result = NamingConventions.toTableName("Product", "");
+
+        assertThat(result).isEqualTo("product");
+    }
+
+    @Test
+    void toTableName_C3_shouldPluralizeReservedWordOrder() {
+        // C3 BUG: "order" is a SQL reserved word - generates invalid SQL
+        // SELECT * FROM order → SQL syntax error
+        // SELECT * FROM orders → OK
         String result = NamingConventions.toTableName("Order", "");
 
-        assertThat(result).isEqualTo("order");
+        assertThat(result)
+                .as("SQL reserved word 'order' should be pluralized to 'orders'")
+                .isEqualTo("orders");
+    }
+
+    @Test
+    void toTableName_shouldPluralizeReservedWordUser() {
+        // "user" is reserved in PostgreSQL, MySQL, and SQL Server
+        String result = NamingConventions.toTableName("User", "");
+
+        assertThat(result)
+                .as("SQL reserved word 'user' should be pluralized to 'users'")
+                .isEqualTo("users");
+    }
+
+    @Test
+    void toTableName_shouldPluralizeReservedWordGroup() {
+        // "group" is reserved in SQL
+        String result = NamingConventions.toTableName("Group", "");
+
+        assertThat(result)
+                .as("SQL reserved word 'group' should be pluralized to 'groups'")
+                .isEqualTo("groups");
+    }
+
+    @Test
+    void toTableName_shouldNotPluralizeNonReservedWords() {
+        // "customer" is not a reserved word
+        String result = NamingConventions.toTableName("Customer", "");
+
+        assertThat(result)
+                .as("Non-reserved word should not be pluralized")
+                .isEqualTo("customer");
+    }
+
+    @Test
+    void toTableName_shouldNotDoublePluralize() {
+        // If entity is already plural, don't add extra 's'
+        String result = NamingConventions.toTableName("Orders", "");
+
+        assertThat(result).isEqualTo("orders");
     }
 
     @Test
     void toTableName_shouldConvertWithPrefix() {
+        String result = NamingConventions.toTableName("Product", "tbl_");
+
+        assertThat(result).isEqualTo("tbl_product");
+    }
+
+    @Test
+    void toTableName_shouldConvertReservedWordWithPrefix() {
+        // Reserved word "order" should be pluralized even with prefix
         String result = NamingConventions.toTableName("Order", "tbl_");
 
-        assertThat(result).isEqualTo("tbl_order");
+        assertThat(result).isEqualTo("tbl_orders");
     }
 
     @Test

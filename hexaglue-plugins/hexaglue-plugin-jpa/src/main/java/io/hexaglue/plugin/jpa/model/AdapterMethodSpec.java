@@ -182,7 +182,8 @@ public record AdapterMethodSpec(
         if (name.equals("saveAll")) {
             return MethodKind.SAVE_ALL;
         }
-        if (name.equals("findById")) {
+        // C1 fix: recognize common naming conventions for find-by-id operations
+        if (name.equals("findById") || name.equals("getById") || name.equals("loadById") || name.equals("fetchById")) {
             return MethodKind.FIND_BY_ID;
         }
         if (name.equals("findAll")) {

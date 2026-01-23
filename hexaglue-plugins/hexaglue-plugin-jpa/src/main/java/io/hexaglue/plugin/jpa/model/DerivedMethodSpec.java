@@ -16,11 +16,14 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.spi.ir.MethodKind;
 import io.hexaglue.spi.ir.MethodParameter;
 import io.hexaglue.spi.ir.PortMethod;
 import io.hexaglue.spi.ir.TypeRef;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * Specification for a derived query method to be generated in the Spring Data JPA repository.
@@ -88,12 +91,19 @@ public record DerivedMethodSpec(
      * <p>This factory method transforms the v5 representation to the plugin's internal
      * specification, inferring method kind from the method name pattern.
      *
+     * <p>C4 fix: If a DomainIndex is provided, Identifier types in parameters are
+     * resolved to their wrapped types (e.g., CustomerId → UUID).
+     *
      * @param method the Method from the architectural model
      * @param entityTypeName the entity class name to use for return types
+     * @param domainIndex optional domain index for Identifier type resolution
      * @return a new DerivedMethodSpec, or null if the method should not be generated
      * @since 5.0.0
      */
-    public static DerivedMethodSpec fromV5(io.hexaglue.arch.model.Method method, TypeName entityTypeName) {
+    public static DerivedMethodSpec fromV5(
+            io.hexaglue.arch.model.Method method,
+            TypeName entityTypeName,
+            Optional<DomainIndex> domainIndex) {
         String methodName = method.name();
 
         // Infer method kind from name pattern
@@ -105,9 +115,23 @@ public record DerivedMethodSpec(
         }
 
         TypeName returnType = resolveReturnType(method, kind, entityTypeName);
-        List<ParameterSpec> params = buildParameters(method);
+        List<ParameterSpec> params = buildParameters(method, domainIndex);
 
         return new DerivedMethodSpec(methodName, returnType, params, kind);
+    }
+
+    /**
+     * Creates a DerivedMethodSpec from a Method from the architectural model.
+     *
+     * @param method the Method from the architectural model
+     * @param entityTypeName the entity class name to use for return types
+     * @return a new DerivedMethodSpec, or null if the method should not be generated
+     * @since 5.0.0
+     * @deprecated Use {@link #fromV5(io.hexaglue.arch.model.Method, TypeName, Optional)} instead
+     */
+    @Deprecated
+    public static DerivedMethodSpec fromV5(io.hexaglue.arch.model.Method method, TypeName entityTypeName) {
+        return fromV5(method, entityTypeName, Optional.empty());
     }
 
     /**
@@ -200,12 +224,46 @@ public record DerivedMethodSpec(
     /**
      * Builds parameters from Method.
      *
+     * <p>C4 fix: If a DomainIndex is provided, Identifier types are resolved
+     * to their wrapped types (e.g., CustomerId → UUID).
+     *
      * @since 5.0.0
      */
-    private static List<ParameterSpec> buildParameters(io.hexaglue.arch.model.Method method) {
+    private static List<ParameterSpec> buildParameters(
+            io.hexaglue.arch.model.Method method, Optional<DomainIndex> domainIndex) {
         return method.parameters().stream()
-                .map(param -> new ParameterSpec(param.name(), resolveTypeName(param.type())))
+                .map(param -> new ParameterSpec(
+                        param.name(), resolveTypeNameWithIdentifierUnwrap(param.type(), domainIndex)))
                 .toList();
+    }
+
+    /**
+     * Resolves a TypeRef to a JavaPoet TypeName, unwrapping Identifier types.
+     *
+     * <p>C4 fix: If the type is an Identifier (e.g., CustomerId, OrderId), returns
+     * the wrapped type (e.g., UUID) instead. This ensures JpaRepository methods
+     * use primitive types compatible with Spring Data.
+     *
+     * @param typeRef the type reference
+     * @param domainIndex optional domain index for Identifier lookup
+     * @return the resolved TypeName (unwrapped if Identifier)
+     * @since 5.0.0
+     */
+    private static TypeName resolveTypeNameWithIdentifierUnwrap(
+            io.hexaglue.syntax.TypeRef typeRef, Optional<DomainIndex> domainIndex) {
+        // C4 fix: Check if the type is an Identifier and unwrap it
+        if (domainIndex.isPresent()) {
+            String qualifiedName = typeRef.qualifiedName();
+            Optional<Identifier> identifierOpt = domainIndex.get().identifiers()
+                    .filter(id -> id.id().qualifiedName().equals(qualifiedName))
+                    .findFirst();
+            if (identifierOpt.isPresent()) {
+                // Use the wrapped type (e.g., UUID) instead of the Identifier type
+                io.hexaglue.syntax.TypeRef wrappedType = identifierOpt.get().wrappedType();
+                return resolveTypeName(wrappedType);
+            }
+        }
+        return resolveTypeName(typeRef);
     }
 
     /**

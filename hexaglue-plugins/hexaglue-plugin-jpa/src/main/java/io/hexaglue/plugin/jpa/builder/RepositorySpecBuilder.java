@@ -15,9 +15,11 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.JpaModelUtils;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Builder for transforming domain entities to RepositorySpec model.
@@ -51,6 +54,7 @@ public final class RepositorySpecBuilder {
     private List<io.hexaglue.arch.model.DrivenPort> drivenPorts = List.of();
     private JpaConfig config;
     private String infrastructurePackage;
+    private ArchitecturalModel model;
 
     private RepositorySpecBuilder() {
         // Use static factory method
@@ -84,6 +88,21 @@ public final class RepositorySpecBuilder {
      */
     public RepositorySpecBuilder infrastructurePackage(String infrastructurePackage) {
         this.infrastructurePackage = infrastructurePackage;
+        return this;
+    }
+
+    /**
+     * Sets the architectural model for type resolution.
+     *
+     * <p>The model is used to resolve Identifier types to their wrapped types
+     * in derived method parameters (C4 fix).
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 5.0.0
+     */
+    public RepositorySpecBuilder model(ArchitecturalModel model) {
+        this.model = model;
         return this;
     }
 
@@ -186,6 +205,7 @@ public final class RepositorySpecBuilder {
      * Collects derived query methods from driven ports.
      *
      * <p>Uses the port's structure.methods() to extract property-based query methods.
+     * C4 fix: Uses DomainIndex to resolve Identifier types to their wrapped types.
      *
      * @param entityType the entity type for return types
      * @return list of derived method specifications
@@ -194,13 +214,16 @@ public final class RepositorySpecBuilder {
     private List<DerivedMethodSpec> collectDerivedMethods(TypeName entityType) {
         Map<String, DerivedMethodSpec> methodsBySignature = new LinkedHashMap<>();
 
+        // C4 fix: Get DomainIndex for Identifier type resolution
+        Optional<DomainIndex> domainIndexOpt = model != null ? model.domainIndex() : Optional.empty();
+
         for (io.hexaglue.arch.model.DrivenPort port : drivenPorts) {
             for (var method : port.structure().methods()) {
                 // Skip static methods
                 if (method.isStatic()) {
                     continue;
                 }
-                DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, entityType);
+                DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, entityType, domainIndexOpt);
                 if (spec != null) {
                     String signature = computeMethodSignature(spec);
                     methodsBySignature.putIfAbsent(signature, spec);

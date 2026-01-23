@@ -445,6 +445,30 @@ public final class MapperSpecBuilder {
                 mappings.add(
                         new ValueObjectMappingSpec(wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
                 processedTypes.add(fieldTypeName);
+                continue;
+            }
+
+            // Check if the field type is a cross-aggregate Identifier (e.g., CustomerId in Order)
+            var idOpt = domainIndex
+                    .identifiers()
+                    .filter(id -> id.id().qualifiedName().equals(fieldTypeName))
+                    .findFirst();
+
+            if (idOpt.isPresent()) {
+                io.hexaglue.arch.model.Identifier identifier = idOpt.get();
+                var wrappedType = identifier.wrappedType();
+                if (wrappedType != null) {
+                    String wrapperType = identifier.id().qualifiedName();
+                    String simpleName = identifier.id().simpleName();
+                    String unwrappedType = wrappedType.qualifiedName();
+                    // For identifiers (records), use "value" as the accessor
+                    String accessorMethod = "value";
+                    boolean isRecord = identifier.structure().isRecord();
+
+                    mappings.add(
+                            new ValueObjectMappingSpec(wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
+                    processedTypes.add(fieldTypeName);
+                }
             }
         }
 

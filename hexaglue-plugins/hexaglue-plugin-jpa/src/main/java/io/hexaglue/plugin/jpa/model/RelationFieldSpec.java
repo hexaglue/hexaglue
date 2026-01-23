@@ -413,6 +413,12 @@ public record RelationFieldSpec(
                     .anyMatch(vo -> vo.id().qualifiedName().equals(qualifiedName))) {
                 return ElementKind.VALUE_OBJECT;
             }
+            // Check identifiers - important for cross-aggregate references like CustomerId
+            if (domainIndex
+                    .identifiers()
+                    .anyMatch(id -> id.id().qualifiedName().equals(qualifiedName))) {
+                return ElementKind.IDENTIFIER;
+            }
         }
 
         // Fallback to legacy method
