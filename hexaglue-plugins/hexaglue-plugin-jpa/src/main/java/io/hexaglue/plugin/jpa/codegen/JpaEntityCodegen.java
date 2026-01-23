@@ -371,13 +371,16 @@ public final class JpaEntityCodegen {
      * Creates a getter method for a field.
      *
      * <p>Generates: {@code public T getFieldName() { return fieldName; }}
+     * For primitive boolean fields, generates: {@code public boolean isFieldName() { return fieldName; }}
      *
      * @param fieldName the field name
      * @param type the field type
      * @return a MethodSpec for the getter
      */
     private static MethodSpec createGetter(String fieldName, TypeName type) {
-        String methodName = "get" + NamingConventions.capitalize(fieldName);
+        // JavaBeans convention: use "is" prefix for primitive boolean only
+        String prefix = type.equals(TypeName.BOOLEAN) ? "is" : "get";
+        String methodName = prefix + NamingConventions.capitalize(fieldName);
         return MethodSpec.methodBuilder(methodName)
                 .addModifiers(Modifier.PUBLIC)
                 .returns(type)

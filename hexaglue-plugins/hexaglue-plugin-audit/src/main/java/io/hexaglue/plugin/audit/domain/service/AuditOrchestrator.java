@@ -125,4 +125,23 @@ public class AuditOrchestrator {
         // MAJOR, MINOR, INFO are warnings only
         return BuildOutcome.SUCCESS;
     }
+
+    /**
+     * Returns the constraint IDs that would be executed given the enabled constraints.
+     *
+     * <p>If enabledConstraints is empty, returns all registered constraint IDs.
+     *
+     * @param enabledConstraints the set of user-enabled constraint IDs (empty = all)
+     * @return list of constraint ID strings that would actually be executed
+     * @since 5.0.0
+     */
+    public List<String> getExecutedConstraintIds(Set<String> enabledConstraints) {
+        Set<io.hexaglue.plugin.audit.domain.model.ConstraintId> constraintIds = enabledConstraints.stream()
+                .map(io.hexaglue.plugin.audit.domain.model.ConstraintId::of)
+                .collect(java.util.stream.Collectors.toSet());
+        return constraintEngine.getExecutedConstraintIds(constraintIds).stream()
+                .map(io.hexaglue.plugin.audit.domain.model.ConstraintId::value)
+                .sorted()
+                .toList();
+    }
 }

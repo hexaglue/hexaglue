@@ -18,6 +18,7 @@ import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
@@ -67,13 +68,16 @@ public final class DocumentationModelFactory {
         List<DocType> valueObjects =
                 domain.valueObjects().map(DocumentationModelFactory::toDocType).toList();
 
+        List<DocType> identifiers =
+                domain.identifiers().map(DocumentationModelFactory::toDocType).toList();
+
         List<DocPort> drivingPorts =
                 ports.drivingPorts().map(DocumentationModelFactory::toDocPort).toList();
 
         List<DocPort> drivenPorts =
                 ports.drivenPorts().map(DocumentationModelFactory::toDocPort).toList();
 
-        return new DocumentationModel(aggregateRoots, entities, valueObjects, drivingPorts, drivenPorts);
+        return new DocumentationModel(aggregateRoots, entities, valueObjects, identifiers, drivingPorts, drivenPorts);
     }
 
     // === Converters ===
@@ -118,6 +122,20 @@ public final class DocumentationModelFactory {
                 construct,
                 fieldCount,
                 vo.classification().explain());
+    }
+
+    private static DocType toDocType(Identifier id) {
+        int fieldCount = id.structure().fields().size();
+        String construct = id.structure().isRecord() ? "RECORD" : "CLASS";
+
+        return new DocType(
+                id.id().simpleName(),
+                id.id().packageName(),
+                id.id().qualifiedName(),
+                "Identifier",
+                construct,
+                fieldCount,
+                id.classification().explain());
     }
 
     private static DocPort toDocPort(DrivingPort port) {

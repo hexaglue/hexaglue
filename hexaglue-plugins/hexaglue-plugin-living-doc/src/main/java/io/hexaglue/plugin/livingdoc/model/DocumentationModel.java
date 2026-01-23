@@ -26,14 +26,17 @@ import java.util.Objects;
  * @param aggregateRoots the aggregate roots in the domain
  * @param entities the entities (non-aggregate-root)
  * @param valueObjects the value objects
+ * @param identifiers the identifier types (e.g., OrderId, CustomerId)
  * @param drivingPorts the driving ports (use cases)
  * @param drivenPorts the driven ports (repositories, gateways)
  * @since 4.0.0
+ * @since 5.0.0 - Added identifiers parameter
  */
 public record DocumentationModel(
         List<DocType> aggregateRoots,
         List<DocType> entities,
         List<DocType> valueObjects,
+        List<DocType> identifiers,
         List<DocPort> drivingPorts,
         List<DocPort> drivenPorts) {
 
@@ -41,11 +44,13 @@ public record DocumentationModel(
         Objects.requireNonNull(aggregateRoots, "aggregateRoots must not be null");
         Objects.requireNonNull(entities, "entities must not be null");
         Objects.requireNonNull(valueObjects, "valueObjects must not be null");
+        Objects.requireNonNull(identifiers, "identifiers must not be null");
         Objects.requireNonNull(drivingPorts, "drivingPorts must not be null");
         Objects.requireNonNull(drivenPorts, "drivenPorts must not be null");
         aggregateRoots = List.copyOf(aggregateRoots);
         entities = List.copyOf(entities);
         valueObjects = List.copyOf(valueObjects);
+        identifiers = List.copyOf(identifiers);
         drivingPorts = List.copyOf(drivingPorts);
         drivenPorts = List.copyOf(drivenPorts);
     }
@@ -59,17 +64,20 @@ public record DocumentationModel(
         return aggregateRoots.isEmpty()
                 && entities.isEmpty()
                 && valueObjects.isEmpty()
+                && identifiers.isEmpty()
                 && drivingPorts.isEmpty()
                 && drivenPorts.isEmpty();
     }
 
     /**
-     * Returns all domain types (aggregates, entities, value objects).
+     * Returns all domain types (aggregates, entities, value objects, identifiers).
      *
      * @return list of all domain types
+     * @since 5.0.0 - Now includes identifiers
      */
     public List<DocType> allDomainTypes() {
-        return java.util.stream.Stream.of(aggregateRoots.stream(), entities.stream(), valueObjects.stream())
+        return java.util.stream.Stream.of(
+                        aggregateRoots.stream(), entities.stream(), valueObjects.stream(), identifiers.stream())
                 .flatMap(s -> s)
                 .toList();
     }

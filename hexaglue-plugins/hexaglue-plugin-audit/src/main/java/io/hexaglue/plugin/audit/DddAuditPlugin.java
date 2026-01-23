@@ -136,13 +136,15 @@ public class DddAuditPlugin implements AuditPlugin {
      * @param config the audit configuration (for constraint IDs)
      * @param architectureQuery the architecture query from core (may be null)
      * @param model the architectural model for inventory building
+     * @param executedConstraintIds the list of constraint IDs that were actually executed
      */
     private record AuditExecutionResult(
             AuditSnapshot snapshot,
             AuditResult domainResult,
             AuditConfiguration config,
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery,
-            ArchitecturalModel model) {}
+            ArchitecturalModel model,
+            List<String> executedConstraintIds) {}
 
     /**
      * Default constructor for ServiceLoader.
@@ -245,7 +247,29 @@ public class DddAuditPlugin implements AuditPlugin {
                 convertSeverity(violation.severity()),
                 violation.message(),
                 violation.affectedTypes(),
-                violation.location());
+                violation.location(),
+                formatEvidence(violation.evidence()));
+    }
+
+    /**
+     * Formats evidence list into a human-readable string.
+     *
+     * <p>Each evidence item is formatted on a separate line with its description.
+     * If there are involved types, they are listed after the description.
+     */
+    private String formatEvidence(java.util.List<io.hexaglue.plugin.audit.domain.model.Evidence> evidenceList) {
+        if (evidenceList == null || evidenceList.isEmpty()) {
+            return "";
+        }
+        return evidenceList.stream()
+                .map(e -> {
+                    StringBuilder sb = new StringBuilder(e.description());
+                    if (!e.involvedTypes().isEmpty()) {
+                        sb.append(" [").append(String.join(", ", e.involvedTypes())).append("]");
+                    }
+                    return sb.toString();
+                })
+                .collect(java.util.stream.Collectors.joining("; "));
     }
 
     /**
@@ -493,6 +517,9 @@ public class DddAuditPlugin implements AuditPlugin {
         MetricAggregator metricAggregator = new MetricAggregator(buildCalculatorMap());
         AuditOrchestrator orchestrator = new AuditOrchestrator(constraintEngine, metricAggregator);
 
+        // B2: Get the actual executed constraint IDs (not just user-configured ones)
+        List<String> executedConstraintIds = orchestrator.getExecutedConstraintIds(config.enabledConstraints());
+
         // Execute audit with architecture query
         AuditResult result = orchestrator.executeAudit(
                 model, // Pass the v5 architectural model
@@ -518,7 +545,7 @@ public class DddAuditPlugin implements AuditPlugin {
         AuditSnapshot snapshot = convertToAuditSnapshot(result, codebase, duration, coreQuery, config);
 
         // Return all data needed for report generation
-        return new AuditExecutionResult(snapshot, result, config, coreQuery, model);
+        return new AuditExecutionResult(snapshot, result, config, coreQuery, model, executedConstraintIds);
     }
 
     /**
@@ -541,8 +568,8 @@ public class DddAuditPlugin implements AuditPlugin {
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
             ArchitecturalModel model = executionResult.model();
 
-            // Build unified report model
-            List<String> constraintIds = new ArrayList<>(config.enabledConstraints());
+            // Build unified report model - use actually executed constraints (B2 fix)
+            List<String> constraintIds = executionResult.executedConstraintIds();
 
             // Extract project name from model
             String projectName = inferProjectName(model);

@@ -121,7 +121,7 @@ class MarkdownReportGeneratorTest {
 
         // Then
         assertThat(markdown).contains("## 7. Violations");
-        assertThat(markdown).contains("| Severity | Constraint | Message | Affected Type | Location |");
+        assertThat(markdown).contains("| Severity | Constraint | Message | Affected Type | Evidence |");
         assertThat(markdown).contains("ddd:entity-identity");
         assertThat(markdown).contains("Entity must have ID");
         assertThat(markdown).contains("`Order`");

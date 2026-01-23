@@ -138,11 +138,14 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                     .append(report.violations().size())
                     .append(" violation(s) found</strong></summary>\n\n");
 
-            md.append("| Severity | Constraint | Message | Affected Type | Location |\n");
+            md.append("| Severity | Constraint | Message | Affected Type | Evidence |\n");
             md.append("|----------|------------|---------|---------------|----------|\n");
 
             for (ViolationEntry v : report.violations()) {
                 String emoji = getSeverityEmoji(v.severity());
+                String evidenceText = v.evidence() != null && !v.evidence().isEmpty()
+                        ? escapeMarkdown(v.evidence())
+                        : "–";
                 md.append("| ")
                         .append(emoji)
                         .append(" ")
@@ -153,9 +156,9 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                         .append(escapeMarkdown(v.message()))
                         .append(" | `")
                         .append(v.affectedType())
-                        .append("` | `")
-                        .append(v.location())
-                        .append("` |\n");
+                        .append("` | ")
+                        .append(evidenceText)
+                        .append(" |\n");
             }
 
             md.append("\n</details>\n\n");
@@ -365,9 +368,10 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             md.append("| Package | Ca | Ce | I | A | D | Zones |\n");
             md.append("|---------|----|----|---|---|---|-------|\n");
             for (var m : analysis.couplingMetrics()) {
-                String zones = "";
-                if (m.isInZoneOfPain()) zones = "🔥 Pain";
-                if (m.isInZoneOfUselessness()) zones = "🚫 Useless";
+                // B3: Use context-aware zone labels for domain packages
+                String zoneEmoji = m.getZoneEmoji();
+                String zoneLabel = m.getZoneLabel();
+                String zones = zoneEmoji.isEmpty() ? "" : zoneEmoji + " " + zoneLabel;
                 md.append("| `")
                         .append(m.packageName())
                         .append("` | ")

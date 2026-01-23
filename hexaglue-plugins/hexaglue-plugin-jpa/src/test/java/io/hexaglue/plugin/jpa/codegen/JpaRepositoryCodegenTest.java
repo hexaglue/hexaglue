@@ -134,6 +134,23 @@ class JpaRepositoryCodegenTest {
     }
 
     @Test
+    void generate_javadocShouldReferenceEntityNotDomain() {
+        // Given: entity is OrderEntity, domain is Order
+        RepositorySpec spec =
+                new RepositorySpec(TEST_PACKAGE, REPOSITORY_NAME, ENTITY_TYPE, ID_TYPE, DOMAIN_NAME, List.of());
+
+        // When
+        TypeSpec repositoryInterface = JpaRepositoryCodegen.generate(spec);
+        String generatedCode = repositoryInterface.toString();
+
+        // Then: Javadoc should reference the JPA entity, not the domain type
+        assertThat(generatedCode)
+                .as("Javadoc should reference the JPA entity type")
+                .contains("{@link OrderEntity}")
+                .doesNotContain("{@link Order}");
+    }
+
+    @Test
     void generate_shouldHandleNullSpec() {
         // When/Then
         assertThatThrownBy(() -> JpaRepositoryCodegen.generate(null))

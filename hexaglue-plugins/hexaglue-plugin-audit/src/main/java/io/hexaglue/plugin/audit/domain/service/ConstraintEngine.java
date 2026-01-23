@@ -112,4 +112,34 @@ public class ConstraintEngine {
     public boolean hasValidator(ConstraintId constraintId) {
         return validators.containsKey(constraintId);
     }
+
+    /**
+     * Returns the set of constraint IDs that would be executed given the enabled constraints.
+     *
+     * <p>If enabledConstraints is empty, returns all registered constraint IDs.
+     * Otherwise, returns only the enabled constraints that have registered validators.
+     *
+     * @param enabledConstraints the set of user-enabled constraint IDs (empty = all)
+     * @return the set of constraint IDs that would actually be executed
+     * @since 5.0.0
+     */
+    public Set<ConstraintId> getExecutedConstraintIds(Set<ConstraintId> enabledConstraints) {
+        Objects.requireNonNull(enabledConstraints, "enabledConstraints required");
+        if (enabledConstraints.isEmpty()) {
+            return Set.copyOf(validators.keySet());
+        }
+        return enabledConstraints.stream()
+                .filter(validators::containsKey)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+    }
+
+    /**
+     * Returns all registered constraint IDs.
+     *
+     * @return unmodifiable set of all constraint IDs
+     * @since 5.0.0
+     */
+    public Set<ConstraintId> getAllConstraintIds() {
+        return Set.copyOf(validators.keySet());
+    }
 }

@@ -106,7 +106,8 @@ class JpaEntityCodegenTest {
      */
     private PropertyFieldSpec createSimpleProperty(String fieldName, TypeName type, Nullability nullability) {
         return new PropertyFieldSpec(
-                fieldName, type, nullability, fieldName, false, false, false, type.toString(), false, null, null);
+                fieldName, type, nullability, fieldName, false, false, false, type.toString(), false, null, null,
+                List.of());
     }
 
     /**
@@ -124,7 +125,8 @@ class JpaEntityCodegenTest {
                 type.toString(),
                 false,
                 null,
-                null);
+                null,
+                List.of());
     }
 
     /**
@@ -584,6 +586,32 @@ class JpaEntityCodegenTest {
 
         // Then
         assertThat(code).contains("public java.lang.String getStatus() {").contains("return status;");
+    }
+
+    @Test
+    void generate_shouldUseisPrefixForBooleanGetter() {
+        // Given: a primitive boolean property
+        PropertyFieldSpec property = createSimpleProperty("active", TypeName.BOOLEAN, Nullability.NON_NULL);
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .addProperty(property)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: JavaBeans convention requires "is" prefix for primitive boolean
+        assertThat(code)
+                .as("Primitive boolean getter should use 'is' prefix per JavaBeans convention")
+                .contains("public boolean isActive() {")
+                .contains("return active;");
+        // And: Should NOT use "get" prefix
+        assertThat(code).doesNotContain("getActive()");
     }
 
     @Test
