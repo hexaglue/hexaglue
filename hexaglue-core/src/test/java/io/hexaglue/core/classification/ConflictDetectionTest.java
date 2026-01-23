@@ -321,8 +321,8 @@ class ConflictDetectionTest {
         }
 
         @Test
-        @DisplayName("Enum should be UNCLASSIFIED for domain classifier")
-        void enumShouldBeUnclassifiedForDomainClassifier() throws IOException {
+        @DisplayName("Enum should be classified as VALUE_OBJECT for domain classifier")
+        void enumShouldBeClassifiedAsValueObjectForDomainClassifier() throws IOException {
             writeSource("com/example/Color.java", """
                     package com.example;
                     public enum Color {
@@ -336,7 +336,10 @@ class ConflictDetectionTest {
             TypeNode color = graph.typeNode("com.example.Color").orElseThrow();
             ClassificationResult result = domainClassifier.classify(color, query);
 
-            assertThat(result.isUnclassified()).isTrue();
+            // H2 fix: Enums are now classified as VALUE_OBJECT
+            assertThat(result.isClassified()).isTrue();
+            assertThat(result.kind()).isEqualTo("VALUE_OBJECT");
+            assertThat(result.matchedCriteria()).isEqualTo("domain-enum");
         }
     }
 

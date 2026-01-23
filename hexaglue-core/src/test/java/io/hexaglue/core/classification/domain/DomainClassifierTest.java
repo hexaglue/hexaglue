@@ -389,8 +389,8 @@ class DomainClassifierTest {
         }
 
         @Test
-        @DisplayName("Should handle enum types")
-        void shouldHandleEnumTypes() throws IOException {
+        @DisplayName("Should classify enum types as VALUE_OBJECT")
+        void shouldClassifyEnumTypesAsValueObject() throws IOException {
             writeSource("com/example/OrderStatus.java", """
                     package com.example;
                     public enum OrderStatus {
@@ -404,8 +404,12 @@ class DomainClassifierTest {
 
             ClassificationResult result = classifier.classify(status, query);
 
-            // Enums don't match typical domain criteria
-            assertThat(result.isUnclassified()).isTrue();
+            // H2 fix: Enums are now classified as VALUE_OBJECT
+            // They are immutable by definition and have no identity
+            assertThat(result.isClassified()).isTrue();
+            assertThat(result.kind()).isEqualTo("VALUE_OBJECT");
+            assertThat(result.matchedCriteria()).isEqualTo("domain-enum");
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
         }
 
         @Test

@@ -315,6 +315,89 @@ class PortClassifierTest {
     }
 
     // =========================================================================
+    // H1 Regression Tests - UseCases interfaces should be DRIVING, not DRIVEN
+    // =========================================================================
+
+    @Nested
+    @DisplayName("H1 - UseCases Interfaces Classification")
+    class UseCasesInterfacesTest {
+
+        @Test
+        @DisplayName("Interface with UseCases suffix in ports.in package should not be classified as DRIVEN")
+        void interfaceWithUseCasesSuffixInPortsInPackageShouldNotBeDriven() throws IOException {
+            // Given: An interface named TaskUseCases in ports.in package that uses aggregate-like types
+            writeSource("com/example/domain/Task.java", """
+                    package com.example.domain;
+                    public class Task {
+                        private String id;
+                        private String name;
+                        public String getId() { return id; }
+                    }
+                    """);
+
+            writeSource("com/example/ports/in/TaskUseCases.java", """
+                    package com.example.ports.in;
+                    import com.example.domain.Task;
+                    public interface TaskUseCases {
+                        void createTask(String name);
+                        Task getTask(String id);
+                        void completeTask(String id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode taskUseCases = graph.typeNode("com.example.ports.in.TaskUseCases").orElseThrow();
+            GraphQuery query = graph.query();
+
+            // When
+            ClassificationResult result = classifier.classify(taskUseCases, query);
+
+            // Then: Should NOT be classified as a DRIVEN port
+            // The interface may be DRIVING (via command-pattern) or UNCLASSIFIED, but NOT DRIVEN
+            if (result.isClassified()) {
+                assertThat(result.portDirection())
+                        .as("UseCases interface should be DRIVING, not DRIVEN")
+                        .isNotEqualTo(PortDirection.DRIVEN);
+            }
+        }
+
+        @Test
+        @DisplayName("Interface with singular UseCase suffix should not be classified as DRIVEN")
+        void interfaceWithUseCaseSuffixShouldNotBeDriven() throws IOException {
+            // Given: An interface named PlaceOrderUseCase that uses aggregate-like types
+            writeSource("com/example/domain/Order.java", """
+                    package com.example.domain;
+                    public class Order {
+                        private String id;
+                        public String getId() { return id; }
+                    }
+                    """);
+
+            writeSource("com/example/PlaceOrderUseCase.java", """
+                    package com.example;
+                    import com.example.domain.Order;
+                    public interface PlaceOrderUseCase {
+                        Order execute(String customerId);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode useCase = graph.typeNode("com.example.PlaceOrderUseCase").orElseThrow();
+            GraphQuery query = graph.query();
+
+            // When
+            ClassificationResult result = classifier.classify(useCase, query);
+
+            // Then: Should NOT be classified as a DRIVEN port
+            if (result.isClassified()) {
+                assertThat(result.portDirection())
+                        .as("UseCase interface should be DRIVING, not DRIVEN")
+                        .isNotEqualTo(PortDirection.DRIVEN);
+            }
+        }
+    }
+
+    // =========================================================================
     // Edge Cases
     // =========================================================================
 
