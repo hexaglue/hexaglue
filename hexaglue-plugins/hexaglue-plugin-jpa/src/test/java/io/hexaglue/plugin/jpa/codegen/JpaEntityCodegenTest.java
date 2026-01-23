@@ -21,6 +21,7 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.plugin.jpa.model.AttributeOverride;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.IdFieldSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
@@ -792,5 +793,143 @@ class JpaEntityCodegenTest {
                 .contains("public java.lang.String getLastName()")
                 .contains("public void setFirstName(java.lang.String firstName)")
                 .contains("public void setLastName(java.lang.String lastName)");
+    }
+
+    // =====================================================================
+    // M11 - @AttributeOverride for multiple embedded fields of same type
+    // =====================================================================
+
+    /**
+     * Creates an embedded PropertyFieldSpec with attribute overrides.
+     */
+    private PropertyFieldSpec createEmbeddedPropertyWithOverrides(
+            String fieldName, TypeName type, List<AttributeOverride> overrides) {
+        return new PropertyFieldSpec(
+                fieldName,
+                type,
+                Nullability.NON_NULL,
+                fieldName,
+                true,
+                false,
+                false,
+                type.toString(),
+                false,
+                null,
+                null,
+                overrides);
+    }
+
+    @Test
+    void generate_shouldAddAttributeOverrides_whenMultipleEmbeddedFieldsOfSameType() {
+        // Given - Entity with two Money fields (price and discount)
+        TypeName moneyType = com.palantir.javapoet.ClassName.get("com.example.infrastructure.jpa", "MoneyEmbeddable");
+
+        // First embedded field with overrides
+        PropertyFieldSpec priceProperty = createEmbeddedPropertyWithOverrides(
+                "price",
+                moneyType,
+                List.of(
+                        new AttributeOverride("amount", "price_amount"),
+                        new AttributeOverride("currency", "price_currency")));
+
+        // Second embedded field with overrides
+        PropertyFieldSpec discountProperty = createEmbeddedPropertyWithOverrides(
+                "discount",
+                moneyType,
+                List.of(
+                        new AttributeOverride("amount", "discount_amount"),
+                        new AttributeOverride("currency", "discount_currency")));
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .addProperty(priceProperty)
+                .addProperty(discountProperty)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then - Should have @AttributeOverrides for both fields
+        assertThat(code)
+                .contains("@jakarta.persistence.Embedded")
+                .contains("@jakarta.persistence.AttributeOverrides")
+                .contains("@jakarta.persistence.AttributeOverride")
+                // Price field overrides
+                .contains("name = \"amount\"")
+                .contains("name = \"price_amount\"")
+                .contains("name = \"price_currency\"")
+                // Discount field overrides
+                .contains("name = \"discount_amount\"")
+                .contains("name = \"discount_currency\"")
+                // Fields
+                .contains("private com.example.infrastructure.jpa.MoneyEmbeddable price;")
+                .contains("private com.example.infrastructure.jpa.MoneyEmbeddable discount;");
+    }
+
+    @Test
+    void generate_shouldNotAddAttributeOverrides_whenSingleEmbeddedField() {
+        // Given - Entity with only one embedded Money field (no conflict)
+        TypeName moneyType = com.palantir.javapoet.ClassName.get("com.example.infrastructure.jpa", "MoneyEmbeddable");
+
+        // Single embedded field without overrides
+        PropertyFieldSpec priceProperty = createEmbeddedProperty("price", moneyType);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .addProperty(priceProperty)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then - Should have @Embedded but no @AttributeOverrides
+        assertThat(code)
+                .contains("@jakarta.persistence.Embedded")
+                .doesNotContain("@jakarta.persistence.AttributeOverrides")
+                .doesNotContain("@jakarta.persistence.AttributeOverride")
+                .contains("private com.example.infrastructure.jpa.MoneyEmbeddable price;");
+    }
+
+    @Test
+    void generate_shouldAddAttributeOverrides_forNestedEmbeddable() {
+        // Given - Embeddable with an embedded field that has overrides
+        TypeName moneyType = com.palantir.javapoet.ClassName.get("com.example.infrastructure.jpa", "MoneyEmbeddable");
+
+        PropertyFieldSpec unitPriceProperty = createEmbeddedPropertyWithOverrides(
+                "unitPrice",
+                moneyType,
+                List.of(
+                        new AttributeOverride("amount", "unit_price_amount"),
+                        new AttributeOverride("currency", "unit_price_currency")));
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("OrderLineEmbeddable")
+                .tableName("order_lines")
+                .domainQualifiedName("com.example.domain.OrderLine")
+                .idField(createAutoIdField())
+                .addProperty(unitPriceProperty)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then - Should have @AttributeOverrides for nested embeddable
+        assertThat(code)
+                .contains("@jakarta.persistence.Embedded")
+                .contains("@jakarta.persistence.AttributeOverrides")
+                .contains("name = \"unit_price_amount\"")
+                .contains("name = \"unit_price_currency\"");
     }
 }

@@ -101,7 +101,7 @@ public record RuleViolation(
      * @return a new RuleViolation
      */
     public static RuleViolation warning(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.WARNING, message, List.of(), location);
+        return new RuleViolation(ruleId, Severity.MAJOR, message, List.of(), location);
     }
 
     /**
@@ -116,7 +116,7 @@ public record RuleViolation(
      */
     public static RuleViolation warning(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.WARNING, message, affectedTypes, location);
+        return new RuleViolation(ruleId, Severity.MAJOR, message, affectedTypes, location);
     }
 
     /**
@@ -128,7 +128,7 @@ public record RuleViolation(
      * @return a new RuleViolation
      */
     public static RuleViolation error(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.ERROR, message, List.of(), location);
+        return new RuleViolation(ruleId, Severity.CRITICAL, message, List.of(), location);
     }
 
     /**

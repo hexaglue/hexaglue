@@ -2,7 +2,7 @@
 # Run 'make help' for available targets
 
 .PHONY: help install test format format-check quality coverage integration \
-        release-check release ci clean build all
+        release-check release ci clean build all verify
 
 # Default target
 .DEFAULT_GOAL := help
@@ -25,10 +25,10 @@ help:
 # Development
 # =============================================================================
 
-## install: Install all modules locally (skip tests)
+## install: Install all modules locally (clean + skip tests)
 install:
 	@echo "$(CYAN)Installing all modules...$(RESET)"
-	mvn install -DskipTests
+	mvn clean install -DskipTests
 
 ## build: Build all modules (skip tests)
 build: install
@@ -135,7 +135,3 @@ all: clean test quality coverage
 
 ## verify: Alias for 'make test quality'
 verify: test quality
-
-## quick: Quick build (clean install, skip tests)
-quick: clean install
-	@echo "$(GREEN)Quick build complete!$(RESET)"

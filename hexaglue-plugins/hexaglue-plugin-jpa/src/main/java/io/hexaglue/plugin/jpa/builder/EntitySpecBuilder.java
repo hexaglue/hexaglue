@@ -20,11 +20,14 @@ import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.model.AttributeOverride;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.IdFieldSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -291,12 +294,16 @@ public final class EntitySpecBuilder {
     /**
      * Builds property field specifications using v5 model.
      *
+     * <p>This method also handles detection of embedded field conflicts (multiple fields
+     * of the same embedded type) and generates appropriate {@code @AttributeOverride}
+     * annotations to avoid column name conflicts.
+     *
      * @param structure the type structure containing fields
      * @param identityFieldName the name of the identity field to exclude
      * @since 5.0.0
      */
     private List<PropertyFieldSpec> buildPropertySpecsV5(TypeStructure structure, String identityFieldName) {
-        return structure.fields().stream()
+        List<PropertyFieldSpec> properties = structure.fields().stream()
                 .filter(f -> !f.name().equals(identityFieldName))
                 .filter(f -> !f.hasRole(FieldRole.IDENTITY))
                 .filter(f -> !f.hasRole(FieldRole.COLLECTION))
@@ -305,6 +312,130 @@ public final class EntitySpecBuilder {
                 .filter(f -> !isRelationField(f))
                 .map(f -> PropertyFieldSpec.fromV5(f, architecturalModel, embeddableMapping, infrastructurePackage))
                 .collect(Collectors.toList());
+
+        // Post-process to add @AttributeOverrides for embedded fields with conflicts
+        return addAttributeOverridesForConflicts(properties);
+    }
+
+    /**
+     * Detects embedded field conflicts and adds @AttributeOverride annotations.
+     *
+     * <p>When multiple embedded fields of the same type exist in an entity, JPA requires
+     * {@code @AttributeOverride} annotations to specify distinct column names. This method:
+     * <ol>
+     *   <li>Groups embedded properties by their type qualified name</li>
+     *   <li>For types with multiple instances, retrieves the embeddable's fields</li>
+     *   <li>Generates attribute overrides with field-name-prefixed column names</li>
+     * </ol>
+     *
+     * @param properties the list of property field specs
+     * @return the updated list with attribute overrides added where needed
+     * @since 2.0.0
+     */
+    private List<PropertyFieldSpec> addAttributeOverridesForConflicts(List<PropertyFieldSpec> properties) {
+        // Group embedded properties by type
+        Map<String, List<PropertyFieldSpec>> embeddedByType = new HashMap<>();
+        for (PropertyFieldSpec prop : properties) {
+            if (prop.shouldBeEmbedded() && !prop.hasAttributeOverrides()) {
+                embeddedByType.computeIfAbsent(prop.typeQualifiedName(), k -> new ArrayList<>()).add(prop);
+            }
+        }
+
+        // Build list of types that need overrides (more than one instance)
+        Map<String, List<String>> typeToAttributeNames = new HashMap<>();
+        for (Map.Entry<String, List<PropertyFieldSpec>> entry : embeddedByType.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                List<String> attributeNames = findEmbeddableAttributeNames(entry.getKey());
+                if (!attributeNames.isEmpty()) {
+                    typeToAttributeNames.put(entry.getKey(), attributeNames);
+                }
+            }
+        }
+
+        // If no conflicts, return as-is
+        if (typeToAttributeNames.isEmpty()) {
+            return properties;
+        }
+
+        // Create new list with overrides added
+        List<PropertyFieldSpec> result = new ArrayList<>();
+        for (PropertyFieldSpec prop : properties) {
+            if (prop.shouldBeEmbedded() && typeToAttributeNames.containsKey(prop.typeQualifiedName())) {
+                // Create attribute overrides for this field
+                List<String> attributeNames = typeToAttributeNames.get(prop.typeQualifiedName());
+                List<AttributeOverride> overrides = new ArrayList<>();
+                for (String attrName : attributeNames) {
+                    String columnName = NamingConventions.toSnakeCase(prop.fieldName())
+                            + "_" + NamingConventions.toSnakeCase(attrName);
+                    overrides.add(new AttributeOverride(attrName, columnName));
+                }
+
+                // Create new PropertyFieldSpec with overrides
+                result.add(new PropertyFieldSpec(
+                        prop.fieldName(),
+                        prop.javaType(),
+                        prop.nullability(),
+                        prop.columnName(),
+                        prop.isEmbedded(),
+                        prop.isValueObject(),
+                        prop.isEnum(),
+                        prop.typeQualifiedName(),
+                        prop.isWrappedForeignKey(),
+                        prop.unwrappedType(),
+                        prop.wrapperAccessorMethod(),
+                        overrides));
+            } else {
+                result.add(prop);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Finds the attribute names of an embeddable type.
+     *
+     * <p>This method looks up the type in the domain index and retrieves its field names.
+     * These field names correspond to the attributes that may need to be overridden.
+     *
+     * @param typeQualifiedName the fully qualified name of the embeddable type
+     * @return list of attribute names, or empty list if not found
+     * @since 2.0.0
+     */
+    private List<String> findEmbeddableAttributeNames(String typeQualifiedName) {
+        var domainIndexOpt = architecturalModel.domainIndex();
+        if (domainIndexOpt.isEmpty()) {
+            return List.of();
+        }
+        var domainIndex = domainIndexOpt.get();
+
+        // Check if it's mapped to an embeddable type
+        String lookupType = embeddableMapping.getOrDefault(typeQualifiedName, typeQualifiedName);
+
+        // If it's mapped to an infrastructure embeddable, find the source VALUE_OBJECT
+        String resolvedDomainType = typeQualifiedName;
+        for (Map.Entry<String, String> entry : embeddableMapping.entrySet()) {
+            if (entry.getValue().equals(lookupType)) {
+                resolvedDomainType = entry.getKey();
+                break;
+            }
+        }
+
+        // Make effectively final for lambda
+        final String domainType = resolvedDomainType;
+
+        // Look up the VALUE_OBJECT in domain index
+        var voOpt = domainIndex.valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(domainType))
+                .findFirst();
+
+        if (voOpt.isPresent()) {
+            return voOpt.get().structure().fields().stream()
+                    .map(Field::name)
+                    .collect(Collectors.toList());
+        }
+
+        return List.of();
     }
 
     /**
@@ -312,17 +443,114 @@ public final class EntitySpecBuilder {
      *
      * <p>The identity field is excluded from relations as it's handled by IdFieldSpec.</p>
      *
+     * <p>This method also handles detection of embedded field conflicts (multiple EMBEDDED
+     * relations of the same type) and generates appropriate {@code @AttributeOverride}
+     * annotations to avoid column name conflicts.
+     *
      * @param structure the type structure containing fields
      * @param identityFieldName the name of the identity field to exclude
      * @since 5.0.0
      */
     private List<RelationFieldSpec> buildRelationSpecsV5(TypeStructure structure, String identityFieldName) {
-        return structure.fields().stream()
+        List<RelationFieldSpec> relations = structure.fields().stream()
                 .filter(f -> !f.name().equals(identityFieldName))
                 .filter(f -> !f.hasRole(FieldRole.IDENTITY))
                 .filter(f -> isRelationField(f))
                 .map(f -> RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping))
                 .collect(Collectors.toList());
+
+        // Post-process to add @AttributeOverrides for embedded relations with conflicts
+        return addAttributeOverridesForRelationConflicts(relations);
+    }
+
+    /**
+     * Detects embedded relation conflicts and adds @AttributeOverride annotations.
+     *
+     * <p>When multiple EMBEDDED relations of the same type exist in an entity, JPA requires
+     * {@code @AttributeOverride} annotations to specify distinct column names.
+     *
+     * @param relations the list of relation field specs
+     * @return the updated list with attribute overrides added where needed
+     * @since 2.0.0
+     */
+    private List<RelationFieldSpec> addAttributeOverridesForRelationConflicts(List<RelationFieldSpec> relations) {
+        // Group EMBEDDED relations by target type
+        Map<String, List<RelationFieldSpec>> embeddedByType = new HashMap<>();
+        for (RelationFieldSpec rel : relations) {
+            if (rel.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED && !rel.hasAttributeOverrides()) {
+                // Extract simple type name from targetType (e.g., "AddressEmbeddable")
+                String targetTypeName = rel.targetType().toString();
+                embeddedByType.computeIfAbsent(targetTypeName, k -> new ArrayList<>()).add(rel);
+            }
+        }
+
+        // Build list of types that need overrides (more than one instance)
+        Map<String, List<String>> typeToAttributeNames = new HashMap<>();
+        for (Map.Entry<String, List<RelationFieldSpec>> entry : embeddedByType.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                // Find the domain type from embeddable mapping
+                String embeddableFqn = entry.getKey();
+                String domainType = findDomainTypeFromEmbeddable(embeddableFqn);
+                List<String> attributeNames = findEmbeddableAttributeNames(domainType);
+                if (!attributeNames.isEmpty()) {
+                    typeToAttributeNames.put(embeddableFqn, attributeNames);
+                }
+            }
+        }
+
+        // If no conflicts, return as-is
+        if (typeToAttributeNames.isEmpty()) {
+            return relations;
+        }
+
+        // Create new list with overrides added
+        List<RelationFieldSpec> result = new ArrayList<>();
+        for (RelationFieldSpec rel : relations) {
+            String targetTypeName = rel.targetType().toString();
+            if (rel.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED
+                    && typeToAttributeNames.containsKey(targetTypeName)) {
+                // Create attribute overrides for this relation
+                List<String> attributeNames = typeToAttributeNames.get(targetTypeName);
+                List<AttributeOverride> overrides = new ArrayList<>();
+                for (String attrName : attributeNames) {
+                    String columnName = NamingConventions.toSnakeCase(rel.fieldName())
+                            + "_" + NamingConventions.toSnakeCase(attrName);
+                    overrides.add(new AttributeOverride(attrName, columnName));
+                }
+
+                // Create new RelationFieldSpec with overrides
+                result.add(new RelationFieldSpec(
+                        rel.fieldName(),
+                        rel.targetType(),
+                        rel.kind(),
+                        rel.targetKind(),
+                        rel.mappedBy(),
+                        rel.cascade(),
+                        rel.fetch(),
+                        rel.orphanRemoval(),
+                        overrides));
+            } else {
+                result.add(rel);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Finds the domain type FQN from an embeddable type FQN.
+     *
+     * @param embeddableFqn the embeddable type fully qualified name
+     * @return the domain type FQN, or the embeddable FQN if not found
+     * @since 2.0.0
+     */
+    private String findDomainTypeFromEmbeddable(String embeddableFqn) {
+        for (Map.Entry<String, String> entry : embeddableMapping.entrySet()) {
+            if (entry.getValue().equals(embeddableFqn)) {
+                return entry.getKey();
+            }
+        }
+        return embeddableFqn;
     }
 
     /**

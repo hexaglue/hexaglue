@@ -219,13 +219,16 @@ public final class JpaEntityCodegen {
      * <p>The annotation is selected based on the property type:
      * <ul>
      *   <li>Enum types: {@code @Enumerated(EnumType.STRING)} + {@code @Column}</li>
-     *   <li>Embedded value objects: {@code @Embedded}</li>
+     *   <li>Embedded value objects: {@code @Embedded} (with {@code @AttributeOverrides} if needed)</li>
      *   <li>Wrapped foreign keys: {@code @Column} with unwrapped type (e.g., CustomerId → UUID)</li>
      *   <li>Simple properties: {@code @Column} with snake_case name and nullability</li>
      * </ul>
      *
      * <p>Value Objects are automatically treated as embedded because they are immutable
      * and identity-less, making them ideal candidates for JPA's {@code @Embedded} mapping.
+     *
+     * <p>When multiple embedded fields of the same type exist, {@code @AttributeOverrides}
+     * is added to specify distinct column names for each embedded field's attributes.
      *
      * <p>Wrapped foreign keys (e.g., {@code CustomerId}) are unwrapped to their primitive
      * type (e.g., {@code UUID}) for JPA persistence, with conversion handled by MapStruct.
@@ -244,6 +247,13 @@ public final class JpaEntityCodegen {
             fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
         } else if (property.shouldBeEmbedded()) {
             fieldBuilder.addAnnotation(JpaAnnotations.embedded());
+            // Add @AttributeOverrides if there are column name conflicts
+            if (property.hasAttributeOverrides()) {
+                AnnotationSpec overridesAnnotation = JpaAnnotations.attributeOverrides(property.attributeOverrides());
+                if (overridesAnnotation != null) {
+                    fieldBuilder.addAnnotation(overridesAnnotation);
+                }
+            }
         } else {
             // Simple properties and wrapped foreign keys both use @Column
             fieldBuilder.addAnnotation(JpaAnnotations.column(property.columnName(), property.nullability()));
@@ -264,6 +274,10 @@ public final class JpaEntityCodegen {
      * <p>For {@code @ElementCollection}, also adds {@code @CollectionTable} annotation
      * with proper table and join column names.
      *
+     * <p>For {@code @Embedded} relations with attribute overrides, also adds
+     * {@code @AttributeOverrides} to specify distinct column names when multiple
+     * embedded fields of the same type exist.
+     *
      * @param builder the class builder
      * @param relation the relation field specification
      * @param entitySpec the entity specification (for table name derivation)
@@ -272,6 +286,14 @@ public final class JpaEntityCodegen {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(
                         relation.targetType(), relation.fieldName(), Modifier.PRIVATE)
                 .addAnnotation(JpaAnnotations.relationAnnotation(relation));
+
+        // For EMBEDDED relations, add @AttributeOverrides if there are column name conflicts
+        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED && relation.hasAttributeOverrides()) {
+            AnnotationSpec overridesAnnotation = JpaAnnotations.attributeOverrides(relation.attributeOverrides());
+            if (overridesAnnotation != null) {
+                fieldBuilder.addAnnotation(overridesAnnotation);
+            }
+        }
 
         // For ELEMENT_COLLECTION, add @CollectionTable annotation
         if (relation.kind() == io.hexaglue.spi.ir.RelationKind.ELEMENT_COLLECTION) {

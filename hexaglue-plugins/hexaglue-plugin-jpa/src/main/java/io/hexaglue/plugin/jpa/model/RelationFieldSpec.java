@@ -50,6 +50,7 @@ import java.util.Set;
  * @param cascade the cascade operation type
  * @param fetch the fetch strategy (LAZY or EAGER)
  * @param orphanRemoval true if orphaned children should be removed
+ * @param attributeOverrides list of attribute overrides for embedded fields with column name conflicts
  * @since 2.0.0
  */
 public record RelationFieldSpec(
@@ -60,7 +61,8 @@ public record RelationFieldSpec(
         String mappedBy,
         CascadeType cascade,
         FetchType fetch,
-        boolean orphanRemoval) {
+        boolean orphanRemoval,
+        List<AttributeOverride> attributeOverrides) {
 
     /**
      * Compact constructor with validation.
@@ -74,6 +76,31 @@ public record RelationFieldSpec(
         if (mappedBy != null && mappedBy.isEmpty()) {
             throw new IllegalArgumentException("mappedBy cannot be empty (use null for owning side)");
         }
+        attributeOverrides = attributeOverrides == null ? List.of() : List.copyOf(attributeOverrides);
+    }
+
+    /**
+     * Convenience constructor without attribute overrides (backward compatibility).
+     */
+    public RelationFieldSpec(
+            String fieldName,
+            TypeName targetType,
+            RelationKind kind,
+            ElementKind targetKind,
+            String mappedBy,
+            CascadeType cascade,
+            FetchType fetch,
+            boolean orphanRemoval) {
+        this(fieldName, targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval, List.of());
+    }
+
+    /**
+     * Returns true if this relation has attribute overrides.
+     *
+     * @return true if attributeOverrides is not empty
+     */
+    public boolean hasAttributeOverrides() {
+        return !attributeOverrides.isEmpty();
     }
 
     /**
