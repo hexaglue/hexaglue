@@ -262,6 +262,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                     RepositorySpec repoSpec = RepositorySpecBuilder.builder()
                             .aggregateRoot(aggregate)
                             .drivenPorts(portsForAggregate)
+                            .model(model) // C4 fix: pass model for Identifier type resolution
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .build();
@@ -329,6 +330,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                     RepositorySpec repoSpec = RepositorySpecBuilder.builder()
                             .entity(entity)
                             .drivenPorts(portsForEntity)
+                            .model(model) // C4 fix: pass model for Identifier type resolution
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .build();

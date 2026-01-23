@@ -46,6 +46,44 @@ public final class NamingConventions {
      */
     private static final String FK_SUFFIX = "_id";
 
+    /**
+     * SQL reserved words that should be pluralized when used as table names.
+     *
+     * <p>These words are reserved in at least one major SQL database
+     * (PostgreSQL, MySQL, Oracle, SQL Server, H2) and would cause syntax errors
+     * if used as unquoted table names.
+     *
+     * <p>C3 fix: pluralizing is preferred over quoting for portability.
+     *
+     * @since 2.0.0
+     */
+    private static final java.util.Set<String> SQL_RESERVED_WORDS = java.util.Set.of(
+            // Common reserved words that are likely to be entity names
+            "order", // ORDER BY
+            "user", // Reserved in PostgreSQL, MySQL, SQL Server
+            "group", // GROUP BY
+            "table", // DDL keyword
+            "index", // DDL keyword
+            "key", // DDL keyword
+            "select", // DML keyword
+            "from", // DML keyword
+            "where", // DML keyword
+            "join", // DML keyword
+            "limit", // DML keyword
+            "offset", // DML keyword
+            "constraint", // DDL keyword
+            "check", // DDL keyword
+            "default", // DDL keyword
+            "column", // DDL keyword
+            "value", // Reserved in some DBs
+            "values", // DML keyword
+            "transaction", // Reserved
+            "session", // Reserved in some DBs
+            "role", // Reserved in PostgreSQL
+            "grant", // DCL keyword
+            "revoke" // DCL keyword
+            );
+
     private NamingConventions() {
         // Utility class - prevent instantiation
     }
@@ -155,14 +193,17 @@ public final class NamingConventions {
      * <p>The generated table name follows SQL conventions:
      * <ul>
      *   <li>Converts the entity name to snake_case</li>
+     *   <li>Pluralizes SQL reserved words to avoid syntax errors (C3 fix)</li>
      *   <li>Optionally adds a prefix (e.g., {@code "tbl_"}, {@code "t_"})</li>
      *   <li>Result is all lowercase</li>
      * </ul>
      *
      * <p>Examples:
      * <ul>
-     *   <li>{@code toTableName("Order", "")} → {@code "order"}</li>
-     *   <li>{@code toTableName("Order", "tbl_")} → {@code "tbl_order"}</li>
+     *   <li>{@code toTableName("Order", "")} → {@code "orders"} (reserved word pluralized)</li>
+     *   <li>{@code toTableName("User", "")} → {@code "users"} (reserved word pluralized)</li>
+     *   <li>{@code toTableName("Product", "")} → {@code "product"} (not reserved)</li>
+     *   <li>{@code toTableName("Order", "tbl_")} → {@code "tbl_orders"}</li>
      *   <li>{@code toTableName("LineItem", "t_")} → {@code "t_line_item"}</li>
      *   <li>{@code toTableName("CustomerAddress", "")} → {@code "customer_address"}</li>
      * </ul>
@@ -181,6 +222,13 @@ public final class NamingConventions {
         }
 
         String tableName = toSnakeCase(entityName);
+
+        // C3 fix: Pluralize SQL reserved words to avoid syntax errors
+        // Only pluralize if not already plural (doesn't end with 's')
+        if (SQL_RESERVED_WORDS.contains(tableName) && !tableName.endsWith("s")) {
+            tableName = tableName + "s";
+        }
+
         return prefix.isEmpty() ? tableName : prefix + tableName;
     }
 

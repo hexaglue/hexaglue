@@ -71,8 +71,11 @@ public final class ExistsByPropertyMethodStrategy implements MethodBodyStrategy 
         }
 
         // Build parameter list for delegation
+        // C4 fix: Convert Identifier parameters to their wrapped types
+        // - Aggregate's own identity → mapper.map(param)
+        // - Cross-aggregate identity → param.value() directly
         String paramList = method.parameters().stream()
-                .map(AdapterMethodSpec.ParameterInfo::name)
+                .map(param -> convertIdentifierParam(param, context))
                 .reduce((a, b) -> a + ", " + b)
                 .orElse("");
 
@@ -80,5 +83,33 @@ public final class ExistsByPropertyMethodStrategy implements MethodBodyStrategy 
         builder.addStatement("return $L.$L($L)", context.repositoryFieldName(), method.name(), paramList);
 
         return builder.build();
+    }
+
+    /**
+     * Converts an identifier parameter to the appropriate form for repository delegation.
+     *
+     * <p>For the aggregate's own identity type, uses mapper.map(param).
+     * For cross-aggregate identities, uses param.value() to extract the wrapped value.
+     * For non-identity parameters, returns the parameter name as-is.
+     *
+     * @param param the parameter info
+     * @param context the adapter context with identity information
+     * @return the parameter expression for the repository call
+     */
+    private String convertIdentifierParam(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
+        if (!param.isIdentity()) {
+            return param.name();
+        }
+
+        // Check if this is the aggregate's own identity type
+        if (context.hasIdInfo()
+                && context.idInfo().isWrapped()
+                && param.type().equals(context.idInfo().wrappedType())) {
+            // Aggregate's own identity - use mapper.map()
+            return context.mapperFieldName() + ".map(" + param.name() + ")";
+        }
+
+        // Cross-aggregate identity - use param.value() to extract wrapped value
+        return param.name() + ".value()";
     }
 }

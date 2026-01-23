@@ -303,7 +303,7 @@ public final class EntitySpecBuilder {
                 .filter(f -> !f.hasRole(FieldRole.AGGREGATE_REFERENCE))
                 // Skip relation-type fields (they go to buildRelationSpecsV5)
                 .filter(f -> !isRelationField(f))
-                .map(f -> PropertyFieldSpec.fromV5(f, architecturalModel))
+                .map(f -> PropertyFieldSpec.fromV5(f, architecturalModel, embeddableMapping, infrastructurePackage))
                 .collect(Collectors.toList());
     }
 
@@ -328,9 +328,19 @@ public final class EntitySpecBuilder {
     /**
      * Determines if a field is a relation field (collection, reference, or embedded).
      *
+     * <p>Identifiers (cross-aggregate references like CustomerId) are NOT treated as
+     * relations - they should be unwrapped to their primitive type (e.g., UUID) and
+     * handled as simple properties by PropertyFieldSpec.
+     *
      * @since 5.0.0
      */
     private boolean isRelationField(Field field) {
+        // Identifiers should NOT be treated as relations - they need to be unwrapped
+        // to their primitive type (e.g., CustomerId → UUID)
+        if (isIdentifierType(field)) {
+            return false;
+        }
+
         // Check roles
         if (field.hasRole(FieldRole.COLLECTION)
                 || field.hasRole(FieldRole.AGGREGATE_REFERENCE)
@@ -351,6 +361,27 @@ public final class EntitySpecBuilder {
                 || field.hasAnnotation("javax.persistence.ElementCollection")
                 || field.hasAnnotation("jakarta.persistence.Embedded")
                 || field.hasAnnotation("javax.persistence.Embedded");
+    }
+
+    /**
+     * Checks if a field's type is an Identifier in the domain model.
+     *
+     * <p>Identifier types (like CustomerId, OrderId) wrap primitive types (UUID, Long)
+     * and should be unwrapped for JPA persistence, not embedded.
+     *
+     * @param field the field to check
+     * @return true if the field type is a registered Identifier
+     * @since 5.0.0
+     */
+    private boolean isIdentifierType(Field field) {
+        var domainIndexOpt = architecturalModel.domainIndex();
+        if (domainIndexOpt.isEmpty()) {
+            return false;
+        }
+        var domainIndex = domainIndexOpt.get();
+        String typeFqn = field.type().qualifiedName();
+        return domainIndex.identifiers()
+                .anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
     }
 
     /**
