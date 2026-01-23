@@ -39,7 +39,7 @@ class LayeringDomainPurityRuleTest {
     void shouldHaveCorrectMetadata() {
         assertThat(rule.id()).isEqualTo("hexaglue.layer.domain-purity");
         assertThat(rule.name()).isEqualTo("Domain Layer Purity");
-        assertThat(rule.defaultSeverity()).isEqualTo(Severity.ERROR);
+        assertThat(rule.defaultSeverity()).isEqualTo(Severity.CRITICAL);
     }
 
     @Test
@@ -67,7 +67,7 @@ class LayeringDomainPurityRuleTest {
 
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).ruleId()).isEqualTo("hexaglue.layer.domain-purity");
-        assertThat(violations.get(0).severity()).isEqualTo(Severity.ERROR);
+        assertThat(violations.get(0).severity()).isEqualTo(Severity.CRITICAL);
         assertThat(violations.get(0).message()).contains("infrastructure type");
     }
 

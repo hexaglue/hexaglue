@@ -165,6 +165,136 @@ class PortCriteriaTest {
     }
 
     // =========================================================================
+    // Semantic Driving Port Criteria (M9 - Marker Interface Exclusion)
+    // =========================================================================
+
+    @Nested
+    class SemanticDrivingPortCriteriaMarkerInterfaceTest {
+
+        @Test
+        void shouldNotMatchMarkerInterface() throws IOException {
+            // Marker interface without methods (like DomainEvent)
+            writeSource("com/example/DomainEvent.java", """
+                    package com.example;
+                    public interface DomainEvent {
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode markerInterface = graph.typeNode("com.example.DomainEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            // Verify it's detected as an interface
+            assertThat(markerInterface.isInterface()).isTrue();
+
+            // Verify it has no methods
+            assertThat(query.methodsOf(markerInterface)).isEmpty();
+
+            // Create InterfaceFacts directly to simulate "implementedByCore = true"
+            // This tests the specific behavior without needing the full classification pipeline
+            io.hexaglue.core.classification.semantic.InterfaceFacts markerFacts =
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
+                            markerInterface.id(), 1, false);
+
+            // Verify the facts indicate DRIVING port candidate
+            assertThat(markerFacts.implementedByCore()).isTrue();
+
+            // Build InterfaceFactsIndex with our custom facts
+            io.hexaglue.core.classification.semantic.InterfaceFactsIndex factsIndex =
+                    io.hexaglue.core.classification.semantic.InterfaceFactsIndex.fromFacts(
+                            java.util.List.of(markerFacts));
+
+            SemanticDrivingPortCriteria criteria = new SemanticDrivingPortCriteria(factsIndex);
+            MatchResult result = criteria.evaluate(markerInterface, query);
+
+            // Marker interface should NOT be classified as DRIVING port
+            // even though implementedByCore is true
+            assertThat(result.matched())
+                    .as("Marker interface (no methods) should not be classified as DRIVING port")
+                    .isFalse();
+        }
+
+        @Test
+        void shouldMatchInterfaceWithMethods() throws IOException {
+            // Interface with business methods
+            writeSource("com/example/ports/in/OrderUseCase.java", """
+                    package com.example.ports.in;
+                    public interface OrderUseCase {
+                        void createOrder(String customerId);
+                        void cancelOrder(String orderId);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode useCase = graph.typeNode("com.example.ports.in.OrderUseCase").orElseThrow();
+            GraphQuery query = graph.query();
+
+            // Verify it has methods
+            assertThat(query.methodsOf(useCase)).isNotEmpty();
+
+            // Create InterfaceFacts directly to simulate "implementedByCore = true"
+            io.hexaglue.core.classification.semantic.InterfaceFacts useCaseFacts =
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
+                            useCase.id(), 1, true);
+
+            // Build InterfaceFactsIndex with our custom facts
+            io.hexaglue.core.classification.semantic.InterfaceFactsIndex factsIndex =
+                    io.hexaglue.core.classification.semantic.InterfaceFactsIndex.fromFacts(
+                            java.util.List.of(useCaseFacts));
+
+            SemanticDrivingPortCriteria criteria = new SemanticDrivingPortCriteria(factsIndex);
+            MatchResult result = criteria.evaluate(useCase, query);
+
+            // Interface with methods should be classified as DRIVING port
+            assertThat(result.matched())
+                    .as("Interface with methods should be classified as DRIVING port when implemented by CoreAppClass")
+                    .isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+            assertThat(criteria.targetDirection()).isEqualTo(PortDirection.DRIVING);
+        }
+
+        @Test
+        void shouldNotMatchDomainEventInterface() throws IOException {
+            // DomainEvent interface in domain package (with methods)
+            writeSource("com/example/domain/shared/DomainEvent.java", """
+                    package com.example.domain.shared;
+                    import java.time.Instant;
+                    import java.util.UUID;
+                    public interface DomainEvent {
+                        UUID eventId();
+                        Instant occurredAt();
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode domainEvent = graph.typeNode("com.example.domain.shared.DomainEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            // Verify it has methods (not a marker interface)
+            assertThat(query.methodsOf(domainEvent)).isNotEmpty();
+
+            // Create InterfaceFacts to simulate "implementedByCore = true"
+            io.hexaglue.core.classification.semantic.InterfaceFacts eventFacts =
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
+                            domainEvent.id(), 1, false);
+
+            // Build InterfaceFactsIndex
+            io.hexaglue.core.classification.semantic.InterfaceFactsIndex factsIndex =
+                    io.hexaglue.core.classification.semantic.InterfaceFactsIndex.fromFacts(
+                            java.util.List.of(eventFacts));
+
+            SemanticDrivingPortCriteria criteria = new SemanticDrivingPortCriteria(factsIndex);
+            MatchResult result = criteria.evaluate(domainEvent, query);
+
+            // DomainEvent should NOT be classified as DRIVING port
+            // even though it has methods and implementedByCore is true
+            assertThat(result.matched())
+                    .as("DomainEvent interface should not be classified as DRIVING port")
+                    .isFalse();
+        }
+    }
+
+    // =========================================================================
     // Helper methods
     // =========================================================================
 

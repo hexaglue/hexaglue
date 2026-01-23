@@ -26,6 +26,7 @@ import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
 import java.util.ArrayList;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -87,6 +88,13 @@ public final class JpaEntityCodegen {
      */
     private static final String GENERATOR_NAME = "io.hexaglue.plugin.jpa";
 
+    /**
+     * The plugin version, read from MANIFEST.MF at runtime.
+     */
+    private static final String PLUGIN_VERSION = Optional.ofNullable(
+                    JpaEntityCodegen.class.getPackage().getImplementationVersion())
+            .orElse("dev");
+
     private JpaEntityCodegen() {
         // Utility class - prevent instantiation
     }
@@ -116,7 +124,7 @@ public final class JpaEntityCodegen {
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(spec.className())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME))
+                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME, PLUGIN_VERSION))
                 .addAnnotation(JpaAnnotations.entity())
                 .addAnnotation(JpaAnnotations.table(spec.tableName()));
 

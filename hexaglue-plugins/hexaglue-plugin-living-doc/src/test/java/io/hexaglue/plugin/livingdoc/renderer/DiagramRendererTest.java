@@ -635,8 +635,12 @@ class DiagramRendererTest {
             assertThat(result).contains("subgraph External");
             assertThat(result).contains("subgraph Domain");
             assertThat(result).contains("subgraph Infra");
-            assertThat(result).doesNotContain("subgraph Driving");
-            assertThat(result).doesNotContain("subgraph Driven");
+            // Empty port subgraphs should still be rendered with placeholder "(none)"
+            // to ensure valid Mermaid diagrams and make missing ports visible
+            assertThat(result).contains("subgraph Driving");
+            assertThat(result).contains("subgraph Driven");
+            assertThat(result).contains("NoDriving[\"(none)\"]");
+            assertThat(result).contains("NoDriven[\"(none)\"]");
         }
     }
 

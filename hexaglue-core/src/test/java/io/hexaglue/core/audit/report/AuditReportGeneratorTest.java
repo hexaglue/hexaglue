@@ -177,9 +177,9 @@ class AuditReportGeneratorTest {
     // Helper methods
 
     private AuditSnapshot createSampleSnapshot() {
-        RuleViolation violation = new RuleViolation(
+        RuleViolation violation = RuleViolation.of(
                 "hexaglue.test.rule",
-                Severity.WARNING,
+                Severity.MAJOR,
                 "Test violation message",
                 SourceLocation.of("Test.java", 10, 5));
 

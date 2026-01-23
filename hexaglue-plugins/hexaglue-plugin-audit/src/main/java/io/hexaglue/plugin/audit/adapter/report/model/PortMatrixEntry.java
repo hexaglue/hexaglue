@@ -33,8 +33,9 @@ import java.util.stream.Stream;
  * @param kind           the port kind (REPOSITORY, GATEWAY, USE_CASE, etc.)
  * @param managedType    the primary domain type managed by this port (may be null)
  * @param methodCount    the number of methods defined in the port
- * @param hasAdapter     whether an adapter implementation exists for this port
+ * @param adapterStatus  the adapter detection status: "DETECTED", "NOT_DETECTED", or "UNKNOWN"
  * @since 1.0.0
+ * @since 5.0.0 - Changed hasAdapter (boolean) to adapterStatus (String) for honest reporting
  */
 public record PortMatrixEntry(
         String portName,
@@ -43,16 +44,41 @@ public record PortMatrixEntry(
         String kind,
         String managedType,
         int methodCount,
-        boolean hasAdapter) {
+        String adapterStatus) {
+
+    /**
+     * Adapter status indicating the adapter has been detected.
+     */
+    public static final String ADAPTER_DETECTED = "DETECTED";
+
+    /**
+     * Adapter status indicating no adapter was detected (but might exist).
+     */
+    public static final String ADAPTER_NOT_DETECTED = "NOT_DETECTED";
+
+    /**
+     * Adapter status indicating detection was not performed.
+     */
+    public static final String ADAPTER_UNKNOWN = "UNKNOWN";
 
     public PortMatrixEntry {
         Objects.requireNonNull(portName, "portName required");
         Objects.requireNonNull(qualifiedName, "qualifiedName required");
         Objects.requireNonNull(direction, "direction required");
         Objects.requireNonNull(kind, "kind required");
+        Objects.requireNonNull(adapterStatus, "adapterStatus required");
         if (methodCount < 0) {
             throw new IllegalArgumentException("methodCount cannot be negative: " + methodCount);
         }
+    }
+
+    /**
+     * Returns true if an adapter was detected for this port.
+     *
+     * @return true if adapterStatus is DETECTED
+     */
+    public boolean hasAdapter() {
+        return ADAPTER_DETECTED.equals(adapterStatus);
     }
 
     /**
@@ -116,7 +142,7 @@ public record PortMatrixEntry(
                 "USE_CASE", // Default kind for driving ports
                 null, // managedType not available in v5 model
                 port.structure().methods().size(),
-                false); // hasAdapter detection not implemented yet
+                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see FUTURE_ADAPTER_DETECTION.md)
     }
 
     /**
@@ -134,6 +160,6 @@ public record PortMatrixEntry(
                 kind,
                 managedType,
                 port.structure().methods().size(),
-                false); // hasAdapter detection not implemented yet
+                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see FUTURE_ADAPTER_DETECTION.md)
     }
 }

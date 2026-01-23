@@ -22,6 +22,7 @@ import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -64,6 +65,13 @@ public final class JpaEmbeddableCodegen {
      */
     private static final String GENERATOR_NAME = "io.hexaglue.plugin.jpa";
 
+    /**
+     * The plugin version, read from MANIFEST.MF at runtime.
+     */
+    private static final String PLUGIN_VERSION = Optional.ofNullable(
+                    JpaEmbeddableCodegen.class.getPackage().getImplementationVersion())
+            .orElse("dev");
+
     private JpaEmbeddableCodegen() {
         // Utility class - prevent instantiation
     }
@@ -82,7 +90,7 @@ public final class JpaEmbeddableCodegen {
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(spec.className())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME))
+                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME, PLUGIN_VERSION))
                 .addAnnotation(JpaAnnotations.embeddable());
 
         // Add property fields

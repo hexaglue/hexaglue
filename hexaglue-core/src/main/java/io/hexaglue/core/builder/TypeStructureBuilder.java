@@ -283,13 +283,29 @@ public final class TypeStructureBuilder {
         List<TypeRef> typeArgs =
                 coreTypeRef.arguments().stream().map(this::mapTypeRef).toList();
 
+        String qualifiedName = coreTypeRef.rawQualifiedName();
+        boolean isPrimitive = isPrimitiveType(qualifiedName);
+
         return new TypeRef(
-                coreTypeRef.rawQualifiedName(),
+                qualifiedName,
                 coreTypeRef.simpleName(),
                 typeArgs,
-                false, // isPrimitive - we don't track this in core TypeRef
+                isPrimitive,
                 coreTypeRef.isArray(),
                 coreTypeRef.arrayDimensions());
+    }
+
+    /**
+     * Checks if the given type name is a Java primitive type.
+     *
+     * @param typeName the type name to check
+     * @return true if the type is a primitive
+     */
+    private boolean isPrimitiveType(String typeName) {
+        return switch (typeName) {
+            case "boolean", "byte", "short", "int", "long", "float", "double", "char" -> true;
+            default -> false;
+        };
     }
 
     private List<Annotation> mapAnnotations(List<AnnotationRef> annotationRefs) {

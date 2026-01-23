@@ -230,6 +230,23 @@ public final class InterfaceFactsIndex {
     }
 
     /**
+     * Creates an InterfaceFactsIndex from a list of facts.
+     *
+     * <p>Useful for testing scenarios where the full graph analysis is not needed.
+     *
+     * @param facts the list of InterfaceFacts
+     * @return the built index
+     * @since 5.0.0
+     */
+    public static InterfaceFactsIndex fromFacts(java.util.List<InterfaceFacts> facts) {
+        Map<NodeId, InterfaceFacts> factsMap = new HashMap<>();
+        for (InterfaceFacts f : facts) {
+            factsMap.put(f.interfaceId(), f);
+        }
+        return new InterfaceFactsIndex(factsMap);
+    }
+
+    /**
      * Returns the InterfaceFacts for the given interface, if any.
      */
     public Optional<InterfaceFacts> get(NodeId interfaceId) {

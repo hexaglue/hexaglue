@@ -373,9 +373,11 @@ public final class AuditReportGenerator {
                 if (!violations.isEmpty()) {
                     String icon =
                             switch (severity) {
-                                case ERROR -> "❌";
-                                case WARNING -> ":warning:";
-                                case INFO -> ":information_source:";
+                                case BLOCKER -> "🛑";
+                                case CRITICAL -> "❌";
+                                case MAJOR -> "⚠️";
+                                case MINOR -> "📝";
+                                case INFO -> "ℹ️";
                             };
 
                     md.append("### ").append(icon).append(" ").append(severity);

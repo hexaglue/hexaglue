@@ -271,6 +271,14 @@ public final class SinglePassClassifier {
 
                 // Use semantic facts for classification
                 if (f.isDrivingPortCandidate()) {
+                    // Exclude marker interfaces (no methods)
+                    if (query.methodsOf(type).isEmpty()) {
+                        continue;
+                    }
+                    // Exclude domain event interfaces
+                    if (isDomainEventInterface(type)) {
+                        continue;
+                    }
                     results.put(type.id(), classifyDrivingPort(type));
                     continue;
                 }
@@ -477,5 +485,43 @@ public final class SinglePassClassifier {
                 List.of(Evidence.fromStructure("explicit: " + explicitKind, List.of())),
                 List.of(),
                 trace);
+    }
+
+    /**
+     * Returns true if the interface is a domain event interface.
+     *
+     * <p>Domain event interfaces are base interfaces for domain events and should
+     * not be classified as driving ports. They are identified by:
+     * <ul>
+     *   <li>Name equals "DomainEvent"</li>
+     *   <li>Name ends with "Event" and is in a domain package</li>
+     * </ul>
+     *
+     * @param node the type node to check
+     * @return true if this is a domain event interface
+     * @since 5.0.0
+     */
+    private boolean isDomainEventInterface(TypeNode node) {
+        String simpleName = node.simpleName();
+        String packageName = node.packageName();
+
+        // Explicit name match
+        if ("DomainEvent".equals(simpleName)) {
+            return true;
+        }
+
+        // Event interfaces in domain packages
+        if (simpleName.endsWith("Event") && isDomainPackage(packageName)) {
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Returns true if the package is a domain package.
+     */
+    private boolean isDomainPackage(String packageName) {
+        return packageName.contains(".domain.") || packageName.endsWith(".domain");
     }
 }

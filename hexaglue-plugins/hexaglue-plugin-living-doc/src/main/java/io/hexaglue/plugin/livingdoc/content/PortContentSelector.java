@@ -21,6 +21,7 @@ import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
+import io.hexaglue.syntax.TypeRef;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.spi.ir.ConfidenceLevel;
@@ -98,10 +99,32 @@ public final class PortContentSelector {
     }
 
     private MethodDoc toMethodDoc(Method method) {
-        String returnType = method.returnType() != null ? method.returnType().qualifiedName() : "void";
+        String returnType = method.returnType() != null ? formatTypeWithArguments(method.returnType()) : "void";
         List<String> parameters =
-                method.parameters().stream().map(p -> p.type().qualifiedName()).collect(Collectors.toList());
+                method.parameters().stream().map(p -> formatTypeWithArguments(p.type())).collect(Collectors.toList());
         return new MethodDoc(method.name(), returnType, parameters);
+    }
+
+    /**
+     * Formats a TypeRef with its type arguments for display.
+     *
+     * <p>For example, converts `java.util.List` with argument `Order` to `List<Order>`.</p>
+     *
+     * @param typeRef the type reference
+     * @return the formatted type string with arguments
+     */
+    private String formatTypeWithArguments(TypeRef typeRef) {
+        String simpleName = typeRef.simpleName();
+
+        if (typeRef.typeArguments().isEmpty()) {
+            return simpleName;
+        }
+
+        String args = typeRef.typeArguments().stream()
+                .map(TypeRef::simpleName)
+                .collect(Collectors.joining(", "));
+
+        return simpleName + "<" + args + ">";
     }
 
     private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {

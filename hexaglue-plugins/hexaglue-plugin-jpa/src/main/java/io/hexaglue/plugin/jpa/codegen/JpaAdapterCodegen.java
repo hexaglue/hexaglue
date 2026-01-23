@@ -24,6 +24,7 @@ import io.hexaglue.plugin.jpa.strategy.AdapterContext;
 import io.hexaglue.plugin.jpa.strategy.MethodBodyStrategy;
 import io.hexaglue.plugin.jpa.strategy.MethodStrategyFactory;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -89,6 +90,13 @@ public final class JpaAdapterCodegen {
     private static final String GENERATOR_NAME = "io.hexaglue.plugin.jpa.JpaPlugin";
 
     /**
+     * The plugin version, read from MANIFEST.MF at runtime.
+     */
+    private static final String PLUGIN_VERSION = Optional.ofNullable(
+                    JpaAdapterCodegen.class.getPackage().getImplementationVersion())
+            .orElse("dev");
+
+    /**
      * Strategy factory for method generation.
      */
     private static final MethodStrategyFactory STRATEGY_FACTORY = new MethodStrategyFactory();
@@ -133,7 +141,7 @@ public final class JpaAdapterCodegen {
 
         TypeSpec.Builder builder = TypeSpec.classBuilder(spec.className())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME))
+                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME, PLUGIN_VERSION))
                 .addAnnotation(JpaAnnotations.component());
 
         // Implement port interfaces

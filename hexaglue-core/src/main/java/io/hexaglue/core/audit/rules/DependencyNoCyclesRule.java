@@ -97,7 +97,7 @@ public final class DependencyNoCyclesRule implements AuditRule {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.WARNING;
+        return Severity.MAJOR;
     }
 
     @Override

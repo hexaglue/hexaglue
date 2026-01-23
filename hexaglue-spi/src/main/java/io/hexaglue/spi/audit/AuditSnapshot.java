@@ -48,10 +48,11 @@ public record AuditSnapshot(
     /**
      * Returns true if the audit passed (no ERROR-level violations).
      *
-     * @return true if no violations have ERROR severity
+     * @return true if no violations have BLOCKER or CRITICAL severity
      */
     public boolean passed() {
-        return violations.stream().noneMatch(v -> v.severity() == Severity.ERROR);
+        return violations.stream()
+                .noneMatch(v -> v.severity() == Severity.BLOCKER || v.severity() == Severity.CRITICAL);
     }
 
     /**
@@ -65,21 +66,23 @@ public record AuditSnapshot(
     }
 
     /**
-     * Returns error violations.
+     * Returns error violations (BLOCKER and CRITICAL).
      *
-     * @return list of ERROR-level violations
+     * @return list of BLOCKER and CRITICAL-level violations
      */
     public List<RuleViolation> errors() {
-        return violationsOfSeverity(Severity.ERROR);
+        return violations.stream()
+                .filter(v -> v.severity() == Severity.BLOCKER || v.severity() == Severity.CRITICAL)
+                .toList();
     }
 
     /**
-     * Returns warning violations.
+     * Returns warning violations (MAJOR).
      *
-     * @return list of WARNING-level violations
+     * @return list of MAJOR-level violations
      */
     public List<RuleViolation> warnings() {
-        return violationsOfSeverity(Severity.WARNING);
+        return violationsOfSeverity(Severity.MAJOR);
     }
 
     /**

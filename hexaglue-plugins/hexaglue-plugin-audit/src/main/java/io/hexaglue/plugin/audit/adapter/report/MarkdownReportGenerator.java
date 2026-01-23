@@ -1415,7 +1415,11 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             md.append("| Port | Direction | Kind | Managed Type | Methods | Adapter |\n");
             md.append("|------|-----------|------|--------------|---------|--------|\n");
             for (var port : portMatrix) {
-                String adapterStatus = port.hasAdapter() ? "✅" : "❌";
+                String adapterDisplay = switch (port.adapterStatus()) {
+                    case PortMatrixEntry.ADAPTER_DETECTED -> "✅";
+                    case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "⚠️ Not detected";
+                    default -> "❓ Unknown";
+                };
                 md.append("| `")
                         .append(port.portName())
                         .append("` | ")
@@ -1427,7 +1431,7 @@ public final class MarkdownReportGenerator implements ReportGenerator {
                         .append(" | ")
                         .append(port.methodCount())
                         .append(" | ")
-                        .append(adapterStatus)
+                        .append(adapterDisplay)
                         .append(" |\n");
             }
             md.append("\n");

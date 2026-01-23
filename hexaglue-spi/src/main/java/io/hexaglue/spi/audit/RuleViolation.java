@@ -14,6 +14,7 @@
 package io.hexaglue.spi.audit;
 
 import io.hexaglue.spi.core.SourceLocation;
+import java.util.List;
 
 /**
  * Represents a violation of an audit rule.
@@ -25,16 +26,44 @@ import io.hexaglue.spi.core.SourceLocation;
  *   <li>The rule that was violated</li>
  *   <li>The severity of the violation</li>
  *   <li>A descriptive message</li>
+ *   <li>The types affected by the violation</li>
  *   <li>The source location where the violation occurred</li>
  * </ul>
  *
- * @param ruleId   the unique identifier of the violated rule
- * @param severity the severity level (INFO, WARNING, ERROR)
- * @param message  the human-readable violation description
- * @param location the source code location where the violation occurred
+ * @param ruleId        the unique identifier of the violated rule
+ * @param severity      the severity level (INFO, WARNING, ERROR)
+ * @param message       the human-readable violation description
+ * @param affectedTypes the fully qualified names of types affected by this violation
+ * @param location      the source code location where the violation occurred
  * @since 3.0.0
  */
-public record RuleViolation(String ruleId, Severity severity, String message, SourceLocation location) {
+public record RuleViolation(
+        String ruleId,
+        Severity severity,
+        String message,
+        List<String> affectedTypes,
+        SourceLocation location) {
+
+    /**
+     * Compact constructor with defensive copy.
+     */
+    public RuleViolation {
+        affectedTypes = affectedTypes != null ? List.copyOf(affectedTypes) : List.of();
+    }
+
+    /**
+     * Creates a RuleViolation without affected types (for backward compatibility).
+     *
+     * @param ruleId   the rule identifier
+     * @param severity the severity level
+     * @param message  the message
+     * @param location the source location
+     * @return a new RuleViolation with empty affected types
+     * @since 5.0.0
+     */
+    public static RuleViolation of(String ruleId, Severity severity, String message, SourceLocation location) {
+        return new RuleViolation(ruleId, severity, message, List.of(), location);
+    }
 
     /**
      * Creates a violation with INFO severity.
@@ -45,7 +74,22 @@ public record RuleViolation(String ruleId, Severity severity, String message, So
      * @return a new RuleViolation
      */
     public static RuleViolation info(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.INFO, message, location);
+        return new RuleViolation(ruleId, Severity.INFO, message, List.of(), location);
+    }
+
+    /**
+     * Creates a violation with INFO severity and affected types.
+     *
+     * @param ruleId        the rule identifier
+     * @param message       the message
+     * @param affectedTypes the affected type names
+     * @param location      the source location
+     * @return a new RuleViolation
+     * @since 5.0.0
+     */
+    public static RuleViolation info(
+            String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
+        return new RuleViolation(ruleId, Severity.INFO, message, affectedTypes, location);
     }
 
     /**
@@ -57,7 +101,22 @@ public record RuleViolation(String ruleId, Severity severity, String message, So
      * @return a new RuleViolation
      */
     public static RuleViolation warning(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.WARNING, message, location);
+        return new RuleViolation(ruleId, Severity.WARNING, message, List.of(), location);
+    }
+
+    /**
+     * Creates a violation with WARNING severity and affected types.
+     *
+     * @param ruleId        the rule identifier
+     * @param message       the message
+     * @param affectedTypes the affected type names
+     * @param location      the source location
+     * @return a new RuleViolation
+     * @since 5.0.0
+     */
+    public static RuleViolation warning(
+            String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
+        return new RuleViolation(ruleId, Severity.WARNING, message, affectedTypes, location);
     }
 
     /**
@@ -69,25 +128,40 @@ public record RuleViolation(String ruleId, Severity severity, String message, So
      * @return a new RuleViolation
      */
     public static RuleViolation error(String ruleId, String message, SourceLocation location) {
-        return new RuleViolation(ruleId, Severity.ERROR, message, location);
+        return new RuleViolation(ruleId, Severity.ERROR, message, List.of(), location);
     }
 
     /**
-     * Returns true if this violation is an error.
+     * Creates a violation with ERROR severity and affected types.
      *
-     * @return true if severity is ERROR
+     * @param ruleId        the rule identifier
+     * @param message       the message
+     * @param affectedTypes the affected type names
+     * @param location      the source location
+     * @return a new RuleViolation
+     * @since 5.0.0
+     */
+    public static RuleViolation error(
+            String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
+        return new RuleViolation(ruleId, Severity.CRITICAL, message, affectedTypes, location);
+    }
+
+    /**
+     * Returns true if this violation is an error (BLOCKER or CRITICAL).
+     *
+     * @return true if severity is BLOCKER or CRITICAL
      */
     public boolean isError() {
-        return severity == Severity.ERROR;
+        return severity == Severity.BLOCKER || severity == Severity.CRITICAL;
     }
 
     /**
-     * Returns true if this violation is a warning.
+     * Returns true if this violation is a warning (MAJOR).
      *
-     * @return true if severity is WARNING
+     * @return true if severity is MAJOR
      */
     public boolean isWarning() {
-        return severity == Severity.WARNING;
+        return severity == Severity.MAJOR;
     }
 
     /**
