@@ -99,8 +99,8 @@ class PortContentSelectorTest {
 
             MethodDoc method1 = doc.methods().get(0);
             assertThat(method1.name()).isEqualTo("placeOrder");
-            assertThat(method1.returnType()).isEqualTo("com.example.domain.OrderId");
-            assertThat(method1.parameters()).containsExactly("com.example.OrderRequest");
+            assertThat(method1.returnType()).isEqualTo("OrderId"); // Simple name for readability
+            assertThat(method1.parameters()).containsExactly("OrderRequest");
 
             MethodDoc method2 = doc.methods().get(1);
             assertThat(method2.name()).isEqualTo("cancelOrder");
@@ -188,7 +188,7 @@ class PortContentSelectorTest {
 
             // Then
             assertThat(methodDoc.name()).isEqualTo("getAll");
-            assertThat(methodDoc.returnType()).isEqualTo("java.util.List");
+            assertThat(methodDoc.returnType()).isEqualTo("List"); // Simple name for readability
             assertThat(methodDoc.parameters()).isEmpty();
         }
 

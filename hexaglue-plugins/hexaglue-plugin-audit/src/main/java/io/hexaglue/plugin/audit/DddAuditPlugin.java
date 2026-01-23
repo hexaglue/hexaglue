@@ -225,8 +225,12 @@ public class DddAuditPlugin implements AuditPlugin {
         // Compute architecture metrics using the architecture query
         ArchitectureMetrics archMetrics = computeArchitectureMetrics(codebase, architectureQuery);
 
-        // Build metadata
-        AuditMetadata metadata = new AuditMetadata(Instant.now(), "1.0.0", duration);
+        // Build metadata - read version from MANIFEST.MF (set by maven-jar-plugin)
+        String hexaglueVersion = getClass().getPackage().getImplementationVersion();
+        if (hexaglueVersion == null) {
+            hexaglueVersion = "dev"; // Fallback for IDE/test execution
+        }
+        AuditMetadata metadata = new AuditMetadata(Instant.now(), hexaglueVersion, duration);
 
         return new AuditSnapshot(
                 codebase, DetectedArchitectureStyle.HEXAGONAL, ruleViolations, qualityMetrics, archMetrics, metadata);
@@ -240,25 +244,18 @@ public class DddAuditPlugin implements AuditPlugin {
                 violation.constraintId().value(),
                 convertSeverity(violation.severity()),
                 violation.message(),
+                violation.affectedTypes(),
                 violation.location());
     }
 
     /**
-     * Maps plugin's fine-grained severity levels to SPI's coarse-grained levels.
+     * Maps domain severity to SPI severity.
      *
-     * <p>Mapping:
-     * <ul>
-     *   <li>{@code BLOCKER, CRITICAL} → {@code Severity.ERROR}</li>
-     *   <li>{@code MAJOR} → {@code Severity.WARNING}</li>
-     *   <li>{@code MINOR, INFO} → {@code Severity.INFO}</li>
-     * </ul>
+     * <p>Since SPI 5.0.0, the SPI supports the same severity levels as the domain,
+     * so this is now a direct mapping by name.
      */
     private io.hexaglue.spi.audit.Severity convertSeverity(Severity domainSeverity) {
-        return switch (domainSeverity) {
-            case BLOCKER, CRITICAL -> io.hexaglue.spi.audit.Severity.ERROR;
-            case MAJOR -> io.hexaglue.spi.audit.Severity.WARNING;
-            case MINOR, INFO -> io.hexaglue.spi.audit.Severity.INFO;
-        };
+        return io.hexaglue.spi.audit.Severity.valueOf(domainSeverity.name());
     }
 
     /**

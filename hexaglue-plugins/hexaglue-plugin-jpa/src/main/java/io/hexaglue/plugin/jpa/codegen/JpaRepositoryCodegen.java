@@ -22,6 +22,7 @@ import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.DerivedMethodSpec;
 import io.hexaglue.plugin.jpa.model.RepositorySpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -76,6 +77,13 @@ public final class JpaRepositoryCodegen {
     private static final String GENERATOR_ID = "io.hexaglue.plugin.jpa";
 
     /**
+     * The plugin version, read from MANIFEST.MF at runtime.
+     */
+    private static final String PLUGIN_VERSION = Optional.ofNullable(
+                    JpaRepositoryCodegen.class.getPackage().getImplementationVersion())
+            .orElse("dev");
+
+    /**
      * The fully qualified class name for Spring Data JPA's JpaRepository interface.
      */
     private static final ClassName JPA_REPOSITORY =
@@ -112,7 +120,7 @@ public final class JpaRepositoryCodegen {
         // Build the repository interface
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(spec.interfaceName())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(JpaAnnotations.generated(GENERATOR_ID))
+                .addAnnotation(JpaAnnotations.generated(GENERATOR_ID, PLUGIN_VERSION))
                 .addAnnotation(JpaAnnotations.repository())
                 .addSuperinterface(superInterface)
                 .addJavadoc("Spring Data JPA repository for {@link $L}.\n\n", spec.domainSimpleName())
@@ -124,8 +132,7 @@ public final class JpaRepositoryCodegen {
                 .addJavadoc("  <li>{@code findAll()}</li>\n")
                 .addJavadoc("  <li>{@code delete(entity)}</li>\n")
                 .addJavadoc("  <li>{@code count()}</li>\n")
-                .addJavadoc("</ul>\n")
-                .addJavadoc("\n@since 1.0.0\n");
+                .addJavadoc("</ul>\n");
 
         // Add derived query methods
         for (DerivedMethodSpec derivedMethod : spec.derivedMethods()) {

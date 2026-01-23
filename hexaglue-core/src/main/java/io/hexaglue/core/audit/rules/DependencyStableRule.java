@@ -104,7 +104,7 @@ public final class DependencyStableRule implements AuditRule {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.WARNING;
+        return Severity.MAJOR;
     }
 
     @Override

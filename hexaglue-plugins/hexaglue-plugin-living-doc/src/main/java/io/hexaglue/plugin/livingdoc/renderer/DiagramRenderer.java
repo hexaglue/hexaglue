@@ -62,7 +62,13 @@ public final class DiagramRenderer {
 
         // Related types from properties
         for (PropertyDoc prop : aggregate.properties()) {
-            String propTypeName = extractBaseType(prop.type());
+            // For collections, use the element type from typeArguments
+            String propTypeName;
+            if (prop.cardinality().equals("COLLECTION") && !prop.typeArguments().isEmpty()) {
+                propTypeName = prop.typeArguments().get(0);
+            } else {
+                propTypeName = extractBaseType(prop.type());
+            }
             DomainTypeDoc relatedType = allTypes.get(propTypeName);
 
             if (relatedType != null) {
@@ -103,9 +109,11 @@ public final class DiagramRenderer {
         sb.append("        API([API Client])\n");
         sb.append("    end\n\n");
 
-        // Driving ports
-        if (!drivingPorts.isEmpty()) {
-            sb.append("    subgraph Driving[\"Driving Ports\"]\n");
+        // Driving ports - always show subgraph to reflect hexagonal architecture target
+        sb.append("    subgraph Driving[\"Driving Ports\"]\n");
+        if (drivingPorts.isEmpty()) {
+            sb.append("        NoDriving[\"(none)\"]\n");
+        } else {
             for (PortDoc port : drivingPorts) {
                 sb.append("        ")
                         .append(MermaidBuilder.sanitizeId(port.name()))
@@ -113,8 +121,8 @@ public final class DiagramRenderer {
                         .append(port.name())
                         .append("]\n");
             }
-            sb.append("    end\n\n");
         }
+        sb.append("    end\n\n");
 
         // Domain
         sb.append("    subgraph Domain[\"Domain\"]\n");
@@ -131,9 +139,11 @@ public final class DiagramRenderer {
         }
         sb.append("    end\n\n");
 
-        // Driven ports
-        if (!drivenPorts.isEmpty()) {
-            sb.append("    subgraph Driven[\"Driven Ports\"]\n");
+        // Driven ports - always show subgraph to reflect hexagonal architecture target
+        sb.append("    subgraph Driven[\"Driven Ports\"]\n");
+        if (drivenPorts.isEmpty()) {
+            sb.append("        NoDriven[\"(none)\"]\n");
+        } else {
             for (PortDoc port : drivenPorts) {
                 sb.append("        ")
                         .append(MermaidBuilder.sanitizeId(port.name()))
@@ -141,8 +151,8 @@ public final class DiagramRenderer {
                         .append(port.name())
                         .append("]\n");
             }
-            sb.append("    end\n\n");
         }
+        sb.append("    end\n\n");
 
         // Infrastructure
         sb.append("    subgraph Infra[\"Infrastructure\"]\n");
@@ -174,9 +184,11 @@ public final class DiagramRenderer {
         sb.append("        CLI[CLI]\n");
         sb.append("    end\n\n");
 
-        // Driving ports
-        if (!drivingPorts.isEmpty()) {
-            sb.append("    subgraph DrivingPorts[\"Driving Ports\"]\n");
+        // Driving ports - always show subgraph to reflect hexagonal architecture target
+        sb.append("    subgraph DrivingPorts[\"Driving Ports\"]\n");
+        if (drivingPorts.isEmpty()) {
+            sb.append("        NoDrivingPorts[[\"(none)\"]]\n");
+        } else {
             for (PortDoc port : drivingPorts) {
                 sb.append("        ")
                         .append(MermaidBuilder.sanitizeId(port.name()))
@@ -184,8 +196,8 @@ public final class DiagramRenderer {
                         .append(port.name())
                         .append("]]\n");
             }
-            sb.append("    end\n\n");
         }
+        sb.append("    end\n\n");
 
         // Domain
         sb.append("    subgraph Domain[\"Domain\"]\n");
@@ -202,9 +214,11 @@ public final class DiagramRenderer {
         }
         sb.append("    end\n\n");
 
-        // Driven ports
-        if (!drivenPorts.isEmpty()) {
-            sb.append("    subgraph DrivenPorts[\"Driven Ports\"]\n");
+        // Driven ports - always show subgraph to reflect hexagonal architecture target
+        sb.append("    subgraph DrivenPorts[\"Driven Ports\"]\n");
+        if (drivenPorts.isEmpty()) {
+            sb.append("        NoDrivenPorts[[\"(none)\"]]\n");
+        } else {
             for (PortDoc port : drivenPorts) {
                 sb.append("        ")
                         .append(MermaidBuilder.sanitizeId(port.name()))
@@ -212,8 +226,8 @@ public final class DiagramRenderer {
                         .append(port.name())
                         .append("]]\n");
             }
-            sb.append("    end\n\n");
         }
+        sb.append("    end\n\n");
 
         // Driven Adapters (external)
         sb.append("    subgraph DrivenAdapters[\"Driven Adapters\"]\n");
@@ -293,7 +307,13 @@ public final class DiagramRenderer {
         // From properties referencing other domain types
         for (PropertyDoc prop : type.properties()) {
             if (!prop.isIdentity() && prop.relationInfo() == null) {
-                String propTypeName = extractBaseType(prop.type());
+                // For collections, use the element type from typeArguments
+                String propTypeName;
+                if (prop.cardinality().equals("COLLECTION") && !prop.typeArguments().isEmpty()) {
+                    propTypeName = prop.typeArguments().get(0);
+                } else {
+                    propTypeName = extractBaseType(prop.type());
+                }
                 DomainTypeDoc targetType = typeMap.get(propTypeName);
 
                 if (targetType != null) {

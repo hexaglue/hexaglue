@@ -215,21 +215,7 @@ public record AuditReport(
         // Build summary
         boolean passed = snapshot.passed();
         List<RuleViolation> violations = snapshot.violations();
-        AuditSummary summary = new AuditSummary(
-                passed,
-                violations.size(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.ERROR)
-                        .count(),
-                0, // critical - not distinguished in SPI
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.WARNING)
-                        .count(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.INFO)
-                        .count(),
-                0 // info
-                );
+        AuditSummary summary = buildSummary(passed, violations);
 
         // Convert violations
         List<ViolationEntry> violationEntries =
@@ -319,21 +305,7 @@ public record AuditReport(
         // Build summary
         boolean passed = snapshot.passed();
         List<RuleViolation> violations = snapshot.violations();
-        AuditSummary summary = new AuditSummary(
-                passed,
-                violations.size(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.ERROR)
-                        .count(),
-                0, // critical
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.WARNING)
-                        .count(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.INFO)
-                        .count(),
-                0 // info
-                );
+        AuditSummary summary = buildSummary(passed, violations);
 
         // Convert violations
         List<ViolationEntry> violationEntries =
@@ -410,20 +382,7 @@ public record AuditReport(
         // Build summary
         boolean passed = snapshot.passed();
         List<RuleViolation> violations = snapshot.violations();
-        AuditSummary summary = new AuditSummary(
-                passed,
-                violations.size(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.ERROR)
-                        .count(),
-                0, // critical
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.WARNING)
-                        .count(),
-                (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.INFO)
-                        .count(),
-                0);
+        AuditSummary summary = buildSummary(passed, violations);
 
         // Convert violations
         List<ViolationEntry> violationEntries =
@@ -505,14 +464,48 @@ public record AuditReport(
                 architectureQuery);
     }
 
+    /**
+     * Builds the audit summary with violation counts by severity.
+     *
+     * @param passed whether the audit passed
+     * @param violations the list of rule violations
+     * @return the audit summary with counts for each severity level
+     */
+    private static AuditSummary buildSummary(boolean passed, List<RuleViolation> violations) {
+        return new AuditSummary(
+                passed,
+                violations.size(),
+                (int) violations.stream()
+                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.BLOCKER)
+                        .count(),
+                (int) violations.stream()
+                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.CRITICAL)
+                        .count(),
+                (int) violations.stream()
+                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.MAJOR)
+                        .count(),
+                (int) violations.stream()
+                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.MINOR)
+                        .count(),
+                (int) violations.stream()
+                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.INFO)
+                        .count());
+    }
+
     private static ViolationEntry convertViolation(RuleViolation violation) {
         String location = violation.location().filePath() + ":"
                 + violation.location().lineStart() + ":" + violation.location().columnStart();
+
+        // Use affected types from violation, fallback to message extraction if empty
+        String affectedType = violation.affectedTypes().isEmpty()
+                ? extractAffectedType(violation.message())
+                : String.join(", ", violation.affectedTypes());
+
         return new ViolationEntry(
                 violation.ruleId(),
                 violation.severity().name(),
                 violation.message(),
-                extractAffectedType(violation.message()),
+                affectedType,
                 location,
                 ""); // evidence not in SPI yet
     }

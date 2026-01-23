@@ -315,14 +315,56 @@ public final class DomainContentSelector {
         return new PropertyDoc(
                 field.name(),
                 typeName,
-                "SINGLE", // Cardinality detection simplified
-                "NULLABLE", // Nullability detection simplified
-                false, // isIdentity
+                determineCardinality(type),
+                determineNullability(type),
+                field.isIdentity(),
                 false, // isEmbedded
                 true, // isSimple
                 !typeArguments.isEmpty(),
                 typeArguments,
                 null);
+    }
+
+    /**
+     * Determines the nullability of a type.
+     *
+     * <p>Java primitives cannot be null, so they are always NON_NULL.
+     * Reference types are UNKNOWN unless annotated.</p>
+     *
+     * @param type the type to check
+     * @return "NON_NULL" for primitives, "UNKNOWN" for reference types
+     */
+    private String determineNullability(TypeRef type) {
+        // Primitive types can never be null in Java
+        if (type.isPrimitive()) {
+            return "NON_NULL";
+        }
+        // Reference types: we cannot determine without annotations
+        return "UNKNOWN";
+    }
+
+    /**
+     * Determines the cardinality of a type.
+     *
+     * <p>Collection types (List, Set, Collection) have COLLECTION cardinality.
+     * All other types have SINGLE cardinality.</p>
+     *
+     * @param type the type to check
+     * @return "COLLECTION" for collection types, "SINGLE" otherwise
+     */
+    private String determineCardinality(TypeRef type) {
+        String qualifiedName = type.qualifiedName();
+        // Check for common collection types
+        if (qualifiedName.equals("java.util.List")
+                || qualifiedName.equals("java.util.Set")
+                || qualifiedName.equals("java.util.Collection")
+                || qualifiedName.equals("java.util.Iterable")
+                || qualifiedName.startsWith("java.util.List")
+                || qualifiedName.startsWith("java.util.Set")
+                || qualifiedName.startsWith("java.util.Collection")) {
+            return "COLLECTION";
+        }
+        return "SINGLE";
     }
 
     private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {

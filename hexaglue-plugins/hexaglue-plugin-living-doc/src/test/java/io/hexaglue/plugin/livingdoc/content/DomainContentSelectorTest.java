@@ -24,6 +24,7 @@ import io.hexaglue.arch.model.ApplicationService;
 import io.hexaglue.arch.model.DomainEvent;
 import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
@@ -303,6 +304,92 @@ class DomainContentSelectorTest {
 
             // Then
             assertThat(results).hasSize(7);
+        }
+    }
+
+    @Nested
+    @DisplayName("Property Extraction")
+    class PropertyExtraction {
+
+        @Test
+        @DisplayName("should mark primitive types as NON_NULL")
+        void shouldMarkPrimitiveTypesAsNonNull() {
+            // Given: ValueObject with primitive fields
+            Field booleanField = Field.of("completed", TypeRef.primitive("boolean"));
+            Field intField = Field.of("quantity", TypeRef.primitive("int"));
+            ValueObject vo = valueObject(PKG + ".Task", booleanField, intField);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), vo);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectValueObjects();
+            DomainTypeDoc doc = results.get(0);
+
+            // Then
+            assertThat(doc.properties()).hasSize(2);
+            assertThat(doc.properties())
+                    .extracting("name", "nullability")
+                    .containsExactlyInAnyOrder(
+                            org.assertj.core.groups.Tuple.tuple("completed", "NON_NULL"),
+                            org.assertj.core.groups.Tuple.tuple("quantity", "NON_NULL"));
+        }
+
+        @Test
+        @DisplayName("should mark reference types as UNKNOWN by default")
+        void shouldMarkReferenceTypesAsUnknown() {
+            // Given: ValueObject with reference field
+            Field stringField = Field.of("name", TypeRef.of("java.lang.String"));
+            ValueObject vo = valueObject(PKG + ".Person", stringField);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), vo);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectValueObjects();
+            DomainTypeDoc doc = results.get(0);
+
+            // Then
+            assertThat(doc.properties()).hasSize(1);
+            assertThat(doc.properties().get(0).nullability()).isEqualTo("UNKNOWN");
+        }
+
+        @Test
+        @DisplayName("should detect collection cardinality")
+        void shouldDetectCollectionCardinality() {
+            // Given: ValueObject with a List field
+            Field listField = Field.of("items", TypeRef.parameterized("java.util.List", List.of(TypeRef.of("java.lang.String"))));
+            ValueObject vo = valueObject(PKG + ".Order", listField);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), vo);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectValueObjects();
+            DomainTypeDoc doc = results.get(0);
+
+            // Then
+            assertThat(doc.properties()).hasSize(1);
+            assertThat(doc.properties().get(0).cardinality()).isEqualTo("COLLECTION");
+        }
+
+        @Test
+        @DisplayName("should detect single cardinality for non-collection types")
+        void shouldDetectSingleCardinalityForNonCollectionTypes() {
+            // Given: ValueObject with a non-collection field
+            Field stringField = Field.of("name", TypeRef.of("java.lang.String"));
+            ValueObject vo = valueObject(PKG + ".Person", stringField);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), vo);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectValueObjects();
+            DomainTypeDoc doc = results.get(0);
+
+            // Then
+            assertThat(doc.properties()).hasSize(1);
+            assertThat(doc.properties().get(0).cardinality()).isEqualTo("SINGLE");
         }
     }
 

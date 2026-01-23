@@ -55,23 +55,23 @@ public record Anomaly(
      * @param affectedType the affected type
      * @param message      the message
      * @param relatedTypes related types
-     * @return new anomaly with ERROR severity
+     * @return new anomaly with CRITICAL severity
      */
     public static Anomaly error(AnomalyType type, String affectedType, String message, List<String> relatedTypes) {
-        return new Anomaly(type, affectedType, message, Severity.ERROR, relatedTypes);
+        return new Anomaly(type, affectedType, message, Severity.CRITICAL, relatedTypes);
     }
 
     /**
-     * Creates a WARNING-level anomaly.
+     * Creates a MAJOR-level anomaly.
      *
      * @param type         the anomaly type
      * @param affectedType the affected type
      * @param message      the message
      * @param relatedTypes related types
-     * @return new anomaly with WARNING severity
+     * @return new anomaly with MAJOR severity
      */
     public static Anomaly warning(AnomalyType type, String affectedType, String message, List<String> relatedTypes) {
-        return new Anomaly(type, affectedType, message, Severity.WARNING, relatedTypes);
+        return new Anomaly(type, affectedType, message, Severity.MAJOR, relatedTypes);
     }
 
     /**
@@ -88,32 +88,32 @@ public record Anomaly(
     }
 
     /**
-     * Returns true if this anomaly is an error.
+     * Returns true if this anomaly is an error (BLOCKER or CRITICAL).
      *
-     * @return true if severity is ERROR
+     * @return true if severity is BLOCKER or CRITICAL
      */
     public boolean isError() {
-        return severity == Severity.ERROR;
+        return severity == Severity.BLOCKER || severity == Severity.CRITICAL;
     }
 
     /**
-     * Returns true if this anomaly is a warning.
+     * Returns true if this anomaly is a warning (MAJOR).
      *
-     * @return true if severity is WARNING
+     * @return true if severity is MAJOR
      */
     public boolean isWarning() {
-        return severity == Severity.WARNING;
+        return severity == Severity.MAJOR;
     }
 
     /**
      * Returns true if this anomaly should block code generation.
      *
-     * <p>Only ERROR-level anomalies block generation by default.
+     * <p>Only BLOCKER and CRITICAL-level anomalies block generation by default.
      *
-     * @return true if severity is ERROR
+     * @return true if severity is BLOCKER or CRITICAL
      */
     public boolean blocksGeneration() {
-        return severity == Severity.ERROR;
+        return severity == Severity.BLOCKER || severity == Severity.CRITICAL;
     }
 
     /**

@@ -101,7 +101,7 @@ public final class ComplexityMethodLengthMaxRule implements AuditRule {
                 for (var method : unit.methods()) {
                     // Use complexity as a proxy: complex methods are often long
                     if (method.complexity() > 10) {
-                        violations.add(new RuleViolation(
+                        violations.add(RuleViolation.of(
                                 RULE_ID,
                                 defaultSeverity(),
                                 "Method '%s' in type '%s' appears to be long (type has average %d lines/method, threshold is %d). "

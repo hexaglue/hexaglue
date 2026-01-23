@@ -80,7 +80,7 @@ public final class ComplexityCyclomaticMaxRule implements AuditRule {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.WARNING;
+        return Severity.MAJOR;
     }
 
     @Override
@@ -91,7 +91,7 @@ public final class ComplexityCyclomaticMaxRule implements AuditRule {
             if (method.complexity() > threshold) {
                 Severity severity = determineSeverity(method.complexity());
 
-                violations.add(new RuleViolation(
+                violations.add(RuleViolation.of(
                         RULE_ID,
                         severity,
                         "Method '%s' in type '%s' has cyclomatic complexity %d, which exceeds the threshold of %d. "
@@ -109,11 +109,11 @@ public final class ComplexityCyclomaticMaxRule implements AuditRule {
      */
     private Severity determineSeverity(int complexity) {
         if (complexity > 50) {
-            return Severity.ERROR; // Very high risk
+            return Severity.CRITICAL; // Very high risk
         } else if (complexity > 20) {
-            return Severity.WARNING; // High risk
+            return Severity.MAJOR; // High risk
         } else {
-            return Severity.INFO; // Moderate risk
+            return Severity.MINOR; // Moderate risk
         }
     }
 

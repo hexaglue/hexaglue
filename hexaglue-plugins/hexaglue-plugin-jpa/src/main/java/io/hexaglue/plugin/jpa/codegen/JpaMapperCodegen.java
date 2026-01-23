@@ -23,6 +23,7 @@ import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
+import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -88,6 +89,9 @@ public final class JpaMapperCodegen {
      * The generator identifier used in {@code @Generated} annotations.
      */
     private static final String GENERATOR_NAME = "io.hexaglue.plugin.jpa";
+    private static final String PLUGIN_VERSION = Optional.ofNullable(
+                    JpaMapperCodegen.class.getPackage().getImplementationVersion())
+            .orElse("dev");
 
     private JpaMapperCodegen() {
         // Utility class - prevent instantiation
@@ -123,7 +127,7 @@ public final class JpaMapperCodegen {
 
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(spec.interfaceName())
                 .addModifiers(Modifier.PUBLIC)
-                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME))
+                .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME, PLUGIN_VERSION))
                 .addAnnotation(JpaAnnotations.mapper())
                 .addJavadoc(
                         "MapStruct mapper for converting between {@link $L} domain objects and {@link $L} entities.\n\n",
@@ -136,8 +140,7 @@ public final class JpaMapperCodegen {
                 .addJavadoc("</ul>\n")
                 .addJavadoc("\n")
                 .addJavadoc("<p>MapStruct generates the implementation at compile time, ensuring type safety\n")
-                .addJavadoc("and optimal performance without runtime reflection.\n")
-                .addJavadoc("\n@since 1.0.0\n");
+                .addJavadoc("and optimal performance without runtime reflection.\n");
 
         // Add toEntity method with custom mappings
         builder.addMethod(createToEntityMethod(spec));

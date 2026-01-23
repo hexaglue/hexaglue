@@ -57,7 +57,7 @@ public final class NamingControllerSuffixRule implements AuditRule {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.WARNING;
+        return Severity.MAJOR;
     }
 
     @Override
@@ -133,6 +133,6 @@ public final class NamingControllerSuffixRule implements AuditRule {
      */
     private RuleViolation createViolation(String message, String qualifiedName) {
         SourceLocation location = SourceLocation.of(qualifiedName + ".java", 1, 1);
-        return new RuleViolation(RULE_ID, defaultSeverity(), message, location);
+        return RuleViolation.of(RULE_ID, defaultSeverity(), message, location);
     }
 }

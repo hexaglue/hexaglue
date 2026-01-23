@@ -56,7 +56,7 @@ public final class LayeringDomainPurityRule implements AuditRule {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.ERROR;
+        return Severity.CRITICAL;
     }
 
     @Override
@@ -181,6 +181,6 @@ public final class LayeringDomainPurityRule implements AuditRule {
     private RuleViolation createViolation(String message, String qualifiedName) {
         // Create a synthetic location pointing to the type
         SourceLocation location = SourceLocation.of(qualifiedName + ".java", 1, 1);
-        return new RuleViolation(RULE_ID, defaultSeverity(), message, location);
+        return RuleViolation.of(RULE_ID, defaultSeverity(), message, location);
     }
 }

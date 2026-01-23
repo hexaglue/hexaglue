@@ -16,32 +16,47 @@ package io.hexaglue.spi.audit;
 /**
  * Severity level for audit rule violations.
  *
- * <p>Severity levels help prioritize issues and determine whether the audit passes or fails:
- * <ul>
- *   <li><b>INFO</b>: Informational message, does not fail the audit</li>
- *   <li><b>WARNING</b>: Issue that should be addressed, does not fail the audit</li>
- *   <li><b>ERROR</b>: Critical issue that fails the audit</li>
- * </ul>
+ * <p>Severity levels are ordered from most to least severe:
+ * <ol>
+ *   <li><b>BLOCKER</b>: Build fails immediately, cannot be overridden</li>
+ *   <li><b>CRITICAL</b>: Build fails unless explicitly allowed in configuration</li>
+ *   <li><b>MAJOR</b>: Warning, build continues, should be fixed</li>
+ *   <li><b>MINOR</b>: Low priority issue, nice to fix</li>
+ *   <li><b>INFO</b>: Informational only, no action required</li>
+ * </ol>
  *
  * @since 3.0.0
+ * @since 5.0.0 - Enriched with BLOCKER, CRITICAL, MAJOR, MINOR for actionable severity levels
  */
 public enum Severity {
 
     /**
-     * Informational message.
-     * Does not indicate a problem, just provides useful information.
+     * Build fails immediately. Cannot be overridden.
+     * Used for critical architectural violations (e.g., circular aggregate dependencies).
      */
-    INFO,
+    BLOCKER,
 
     /**
-     * Warning level issue.
-     * Indicates a potential problem that should be reviewed but doesn't fail the audit.
+     * Build fails unless explicitly allowed in configuration.
+     * Used for serious DDD violations (e.g., mutable value objects, missing entity identity).
      */
-    WARNING,
+    CRITICAL,
 
     /**
-     * Error level issue.
-     * Indicates a serious problem that causes the audit to fail.
+     * Warning level. Build continues but violation should be fixed.
+     * Used for important architectural issues (e.g., aggregate without repository).
      */
-    ERROR
+    MAJOR,
+
+    /**
+     * Low priority issue. Nice to fix.
+     * Used for best practice violations (e.g., large aggregates).
+     */
+    MINOR,
+
+    /**
+     * Informational only. No action required.
+     * Used for documentation and metrics.
+     */
+    INFO
 }
