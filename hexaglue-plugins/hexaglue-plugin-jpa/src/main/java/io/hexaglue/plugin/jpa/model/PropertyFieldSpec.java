@@ -21,6 +21,7 @@ import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.plugin.jpa.util.TypeMappings;
 import io.hexaglue.spi.ir.Nullability;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -44,6 +45,7 @@ import java.util.Map;
  * @param isWrappedForeignKey true if this property is a foreign key wrapper (e.g., CustomerId)
  * @param unwrappedType the JavaPoet type representation for the unwrapped value (null if not wrapped)
  * @param wrapperAccessorMethod the method to access the unwrapped value (e.g., "value" for records)
+ * @param attributeOverrides list of attribute overrides for embedded fields with column name conflicts
  * @since 2.0.0
  */
 public record PropertyFieldSpec(
@@ -57,7 +59,58 @@ public record PropertyFieldSpec(
         String typeQualifiedName,
         boolean isWrappedForeignKey,
         TypeName unwrappedType,
-        String wrapperAccessorMethod) {
+        String wrapperAccessorMethod,
+        List<AttributeOverride> attributeOverrides) {
+
+    /**
+     * Canonical constructor with validation.
+     * Ensures attributeOverrides is never null (uses empty list as default).
+     */
+    public PropertyFieldSpec {
+        attributeOverrides = attributeOverrides == null ? List.of() : List.copyOf(attributeOverrides);
+    }
+
+    /**
+     * Convenience constructor without attribute overrides.
+     * This maintains backward compatibility with existing code.
+     *
+     * @deprecated Use the full constructor with attributeOverrides parameter
+     */
+    public PropertyFieldSpec(
+            String fieldName,
+            TypeName javaType,
+            Nullability nullability,
+            String columnName,
+            boolean isEmbedded,
+            boolean isValueObject,
+            boolean isEnum,
+            String typeQualifiedName,
+            boolean isWrappedForeignKey,
+            TypeName unwrappedType,
+            String wrapperAccessorMethod) {
+        this(
+                fieldName,
+                javaType,
+                nullability,
+                columnName,
+                isEmbedded,
+                isValueObject,
+                isEnum,
+                typeQualifiedName,
+                isWrappedForeignKey,
+                unwrappedType,
+                wrapperAccessorMethod,
+                List.of());
+    }
+
+    /**
+     * Returns true if this property has attribute overrides.
+     *
+     * @return true if attributeOverrides is not empty
+     */
+    public boolean hasAttributeOverrides() {
+        return !attributeOverrides.isEmpty();
+    }
 
     private static String capitalize(String str) {
         if (str == null || str.isEmpty()) {

@@ -282,6 +282,88 @@ public final class JpaAnnotations {
     }
 
     /**
+     * Builds an {@code @AttributeOverride} annotation.
+     *
+     * <p>Used to override the column mapping for an attribute of an embedded object.
+     * This is necessary when an entity has multiple embedded fields of the same type,
+     * which would otherwise cause column name conflicts.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @AttributeOverride(name = "amount", column = @Column(name = "price_amount"))
+     * }</pre>
+     *
+     * @param attributeName the name of the attribute in the embeddable class
+     * @param columnName the overridden column name
+     * @return the {@code @AttributeOverride} annotation spec
+     * @throws IllegalArgumentException if attributeName or columnName is null or empty
+     * @since 2.0.0
+     */
+    public static AnnotationSpec attributeOverride(String attributeName, String columnName) {
+        if (attributeName == null || attributeName.isEmpty()) {
+            throw new IllegalArgumentException("Attribute name cannot be null or empty");
+        }
+        if (columnName == null || columnName.isEmpty()) {
+            throw new IllegalArgumentException("Column name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(jakarta.persistence.AttributeOverride.class)
+                .addMember("name", "$S", attributeName)
+                .addMember("column", "$L", AnnotationSpec.builder(Column.class)
+                        .addMember("name", "$S", columnName)
+                        .build())
+                .build();
+    }
+
+    /**
+     * Builds an {@code @AttributeOverrides} annotation containing multiple {@code @AttributeOverride}.
+     *
+     * <p>Used when an entity has multiple embedded fields of the same type. Each embedded
+     * field needs to specify different column names for the embeddable's attributes to
+     * avoid conflicts.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @AttributeOverrides({
+     *     @AttributeOverride(name = "amount", column = @Column(name = "price_amount")),
+     *     @AttributeOverride(name = "currency", column = @Column(name = "price_currency"))
+     * })
+     * private MoneyEmbeddable price;
+     * }</pre>
+     *
+     * @param overrides the list of attribute overrides
+     * @return the {@code @AttributeOverrides} annotation spec, or null if the list is empty
+     * @throws IllegalArgumentException if overrides is null
+     * @since 2.0.0
+     */
+    public static AnnotationSpec attributeOverrides(
+            java.util.List<io.hexaglue.plugin.jpa.model.AttributeOverride> overrides) {
+        if (overrides == null) {
+            throw new IllegalArgumentException("Overrides cannot be null");
+        }
+        if (overrides.isEmpty()) {
+            return null; // No overrides needed
+        }
+
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(jakarta.persistence.AttributeOverrides.class);
+
+        // Build the array of @AttributeOverride annotations
+        com.palantir.javapoet.CodeBlock.Builder arrayBuilder = com.palantir.javapoet.CodeBlock.builder();
+        arrayBuilder.add("{");
+        for (int i = 0; i < overrides.size(); i++) {
+            io.hexaglue.plugin.jpa.model.AttributeOverride override = overrides.get(i);
+            if (i > 0) {
+                arrayBuilder.add(", ");
+            }
+            arrayBuilder.add("$L", attributeOverride(override.attributeName(), override.columnName()));
+        }
+        arrayBuilder.add("}");
+
+        builder.addMember("value", arrayBuilder.build());
+        return builder.build();
+    }
+
+    /**
      * Builds an {@code @Enumerated(EnumType.STRING)} annotation.
      *
      * <p>Used for enum fields to store them as their string name instead of ordinal.

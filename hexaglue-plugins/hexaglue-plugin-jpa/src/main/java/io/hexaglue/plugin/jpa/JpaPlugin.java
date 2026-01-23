@@ -187,11 +187,13 @@ public final class JpaPlugin implements GeneratorPlugin {
         Map<String, String> embeddableMapping = new HashMap<>();
 
         // Generate embeddables from v5 ValueObjects
+        // M13 fix: Skip simple wrappers (single-value records) - they are unwrapped to primitives
         if (config.generateEmbeddables()) {
             List<io.hexaglue.arch.model.ValueObject> valueObjects = domainIndex
                     .valueObjects()
                     .filter(vo -> vo.structure() != null)
                     .filter(vo -> vo.structure().nature() != TypeNature.ENUM)
+                    .filter(vo -> !isSimpleWrapper(vo)) // M13: Skip simple wrappers like Quantity
                     .toList();
 
             // First pass: compute all embeddable mappings
@@ -551,5 +553,26 @@ public final class JpaPlugin implements GeneratorPlugin {
                 }
             }
         });
+    }
+
+    /**
+     * Determines if a ValueObject is a simple wrapper type.
+     *
+     * <p>A simple wrapper is a single-field record that wraps a primitive or simple type.
+     * For example, {@code record Quantity(int value)} is a simple wrapper.
+     *
+     * <p>Simple wrappers should not generate embeddable classes because they are
+     * "unwrapped" to their primitive type in entities and embeddables. Generating
+     * an embeddable for them would create an unused class.
+     *
+     * @param vo the value object to check
+     * @return true if the value object is a simple wrapper (single-value record)
+     * @since 2.0.0
+     */
+    private boolean isSimpleWrapper(io.hexaglue.arch.model.ValueObject vo) {
+        if (vo == null || vo.structure() == null) {
+            return false;
+        }
+        return vo.isSingleValue() && vo.structure().isRecord();
     }
 }
