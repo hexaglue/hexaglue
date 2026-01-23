@@ -173,6 +173,9 @@ public final class AdapterSpecBuilder {
         // Build IdInfo
         AdapterContext.IdInfo idInfo = buildIdInfo();
 
+        // Determine if domain class is a record
+        boolean isDomainRecord = isDomainRecord();
+
         return new AdapterSpec(
                 infrastructurePackage,
                 className,
@@ -182,7 +185,23 @@ public final class AdapterSpecBuilder {
                 repositoryClass,
                 mapperClass,
                 methods,
-                idInfo);
+                idInfo,
+                isDomainRecord);
+    }
+
+    /**
+     * Determines if the domain class is a Java record.
+     *
+     * @return true if the domain class is a record, false for regular classes
+     * @since 3.0.0
+     */
+    private boolean isDomainRecord() {
+        if (aggregateRoot != null) {
+            return aggregateRoot.structure().isRecord();
+        } else if (entity != null) {
+            return entity.structure().isRecord();
+        }
+        return false;
     }
 
     /**

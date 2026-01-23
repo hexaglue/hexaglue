@@ -51,7 +51,7 @@ class FindByPropertyMethodStrategyTest {
     @BeforeEach
     void setUp() {
         strategy = new FindByPropertyMethodStrategy();
-        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper", null);
+        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper", null, true);
     }
 
     @Nested
@@ -371,7 +371,7 @@ class FindByPropertyMethodStrategyTest {
         void shouldUseCustomFieldNamesFromContext() {
             // Given
             AdapterContext customContext =
-                    new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null);
+                    new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null, true);
             AdapterMethodSpec method = createFindByPropertyMethod("findByEmail", "email", OPTIONAL_USER);
 
             // When

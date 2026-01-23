@@ -163,7 +163,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(saveMethod),
-                null);
+                null,
+                true);
 
         // When
         TypeSpec adapter = JpaAdapterCodegen.generate(spec);
@@ -199,7 +200,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(saveMethod, findByIdMethod),
-                null);
+                null,
+                true);
 
         // When
         TypeSpec adapter = JpaAdapterCodegen.generate(spec);
@@ -229,7 +231,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(),
-                null);
+                null,
+                true);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -249,7 +252,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(),
-                null);
+                null,
+                true);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -269,7 +273,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(),
-                null);
+                null,
+                true);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -289,7 +294,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(),
-                null);
+                null,
+                true);
 
         // When/Then
         assertThatThrownBy(() -> JpaAdapterCodegen.generate(spec))
@@ -342,7 +348,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(saveMethod),
-                null);
+                null,
+                true);
 
         // When
         JavaFile javaFile = JpaAdapterCodegen.generateFile(spec);
@@ -372,7 +379,8 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(saveMethod),
-                null);
+                null,
+                true);
 
         // When
         JavaFile javaFile = JpaAdapterCodegen.generateFile(spec);
@@ -405,6 +413,7 @@ class JpaAdapterCodegenTest {
                 REPOSITORY_TYPE,
                 MAPPER_TYPE,
                 List.of(),
-                null); // idInfo can be null for tests
+                null,
+                true); // idInfo can be null for tests
     }
 }

@@ -105,7 +105,7 @@ public final class DeleteMethodStrategy implements MethodBodyStrategy {
      * <p>This method uses information from both the parameter (isIdentity) and the context
      * (IdInfo) to determine whether to use mapper conversion:
      * <ul>
-     *   <li>Domain object parameter (e.g., Task) - extracts ID: {@code task.getId()}</li>
+     *   <li>Domain object parameter (e.g., Task) - extracts ID: {@code task.id()}</li>
      *   <li>Wrapped ID parameter with isIdentity=true and context.hasWrappedId()
      *       - converts: {@code mapper.map(taskId)}</li>
      *   <li>Primitive ID parameter - uses directly: {@code id}</li>
@@ -118,10 +118,11 @@ public final class DeleteMethodStrategy implements MethodBodyStrategy {
     private String generateIdExpression(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
         // If parameter type is the domain class, extract ID and convert
         if (param.type().equals(context.domainClass())) {
+            String idAccessor = context.idAccessorMethod();
             if (context.hasWrappedId()) {
-                return String.format("%s.map(%s.getId())", context.mapperFieldName(), param.name());
+                return String.format("%s.map(%s.%s())", context.mapperFieldName(), param.name(), idAccessor);
             }
-            return String.format("%s.getId()", param.name());
+            return String.format("%s.%s()", param.name(), idAccessor);
         }
 
         // If the parameter is marked as identity AND the context indicates a wrapped ID,

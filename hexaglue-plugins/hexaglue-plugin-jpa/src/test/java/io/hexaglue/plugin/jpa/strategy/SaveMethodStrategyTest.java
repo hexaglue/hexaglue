@@ -45,7 +45,7 @@ class SaveMethodStrategyTest {
     @BeforeEach
     void setUp() {
         strategy = new SaveMethodStrategy();
-        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper", null);
+        context = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "repository", "mapper", null, true);
     }
 
     @Test
@@ -312,7 +312,7 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldUseCustomFieldNames() {
         // Given
-        AdapterContext customContext = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null);
+        AdapterContext customContext = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null, true);
         AdapterMethodSpec method = createSaveMethod("save");
 
         // When

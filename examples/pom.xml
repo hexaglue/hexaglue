@@ -23,6 +23,7 @@
         <module>tutorial-audit</module>
         <module>tutorial-living-doc</module>
         <module>tutorial-validation</module>
+        <module>sample-regression-tests</module>
     </modules>
 
 </project>

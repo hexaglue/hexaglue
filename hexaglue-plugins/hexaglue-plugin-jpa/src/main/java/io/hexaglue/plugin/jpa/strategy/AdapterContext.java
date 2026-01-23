@@ -41,7 +41,8 @@ import io.hexaglue.spi.ir.Identity;
  *     entityClass = OrderEntity.class,
  *     repositoryFieldName = "repository",
  *     mapperFieldName = "mapper",
- *     idInfo = IdInfo(wrappedType=OrderId, unwrappedType=UUID, isWrapped=true)
+ *     idInfo = IdInfo(wrappedType=OrderId, unwrappedType=UUID, isWrapped=true),
+ *     isDomainRecord = true
  * )
  * }</pre>
  *
@@ -58,10 +59,16 @@ import io.hexaglue.spi.ir.Identity;
  * @param repositoryFieldName the name of the repository field in the adapter (typically "repository")
  * @param mapperFieldName the name of the mapper field in the adapter (typically "mapper")
  * @param idInfo identity information for proper ID handling (may be null if no identity)
+ * @param isDomainRecord true if the domain class is a Java record (uses .id()), false for classes (uses .getId())
  * @since 3.0.0
  */
 public record AdapterContext(
-        TypeName domainClass, TypeName entityClass, String repositoryFieldName, String mapperFieldName, IdInfo idInfo) {
+        TypeName domainClass,
+        TypeName entityClass,
+        String repositoryFieldName,
+        String mapperFieldName,
+        IdInfo idInfo,
+        boolean isDomainRecord) {
 
     /**
      * Identity information for adapter method generation.
@@ -145,5 +152,18 @@ public record AdapterContext(
      */
     public boolean hasWrappedId() {
         return idInfo != null && idInfo.isWrapped();
+    }
+
+    /**
+     * Returns the method name to access the identity field on domain objects.
+     *
+     * <p>For Java records, this returns "id" (accessor method is {@code id()}).
+     * For regular classes, this returns "getId" (getter method is {@code getId()}).
+     *
+     * @return "id" for records, "getId" for classes
+     * @since 3.0.0
+     */
+    public String idAccessorMethod() {
+        return isDomainRecord ? "id" : "getId";
     }
 }
