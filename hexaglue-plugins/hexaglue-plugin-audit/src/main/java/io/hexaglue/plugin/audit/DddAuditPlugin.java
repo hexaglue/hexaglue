@@ -426,7 +426,7 @@ public class DddAuditPlugin implements AuditPlugin {
             reportOpt.ifPresent(report -> {
                 diagnostics.info(String.format(
                         "Classification rate: %.1f%% (total: %d, classified: %d)",
-                        report.stats().classificationRate(),
+                        report.stats().classificationRate() * 100,
                         report.stats().totalTypes(),
                         report.stats().classifiedTypes()));
 
