@@ -564,7 +564,6 @@ public class DddAuditPlugin implements AuditPlugin {
             // Unpack execution result
             AuditSnapshot snapshot = executionResult.snapshot();
             AuditResult domainResult = executionResult.domainResult();
-            AuditConfiguration config = executionResult.config();
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
             ArchitecturalModel model = executionResult.model();
 
