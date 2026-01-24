@@ -1,0 +1,182 @@
+{
+  "domain": {
+    "types": [
+      {
+        "qualifiedName": "com.ecommerce.customer.Customer",
+        "simpleName": "Customer",
+        "kind": "AGGREGATE_ROOT",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "identity": {
+          "fieldName": "id",
+          "typeName": "com.ecommerce.customer.CustomerId"
+        },
+        "properties": [
+          {
+            "name": "email",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "id",
+            "typeName": "com.ecommerce.customer.CustomerId",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "name",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.ecommerce.customer.CustomerId",
+        "simpleName": "CustomerId",
+        "kind": "IDENTIFIER",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "wrappedType": "java.util.UUID",
+        "properties": [
+          {
+            "name": "value",
+            "typeName": "java.util.UUID",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.ecommerce.order.Order",
+        "simpleName": "Order",
+        "kind": "AGGREGATE_ROOT",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "identity": {
+          "fieldName": "id",
+          "typeName": "com.ecommerce.order.OrderId"
+        },
+        "properties": [
+          {
+            "name": "createdAt",
+            "typeName": "java.time.Instant",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "customerId",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "id",
+            "typeName": "com.ecommerce.order.OrderId",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "productIds",
+            "typeName": "java.util.List",
+            "cardinality": "COLLECTION"
+          },
+          {
+            "name": "status",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.ecommerce.order.OrderId",
+        "simpleName": "OrderId",
+        "kind": "IDENTIFIER",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "wrappedType": "java.util.UUID",
+        "properties": [
+          {
+            "name": "value",
+            "typeName": "java.util.UUID",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.ecommerce.product.Product",
+        "simpleName": "Product",
+        "kind": "AGGREGATE_ROOT",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "identity": {
+          "fieldName": "id",
+          "typeName": "com.ecommerce.product.ProductId"
+        },
+        "properties": [
+          {
+            "name": "description",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "id",
+            "typeName": "com.ecommerce.product.ProductId",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "name",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "price",
+            "typeName": "java.math.BigDecimal",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "stockQuantity",
+            "typeName": "int",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.ecommerce.product.ProductId",
+        "simpleName": "ProductId",
+        "kind": "IDENTIFIER",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "wrappedType": "java.util.UUID",
+        "properties": [
+          {
+            "name": "value",
+            "typeName": "java.util.UUID",
+            "cardinality": "SINGLE"
+          }
+        ]
+      }
+    ]
+  },
+  "ports": [
+    {
+      "qualifiedName": "com.ecommerce.customer.CustomerRepository",
+      "simpleName": "CustomerRepository",
+      "direction": "DRIVEN",
+      "kind": "REPOSITORY",
+      "confidence": "HIGH",
+      "methods": ["findById", "save"]
+    },
+    {
+      "qualifiedName": "com.ecommerce.order.OrderRepository",
+      "simpleName": "OrderRepository",
+      "direction": "DRIVEN",
+      "kind": "REPOSITORY",
+      "confidence": "HIGH",
+      "methods": ["findById", "save"]
+    },
+    {
+      "qualifiedName": "com.ecommerce.product.ProductRepository",
+      "simpleName": "ProductRepository",
+      "direction": "DRIVEN",
+      "kind": "REPOSITORY",
+      "confidence": "HIGH",
+      "methods": ["findAll", "findById", "save"]
+    }
+  ],
+  "unclassified": []
+}

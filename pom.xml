@@ -92,6 +92,10 @@
 
         <!-- Root directory for license header (overridden in child modules) -->
         <hexaglue.root>${project.basedir}</hexaglue.root>
+
+        <!-- Default argLine for surefire/failsafe (JaCoCo prepare-agent will set this) -->
+        <!-- Needed for PITest to not fail when JaCoCo agent isn't prepared -->
+        <argLine></argLine>
     </properties>
 
     <dependencyManagement>
@@ -468,6 +472,13 @@
                         </outputFormats>
                         <threads>4</threads>
                         <timeoutConstant>10000</timeoutConstant>
+                        <!-- Explicit JVM args to avoid @{argLine} resolution issue -->
+                        <jvmArgs>
+                            <jvmArg>--add-opens</jvmArg>
+                            <jvmArg>java.base/java.lang=ALL-UNNAMED</jvmArg>
+                            <jvmArg>--add-opens</jvmArg>
+                            <jvmArg>java.base/java.util=ALL-UNNAMED</jvmArg>
+                        </jvmArgs>
                     </configuration>
                 </plugin>
             </plugins>

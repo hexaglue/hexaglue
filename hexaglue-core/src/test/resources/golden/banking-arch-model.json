@@ -1,0 +1,119 @@
+{
+  "domain": {
+    "types": [
+      {
+        "qualifiedName": "com.example.banking.domain.Account",
+        "simpleName": "Account",
+        "kind": "AGGREGATE_ROOT",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "identity": {
+          "fieldName": "id",
+          "typeName": "com.example.banking.domain.AccountId"
+        },
+        "properties": [
+          {
+            "name": "balance",
+            "typeName": "com.example.banking.domain.Money",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "id",
+            "typeName": "com.example.banking.domain.AccountId",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "ownerName",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "transactions",
+            "typeName": "java.util.List",
+            "cardinality": "COLLECTION"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.example.banking.domain.AccountId",
+        "simpleName": "AccountId",
+        "kind": "IDENTIFIER",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "wrappedType": "java.util.UUID",
+        "properties": [
+          {
+            "name": "value",
+            "typeName": "java.util.UUID",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.example.banking.domain.Money",
+        "simpleName": "Money",
+        "kind": "VALUE_OBJECT",
+        "confidence": "HIGH",
+        "construct": "RECORD",
+        "properties": [
+          {
+            "name": "amount",
+            "typeName": "java.math.BigDecimal",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "currency",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          }
+        ]
+      },
+      {
+        "qualifiedName": "com.example.banking.domain.Transaction",
+        "simpleName": "Transaction",
+        "kind": "ENTITY",
+        "confidence": "HIGH",
+        "construct": "CLASS",
+        "properties": [
+          {
+            "name": "amount",
+            "typeName": "com.example.banking.domain.Money",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "description",
+            "typeName": "java.lang.String",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "id",
+            "typeName": "java.util.UUID",
+            "cardinality": "SINGLE"
+          },
+          {
+            "name": "timestamp",
+            "typeName": "java.time.Instant",
+            "cardinality": "SINGLE"
+          }
+        ]
+      }
+    ]
+  },
+  "ports": [
+    {
+      "qualifiedName": "com.example.banking.ports.out.AccountRepository",
+      "simpleName": "AccountRepository",
+      "direction": "DRIVEN",
+      "kind": "REPOSITORY",
+      "confidence": "HIGH",
+      "methods": ["delete", "findById", "save"]
+    }
+  ],
+  "unclassified": [
+    {
+      "qualifiedName": "com.example.banking.ports.in.TransferUseCase",
+      "simpleName": "TransferUseCase",
+      "category": "AMBIGUOUS"
+    }
+  ]
+}

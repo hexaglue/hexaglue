@@ -1,7 +1,7 @@
 # HexaGlue Makefile
 # Run 'make help' for available targets
 
-.PHONY: help install test format format-check quality coverage integration \
+.PHONY: help install test format format-check quality coverage mutation integration \
         release-check release ci clean build all verify
 
 # Default target
@@ -95,6 +95,12 @@ coverage:
 	@echo "$(CYAN)Running tests and generating coverage report...$(RESET)"
 	mvn verify
 	@echo "$(GREEN)Coverage report: target/coverage/index.html$(RESET)"
+
+## mutation: Run mutation testing with PITest on hexaglue-core
+mutation:
+	@echo "$(CYAN)Running mutation tests on hexaglue-core...$(RESET)"
+	mvn org.pitest:pitest-maven:mutationCoverage -pl hexaglue-core
+	@echo "$(GREEN)Mutation report: hexaglue-core/target/pit-reports/index.html$(RESET)"
 
 ## integration: Run integration tests on examples
 integration:
