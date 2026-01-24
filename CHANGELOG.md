@@ -7,6 +7,134 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.0.0] - 2026-01-24
+
+### Breaking Changes
+
+- **Sealed `ArchType` hierarchy** - Complete rewrite of the architectural model
+  - `DomainType` sealed interface with permits: `AggregateRoot`, `Entity`, `ValueObject`, `Identifier`, `DomainEvent`, `DomainService`
+  - `PortType` sealed interface with permits: `DrivingPort`, `DrivenPort`
+  - `ApplicationType` sealed interface with permits: `ApplicationService`, `CommandHandler`, `QueryHandler`
+  - `UnclassifiedType` for types that couldn't be classified
+
+- **Legacy IR package removed** - `io.hexaglue.spi.ir` package completely removed (-13,750 lines)
+  - `IrSnapshot` removed - Use `ArchitecturalModel` instead
+  - `DomainModel`, `PortModel` removed - Use `model.registry()` API
+  - All plugins migrated to new `ArchType` API
+
+### Added
+
+- **New architectural model API**
+  - `ElementRef` - Type-safe references to architectural elements
+  - `ElementRegistry` - Unified registry for type access with `registry.all(Type.class)`
+  - `ResolutionResult` - Result type for element resolution
+  - Fluent Query API for domain model traversal
+  - `RepositoryInterfaceCriterion` for improved repository detection
+
+- **Golden file tests for regression detection**
+  - `GoldenFileTest` in `hexaglue-core` with 3 domain examples (Coffeeshop, Banking, E-commerce)
+  - `JpaCodegenGoldenFileTest` in `hexaglue-plugin-jpa` with 10 golden files
+  - Determinism tests ensuring stable output across multiple runs
+
+- **PITest mutation testing integration**
+  - `make mutation` target for running mutation tests on `hexaglue-core`
+  - PITest configuration with JUnit 5 support
+  - Baseline metrics: 39% mutation score, 69% line coverage, 62% test strength
+
+### Fixed
+
+- **Classification improvements**
+  - Driving ports now detected via `UseCases` suffix and `ports.in` packages (H1)
+  - Domain enums correctly classified as `VALUE_OBJECT` (H2)
+  - Coupling metric threshold inversion fixed - efferent/afferent correctly calculated (H3)
+  - Classification rate now displays as percentage (H4)
+
+- **JPA plugin fixes**
+  - SQL reserved words (`order`, `user`, etc.) escaped in column names (C3)
+  - `@AttributeOverrides` generated for duplicate embedded types (M11)
+  - Simple wrapper embeddables skipped to avoid redundant code (M13)
+  - Record ID accessors use `id()` vs class accessors use `getId()` (M15)
+  - Boolean getters use `isActive()` convention instead of `getActive()` (B9)
+  - Repository and identifier types correctly resolved (C4)
+  - Method inference for adapter implementations fixed (C1)
+
+- **Audit plugin fixes**
+  - Invalid JSON caused by decimal commas fixed (C5)
+  - Version display corrected to show actual HexaGlue version (M1)
+  - `affectedType` extraction from violations fixed (M2)
+  - `hasAdapter` flag now correctly populated (M8)
+  - `DomainEvent` no longer misclassified as DRIVING port (M9)
+  - Severity levels aligned between rules and blockers (M10)
+  - Evidence field populated in violations (B1)
+  - `totalConstraints` metric calculated (B2)
+  - Zone of Pain excludes domain packages (B3)
+
+- **Living-doc plugin fixes**
+  - Nullability correctly shows `NON_NULL` for primitives (M3)
+  - Cardinality correctly shows `COLLECTION` for List/Set fields (M4)
+  - Duplicate `id` field removed from diagrams (M5)
+  - Mermaid diagrams use valid node references (M6)
+  - Generic types fully displayed (e.g., `List<OrderItem>` not `List`) (M7)
+  - Collection relations displayed in diagrams (M14)
+  - Source location shows actual file path instead of "synthetic" (B4)
+  - Identity field correctly marked with `isIdentity: true` (B5)
+  - Annotations included in documentation (B6)
+  - Identifiers listed in README overview (B8)
+
+- **Documentation improvements**
+  - Javadoc references domain types correctly (B10)
+  - Report accuracy improved with proper metrics
+
+### Changed
+
+- **All plugins migrated to v5 architecture**
+  - `hexaglue-plugin-jpa` - Uses new `ArchType` API
+  - `hexaglue-plugin-audit` - Uses new `ArchType` API
+  - `hexaglue-plugin-living-doc` - Uses new `ArchType` API
+
+- **Test infrastructure modernized**
+  - `TestModelBuilder` for creating test fixtures with v5 API
+  - `V5TestModelBuilder` for living-doc tests
+  - Comprehensive test coverage for all plugin components
+
+### Removed
+
+- **Dead code cleanup (-3,900 lines)**
+  - `classification.deterministic` - `DeterministicClassifier` superseded by `SinglePassClassifier`
+  - `classification.anomaly` - `AnomalyDetector`, `Anomaly`, `AnomalyType`
+  - `classification.discriminator` - All discriminator classes
+  - `classification.model` - `InboundModelCriteria`, `OutboundModelCriteria`, `ModelKind`
+  - `graph.algorithm` - `TarjanCycleDetector`, `Cycle`, `CycleDetectionConfig`
+  - `graph.composition` - `CompositionGraph` and related classes
+
+- **Legacy IR completely removed (-13,750 lines)**
+  - `io.hexaglue.spi.ir` package
+  - `IrSnapshot`, `DomainModel`, `PortModel`, `DomainType`, `Port`
+  - All IR-related tests and builders
+
+### Migration Guide
+
+```java
+// Before (v4.x)
+model.domainEntities()
+    .filter(DomainEntity::isAggregateRoot)
+    .forEach(this::process);
+
+// After (v5.0)
+model.registry().all(AggregateRoot.class)
+    .forEach(this::process);
+
+// Or using pattern matching
+model.registry().all(DomainType.class).forEach(type -> {
+    switch (type) {
+        case AggregateRoot ar -> processAggregate(ar);
+        case Entity e -> processEntity(e);
+        case ValueObject vo -> processValueObject(vo);
+        // ...
+    }
+});
+```
+
 ## [4.1.0] - 2026-01-20
 
 ### Added
