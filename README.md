@@ -3,7 +3,7 @@
 ***Compile your architecture, not just your code.***
 
 <div align="center">
-  <img src="docs/assets/logo-hexaglue.png" alt="HexaGlue" width="400">
+  <img src="docs/assets/logo-hexaglue.svg" alt="HexaGlue" width="400">
 
 [![Java 17+](https://img.shields.io/badge/Java-17%2B-orange.svg)](https://openjdk.org/)
 [![Maven 3.8+](https://img.shields.io/badge/Maven-3.8%2B-blue.svg)](https://maven.apache.org/)
