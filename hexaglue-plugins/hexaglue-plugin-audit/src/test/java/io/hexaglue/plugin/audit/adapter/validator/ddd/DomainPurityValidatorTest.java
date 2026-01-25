@@ -116,7 +116,7 @@ class DomainPurityValidatorTest {
         // Then
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).constraintId().value()).isEqualTo("ddd:domain-purity");
-        assertThat(violations.get(0).severity()).isEqualTo(Severity.MAJOR);
+        assertThat(violations.get(0).severity()).isEqualTo(Severity.CRITICAL);
         assertThat(violations.get(0).message()).contains("Order").contains("2 forbidden infrastructure import");
         assertThat(violations.get(0).affectedTypes()).contains("com.example.domain.Order");
         assertThat(violations.get(0).evidence()).hasSize(2);
@@ -417,7 +417,7 @@ class DomainPurityValidatorTest {
     @DisplayName("Should return correct default severity")
     void shouldReturnCorrectDefaultSeverity() {
         // When/Then
-        assertThat(validator.defaultSeverity()).isEqualTo(Severity.MAJOR);
+        assertThat(validator.defaultSeverity()).isEqualTo(Severity.CRITICAL);
     }
 
     @Test

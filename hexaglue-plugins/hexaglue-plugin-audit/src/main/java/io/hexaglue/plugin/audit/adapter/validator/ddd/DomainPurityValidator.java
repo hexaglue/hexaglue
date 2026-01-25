@@ -48,7 +48,7 @@ import java.util.Set;
  * </ul>
  *
  * <p><strong>Constraint:</strong> ddd:domain-purity<br>
- * <strong>Severity:</strong> MAJOR<br>
+ * <strong>Severity:</strong> CRITICAL<br>
  * <strong>Rationale:</strong> Infrastructure dependencies in the domain layer create
  * tight coupling, making the domain model harder to test, understand, and evolve
  * independently. The domain should express business concepts in pure terms.
@@ -149,7 +149,7 @@ public class DomainPurityValidator implements ConstraintValidator {
 
             if (!forbiddenDependencies.isEmpty()) {
                 Violation.Builder builder = Violation.builder(CONSTRAINT_ID)
-                        .severity(Severity.MAJOR)
+                        .severity(Severity.CRITICAL)
                         .message("Domain type '%s' has %d forbidden infrastructure import(s)"
                                 .formatted(domainType.id().simpleName(), forbiddenDependencies.size()))
                         .affectedType(domainTypeQName)
@@ -239,6 +239,6 @@ public class DomainPurityValidator implements ConstraintValidator {
 
     @Override
     public Severity defaultSeverity() {
-        return Severity.MAJOR;
+        return Severity.CRITICAL;
     }
 }
