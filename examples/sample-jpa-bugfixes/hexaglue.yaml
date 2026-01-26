@@ -1,0 +1,31 @@
+# HexaGlue Configuration - University JPA Bug Fixes Demo
+#
+# This configuration demonstrates the JPA plugin bug fixes:
+# - BUG-006: enableAuditing generates @CreatedDate/@LastModifiedDate
+# - BUG-007: enableOptimisticLocking generates @Version field
+
+plugins:
+  # JPA Plugin Configuration - use full plugin ID
+  io.hexaglue.plugin.jpa:
+    entitySuffix: "Entity"
+    embeddableSuffix: "Embeddable"
+    repositorySuffix: "JpaRepository"
+    adapterSuffix: "Adapter"
+    mapperSuffix: "Mapper"
+    tablePrefix: "univ_"
+    # BUG-006 FIX: Enable auditing to generate @CreatedDate/@LastModifiedDate
+    enableAuditing: true
+    # BUG-007 FIX: Enable optimistic locking to generate @Version field
+    enableOptimisticLocking: true
+    generateRepositories: true
+    generateMappers: true
+    generateAdapters: true
+    generateEmbeddables: true
+
+  # Living Documentation Plugin
+  io.hexaglue.plugin.livingdoc:
+    outputFormat: "markdown"
+
+  # DDD Audit Plugin
+  io.hexaglue.plugin.audit.ddd:
+    failOnBlocker: false

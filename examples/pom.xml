@@ -16,6 +16,7 @@
     <modules>
         <module>sample-basic</module>
         <module>sample-audit-violations</module>
+        <module>sample-jpa-bugfixes</module>
         <module>sample-multi-aggregate</module>
         <module>sample-pokedex</module>
         <module>sample-starwars</module>
