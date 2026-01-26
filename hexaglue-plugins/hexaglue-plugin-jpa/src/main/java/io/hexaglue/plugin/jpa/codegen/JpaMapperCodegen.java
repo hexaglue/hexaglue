@@ -128,7 +128,7 @@ public final class JpaMapperCodegen {
         TypeSpec.Builder builder = TypeSpec.interfaceBuilder(spec.interfaceName())
                 .addModifiers(Modifier.PUBLIC)
                 .addAnnotation(JpaAnnotations.generated(GENERATOR_NAME, PLUGIN_VERSION))
-                .addAnnotation(JpaAnnotations.mapper())
+                .addAnnotation(buildMapperAnnotation(spec))
                 .addJavadoc(
                         "MapStruct mapper for converting between {@link $L} domain objects and {@link $L} entities.\n\n",
                         spec.domainType(),
@@ -502,6 +502,43 @@ public final class JpaMapperCodegen {
     // =====================================================================
     // Annotation helpers
     // =====================================================================
+
+    /**
+     * Builds a {@code @Mapper} annotation with optional uses clause.
+     *
+     * <p>If the spec has usedMappers, generates:
+     * <pre>{@code
+     * @Mapper(componentModel = "spring", unmappedTargetPolicy = IGNORE, uses = {CourseMapper.class})
+     * }</pre>
+     *
+     * <p>Otherwise generates the basic annotation without uses clause.
+     *
+     * @param spec the mapper specification
+     * @return the @Mapper annotation spec
+     * @since 2.0.0
+     */
+    private static AnnotationSpec buildMapperAnnotation(MapperSpec spec) {
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
+                .addMember("componentModel", "$S", "spring")
+                .addMember("unmappedTargetPolicy", "$T.IGNORE", ClassName.get("org.mapstruct", "ReportingPolicy"));
+
+        // BUG-009 fix: Add uses clause if there are entity relationship mappers
+        if (spec.usedMappers() != null && !spec.usedMappers().isEmpty()) {
+            // Build the uses array: {CourseMapper.class, TagMapper.class}
+            StringBuilder usesValue = new StringBuilder("{");
+            for (int i = 0; i < spec.usedMappers().size(); i++) {
+                if (i > 0) {
+                    usesValue.append(", ");
+                }
+                usesValue.append("$T.class");
+            }
+            usesValue.append("}");
+
+            builder.addMember("uses", usesValue.toString(), spec.usedMappers().toArray());
+        }
+
+        return builder.build();
+    }
 
     /**
      * Builds a {@code @Mapping} annotation from a MappingSpec.

@@ -16,6 +16,7 @@ package io.hexaglue.plugin.jpa.codegen;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
@@ -34,6 +35,7 @@ import io.hexaglue.spi.ir.Nullability;
 import io.hexaglue.spi.ir.RelationKind;
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
@@ -518,6 +520,396 @@ class JpaEntityCodegenTest {
 
         // Then
         assertThat(code).contains("private java.util.List<java.lang.Object> items = new java.util.ArrayList<>();");
+    }
+
+    // =====================================================================
+    // BUG-001 and BUG-002 regression tests
+    // =====================================================================
+
+    /**
+     * BUG-001 regression test: @ManyToMany owning side should have @JoinTable.
+     *
+     * <p>Without @JoinTable, JPA uses default table naming which doesn't follow
+     * the project's snake_case conventions.
+     */
+    @Test
+    void generate_shouldAddJoinTableForOwningSideManyToMany_BUG001() {
+        // Given: ManyToMany owning side (mappedBy = null)
+        TypeName categoryEntityType = ParameterizedTypeName.get(
+                ClassName.get(Set.class), ClassName.bestGuess("com.example.CategoryEntity"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "categories",
+                categoryEntityType,
+                RelationKind.MANY_TO_MANY,
+                ElementKind.ENTITY,
+                null, // owning side
+                CascadeType.PERSIST,
+                FetchType.LAZY,
+                false);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("ProductEntity")
+                .tableName("products")
+                .domainQualifiedName("com.example.domain.Product")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @JoinTable with proper naming
+        assertThat(code)
+                .contains("@jakarta.persistence.ManyToMany")
+                .contains("@jakarta.persistence.JoinTable")
+                .contains("name = \"category_product\"") // alphabetical order
+                .contains("joinColumns")
+                .contains("inverseJoinColumns")
+                .contains("\"product_id\"")
+                .contains("\"category_id\"");
+    }
+
+    /**
+     * BUG-001 inverse test: @ManyToMany inverse side should NOT have @JoinTable.
+     */
+    @Test
+    void generate_shouldNotAddJoinTableForInverseSideManyToMany_BUG001() {
+        // Given: ManyToMany inverse side (mappedBy = "products")
+        TypeName productEntityType = ParameterizedTypeName.get(
+                ClassName.get(Set.class), ClassName.bestGuess("com.example.ProductEntity"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "products",
+                productEntityType,
+                RelationKind.MANY_TO_MANY,
+                ElementKind.ENTITY,
+                "categories", // inverse side - points to owning field
+                CascadeType.NONE,
+                FetchType.LAZY,
+                false);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("CategoryEntity")
+                .tableName("categories")
+                .domainQualifiedName("com.example.domain.Category")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have mappedBy but NOT @JoinTable
+        assertThat(code)
+                .contains("@jakarta.persistence.ManyToMany")
+                .contains("mappedBy = \"categories\"")
+                .doesNotContain("@jakarta.persistence.JoinTable");
+    }
+
+    /**
+     * BUG-002 regression test: @ManyToOne should have @JoinColumn.
+     *
+     * <p>Without explicit @JoinColumn, JPA uses default column naming which
+     * may not follow the project's snake_case conventions.
+     */
+    @Test
+    void generate_shouldAddJoinColumnForManyToOne_BUG002() {
+        // Given: ManyToOne relation
+        TypeName orderEntityType = ClassName.bestGuess("com.example.OrderEntity");
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "order",
+                orderEntityType,
+                RelationKind.MANY_TO_ONE,
+                ElementKind.AGGREGATE_ROOT,
+                null,
+                CascadeType.NONE,
+                FetchType.LAZY,
+                false);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("OrderLineEntity")
+                .tableName("order_lines")
+                .domainQualifiedName("com.example.domain.OrderLine")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @ManyToOne AND @JoinColumn
+        assertThat(code)
+                .contains("@jakarta.persistence.ManyToOne")
+                .contains("@jakarta.persistence.JoinColumn")
+                .contains("name = \"order_id\"");
+    }
+
+    /**
+     * BUG-004 regression test: @ElementCollection of enums should have @Enumerated(STRING).
+     *
+     * <p>Without @Enumerated(EnumType.STRING), Hibernate uses ORDINAL by default,
+     * which stores the enum index instead of the name.
+     */
+    @Test
+    void generate_shouldAddEnumeratedForEnumElementCollection_BUG004() {
+        // Given: ElementCollection of enum type
+        TypeName statusListType = ParameterizedTypeName.get(
+                ClassName.get(List.class),
+                ClassName.bestGuess("com.example.OrderStatus"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "previousStatuses",
+                statusListType,
+                RelationKind.ELEMENT_COLLECTION,
+                ElementKind.VALUE_OBJECT,
+                null,
+                CascadeType.NONE,
+                FetchType.LAZY,
+                false,
+                List.of(),
+                true);  // isElementTypeEnum = true
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("OrderEntity")
+                .tableName("orders")
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @ElementCollection, @CollectionTable, AND @Enumerated
+        assertThat(code)
+                .contains("@jakarta.persistence.ElementCollection")
+                .contains("@jakarta.persistence.CollectionTable")
+                .contains("@jakarta.persistence.Enumerated");
+        assertThat(code).contains("EnumType.STRING");
+    }
+
+    /**
+     * BUG-004 negative test: Non-enum @ElementCollection should NOT have @Enumerated.
+     */
+    @Test
+    void generate_shouldNotAddEnumeratedForNonEnumElementCollection_BUG004() {
+        // Given: ElementCollection of non-enum type (e.g., embedded value object)
+        TypeName tagListType = ParameterizedTypeName.get(
+                ClassName.get(List.class),
+                ClassName.bestGuess("com.example.TagEmbeddable"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "tags",
+                tagListType,
+                RelationKind.ELEMENT_COLLECTION,
+                ElementKind.VALUE_OBJECT,
+                null,
+                CascadeType.NONE,
+                FetchType.LAZY,
+                false,
+                List.of(),
+                false);  // isElementTypeEnum = false
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("ArticleEntity")
+                .tableName("articles")
+                .domainQualifiedName("com.example.domain.Article")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @ElementCollection but NOT @Enumerated
+        assertThat(code)
+                .contains("@jakarta.persistence.ElementCollection")
+                .contains("@jakarta.persistence.CollectionTable")
+                .doesNotContain("@jakarta.persistence.Enumerated");
+    }
+
+    // =====================================================================
+    // BUG-006 and BUG-007 regression tests (Auditing & Optimistic Locking)
+    // =====================================================================
+
+    /**
+     * BUG-006 regression test: enableAuditing=true should generate auditing fields.
+     *
+     * <p>When auditing is enabled, the entity should have:
+     * - @EntityListeners(AuditingEntityListener.class) on the class
+     * - @CreatedDate field (createdAt)
+     * - @LastModifiedDate field (updatedAt)
+     * - Getters/setters for both fields
+     */
+    @Test
+    void generate_shouldAddAuditingFieldsWhenEnabled_BUG006() {
+        // Given: EntitySpec with enableAuditing = true
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .enableAuditing(true)
+                .enableOptimisticLocking(false)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @EntityListeners and auditing fields
+        assertThat(code)
+                .contains("@jakarta.persistence.EntityListeners")
+                .contains("AuditingEntityListener.class")
+                .contains("@org.springframework.data.annotation.CreatedDate")
+                .contains("@org.springframework.data.annotation.LastModifiedDate")
+                .contains("private java.time.Instant createdAt;")
+                .contains("private java.time.Instant updatedAt;")
+                // createdAt should not be updatable
+                .contains("updatable = false")
+                // Accessors
+                .contains("public java.time.Instant getCreatedAt()")
+                .contains("public void setCreatedAt(java.time.Instant createdAt)")
+                .contains("public java.time.Instant getUpdatedAt()")
+                .contains("public void setUpdatedAt(java.time.Instant updatedAt)");
+    }
+
+    /**
+     * BUG-006 negative test: enableAuditing=false should NOT generate auditing fields.
+     */
+    @Test
+    void generate_shouldNotAddAuditingFieldsWhenDisabled_BUG006() {
+        // Given: EntitySpec with enableAuditing = false (default)
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .enableAuditing(false)
+                .enableOptimisticLocking(false)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should NOT have auditing annotations or fields
+        assertThat(code)
+                .doesNotContain("@jakarta.persistence.EntityListeners")
+                .doesNotContain("AuditingEntityListener")
+                .doesNotContain("@org.springframework.data.annotation.CreatedDate")
+                .doesNotContain("@org.springframework.data.annotation.LastModifiedDate")
+                .doesNotContain("private java.time.Instant createdAt;")
+                .doesNotContain("private java.time.Instant updatedAt;");
+    }
+
+    /**
+     * BUG-007 regression test: enableOptimisticLocking=true should generate @Version field.
+     *
+     * <p>When optimistic locking is enabled, the entity should have:
+     * - @Version field (version)
+     * - @Column(name = "version")
+     * - Getter/setter for version field
+     */
+    @Test
+    void generate_shouldAddVersionFieldWhenOptimisticLockingEnabled_BUG007() {
+        // Given: EntitySpec with enableOptimisticLocking = true
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .enableAuditing(false)
+                .enableOptimisticLocking(true)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @Version field
+        assertThat(code)
+                .contains("@jakarta.persistence.Version")
+                .contains("@jakarta.persistence.Column")
+                .contains("name = \"version\"")
+                .contains("private java.lang.Long version;")
+                // Accessors
+                .contains("public java.lang.Long getVersion()")
+                .contains("public void setVersion(java.lang.Long version)");
+    }
+
+    /**
+     * BUG-007 negative test: enableOptimisticLocking=false should NOT generate @Version field.
+     */
+    @Test
+    void generate_shouldNotAddVersionFieldWhenOptimisticLockingDisabled_BUG007() {
+        // Given: EntitySpec with enableOptimisticLocking = false (default)
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .enableAuditing(false)
+                .enableOptimisticLocking(false)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should NOT have @Version field
+        assertThat(code)
+                .doesNotContain("@jakarta.persistence.Version")
+                .doesNotContain("private java.lang.Long version;");
+    }
+
+    /**
+     * Combined test: Both auditing AND optimistic locking enabled.
+     */
+    @Test
+    void generate_shouldAddBothAuditingAndVersionFields_FEAT04() {
+        // Given: EntitySpec with both features enabled
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className(TEST_CLASS)
+                .tableName(TEST_TABLE)
+                .domainQualifiedName(DOMAIN_FQN)
+                .idField(createAutoIdField())
+                .enableAuditing(true)
+                .enableOptimisticLocking(true)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have all features
+        assertThat(code)
+                // Auditing
+                .contains("@jakarta.persistence.EntityListeners")
+                .contains("AuditingEntityListener.class")
+                .contains("@org.springframework.data.annotation.CreatedDate")
+                .contains("@org.springframework.data.annotation.LastModifiedDate")
+                .contains("private java.time.Instant createdAt;")
+                .contains("private java.time.Instant updatedAt;")
+                // Optimistic locking
+                .contains("@jakarta.persistence.Version")
+                .contains("private java.lang.Long version;")
+                // All accessors
+                .contains("getCreatedAt()")
+                .contains("getUpdatedAt()")
+                .contains("getVersion()");
     }
 
     // =====================================================================

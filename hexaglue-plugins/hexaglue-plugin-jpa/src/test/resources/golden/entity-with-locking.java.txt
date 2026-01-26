@@ -8,6 +8,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
+import java.lang.Long;
 import java.lang.String;
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -48,6 +50,12 @@ public class OrderEntity {
     @Embedded
     private OrderStatus status;
 
+    @Version
+    @Column(
+            name = "version"
+    )
+    private Long version;
+
     public OrderEntity() {
     }
 
@@ -81,5 +89,13 @@ public class OrderEntity {
 
     public void setStatus(OrderStatus status) {
         this.status = status;
+    }
+
+    public Long getVersion() {
+        return version;
+    }
+
+    public void setVersion(Long version) {
+        this.version = version;
     }
 }

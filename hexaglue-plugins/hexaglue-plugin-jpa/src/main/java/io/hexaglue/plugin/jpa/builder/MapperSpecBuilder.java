@@ -210,6 +210,9 @@ public final class MapperSpecBuilder {
         List<ValueObjectMappingSpec> valueObjectMappings = detectValueObjectMappings();
         List<MapperSpec.EmbeddableMappingSpec> embeddableMappings = buildEmbeddableMappings();
 
+        // BUG-009 fix: Detect entity relationships and add corresponding mappers
+        List<ClassName> usedMappers = detectUsedMappers();
+
         return new MapperSpec(
                 infrastructurePackage,
                 interfaceName,
@@ -219,7 +222,8 @@ public final class MapperSpecBuilder {
                 toDomainMappings,
                 wrappedIdentity,
                 valueObjectMappings,
-                embeddableMappings);
+                embeddableMappings,
+                usedMappers);
     }
 
     /**
@@ -267,10 +271,10 @@ public final class MapperSpecBuilder {
             mappings.add(MappingSpec.ignore("version"));
         }
 
-        // Ignore audit fields if auditing is enabled
+        // Ignore audit fields if auditing is enabled (must match field names in JpaEntityCodegen)
         if (config.enableAuditing()) {
-            mappings.add(MappingSpec.ignore("createdDate"));
-            mappings.add(MappingSpec.ignore("lastModifiedDate"));
+            mappings.add(MappingSpec.ignore("createdAt"));
+            mappings.add(MappingSpec.ignore("updatedAt"));
         }
 
         return mappings;
@@ -538,6 +542,77 @@ public final class MapperSpecBuilder {
         }
 
         return mappings;
+    }
+
+    /**
+     * Detects entity relationships and returns the list of mappers to use.
+     *
+     * <p>When an entity has a relationship to another entity (AGGREGATE_ROOT or ENTITY),
+     * MapStruct needs to use the corresponding mapper to handle the conversion.
+     * This method scans the fields and identifies entity relationships that require
+     * a mapper dependency.
+     *
+     * <p>BUG-009 fix: Without this, mappers would fail to compile when the entity
+     * has relationships to other entities (e.g., Lesson.course → Course/CourseEntity).
+     *
+     * @return list of mapper class names to include in the @Mapper(uses = {...}) annotation
+     * @since 2.0.0
+     */
+    private List<ClassName> detectUsedMappers() {
+        List<ClassName> usedMappers = new ArrayList<>();
+        Set<String> processedTypes = new HashSet<>();
+
+        if (architecturalModel.domainIndex().isEmpty()) {
+            return usedMappers;
+        }
+
+        var domainIndex = architecturalModel.domainIndex().get();
+
+        // Get the fields to scan
+        List<Field> fields;
+        String ownTypeFqn;
+        if (aggregateRoot != null) {
+            fields = aggregateRoot.structure().fields();
+            ownTypeFqn = aggregateRoot.id().qualifiedName();
+        } else {
+            fields = entity.structure().fields();
+            ownTypeFqn = entity.id().qualifiedName();
+        }
+
+        for (Field field : fields) {
+            String fieldTypeFqn = field.elementType()
+                    .map(t -> t.qualifiedName())
+                    .orElse(field.type().qualifiedName());
+
+            // Skip already processed types
+            if (processedTypes.contains(fieldTypeFqn)) {
+                continue;
+            }
+
+            // Skip self-reference
+            if (fieldTypeFqn.equals(ownTypeFqn)) {
+                continue;
+            }
+
+            // Check if the field type is an aggregate root
+            boolean isAggregateRoot = domainIndex.aggregateRoots()
+                    .anyMatch(agg -> agg.id().qualifiedName().equals(fieldTypeFqn));
+
+            // Check if the field type is an entity
+            boolean isEntity = domainIndex.entities()
+                    .anyMatch(e -> e.id().qualifiedName().equals(fieldTypeFqn));
+
+            if (isAggregateRoot || isEntity) {
+                // Extract simple name and create mapper class name
+                String simpleName = fieldTypeFqn.substring(fieldTypeFqn.lastIndexOf('.') + 1);
+                String mapperClassName = simpleName + config.mapperSuffix();
+                ClassName mapperClass = ClassName.get(infrastructurePackage, mapperClassName);
+                usedMappers.add(mapperClass);
+                processedTypes.add(fieldTypeFqn);
+            }
+        }
+
+        return usedMappers;
     }
 
     /**

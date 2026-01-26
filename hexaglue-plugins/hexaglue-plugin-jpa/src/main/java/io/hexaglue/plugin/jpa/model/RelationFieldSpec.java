@@ -22,6 +22,7 @@ import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.spi.ir.CascadeType;
 import io.hexaglue.spi.ir.DomainRelation;
@@ -51,6 +52,7 @@ import java.util.Set;
  * @param fetch the fetch strategy (LAZY or EAGER)
  * @param orphanRemoval true if orphaned children should be removed
  * @param attributeOverrides list of attribute overrides for embedded fields with column name conflicts
+ * @param isElementTypeEnum true if the element type is an enum (for ELEMENT_COLLECTION)
  * @since 2.0.0
  */
 public record RelationFieldSpec(
@@ -62,7 +64,8 @@ public record RelationFieldSpec(
         CascadeType cascade,
         FetchType fetch,
         boolean orphanRemoval,
-        List<AttributeOverride> attributeOverrides) {
+        List<AttributeOverride> attributeOverrides,
+        boolean isElementTypeEnum) {
 
     /**
      * Compact constructor with validation.
@@ -80,7 +83,7 @@ public record RelationFieldSpec(
     }
 
     /**
-     * Convenience constructor without attribute overrides (backward compatibility).
+     * Convenience constructor without attribute overrides and isElementTypeEnum (backward compatibility).
      */
     public RelationFieldSpec(
             String fieldName,
@@ -91,7 +94,23 @@ public record RelationFieldSpec(
             CascadeType cascade,
             FetchType fetch,
             boolean orphanRemoval) {
-        this(fieldName, targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval, List.of());
+        this(fieldName, targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval, List.of(), false);
+    }
+
+    /**
+     * Convenience constructor without isElementTypeEnum (backward compatibility).
+     */
+    public RelationFieldSpec(
+            String fieldName,
+            TypeName targetType,
+            RelationKind kind,
+            ElementKind targetKind,
+            String mappedBy,
+            CascadeType cascade,
+            FetchType fetch,
+            boolean orphanRemoval,
+            List<AttributeOverride> attributeOverrides) {
+        this(fieldName, targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval, attributeOverrides, false);
     }
 
     /**
@@ -189,6 +208,30 @@ public record RelationFieldSpec(
     }
 
     /**
+     * Creates a new RelationFieldSpec with the specified mappedBy value.
+     *
+     * <p>This is used for BUG-003 fix: automatically setting mappedBy on the inverse
+     * side of bidirectional relationships detected by {@link io.hexaglue.plugin.jpa.util.BidirectionalDetector}.
+     *
+     * @param newMappedBy the mappedBy field name
+     * @return a new RelationFieldSpec with mappedBy set
+     * @since 5.0.0
+     */
+    public RelationFieldSpec withMappedBy(String newMappedBy) {
+        return new RelationFieldSpec(
+                fieldName,
+                targetType,
+                kind,
+                targetKind,
+                newMappedBy,
+                cascade,
+                fetch,
+                orphanRemoval,
+                attributeOverrides,
+                isElementTypeEnum);
+    }
+
+    /**
      * Returns true if this relationship is a collection (one-to-many, many-to-many, element collection).
      *
      * @return true if the field type is a collection
@@ -232,6 +275,31 @@ public record RelationFieldSpec(
      */
     public static RelationFieldSpec fromV5(
             Field field, ArchitecturalModel model, Map<String, String> embeddableMapping) {
+        // Delegate to the new method with empty entityMapping for backward compatibility
+        return fromV5(field, model, embeddableMapping, Map.of());
+    }
+
+    /**
+     * Creates a RelationFieldSpec from a v5 model Field with REFERENCE or COLLECTION role.
+     *
+     * <p>This factory method converts the v5 arch.model.Field to the JavaPoet-based
+     * generation model. It detects relation kind from field roles and annotations,
+     * and properly handles:
+     * <ul>
+     *   <li>Value Object collections as ELEMENT_COLLECTION with embeddable mapping</li>
+     *   <li>Entity relationships with entity mapping (BUG-008 fix)</li>
+     * </ul>
+     *
+     * @param field the field from arch.model (should have REFERENCE or COLLECTION role)
+     * @param model the architectural model for type resolution
+     * @param embeddableMapping map from domain VALUE_OBJECT FQN to embeddable FQN
+     * @param entityMapping map from domain AGGREGATE_ROOT/ENTITY FQN to entity FQN
+     * @return a RelationFieldSpec ready for code generation
+     * @since 2.0.0
+     */
+    public static RelationFieldSpec fromV5(
+            Field field, ArchitecturalModel model, Map<String, String> embeddableMapping,
+            Map<String, String> entityMapping) {
 
         String targetFqn = field.elementType()
                 .map(t -> t.qualifiedName())
@@ -243,10 +311,22 @@ public record RelationFieldSpec(
         // Detect relation kind from field annotations, roles, and target kind
         RelationKind kind = detectRelationKindV5(field, targetKind);
 
+        // Detect if element type is an enum (for ELEMENT_COLLECTION with @Enumerated)
+        boolean isElementTypeEnum = kind == RelationKind.ELEMENT_COLLECTION
+                && isEnumTypeV5(model, targetFqn);
+
         // For EMBEDDED and ELEMENT_COLLECTION, use embeddable type if available
+        // Note: Enums don't use embeddable mapping
         if ((kind == RelationKind.EMBEDDED || kind == RelationKind.ELEMENT_COLLECTION)
+                && !isElementTypeEnum
                 && embeddableMapping.containsKey(targetFqn)) {
             targetFqn = embeddableMapping.get(targetFqn);
+        }
+
+        // BUG-008 fix: For entity relationships, use entity type instead of domain type
+        // This is critical for ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY, ONE_TO_ONE
+        if (isEntityRelation(kind) && entityMapping.containsKey(targetFqn)) {
+            targetFqn = entityMapping.get(targetFqn);
         }
 
         TypeName targetType = resolveTargetType(kind, targetFqn);
@@ -258,7 +338,24 @@ public record RelationFieldSpec(
         String mappedBy = detectMappedByV5(field);
 
         return new RelationFieldSpec(
-                field.name(), targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval);
+                field.name(), targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval,
+                List.of(), isElementTypeEnum);
+    }
+
+    /**
+     * Returns true if the relation kind represents an entity-to-entity relationship.
+     *
+     * <p>These relationships require the target type to be a JPA @Entity, not a domain type.
+     *
+     * @param kind the relation kind
+     * @return true for ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY, ONE_TO_ONE
+     * @since 2.0.0
+     */
+    private static boolean isEntityRelation(RelationKind kind) {
+        return kind == RelationKind.ONE_TO_MANY
+                || kind == RelationKind.MANY_TO_ONE
+                || kind == RelationKind.MANY_TO_MANY
+                || kind == RelationKind.ONE_TO_ONE;
     }
 
     /**
@@ -517,5 +614,28 @@ public record RelationFieldSpec(
             case MANY_TO_MANY -> ParameterizedTypeName.get(ClassName.get(Set.class), targetClass);
             case MANY_TO_ONE, ONE_TO_ONE, EMBEDDED -> targetClass;
         };
+    }
+
+    /**
+     * Checks if a type is an enum in the domain model.
+     *
+     * <p>Enum types classified as VALUE_OBJECT with TypeNature.ENUM need
+     * {@code @Enumerated(EnumType.STRING)} annotation when used in collections.
+     *
+     * @param model the architectural model
+     * @param qualifiedName the fully qualified type name
+     * @return true if the type is a VALUE_OBJECT with TypeNature.ENUM
+     * @since 5.0.0
+     */
+    private static boolean isEnumTypeV5(ArchitecturalModel model, String qualifiedName) {
+        var domainIndexOpt = model.domainIndex();
+        if (domainIndexOpt.isEmpty()) {
+            return false;
+        }
+        var domainIndex = domainIndexOpt.get();
+        return domainIndex.valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
+                .anyMatch(vo -> vo.structure() != null
+                        && vo.structure().nature() == TypeNature.ENUM);
     }
 }

@@ -28,6 +28,7 @@ import io.hexaglue.plugin.jpa.builder.EmbeddableSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.EntitySpecBuilder;
 import io.hexaglue.plugin.jpa.builder.MapperSpecBuilder;
 import io.hexaglue.plugin.jpa.builder.RepositorySpecBuilder;
+import io.hexaglue.plugin.jpa.util.BidirectionalDetector;
 import io.hexaglue.plugin.jpa.codegen.JpaAdapterCodegen;
 import io.hexaglue.plugin.jpa.codegen.JpaEmbeddableCodegen;
 import io.hexaglue.plugin.jpa.codegen.JpaEntityCodegen;
@@ -236,6 +237,30 @@ public final class JpaPlugin implements GeneratorPlugin {
                 .collect(Collectors.groupingBy(
                         port -> port.managedAggregate().get().qualifiedName(), Collectors.toList()));
 
+        // Build entity mapping: domain AGGREGATE_ROOT/ENTITY FQN -> generated entity FQN
+        // BUG-008 fix: Entity relationships need to reference generated entity types, not domain types
+        Map<String, String> entityMapping = new HashMap<>();
+
+        // Map aggregate roots
+        domainIndex.aggregateRoots().forEach(agg -> {
+            String entityClassName = agg.id().simpleName() + config.entitySuffix();
+            String entityFqn = infraPackage + "." + entityClassName;
+            entityMapping.put(agg.id().qualifiedName(), entityFqn);
+        });
+
+        // Map entities (non-aggregate root)
+        domainIndex.entities().forEach(entity -> {
+            String entityClassName = entity.id().simpleName() + config.entitySuffix();
+            String entityFqn = infraPackage + "." + entityClassName;
+            entityMapping.put(entity.id().qualifiedName(), entityFqn);
+        });
+
+        diagnostics.info("Built entity mapping for " + entityMapping.size() + " domain types");
+
+        // BUG-003 fix: Detect bidirectional relationships before generating entities
+        Map<String, String> bidirectionalMappings = BidirectionalDetector.detectBidirectionalMappings(domainIndex);
+        diagnostics.info("Detected " + bidirectionalMappings.size() + " bidirectional relationship mappings");
+
         // Generate entities from v5 AggregateRoots
         List<AggregateRoot> allAggregates = domainIndex.aggregateRoots().toList();
 
@@ -247,6 +272,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                         .config(config)
                         .infrastructurePackage(infraPackage)
                         .embeddableMapping(embeddableMapping)
+                        .entityMapping(entityMapping) // BUG-008 fix: Map domain types to entity types
+                        .bidirectionalMappings(bidirectionalMappings)
                         .build();
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
@@ -315,6 +342,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                         .config(config)
                         .infrastructurePackage(infraPackage)
                         .embeddableMapping(embeddableMapping)
+                        .entityMapping(entityMapping) // BUG-008 fix: Map domain types to entity types
+                        .bidirectionalMappings(bidirectionalMappings)
                         .build();
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);

@@ -25,14 +25,17 @@ import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embeddable;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import javax.annotation.processing.Generated;
 
 /**
@@ -161,6 +164,31 @@ public final class JpaAnnotations {
      */
     public static AnnotationSpec embeddable() {
         return AnnotationSpec.builder(Embeddable.class).build();
+    }
+
+    /**
+     * Builds an {@code @EntityListeners} annotation with Spring Data's AuditingEntityListener.
+     *
+     * <p>Used when auditing is enabled to automatically populate {@code @CreatedDate}
+     * and {@code @LastModifiedDate} fields.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @EntityListeners(AuditingEntityListener.class)
+     * @Entity
+     * public class OrderEntity { ... }
+     * }</pre>
+     *
+     * @return the {@code @EntityListeners} annotation spec
+     * @since 5.0.0
+     */
+    public static AnnotationSpec entityListeners() {
+        return AnnotationSpec.builder(EntityListeners.class)
+                .addMember(
+                        "value",
+                        "$T.class",
+                        ClassName.get("org.springframework.data.jpa.domain.support", "AuditingEntityListener"))
+                .build();
     }
 
     // =====================================================================
@@ -383,6 +411,109 @@ public final class JpaAnnotations {
                 .build();
     }
 
+    /**
+     * Builds a {@code @Version} annotation for optimistic locking.
+     *
+     * <p>Used to enable optimistic locking on an entity. JPA will automatically
+     * increment the version on each update and throw an OptimisticLockException
+     * if a concurrent modification is detected.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Version
+     * @Column(name = "version")
+     * private Long version;
+     * }</pre>
+     *
+     * @return the {@code @Version} annotation spec
+     * @since 5.0.0
+     */
+    public static AnnotationSpec version() {
+        return AnnotationSpec.builder(Version.class).build();
+    }
+
+    /**
+     * Builds a {@code @CreatedDate} annotation for Spring Data auditing.
+     *
+     * <p>Used to automatically populate the creation timestamp when an entity
+     * is first persisted. Requires {@code @EnableJpaAuditing} on a configuration class.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @CreatedDate
+     * @Column(name = "created_at", nullable = false, updatable = false)
+     * private Instant createdAt;
+     * }</pre>
+     *
+     * @return the {@code @CreatedDate} annotation spec
+     * @since 5.0.0
+     */
+    public static AnnotationSpec createdDate() {
+        return AnnotationSpec.builder(ClassName.get("org.springframework.data.annotation", "CreatedDate"))
+                .build();
+    }
+
+    /**
+     * Builds a {@code @LastModifiedDate} annotation for Spring Data auditing.
+     *
+     * <p>Used to automatically update the modification timestamp whenever an entity
+     * is updated. Requires {@code @EnableJpaAuditing} on a configuration class.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @LastModifiedDate
+     * @Column(name = "updated_at", nullable = false)
+     * private Instant updatedAt;
+     * }</pre>
+     *
+     * @return the {@code @LastModifiedDate} annotation spec
+     * @since 5.0.0
+     */
+    public static AnnotationSpec lastModifiedDate() {
+        return AnnotationSpec.builder(ClassName.get("org.springframework.data.annotation", "LastModifiedDate"))
+                .build();
+    }
+
+    /**
+     * Builds a {@code @Column} annotation with name, nullability, and updatable flag.
+     *
+     * <p>Used for audit fields where the {@code updatable} flag needs to be set to false
+     * (e.g., {@code createdAt} should not be updated after initial insert).
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @Column(name = "created_at", nullable = false, updatable = false)
+     * private Instant createdAt;
+     * }</pre>
+     *
+     * @param name the database column name
+     * @param nullability the nullability from the SPI
+     * @param updatable whether the column is updatable
+     * @return the {@code @Column} annotation spec
+     * @throws IllegalArgumentException if name is null or empty, or if nullability is null
+     * @since 5.0.0
+     */
+    public static AnnotationSpec column(String name, Nullability nullability, boolean updatable) {
+        if (name == null || name.isEmpty()) {
+            throw new IllegalArgumentException("Column name cannot be null or empty");
+        }
+        if (nullability == null) {
+            throw new IllegalArgumentException("Nullability cannot be null");
+        }
+
+        AnnotationSpec.Builder builder = AnnotationSpec.builder(Column.class).addMember("name", "$S", name);
+
+        if (nullability == Nullability.NON_NULL) {
+            builder.addMember("nullable", "false");
+        }
+
+        if (!updatable) {
+            builder.addMember("updatable", "false");
+        }
+
+        return builder.build();
+    }
+
     // =====================================================================
     // Relationship annotations
     // =====================================================================
@@ -582,6 +713,48 @@ public final class JpaAnnotations {
         return AnnotationSpec.builder(jakarta.persistence.CollectionTable.class)
                 .addMember("name", "$S", tableName)
                 .addMember("joinColumns", "$L", joinColumn(joinColumnName))
+                .build();
+    }
+
+    /**
+     * Builds a {@code @JoinTable} annotation for many-to-many relationships.
+     *
+     * <p>This annotation specifies the join table used to store the relationship
+     * between two entities in a {@code @ManyToMany} association.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * @ManyToMany
+     * @JoinTable(
+     *     name = "category_product",
+     *     joinColumns = @JoinColumn(name = "product_id"),
+     *     inverseJoinColumns = @JoinColumn(name = "category_id")
+     * )
+     * private Set<CategoryEntity> categories;
+     * }</pre>
+     *
+     * @param tableName the name of the join table
+     * @param joinColumnName the name of the foreign key column referencing the owning entity
+     * @param inverseJoinColumnName the name of the foreign key column referencing the inverse entity
+     * @return the {@code @JoinTable} annotation spec
+     * @throws IllegalArgumentException if any parameter is null or empty
+     * @since 5.0.0
+     */
+    public static AnnotationSpec joinTable(String tableName, String joinColumnName, String inverseJoinColumnName) {
+        if (tableName == null || tableName.isEmpty()) {
+            throw new IllegalArgumentException("Table name cannot be null or empty");
+        }
+        if (joinColumnName == null || joinColumnName.isEmpty()) {
+            throw new IllegalArgumentException("Join column name cannot be null or empty");
+        }
+        if (inverseJoinColumnName == null || inverseJoinColumnName.isEmpty()) {
+            throw new IllegalArgumentException("Inverse join column name cannot be null or empty");
+        }
+
+        return AnnotationSpec.builder(JoinTable.class)
+                .addMember("name", "$S", tableName)
+                .addMember("joinColumns", "$L", joinColumn(joinColumnName))
+                .addMember("inverseJoinColumns", "$L", joinColumn(inverseJoinColumnName))
                 .build();
     }
 

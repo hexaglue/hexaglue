@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.jpa.model;
 
+import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import java.util.List;
 
@@ -34,13 +35,13 @@ import java.util.List;
  * import org.mapstruct.Mapper;
  * import org.mapstruct.Mapping;
  *
- * @Mapper(componentModel = "spring")
- * public interface OrderMapper {
- *     @Mapping(target = "id", source = "orderId")
- *     OrderEntity toEntity(Order domain);
+ * @Mapper(componentModel = "spring", uses = {CourseMapper.class})
+ * public interface LessonMapper {
+ *     @Mapping(target = "id", source = "lessonId")
+ *     LessonEntity toEntity(Lesson domain);
  *
- *     @Mapping(target = "orderId", source = "id")
- *     Order toDomain(OrderEntity entity);
+ *     @Mapping(target = "lessonId", source = "id")
+ *     Lesson toDomain(LessonEntity entity);
  * }
  * }</pre>
  *
@@ -53,6 +54,7 @@ import java.util.List;
  * @param wrappedIdentity information about wrapped identity type, if present
  * @param valueObjectMappings information about Value Objects that need conversion methods
  * @param embeddableMappings information about VALUE_OBJECTs that map to JPA embeddables
+ * @param usedMappers list of other mappers this mapper should delegate to for entity relationships
  * @since 2.0.0
  */
 public record MapperSpec(
@@ -64,13 +66,38 @@ public record MapperSpec(
         List<MappingSpec> toDomainMappings,
         WrappedIdentitySpec wrappedIdentity,
         List<ValueObjectMappingSpec> valueObjectMappings,
-        List<EmbeddableMappingSpec> embeddableMappings) {
+        List<EmbeddableMappingSpec> embeddableMappings,
+        List<ClassName> usedMappers) {
 
+    /**
+     * Canonical constructor with defensive copies.
+     */
     public MapperSpec {
         toEntityMappings = List.copyOf(toEntityMappings);
         toDomainMappings = List.copyOf(toDomainMappings);
         valueObjectMappings = List.copyOf(valueObjectMappings);
         embeddableMappings = List.copyOf(embeddableMappings);
+        usedMappers = usedMappers == null ? List.of() : List.copyOf(usedMappers);
+    }
+
+    /**
+     * Backward-compatible constructor without usedMappers.
+     *
+     * @deprecated Use the canonical constructor with usedMappers parameter
+     */
+    @Deprecated
+    public MapperSpec(
+            String packageName,
+            String interfaceName,
+            TypeName domainType,
+            TypeName entityType,
+            List<MappingSpec> toEntityMappings,
+            List<MappingSpec> toDomainMappings,
+            WrappedIdentitySpec wrappedIdentity,
+            List<ValueObjectMappingSpec> valueObjectMappings,
+            List<EmbeddableMappingSpec> embeddableMappings) {
+        this(packageName, interfaceName, domainType, entityType, toEntityMappings, toDomainMappings,
+                wrappedIdentity, valueObjectMappings, embeddableMappings, List.of());
     }
 
     /**

@@ -471,6 +471,52 @@ class JpaAnnotationsTest {
     }
 
     // =====================================================================
+    // JoinTable annotation tests (BUG-001)
+    // =====================================================================
+
+    @Test
+    void joinTable_shouldCreateJoinTableAnnotation() {
+        AnnotationSpec annotation = JpaAnnotations.joinTable("category_product", "product_id", "category_id");
+
+        String annotationCode = annotation.toString();
+        assertThat(annotationCode)
+                .contains("@jakarta.persistence.JoinTable")
+                .contains("name = \"category_product\"")
+                .contains("joinColumns")
+                .contains("inverseJoinColumns")
+                .contains("product_id")
+                .contains("category_id");
+    }
+
+    @Test
+    void joinTable_shouldThrowExceptionForNullTableName() {
+        assertThatThrownBy(() -> JpaAnnotations.joinTable(null, "product_id", "category_id"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Table name cannot be null or empty");
+    }
+
+    @Test
+    void joinTable_shouldThrowExceptionForEmptyTableName() {
+        assertThatThrownBy(() -> JpaAnnotations.joinTable("", "product_id", "category_id"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Table name cannot be null or empty");
+    }
+
+    @Test
+    void joinTable_shouldThrowExceptionForNullJoinColumn() {
+        assertThatThrownBy(() -> JpaAnnotations.joinTable("category_product", null, "category_id"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Join column name cannot be null or empty");
+    }
+
+    @Test
+    void joinTable_shouldThrowExceptionForNullInverseJoinColumn() {
+        assertThatThrownBy(() -> JpaAnnotations.joinTable("category_product", "product_id", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Inverse join column name cannot be null or empty");
+    }
+
+    // =====================================================================
     // MapStruct annotations tests
     // =====================================================================
 

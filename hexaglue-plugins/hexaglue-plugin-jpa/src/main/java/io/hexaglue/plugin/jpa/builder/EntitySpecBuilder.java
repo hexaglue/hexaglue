@@ -72,6 +72,8 @@ public final class EntitySpecBuilder {
     private JpaConfig config;
     private String infrastructurePackage;
     private Map<String, String> embeddableMapping = Map.of();
+    private Map<String, String> entityMapping = Map.of();
+    private Map<String, String> bidirectionalMappings = Map.of();
 
     private EntitySpecBuilder() {
         // Use static factory method
@@ -167,6 +169,40 @@ public final class EntitySpecBuilder {
     }
 
     /**
+     * Sets the mapping from domain AGGREGATE_ROOT and ENTITY types to JPA entity types.
+     *
+     * <p>This mapping is used to replace domain types with generated entity types
+     * in entity relationships (ONE_TO_MANY, MANY_TO_ONE, MANY_TO_MANY, ONE_TO_ONE).
+     *
+     * <p>BUG-008 fix: Without this mapping, generated entities would reference domain types
+     * instead of JPA entity types, causing Hibernate errors like "targets the type 'X' which
+     * is not an '@Entity' type".
+     *
+     * @param entityMapping map from domain FQN to entity FQN
+     * @return this builder
+     * @since 2.0.0
+     */
+    public EntitySpecBuilder entityMapping(Map<String, String> entityMapping) {
+        this.entityMapping = entityMapping != null ? entityMapping : Map.of();
+        return this;
+    }
+
+    /**
+     * Sets the bidirectional relationship mappings detected by {@link io.hexaglue.plugin.jpa.util.BidirectionalDetector}.
+     *
+     * <p>This mapping is used to automatically set {@code mappedBy} on the inverse side
+     * of bidirectional relationships. Key format: "{typeFqn}#{fieldName}", value: mappedBy field name.
+     *
+     * @param bidirectionalMappings map from inverse field key to owning field name
+     * @return this builder
+     * @since 5.0.0
+     */
+    public EntitySpecBuilder bidirectionalMappings(Map<String, String> bidirectionalMappings) {
+        this.bidirectionalMappings = bidirectionalMappings != null ? bidirectionalMappings : Map.of();
+        return this;
+    }
+
+    /**
      * Builds the EntitySpec from the provided configuration.
      *
      * <p>This method performs the complete transformation to the EntitySpec model.
@@ -203,14 +239,15 @@ public final class EntitySpecBuilder {
         IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
 
         // Build properties and relations from v5 structure
+        String typeFqn = aggregateRoot.id().qualifiedName();
         List<PropertyFieldSpec> properties = buildPropertySpecsV5(structure, identityField.name());
-        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityField.name());
+        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityField.name(), typeFqn);
 
         return EntitySpec.builder()
                 .packageName(infrastructurePackage)
                 .className(className)
                 .tableName(tableName)
-                .domainQualifiedName(aggregateRoot.id().qualifiedName())
+                .domainQualifiedName(typeFqn)
                 .idField(idField)
                 .addProperties(properties)
                 .addRelations(relations)
@@ -244,14 +281,15 @@ public final class EntitySpecBuilder {
         IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
 
         // Build properties and relations from v5 structure
+        String typeFqn = entity.id().qualifiedName();
         List<PropertyFieldSpec> properties = buildPropertySpecsV5(structure, identityField.name());
-        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityField.name());
+        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityField.name(), typeFqn);
 
         return EntitySpec.builder()
                 .packageName(infrastructurePackage)
                 .className(className)
                 .tableName(tableName)
-                .domainQualifiedName(entity.id().qualifiedName())
+                .domainQualifiedName(typeFqn)
                 .idField(idField)
                 .addProperties(properties)
                 .addRelations(relations)
@@ -464,16 +502,32 @@ public final class EntitySpecBuilder {
      * relations of the same type) and generates appropriate {@code @AttributeOverride}
      * annotations to avoid column name conflicts.
      *
+     * <p>Also applies bidirectional mappings to set {@code mappedBy} on inverse sides
+     * of bidirectional relationships (BUG-003 fix).
+     *
      * @param structure the type structure containing fields
      * @param identityFieldName the name of the identity field to exclude
+     * @param typeFqn the fully qualified name of the current type (for bidirectional lookup)
      * @since 5.0.0
      */
-    private List<RelationFieldSpec> buildRelationSpecsV5(TypeStructure structure, String identityFieldName) {
+    private List<RelationFieldSpec> buildRelationSpecsV5(
+            TypeStructure structure, String identityFieldName, String typeFqn) {
         List<RelationFieldSpec> relations = structure.fields().stream()
                 .filter(f -> !f.name().equals(identityFieldName))
                 .filter(f -> !f.hasRole(FieldRole.IDENTITY))
                 .filter(f -> isRelationField(f))
-                .map(f -> RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping))
+                .map(f -> {
+                    // BUG-008 fix: Pass entityMapping to replace domain types with entity types
+                    RelationFieldSpec spec = RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping, entityMapping);
+                    // BUG-003 fix: Apply bidirectional mappings if this is an inverse side
+                    String key = typeFqn + "#" + f.name();
+                    String mappedByValue = bidirectionalMappings.get(key);
+                    if (mappedByValue != null && spec.mappedBy() == null) {
+                        // Create new spec with mappedBy set
+                        return spec.withMappedBy(mappedByValue);
+                    }
+                    return spec;
+                })
                 .collect(Collectors.toList());
 
         // Post-process to add @AttributeOverrides for embedded relations with conflicts
