@@ -350,13 +350,13 @@ public class GenerateAndAuditMojo extends AbstractMojo {
     }
 
     private String formatDiagnostic(Diagnostic diag) {
-        if (diag.sourceRef() != null) {
+        if (diag.location() != null) {
             return String.format(
                     "[%s] %s (%s:%d)",
                     diag.code(),
                     diag.message(),
-                    diag.sourceRef().filePath(),
-                    diag.sourceRef().lineStart());
+                    diag.location().filePath(),
+                    diag.location().lineStart());
         }
         return String.format("[%s] %s", diag.code(), diag.message());
     }

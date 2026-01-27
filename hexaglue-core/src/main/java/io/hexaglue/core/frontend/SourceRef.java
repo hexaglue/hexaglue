@@ -13,8 +13,6 @@
 
 package io.hexaglue.core.frontend;
 
-import java.util.Optional;
-
 /**
  * Reference to a source code location.
  *
@@ -39,17 +37,4 @@ public record SourceRef(String filePath, int lineStart, int lineEnd) {
         return lastSlash < 0 ? filePath : filePath.substring(lastSlash + 1);
     }
 
-    /**
-     * Converts to SPI SourceRef.
-     */
-    public io.hexaglue.spi.ir.SourceRef toSpi() {
-        return new io.hexaglue.spi.ir.SourceRef(filePath, lineStart, lineEnd);
-    }
-
-    /**
-     * Converts an optional to SPI.
-     */
-    public static io.hexaglue.spi.ir.SourceRef toSpi(Optional<SourceRef> ref) {
-        return ref.map(r -> r.toSpi()).orElse(null);
-    }
 }
