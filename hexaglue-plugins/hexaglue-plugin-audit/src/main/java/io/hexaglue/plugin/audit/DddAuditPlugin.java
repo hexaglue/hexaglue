@@ -48,12 +48,16 @@ import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.PortCoverageMetricCalculator;
-import io.hexaglue.plugin.audit.adapter.report.ConsoleReportGenerator;
-import io.hexaglue.plugin.audit.adapter.report.DocumentationGenerator;
+import io.hexaglue.plugin.audit.adapter.diagram.DiagramGenerator;
+import io.hexaglue.plugin.audit.adapter.report.ConsoleRenderer;
+import io.hexaglue.plugin.audit.adapter.report.HtmlRenderer;
+import io.hexaglue.plugin.audit.adapter.report.JsonReportRenderer;
+import io.hexaglue.plugin.audit.adapter.report.MarkdownRenderer;
 import io.hexaglue.plugin.audit.adapter.report.ReportFormat;
-import io.hexaglue.plugin.audit.adapter.report.ReportGenerator;
-import io.hexaglue.plugin.audit.adapter.report.ReportGeneratorFactory;
-import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
+import io.hexaglue.plugin.audit.adapter.report.ReportRenderer;
+import io.hexaglue.plugin.audit.domain.model.report.DiagramSet;
+import io.hexaglue.plugin.audit.domain.model.report.ReportData;
+import io.hexaglue.plugin.audit.domain.service.ReportDataBuilder;
 import io.hexaglue.plugin.audit.config.AuditConfiguration;
 import io.hexaglue.plugin.audit.config.ConstraintRegistry;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
@@ -553,13 +557,23 @@ public class DddAuditPlugin implements AuditPlugin {
     /**
      * Generates audit reports in multiple formats.
      *
-     * <p>This method includes architecture analysis data (cycles, layer violations,
-     * coupling metrics) in the reports when the architecture query is available from core.
+     * <p>This method uses the new v5.0.0 report generation pipeline:
+     * <ol>
+     *   <li>Build {@link ReportData} from audit results using {@link ReportDataBuilder}</li>
+     *   <li>Generate Mermaid diagrams using {@link DiagramGenerator}</li>
+     *   <li>Render to JSON, HTML, Markdown, and console using format-specific renderers</li>
+     * </ol>
      *
-     * <p>All needed data is passed as parameters - no mutable state is used.
+     * <p>This ensures:
+     * <ul>
+     *   <li>JSON pivot as the single source of truth for structured data</li>
+     *   <li>Consistent Mermaid diagrams shared between HTML and Markdown</li>
+     *   <li>5-section report structure (Verdict, Architecture, Issues, Remediation, Appendix)</li>
+     * </ul>
      *
      * @param executionResult the audit execution result
      * @param context the plugin context (for writer access and config)
+     * @since 5.0.0
      */
     private void generateReports(AuditExecutionResult executionResult, PluginContext context) {
         try {
@@ -569,57 +583,124 @@ public class DddAuditPlugin implements AuditPlugin {
             io.hexaglue.spi.audit.ArchitectureQuery architectureQuery = executionResult.architectureQuery();
             ArchitecturalModel model = executionResult.model();
 
-            // Build unified report model - use actually executed constraints (B2 fix)
-            List<String> constraintIds = executionResult.executedConstraintIds();
-
-            // Extract project name from model
+            // Extract project info from model
             String projectName = inferProjectName(model);
+            String projectVersion = model.project().version().orElse("1.0.0");
 
-            // Build complete report with all enriched data
-            AuditReport report = AuditReport.fromComplete(
+            // Get HexaGlue version from MANIFEST.MF
+            String hexaglueVersion = getClass().getPackage().getImplementationVersion();
+            if (hexaglueVersion == null) {
+                hexaglueVersion = "dev";
+            }
+            String pluginVersion = hexaglueVersion;
+
+            // Calculate audit duration from snapshot
+            Duration duration = snapshot.metadata().analysisDuration();
+
+            // 1. Build ReportData (structured data - JSON pivot)
+            ReportDataBuilder reportDataBuilder = new ReportDataBuilder();
+            ReportData reportData = reportDataBuilder.build(
                     snapshot,
-                    projectName,
-                    domainResult.metrics(),
-                    constraintIds,
+                    domainResult,
                     architectureQuery,
                     model,
-                    domainResult.violations());
+                    projectName,
+                    projectVersion,
+                    hexaglueVersion,
+                    pluginVersion,
+                    duration);
 
-            // Always generate console output
-            ConsoleReportGenerator consoleGenerator = new ConsoleReportGenerator();
-            String consoleOutput = consoleGenerator.generate(report);
+            // 2. Generate Mermaid diagrams (shared between HTML and Markdown)
+            DiagramGenerator diagramGenerator = new DiagramGenerator();
+            DiagramSet diagrams = diagramGenerator.generate(reportData, projectName);
+
+            // 3. Generate console output (always)
+            ConsoleRenderer consoleRenderer = new ConsoleRenderer();
+            String consoleOutput = consoleRenderer.render(reportData);
             context.diagnostics().info(consoleOutput);
 
-            // Generate file reports based on configuration
+            // 4. Generate file reports based on configuration
             List<ReportFormat> enabledFormats = getEnabledFormats(context.config());
             if (!enabledFormats.isEmpty()) {
-                // Use writer's output directory
                 Path baseDir = context.writer().getOutputDirectory();
                 Path outputDir = baseDir.resolve("audit");
                 Files.createDirectories(outputDir);
 
                 for (ReportFormat format : enabledFormats) {
                     if (format.hasFileOutput()) {
-                        ReportGenerator generator = ReportGeneratorFactory.create(format);
-                        generator.writeToFile(report, outputDir);
+                        String content = renderReport(format, reportData, diagrams);
+                        Path outputFile = outputDir.resolve(format.defaultFilename());
+                        Files.writeString(outputFile, content);
                         context.diagnostics()
-                                .info("Generated %s report: %s"
-                                        .formatted(format.name(), outputDir.resolve(format.defaultFilename())));
+                                .info("Generated %s report: %s".formatted(format.name(), outputFile));
                     }
                 }
             }
 
-            // Generate documentation files if enabled
+            // 5. Generate documentation files if enabled
             if (isDocumentationEnabled(context.config())) {
-                Path baseDir = context.writer().getOutputDirectory();
-                Path docsDir = baseDir.resolve("audit").resolve("docs");
-                DocumentationGenerator docGenerator = new DocumentationGenerator();
-                docGenerator.generateAll(report, docsDir);
-                context.diagnostics().info("Generated architecture documentation in: " + docsDir);
+                generateDocumentation(reportData, diagrams, context);
             }
         } catch (IOException e) {
             context.diagnostics().warn("Failed to generate audit reports: " + e.getMessage());
         }
+    }
+
+    /**
+     * Renders the report in the specified format.
+     *
+     * @param format the output format
+     * @param reportData the structured report data
+     * @param diagrams the Mermaid diagrams
+     * @return the rendered report content
+     * @since 5.0.0
+     */
+    private String renderReport(ReportFormat format, ReportData reportData, DiagramSet diagrams) {
+        ReportRenderer renderer = switch (format) {
+            case JSON -> new JsonReportRenderer();
+            case HTML -> new HtmlRenderer();
+            case MARKDOWN -> new MarkdownRenderer();
+            case CONSOLE -> new ConsoleRenderer();
+        };
+        return renderer.render(reportData, diagrams);
+    }
+
+    /**
+     * Generates architecture documentation files.
+     *
+     * @param reportData the structured report data
+     * @param diagrams the Mermaid diagrams
+     * @param context the plugin context
+     * @throws IOException if file writing fails
+     * @since 5.0.0
+     */
+    private void generateDocumentation(ReportData reportData, DiagramSet diagrams, PluginContext context)
+            throws IOException {
+        Path baseDir = context.writer().getOutputDirectory();
+        Path docsDir = baseDir.resolve("audit").resolve("docs");
+        Files.createDirectories(docsDir);
+
+        // Write individual diagram files for easy embedding
+        if (diagrams.scoreRadar() != null) {
+            Files.writeString(docsDir.resolve("score-radar.mmd"), diagrams.scoreRadar());
+        }
+        if (diagrams.c4Context() != null) {
+            Files.writeString(docsDir.resolve("c4-context.mmd"), diagrams.c4Context());
+        }
+        if (diagrams.c4Component() != null) {
+            Files.writeString(docsDir.resolve("c4-component.mmd"), diagrams.c4Component());
+        }
+        if (diagrams.domainModel() != null) {
+            Files.writeString(docsDir.resolve("domain-model.mmd"), diagrams.domainModel());
+        }
+        if (diagrams.violationsPie() != null) {
+            Files.writeString(docsDir.resolve("violations-pie.mmd"), diagrams.violationsPie());
+        }
+        if (diagrams.packageZones() != null) {
+            Files.writeString(docsDir.resolve("package-zones.mmd"), diagrams.packageZones());
+        }
+
+        context.diagnostics().info("Generated architecture documentation in: " + docsDir);
     }
 
     /**

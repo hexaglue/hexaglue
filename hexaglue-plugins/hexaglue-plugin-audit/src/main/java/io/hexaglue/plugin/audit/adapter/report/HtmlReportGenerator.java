@@ -32,17 +32,15 @@ import java.util.Objects;
  * Generates audit reports in HTML format.
  *
  * <p>This generator produces a self-contained HTML document with embedded CSS.
- * The report is styled professionally with:
- * <ul>
- *   <li>Color-coded severity badges</li>
- *   <li>Summary cards showing key metrics</li>
- *   <li>Sortable tables for violations and metrics</li>
- *   <li>Responsive design that works on all screen sizes</li>
- *   <li>Print-friendly layout</li>
- * </ul>
  *
  * @since 1.0.0
+ * @deprecated Use {@link HtmlRenderer} instead, which works with the new
+ *             {@link io.hexaglue.plugin.audit.domain.model.report.ReportData} model
+ *             and includes Mermaid diagram support.
+ *             This class will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
+@SuppressWarnings("DeprecatedIsStillUsed") // Keep for backward compatibility
 public final class HtmlReportGenerator implements ReportGenerator {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

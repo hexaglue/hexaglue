@@ -26,7 +26,11 @@ import java.util.Objects;
  * like JSON, HTML, Markdown, or console output.
  *
  * @since 1.0.0
+ * @deprecated Use {@link ReportRenderer} instead. This interface will be removed in 6.0.0.
+ *             The new rendering pipeline uses {@link io.hexaglue.plugin.audit.domain.model.report.ReportData}
+ *             as the data source instead of {@link AuditReport}.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
 public interface ReportGenerator {
 
     /**

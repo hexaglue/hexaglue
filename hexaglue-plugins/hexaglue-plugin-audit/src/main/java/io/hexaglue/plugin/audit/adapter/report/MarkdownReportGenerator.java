@@ -35,16 +35,16 @@ import java.util.Objects;
  * Generates audit reports in GitHub-flavored Markdown format.
  *
  * <p>This generator produces Markdown that renders well on GitHub and other
- * Markdown viewers. Features include:
- * <ul>
- *   <li>Emoji indicators for status (pass/fail)</li>
- *   <li>Tables for violations and metrics</li>
- *   <li>Collapsible sections using HTML details tags</li>
- *   <li>Code formatting for technical details</li>
- * </ul>
+ * Markdown viewers.
  *
  * @since 1.0.0
+ * @deprecated Use {@link MarkdownRenderer} instead, which works with the new
+ *             {@link io.hexaglue.plugin.audit.domain.model.report.ReportData} model
+ *             and includes Mermaid diagram support.
+ *             This class will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
+@SuppressWarnings("DeprecatedIsStillUsed") // Keep for backward compatibility
 public final class MarkdownReportGenerator implements ReportGenerator {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");

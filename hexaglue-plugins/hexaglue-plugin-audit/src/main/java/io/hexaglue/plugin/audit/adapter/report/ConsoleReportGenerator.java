@@ -24,19 +24,16 @@ import java.util.Objects;
 /**
  * Generates audit reports for console output with ANSI colors.
  *
- * <p>This generator produces terminal-friendly output with:
- * <ul>
- *   <li>ANSI color codes for severity levels</li>
- *   <li>Box-drawing characters for tables</li>
- *   <li>Clear section separators</li>
- *   <li>Fallback to plain text when colors are not supported</li>
- * </ul>
- *
- * <p>The generator automatically detects terminal support and falls back
- * to plain text output when ANSI codes are not available.
+ * <p>This generator produces terminal-friendly output with ANSI color codes
+ * for severity levels and clear section separators.
  *
  * @since 1.0.0
+ * @deprecated Use {@link ConsoleRenderer} instead, which works with the new
+ *             {@link io.hexaglue.plugin.audit.domain.model.report.ReportData} model.
+ *             This class will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
+@SuppressWarnings("DeprecatedIsStillUsed") // Keep for backward compatibility
 public final class ConsoleReportGenerator implements ReportGenerator {
 
     private static final DateTimeFormatter TIMESTAMP_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
