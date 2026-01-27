@@ -28,6 +28,7 @@ import org.slf4j.LoggerFactory;
  * <ul>
  *   <li>{@link EdgeKind#USES_IN_SIGNATURE} - types used in interface method signatures</li>
  *   <li>{@link EdgeKind#USES_AS_COLLECTION_ELEMENT} - types used as collection elements</li>
+ *   <li>{@link EdgeKind#REFERENCES} - aggregated type references for coupling analysis</li>
  * </ul>
  */
 public final class DerivedEdgeComputer {
@@ -42,6 +43,7 @@ public final class DerivedEdgeComputer {
 
         computeUsesInSignature(graph);
         computeUsesAsCollectionElement(graph);
+        computeReferences(graph);
 
         int derivedCount = graph.edgeCount() - initialCount;
         log.debug("Computed {} derived edges", derivedCount);
@@ -160,5 +162,95 @@ public final class DerivedEdgeComputer {
                 }
             });
         }
+    }
+
+    /**
+     * Computes REFERENCES edges.
+     *
+     * <p>Aggregates all type reference edges (FIELD_TYPE, RETURN_TYPE, PARAMETER_TYPE,
+     * TYPE_ARGUMENT, EXTENDS, IMPLEMENTS) to create type-to-type REFERENCES edges.
+     * These edges are used for package coupling analysis (Ca/Ce metrics).
+     */
+    private void computeReferences(ApplicationGraph graph) {
+        Set<String> addedEdges = new HashSet<>();
+
+        // Process type-to-type edges (EXTENDS, IMPLEMENTS)
+        for (EdgeKind kind : Set.of(EdgeKind.EXTENDS, EdgeKind.IMPLEMENTS)) {
+            for (Edge edge : graph.edges(kind)) {
+                if (edge.to().isType()) {
+                    addReferenceEdge(graph, edge.from(), edge.to(), edge.from(), kind.name(), addedEdges);
+                }
+            }
+        }
+
+        // Process member-to-type edges (FIELD_TYPE, RETURN_TYPE, PARAMETER_TYPE)
+        for (EdgeKind kind : Set.of(EdgeKind.FIELD_TYPE, EdgeKind.RETURN_TYPE, EdgeKind.PARAMETER_TYPE)) {
+            for (Edge edge : graph.edges(kind)) {
+                if (!edge.to().isType()) {
+                    continue;
+                }
+                // Find the declaring type of the member
+                graph.indexes().declaringTypeOf(edge.from()).ifPresent(declaringTypeId -> {
+                    addReferenceEdge(graph, declaringTypeId, edge.to(), edge.from(), kind.name(), addedEdges);
+                });
+            }
+        }
+
+        // Process TYPE_ARGUMENT edges
+        for (Edge edge : graph.edges(EdgeKind.TYPE_ARGUMENT)) {
+            if (!edge.to().isType()) {
+                continue;
+            }
+            // The source could be a member (field, method) or a type
+            NodeId sourceTypeId;
+            if (edge.from().isType()) {
+                sourceTypeId = edge.from();
+            } else {
+                // Find declaring type of the member
+                var declaringType = graph.indexes().declaringTypeOf(edge.from());
+                if (declaringType.isEmpty()) {
+                    continue;
+                }
+                sourceTypeId = declaringType.get();
+            }
+            addReferenceEdge(graph, sourceTypeId, edge.to(), edge.from(), EdgeKind.TYPE_ARGUMENT.name(), addedEdges);
+        }
+
+        log.debug("Computed {} REFERENCES edges", addedEdges.size());
+    }
+
+    /**
+     * Adds a REFERENCES edge if it doesn't already exist.
+     */
+    private void addReferenceEdge(
+            ApplicationGraph graph,
+            NodeId sourceTypeId,
+            NodeId targetTypeId,
+            NodeId viaNode,
+            String viaKind,
+            Set<String> addedEdges) {
+
+        // Don't create self-references
+        if (sourceTypeId.equals(targetTypeId)) {
+            return;
+        }
+
+        // Only reference application types (types in the graph)
+        if (!graph.containsNode(targetTypeId)) {
+            return;
+        }
+
+        String edgeKey = sourceTypeId + "->" + targetTypeId + ":REFERENCES";
+        if (addedEdges.contains(edgeKey)) {
+            return;
+        }
+        if (graph.containsEdge(sourceTypeId, targetTypeId, EdgeKind.REFERENCES)) {
+            addedEdges.add(edgeKey);
+            return;
+        }
+
+        EdgeProof proof = EdgeProof.typeReference(viaNode, viaKind);
+        graph.addEdge(Edge.references(sourceTypeId, targetTypeId, proof));
+        addedEdges.add(edgeKey);
     }
 }

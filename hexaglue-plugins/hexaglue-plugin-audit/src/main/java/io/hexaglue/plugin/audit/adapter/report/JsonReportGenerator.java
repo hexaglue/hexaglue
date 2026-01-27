@@ -34,19 +34,13 @@ import java.util.Objects;
  * <p>This generator produces pretty-printed JSON suitable for programmatic
  * consumption. The output uses 2-space indentation and includes all fields.
  *
- * <p>The JSON structure is:
- * <pre>
- * {
- *   "metadata": {...},
- *   "summary": {...},
- *   "violations": [...],
- *   "metrics": [...],
- *   "constraints": {...}
- * }
- * </pre>
- *
  * @since 1.0.0
+ * @deprecated Use {@link JsonReportRenderer} instead, which works with the new
+ *             {@link io.hexaglue.plugin.audit.domain.model.report.ReportData} model.
+ *             This class will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
+@SuppressWarnings("DeprecatedIsStillUsed") // Keep for backward compatibility
 public final class JsonReportGenerator implements ReportGenerator {
 
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_INSTANT;

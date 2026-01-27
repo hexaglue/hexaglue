@@ -22,7 +22,10 @@ import java.util.Objects;
  * generator for each format.
  *
  * @since 1.0.0
+ * @deprecated Use the new rendering pipeline with {@link ReportRenderer} implementations.
+ *             This factory will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
 public final class ReportGeneratorFactory {
 
     private ReportGeneratorFactory() {

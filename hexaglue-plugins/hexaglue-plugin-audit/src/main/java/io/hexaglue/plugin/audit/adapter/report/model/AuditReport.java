@@ -58,7 +58,11 @@ import java.util.Objects;
  * @param model                the architectural model for diagram generation (may be null)
  * @param architectureQuery    the architecture query for diagram generation (may be null)
  * @since 1.0.0
+ * @deprecated Use {@link io.hexaglue.plugin.audit.domain.model.report.ReportData} instead.
+ *             This class will be removed in 6.0.0.
  */
+@Deprecated(since = "5.0.0", forRemoval = true)
+@SuppressWarnings("DeprecatedIsStillUsed") // Keep for backward compatibility
 public record AuditReport(
         ReportMetadata metadata,
         AuditSummary summary,
