@@ -14,6 +14,9 @@
 package io.hexaglue.plugin.audit.adapter.report.model;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.RuleViolation;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
@@ -25,9 +28,6 @@ import io.hexaglue.plugin.audit.domain.service.HealthScoreCalculator;
 import io.hexaglue.plugin.audit.domain.service.InventoryBuilder;
 import io.hexaglue.plugin.audit.domain.service.RecommendationGenerator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.AuditSnapshot;
-import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
-import io.hexaglue.arch.model.audit.RuleViolation;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;

@@ -74,12 +74,11 @@ class PropertyFieldSpecTest {
                 name,
                 TypeRef.of(typeFqn),
                 Set.of(Modifier.PRIVATE),
-                List.of(),        // annotations
+                List.of(), // annotations
                 Optional.empty(), // documentation
                 Optional.empty(), // wrappedType
                 Optional.empty(), // elementType
-                roles
-        );
+                roles);
     }
 
     private static ClassificationTrace createTrace(ElementKind kind) {
@@ -88,9 +87,7 @@ class PropertyFieldSpecTest {
 
     private static ArchitecturalModel createModelWithDomainIndex(DomainIndex domainIndex) {
         ProjectContext project = ProjectContext.forTesting("test-project", "com.example");
-        return ArchitecturalModel.builder(project)
-                .domainIndex(domainIndex)
-                .build();
+        return ArchitecturalModel.builder(project).domainIndex(domainIndex).build();
     }
 
     // =====================================================================
@@ -119,7 +116,7 @@ class PropertyFieldSpecTest {
                     "customerId",
                     "com.ecommerce.domain.customer.CustomerId",
                     Set.of() // No special role - it's just a reference
-            );
+                    );
 
             // Create the CustomerId Identifier in registry
             Field valueField = new Field(
@@ -130,20 +127,16 @@ class PropertyFieldSpecTest {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Set.of()
-            );
+                    Set.of());
             TypeStructure customerIdStructure = createRecordStructure(List.of(valueField));
             Identifier customerId = Identifier.of(
                     TypeId.of("com.ecommerce.domain.customer.CustomerId"),
                     customerIdStructure,
                     createTrace(ElementKind.IDENTIFIER),
-                    TypeRef.of("java.util.UUID")
-            );
+                    TypeRef.of("java.util.UUID"));
 
             // Create registry and domain index with CustomerId
-            TypeRegistry registry = TypeRegistry.builder()
-                    .add(customerId)
-                    .build();
+            TypeRegistry registry = TypeRegistry.builder().add(customerId).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
             ArchitecturalModel model = createModelWithDomainIndex(domainIndex);
 
@@ -173,11 +166,7 @@ class PropertyFieldSpecTest {
         @DisplayName("Cross-aggregate Identifier should have correct accessor method")
         void crossAggregateIdentifier_shouldHaveCorrectAccessorMethod() {
             // Given: A field with type ProductId (an Identifier wrapping UUID)
-            Field productIdField = createField(
-                    "productId",
-                    "com.example.ProductId",
-                    Set.of()
-            );
+            Field productIdField = createField("productId", "com.example.ProductId", Set.of());
 
             // Create the ProductId Identifier
             Field valueField = new Field(
@@ -188,19 +177,15 @@ class PropertyFieldSpecTest {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Set.of()
-            );
+                    Set.of());
             TypeStructure productIdStructure = createRecordStructure(List.of(valueField));
             Identifier productId = Identifier.of(
                     TypeId.of("com.example.ProductId"),
                     productIdStructure,
                     createTrace(ElementKind.IDENTIFIER),
-                    TypeRef.of("java.util.UUID")
-            );
+                    TypeRef.of("java.util.UUID"));
 
-            TypeRegistry registry = TypeRegistry.builder()
-                    .add(productId)
-                    .build();
+            TypeRegistry registry = TypeRegistry.builder().add(productId).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
             ArchitecturalModel model = createModelWithDomainIndex(domainIndex);
 
@@ -236,23 +221,16 @@ class PropertyFieldSpecTest {
         @DisplayName("Domain enum classified as VALUE_OBJECT should be detected as enum")
         void domainEnum_classifiedAsValueObject_shouldBeDetectedAsEnum() {
             // Given: A field with type OrderStatus (an enum classified as VALUE_OBJECT)
-            Field statusField = createField(
-                    "status",
-                    "com.ecommerce.domain.order.OrderStatus",
-                    Set.of()
-            );
+            Field statusField = createField("status", "com.ecommerce.domain.order.OrderStatus", Set.of());
 
             // Create OrderStatus as a VALUE_OBJECT with TypeNature.ENUM
             TypeStructure enumStructure = createEnumStructure();
             ValueObject orderStatus = ValueObject.of(
                     TypeId.of("com.ecommerce.domain.order.OrderStatus"),
                     enumStructure,
-                    createTrace(ElementKind.VALUE_OBJECT)
-            );
+                    createTrace(ElementKind.VALUE_OBJECT));
 
-            TypeRegistry registry = TypeRegistry.builder()
-                    .add(orderStatus)
-                    .build();
+            TypeRegistry registry = TypeRegistry.builder().add(orderStatus).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
             ArchitecturalModel model = createModelWithDomainIndex(domainIndex);
 
@@ -279,11 +257,7 @@ class PropertyFieldSpecTest {
         @DisplayName("Enum not in domainIndex should not cause errors")
         void enumNotInDomainIndex_shouldBeHandledGracefully() {
             // Given: A field with enum type not in domainIndex
-            Field statusField = createField(
-                    "status",
-                    "com.example.UnclassifiedStatus",
-                    Set.of()
-            );
+            Field statusField = createField("status", "com.example.UnclassifiedStatus", Set.of());
 
             // Empty registry and domain index
             TypeRegistry registry = TypeRegistry.builder().build();
@@ -316,32 +290,22 @@ class PropertyFieldSpecTest {
         @DisplayName("Complex VALUE_OBJECT should use embeddable mapping")
         void complexValueObject_shouldUseEmbeddableMapping() {
             // Given: A field with type Address (complex VALUE_OBJECT)
-            Field addressField = createField(
-                    "shippingAddress",
-                    "com.example.Address",
-                    Set.of()
-            );
+            Field addressField = createField("shippingAddress", "com.example.Address", Set.of());
 
             // Create Address as a VALUE_OBJECT with multiple fields
             Field streetField = createField("street", "java.lang.String", Set.of());
             Field cityField = createField("city", "java.lang.String", Set.of());
             TypeStructure addressStructure = createRecordStructure(List.of(streetField, cityField));
             ValueObject address = ValueObject.of(
-                    TypeId.of("com.example.Address"),
-                    addressStructure,
-                    createTrace(ElementKind.VALUE_OBJECT)
-            );
+                    TypeId.of("com.example.Address"), addressStructure, createTrace(ElementKind.VALUE_OBJECT));
 
-            TypeRegistry registry = TypeRegistry.builder()
-                    .add(address)
-                    .build();
+            TypeRegistry registry = TypeRegistry.builder().add(address).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
             ArchitecturalModel model = createModelWithDomainIndex(domainIndex);
 
             // Embeddable mapping provided
-            Map<String, String> embeddableMapping = Map.of(
-                    "com.example.Address", "com.example.infrastructure.AddressEmbeddable"
-            );
+            Map<String, String> embeddableMapping =
+                    Map.of("com.example.Address", "com.example.infrastructure.AddressEmbeddable");
 
             // When
             PropertyFieldSpec spec = PropertyFieldSpec.fromV5(addressField, model, embeddableMapping, null);
@@ -360,11 +324,7 @@ class PropertyFieldSpecTest {
         @DisplayName("Simple wrapper VALUE_OBJECT should NOT use embeddable mapping")
         void simpleWrapperValueObject_shouldNotUseEmbeddableMapping() {
             // Given: A field with type Quantity (simple wrapper VALUE_OBJECT)
-            Field quantityField = createField(
-                    "quantity",
-                    "com.example.Quantity",
-                    Set.of()
-            );
+            Field quantityField = createField("quantity", "com.example.Quantity", Set.of());
 
             // Create Quantity as a single-field record VALUE_OBJECT
             // The wrappedType is determined by Field.wrappedType() in the VO's structure
@@ -376,25 +336,18 @@ class PropertyFieldSpecTest {
                     Optional.empty(), // documentation
                     Optional.of(TypeRef.of("int")), // wrappedType
                     Optional.empty(), // elementType
-                    Set.of()
-            );
+                    Set.of());
             TypeStructure quantityStructure = createRecordStructure(List.of(valueField));
             ValueObject quantity = ValueObject.of(
-                    TypeId.of("com.example.Quantity"),
-                    quantityStructure,
-                    createTrace(ElementKind.VALUE_OBJECT)
-            );
+                    TypeId.of("com.example.Quantity"), quantityStructure, createTrace(ElementKind.VALUE_OBJECT));
 
-            TypeRegistry registry = TypeRegistry.builder()
-                    .add(quantity)
-                    .build();
+            TypeRegistry registry = TypeRegistry.builder().add(quantity).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
             ArchitecturalModel model = createModelWithDomainIndex(domainIndex);
 
             // Embeddable mapping provided (but should not be used for simple wrappers)
-            Map<String, String> embeddableMapping = Map.of(
-                    "com.example.Quantity", "com.example.infrastructure.QuantityEmbeddable"
-            );
+            Map<String, String> embeddableMapping =
+                    Map.of("com.example.Quantity", "com.example.infrastructure.QuantityEmbeddable");
 
             // When
             PropertyFieldSpec spec = PropertyFieldSpec.fromV5(quantityField, model, embeddableMapping, null);

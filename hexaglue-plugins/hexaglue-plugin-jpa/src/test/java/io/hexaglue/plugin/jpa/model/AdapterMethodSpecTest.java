@@ -329,8 +329,8 @@ class AdapterMethodSpecTest {
         void getByIdShouldBeClassifiedAsFindById() {
             // Given: Port method getById(UUID id) -> Fleet
             // This is the exact scenario from sample-starwars causing UnsupportedOperationException
-            io.hexaglue.arch.model.Parameter idParam = io.hexaglue.arch.model.Parameter.of(
-                    "id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
+            io.hexaglue.arch.model.Parameter idParam =
+                    io.hexaglue.arch.model.Parameter.of("id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
             io.hexaglue.arch.model.Method method = new io.hexaglue.arch.model.Method(
                     "getById",
                     io.hexaglue.syntax.TypeRef.of("rebelsrescue.fleet.Fleet"),
@@ -355,8 +355,8 @@ class AdapterMethodSpecTest {
         @DisplayName("loadById should be classified as FIND_BY_ID")
         void loadByIdShouldBeClassifiedAsFindById() {
             // Given: Alternative naming convention loadById
-            io.hexaglue.arch.model.Parameter idParam = io.hexaglue.arch.model.Parameter.of(
-                    "id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
+            io.hexaglue.arch.model.Parameter idParam =
+                    io.hexaglue.arch.model.Parameter.of("id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
             io.hexaglue.arch.model.Method method = new io.hexaglue.arch.model.Method(
                     "loadById",
                     io.hexaglue.syntax.TypeRef.of("com.example.Order"),
@@ -381,8 +381,8 @@ class AdapterMethodSpecTest {
         @DisplayName("findById should still be classified as FIND_BY_ID")
         void findByIdShouldStillBeClassifiedAsFindById() {
             // Given: Standard naming convention findById
-            io.hexaglue.arch.model.Parameter idParam = io.hexaglue.arch.model.Parameter.of(
-                    "id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
+            io.hexaglue.arch.model.Parameter idParam =
+                    io.hexaglue.arch.model.Parameter.of("id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
             io.hexaglue.arch.model.Method method = new io.hexaglue.arch.model.Method(
                     "findById",
                     io.hexaglue.syntax.TypeRef.of("java.util.Optional"),
@@ -407,8 +407,8 @@ class AdapterMethodSpecTest {
         @DisplayName("fetchById should be classified as FIND_BY_ID")
         void fetchByIdShouldBeClassifiedAsFindById() {
             // Given: Alternative naming convention fetchById
-            io.hexaglue.arch.model.Parameter idParam = io.hexaglue.arch.model.Parameter.of(
-                    "id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
+            io.hexaglue.arch.model.Parameter idParam =
+                    io.hexaglue.arch.model.Parameter.of("id", io.hexaglue.syntax.TypeRef.of("java.util.UUID"));
             io.hexaglue.arch.model.Method method = new io.hexaglue.arch.model.Method(
                     "fetchById",
                     io.hexaglue.syntax.TypeRef.of("com.example.Order"),

@@ -137,41 +137,6 @@ public final class CachedSpoonAnalyzer {
     }
 
     /**
-     * Analyzes a method body by signature string, returning cached results if available.
-     *
-     * <p><b>Warning:</b> This method cannot perform real analysis without the Spoon AST.
-     * It returns empty analysis and logs a warning. Use {@link #analyzeMethodBody(CtMethod)}
-     * for real analysis.
-     *
-     * @param methodSignature the unique method signature (e.g., "com.example.Service#method(String)")
-     * @return the method body analysis (empty if signature-only)
-     * @deprecated Use {@link #analyzeMethodBody(CtMethod)} for real analysis
-     */
-    @Deprecated
-    public MethodBodyAnalysis analyzeMethodBody(String methodSignature) {
-        Objects.requireNonNull(methodSignature, "methodSignature cannot be null");
-
-        // Check cache first
-        MethodBodyAnalysis cached = methodBodyCache.get(methodSignature);
-        if (cached != null) {
-            stats.merge("methodBodyHits", 1L, Long::sum);
-            return cached;
-        }
-
-        // Cache miss - cannot perform real analysis without Spoon AST
-        stats.merge("methodBodyMisses", 1L, Long::sum);
-        LOG.warn(
-                "analyzeMethodBody called with String signature '{}' - cannot perform real analysis. "
-                        + "Use analyzeMethodBody(CtMethod<?>) instead.",
-                methodSignature);
-
-        MethodBodyAnalysis analysis = MethodBodyAnalysis.empty();
-        methodBodyCache.put(methodSignature, analysis);
-
-        return analysis;
-    }
-
-    /**
      * Internal method that performs the actual analysis and caching.
      */
     private MethodBodyAnalysis analyzeMethodBodyInternal(String methodSignature, CtMethod<?> method) {
@@ -400,48 +365,6 @@ public final class CachedSpoonAnalyzer {
 
         String fieldQualifiedName = buildFieldQualifiedName(field);
         return analyzeFieldInternal(fieldQualifiedName, field);
-    }
-
-    /**
-     * Analyzes a field by qualified name string, returning cached results if available.
-     *
-     * <p><b>Warning:</b> This method cannot perform real analysis without the Spoon AST.
-     * It returns stub analysis and logs a warning. Use {@link #analyzeField(CtField)}
-     * for real analysis.
-     *
-     * @param fieldQualifiedName the qualified field name (e.g., "com.example.Order#id")
-     * @return the field analysis (stub if qualified-name-only)
-     * @deprecated Use {@link #analyzeField(CtField)} for real analysis
-     */
-    @Deprecated
-    public FieldAnalysis analyzeField(String fieldQualifiedName) {
-        Objects.requireNonNull(fieldQualifiedName, "fieldQualifiedName cannot be null");
-
-        // Check cache first
-        FieldAnalysis cached = fieldCache.get(fieldQualifiedName);
-        if (cached != null) {
-            stats.merge("fieldHits", 1L, Long::sum);
-            return cached;
-        }
-
-        // Cache miss - cannot perform real analysis without Spoon AST
-        stats.merge("fieldMisses", 1L, Long::sum);
-        LOG.warn(
-                "analyzeField called with String qualified name '{}' - cannot perform real analysis. "
-                        + "Use analyzeField(CtField<?>) instead.",
-                fieldQualifiedName);
-
-        FieldAnalysis analysis = new FieldAnalysis(
-                "java.lang.Object", // typeName
-                false, // isCollection
-                null, // collectionElementType
-                List.of("private"), // modifiers
-                List.of(), // annotations
-                false // hasInitializer
-                );
-
-        fieldCache.put(fieldQualifiedName, analysis);
-        return analysis;
     }
 
     /**

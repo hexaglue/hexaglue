@@ -14,9 +14,9 @@
 package io.hexaglue.plugin.audit.domain.port.driving;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
 
 /**
  * Driving port for calculating quality metrics.

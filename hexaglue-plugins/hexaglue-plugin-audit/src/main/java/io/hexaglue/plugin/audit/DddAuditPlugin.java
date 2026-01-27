@@ -23,6 +23,20 @@ import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.audit.ArchitectureMetrics;
+import io.hexaglue.arch.model.audit.AuditMetadata;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.CodeMetrics;
+import io.hexaglue.arch.model.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.CodeUnitKind;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.CouplingMetrics;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.DocumentationInfo;
+import io.hexaglue.arch.model.audit.LayerClassification;
+import io.hexaglue.arch.model.audit.QualityMetrics;
+import io.hexaglue.arch.model.audit.RoleClassification;
+import io.hexaglue.arch.model.audit.RuleViolation;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
@@ -50,22 +64,8 @@ import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.plugin.audit.domain.service.AuditOrchestrator;
 import io.hexaglue.plugin.audit.domain.service.ConstraintEngine;
 import io.hexaglue.plugin.audit.domain.service.MetricAggregator;
-import io.hexaglue.arch.model.audit.ArchitectureMetrics;
 import io.hexaglue.spi.audit.AuditContext;
-import io.hexaglue.arch.model.audit.AuditMetadata;
 import io.hexaglue.spi.audit.AuditPlugin;
-import io.hexaglue.arch.model.audit.AuditSnapshot;
-import io.hexaglue.arch.model.audit.CodeMetrics;
-import io.hexaglue.arch.model.audit.CodeUnit;
-import io.hexaglue.arch.model.audit.CodeUnitKind;
-import io.hexaglue.arch.model.audit.Codebase;
-import io.hexaglue.arch.model.audit.CouplingMetrics;
-import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
-import io.hexaglue.arch.model.audit.DocumentationInfo;
-import io.hexaglue.arch.model.audit.LayerClassification;
-import io.hexaglue.arch.model.audit.QualityMetrics;
-import io.hexaglue.arch.model.audit.RoleClassification;
-import io.hexaglue.arch.model.audit.RuleViolation;
 import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.io.IOException;
@@ -265,7 +265,9 @@ public class DddAuditPlugin implements AuditPlugin {
                 .map(e -> {
                     StringBuilder sb = new StringBuilder(e.description());
                     if (!e.involvedTypes().isEmpty()) {
-                        sb.append(" [").append(String.join(", ", e.involvedTypes())).append("]");
+                        sb.append(" [")
+                                .append(String.join(", ", e.involvedTypes()))
+                                .append("]");
                     }
                     return sb.toString();
                 })

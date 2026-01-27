@@ -377,7 +377,9 @@ public final class EntitySpecBuilder {
         Map<String, List<PropertyFieldSpec>> embeddedByType = new HashMap<>();
         for (PropertyFieldSpec prop : properties) {
             if (prop.shouldBeEmbedded() && !prop.hasAttributeOverrides()) {
-                embeddedByType.computeIfAbsent(prop.typeQualifiedName(), k -> new ArrayList<>()).add(prop);
+                embeddedByType
+                        .computeIfAbsent(prop.typeQualifiedName(), k -> new ArrayList<>())
+                        .add(prop);
             }
         }
 
@@ -390,7 +392,8 @@ public final class EntitySpecBuilder {
             if (!attributeNames.isEmpty()) {
                 boolean hasMultipleInstances = entry.getValue().size() > 1;
                 boolean hasReservedWordAttributes = attributeNames.stream()
-                        .anyMatch(attr -> !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
+                        .anyMatch(attr ->
+                                !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
 
                 if (hasMultipleInstances || hasReservedWordAttributes) {
                     typeToAttributeNames.put(entry.getKey(), attributeNames);
@@ -409,15 +412,16 @@ public final class EntitySpecBuilder {
             if (prop.shouldBeEmbedded() && typeToAttributeNames.containsKey(prop.typeQualifiedName())) {
                 // Create attribute overrides for this field
                 List<String> attributeNames = typeToAttributeNames.get(prop.typeQualifiedName());
-                boolean hasMultipleInstances = embeddedByType.get(prop.typeQualifiedName()).size() > 1;
+                boolean hasMultipleInstances =
+                        embeddedByType.get(prop.typeQualifiedName()).size() > 1;
                 List<AttributeOverride> overrides = new ArrayList<>();
 
                 for (String attrName : attributeNames) {
                     String columnName;
                     if (hasMultipleInstances) {
                         // Multiple instances: prefix with field name
-                        columnName = NamingConventions.toSnakeCase(prop.fieldName())
-                                + "_" + NamingConventions.toColumnName(attrName);
+                        columnName = NamingConventions.toSnakeCase(prop.fieldName()) + "_"
+                                + NamingConventions.toColumnName(attrName);
                     } else {
                         // Single instance with reserved word: just use safe column name
                         columnName = NamingConventions.toColumnName(attrName);
@@ -480,14 +484,13 @@ public final class EntitySpecBuilder {
         final String domainType = resolvedDomainType;
 
         // Look up the VALUE_OBJECT in domain index
-        var voOpt = domainIndex.valueObjects()
+        var voOpt = domainIndex
+                .valueObjects()
                 .filter(vo -> vo.id().qualifiedName().equals(domainType))
                 .findFirst();
 
         if (voOpt.isPresent()) {
-            return voOpt.get().structure().fields().stream()
-                    .map(Field::name)
-                    .collect(Collectors.toList());
+            return voOpt.get().structure().fields().stream().map(Field::name).collect(Collectors.toList());
         }
 
         return List.of();
@@ -518,7 +521,8 @@ public final class EntitySpecBuilder {
                 .filter(f -> isRelationField(f))
                 .map(f -> {
                     // BUG-008 fix: Pass entityMapping to replace domain types with entity types
-                    RelationFieldSpec spec = RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping, entityMapping);
+                    RelationFieldSpec spec =
+                            RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping, entityMapping);
                     // BUG-003 fix: Apply bidirectional mappings if this is an inverse side
                     String key = typeFqn + "#" + f.name();
                     String mappedByValue = bidirectionalMappings.get(key);
@@ -554,7 +558,9 @@ public final class EntitySpecBuilder {
             if (rel.kind() == io.hexaglue.arch.model.ir.RelationKind.EMBEDDED && !rel.hasAttributeOverrides()) {
                 // Extract simple type name from targetType (e.g., "AddressEmbeddable")
                 String targetTypeName = rel.targetType().toString();
-                embeddedByType.computeIfAbsent(targetTypeName, k -> new ArrayList<>()).add(rel);
+                embeddedByType
+                        .computeIfAbsent(targetTypeName, k -> new ArrayList<>())
+                        .add(rel);
             }
         }
 
@@ -571,7 +577,8 @@ public final class EntitySpecBuilder {
             if (!attributeNames.isEmpty()) {
                 boolean hasMultipleInstances = entry.getValue().size() > 1;
                 boolean hasReservedWordAttributes = attributeNames.stream()
-                        .anyMatch(attr -> !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
+                        .anyMatch(attr ->
+                                !NamingConventions.toColumnName(attr).equals(NamingConventions.toSnakeCase(attr)));
 
                 if (hasMultipleInstances || hasReservedWordAttributes) {
                     typeToAttributeNames.put(embeddableFqn, attributeNames);
@@ -592,15 +599,16 @@ public final class EntitySpecBuilder {
                     && typeToAttributeNames.containsKey(targetTypeName)) {
                 // Create attribute overrides for this relation
                 List<String> attributeNames = typeToAttributeNames.get(targetTypeName);
-                boolean hasMultipleInstances = embeddedByType.get(targetTypeName).size() > 1;
+                boolean hasMultipleInstances =
+                        embeddedByType.get(targetTypeName).size() > 1;
                 List<AttributeOverride> overrides = new ArrayList<>();
 
                 for (String attrName : attributeNames) {
                     String columnName;
                     if (hasMultipleInstances) {
                         // Multiple instances: prefix with field name
-                        columnName = NamingConventions.toSnakeCase(rel.fieldName())
-                                + "_" + NamingConventions.toColumnName(attrName);
+                        columnName = NamingConventions.toSnakeCase(rel.fieldName()) + "_"
+                                + NamingConventions.toColumnName(attrName);
                     } else {
                         // Single instance with reserved word: just use safe column name
                         columnName = NamingConventions.toColumnName(attrName);
@@ -703,8 +711,7 @@ public final class EntitySpecBuilder {
         }
         var domainIndex = domainIndexOpt.get();
         String typeFqn = field.type().qualifiedName();
-        return domainIndex.identifiers()
-                .anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
+        return domainIndex.identifiers().anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
     }
 
     /**
@@ -724,10 +731,11 @@ public final class EntitySpecBuilder {
         }
         var domainIndex = domainIndexOpt.get();
         String typeFqn = field.type().qualifiedName();
-        return domainIndex.valueObjects()
+        return domainIndex
+                .valueObjects()
                 .filter(vo -> vo.id().qualifiedName().equals(typeFqn))
-                .anyMatch(vo -> vo.structure() != null
-                        && vo.structure().nature() == io.hexaglue.arch.model.TypeNature.ENUM);
+                .anyMatch(vo ->
+                        vo.structure() != null && vo.structure().nature() == io.hexaglue.arch.model.TypeNature.ENUM);
     }
 
     /**

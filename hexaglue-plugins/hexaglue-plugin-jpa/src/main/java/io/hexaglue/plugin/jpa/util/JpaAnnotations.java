@@ -15,11 +15,11 @@ package io.hexaglue.plugin.jpa.util;
 
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
-import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.arch.model.ir.FetchType;
 import io.hexaglue.arch.model.ir.Identity;
 import io.hexaglue.arch.model.ir.Nullability;
 import io.hexaglue.arch.model.ir.RelationKind;
+import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embeddable;
@@ -337,9 +337,12 @@ public final class JpaAnnotations {
 
         return AnnotationSpec.builder(jakarta.persistence.AttributeOverride.class)
                 .addMember("name", "$S", attributeName)
-                .addMember("column", "$L", AnnotationSpec.builder(Column.class)
-                        .addMember("name", "$S", columnName)
-                        .build())
+                .addMember(
+                        "column",
+                        "$L",
+                        AnnotationSpec.builder(Column.class)
+                                .addMember("name", "$S", columnName)
+                                .build())
                 .build();
     }
 
@@ -907,7 +910,8 @@ public final class JpaAnnotations {
      * @param builder the annotation builder
      * @param cascadeType the cascade type from the SPI
      */
-    private static void addCascadeType(AnnotationSpec.Builder builder, io.hexaglue.arch.model.ir.CascadeType cascadeType) {
+    private static void addCascadeType(
+            AnnotationSpec.Builder builder, io.hexaglue.arch.model.ir.CascadeType cascadeType) {
         if (cascadeType == null || cascadeType == io.hexaglue.arch.model.ir.CascadeType.NONE) {
             return; // No cascade
         }

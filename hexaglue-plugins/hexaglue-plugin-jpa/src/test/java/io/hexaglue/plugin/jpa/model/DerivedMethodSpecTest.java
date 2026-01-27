@@ -64,9 +64,10 @@ class DerivedMethodSpecTest {
                     java.util.OptionalInt.empty());
 
             // Given: DomainIndex with CustomerId identifier that wraps UUID
-            Identifier customerIdIdentifier = createIdentifier(
-                    "com.ecommerce.domain.customer.CustomerId", "java.util.UUID");
-            TypeRegistry registry = TypeRegistry.builder().add(customerIdIdentifier).build();
+            Identifier customerIdIdentifier =
+                    createIdentifier("com.ecommerce.domain.customer.CustomerId", "java.util.UUID");
+            TypeRegistry registry =
+                    TypeRegistry.builder().add(customerIdIdentifier).build();
             DomainIndex domainIndex = DomainIndex.from(registry);
 
             // When
@@ -140,8 +141,8 @@ class DerivedMethodSpecTest {
         private Identifier createIdentifier(String qualifiedName, String wrappedTypeName) {
             TypeId typeId = TypeId.of(qualifiedName);
             TypeStructure structure = TypeStructure.builder(TypeNature.RECORD).build();
-            ClassificationTrace trace = ClassificationTrace.highConfidence(
-                    ElementKind.IDENTIFIER, "identifier-pattern", "Wraps UUID");
+            ClassificationTrace trace =
+                    ClassificationTrace.highConfidence(ElementKind.IDENTIFIER, "identifier-pattern", "Wraps UUID");
             TypeRef wrappedType = TypeRef.of(wrappedTypeName);
             return Identifier.of(typeId, structure, trace, wrappedType);
         }

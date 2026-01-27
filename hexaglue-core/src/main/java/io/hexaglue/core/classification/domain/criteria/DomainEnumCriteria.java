@@ -77,10 +77,8 @@ public final class DomainEnumCriteria implements ClassificationCriteria<ElementK
         return MatchResult.match(
                 ConfidenceLevel.HIGH,
                 "Enum type - immutable, identity-less, represents fixed domain concepts",
-                List.of(
-                        Evidence.fromStructure(
-                                "Java enum: immutable by definition, equality by value",
-                                List.of(node.id()))));
+                List.of(Evidence.fromStructure(
+                        "Java enum: immutable by definition, equality by value", List.of(node.id()))));
     }
 
     @Override

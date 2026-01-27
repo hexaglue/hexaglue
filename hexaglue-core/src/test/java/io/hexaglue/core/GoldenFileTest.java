@@ -218,7 +218,8 @@ class GoldenFileTest {
 
         String actualSnapshot = ArchModelSnapshotSerializer.serialize(result.model());
 
-        Path goldenPath = Path.of(System.getProperty("user.dir")).resolve(GOLDEN_DIR).resolve(goldenFileName);
+        Path goldenPath =
+                Path.of(System.getProperty("user.dir")).resolve(GOLDEN_DIR).resolve(goldenFileName);
         if (Files.exists(goldenPath)) {
             String expectedSnapshot = Files.readString(goldenPath, StandardCharsets.UTF_8);
             assertThat(actualSnapshot)

@@ -13,12 +13,12 @@
 
 package io.hexaglue.plugin.audit.domain.service;
 
-import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
-import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.arch.model.audit.CouplingMetrics;
 import io.hexaglue.arch.model.audit.DependencyCycle;
 import io.hexaglue.arch.model.audit.LakosMetrics;
+import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
+import io.hexaglue.plugin.audit.domain.model.Violation;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.List;
 import java.util.Objects;
 

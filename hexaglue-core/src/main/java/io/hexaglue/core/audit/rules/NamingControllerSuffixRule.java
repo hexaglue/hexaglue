@@ -13,13 +13,13 @@
 
 package io.hexaglue.core.audit.rules;
 
-import io.hexaglue.spi.audit.AuditRule;
 import io.hexaglue.arch.model.audit.CodeUnit;
 import io.hexaglue.arch.model.audit.CodeUnitKind;
 import io.hexaglue.arch.model.audit.LayerClassification;
 import io.hexaglue.arch.model.audit.RuleViolation;
 import io.hexaglue.arch.model.audit.Severity;
 import io.hexaglue.arch.model.audit.SourceLocation;
+import io.hexaglue.spi.audit.AuditRule;
 import java.util.ArrayList;
 import java.util.List;
 

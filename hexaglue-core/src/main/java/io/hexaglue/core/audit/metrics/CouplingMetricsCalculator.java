@@ -13,10 +13,10 @@
 
 package io.hexaglue.core.audit.metrics;
 
+import io.hexaglue.arch.model.audit.CouplingMetrics;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.Edge;
 import io.hexaglue.core.graph.model.TypeNode;
-import io.hexaglue.arch.model.audit.CouplingMetrics;
 import java.util.*;
 
 /**

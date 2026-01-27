@@ -21,13 +21,13 @@ import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
+import io.hexaglue.arch.model.ir.Nullability;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.IdFieldSpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
-import io.hexaglue.arch.model.ir.Nullability;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -215,7 +215,8 @@ public final class JpaEntityCodegen {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldType, id.fieldName(), Modifier.PRIVATE)
                 .addAnnotation(JpaAnnotations.id())
                 .addAnnotation(JpaAnnotations.column(
-                        NamingConventions.toColumnName(id.fieldName()), io.hexaglue.arch.model.ir.Nullability.NON_NULL));
+                        NamingConventions.toColumnName(id.fieldName()),
+                        io.hexaglue.arch.model.ir.Nullability.NON_NULL));
 
         // Add @GeneratedValue if the strategy requires it
         if (id.requiresGeneratedValue()) {
@@ -332,13 +333,11 @@ public final class JpaEntityCodegen {
         // For MANY_TO_MANY owning side, add @JoinTable annotation (BUG-001 fix)
         if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.MANY_TO_MANY && relation.isOwning()) {
             String targetSimpleName = extractTargetSimpleName(relation.targetType());
-            String joinTableName = NamingConventions.toJoinTableName(
-                    entitySpec.domainSimpleName(), targetSimpleName);
+            String joinTableName = NamingConventions.toJoinTableName(entitySpec.domainSimpleName(), targetSimpleName);
             String joinColumnName = NamingConventions.toForeignKeyColumnName(entitySpec.domainSimpleName());
             String inverseJoinColumnName = NamingConventions.toForeignKeyColumnName(targetSimpleName);
 
-            fieldBuilder.addAnnotation(JpaAnnotations.joinTable(
-                    joinTableName, joinColumnName, inverseJoinColumnName));
+            fieldBuilder.addAnnotation(JpaAnnotations.joinTable(joinTableName, joinColumnName, inverseJoinColumnName));
         }
 
         // For MANY_TO_ONE, add @JoinColumn annotation (BUG-002 fix)

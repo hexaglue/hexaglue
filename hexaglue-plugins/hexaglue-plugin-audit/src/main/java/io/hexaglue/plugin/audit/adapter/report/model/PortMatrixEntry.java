@@ -142,7 +142,8 @@ public record PortMatrixEntry(
                 "USE_CASE", // Default kind for driving ports
                 null, // managedType not available in v5 model
                 port.structure().methods().size(),
-                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see FUTURE_ADAPTER_DETECTION.md)
+                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see
+        // FUTURE_ADAPTER_DETECTION.md)
     }
 
     /**
@@ -160,6 +161,7 @@ public record PortMatrixEntry(
                 kind,
                 managedType,
                 port.structure().methods().size(),
-                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see FUTURE_ADAPTER_DETECTION.md)
+                ADAPTER_NOT_DETECTED); // Adapter detection requires plugin coordination (see
+        // FUTURE_ADAPTER_DETECTION.md)
     }
 }

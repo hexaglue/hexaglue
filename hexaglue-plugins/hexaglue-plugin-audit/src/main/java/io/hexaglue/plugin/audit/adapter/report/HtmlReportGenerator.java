@@ -961,18 +961,23 @@ public final class HtmlReportGenerator implements ReportGenerator {
                     .append("</code></td>\n");
             html.append("          <td>").append(port.methodCount()).append("</td>\n");
             html.append("          <td>");
-            String badgeClass = switch (port.adapterStatus()) {
-                case PortMatrixEntry.ADAPTER_DETECTED -> "badge-ok";
-                case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "badge-warning";
-                default -> "badge-info";
-            };
-            String badgeText = switch (port.adapterStatus()) {
-                case PortMatrixEntry.ADAPTER_DETECTED -> "Yes";
-                case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "Not detected";
-                default -> "Unknown";
-            };
-            html.append("<span class=\"badge ").append(badgeClass).append("\">")
-                    .append(badgeText).append("</span>");
+            String badgeClass =
+                    switch (port.adapterStatus()) {
+                        case PortMatrixEntry.ADAPTER_DETECTED -> "badge-ok";
+                        case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "badge-warning";
+                        default -> "badge-info";
+                    };
+            String badgeText =
+                    switch (port.adapterStatus()) {
+                        case PortMatrixEntry.ADAPTER_DETECTED -> "Yes";
+                        case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "Not detected";
+                        default -> "Unknown";
+                    };
+            html.append("<span class=\"badge ")
+                    .append(badgeClass)
+                    .append("\">")
+                    .append(badgeText)
+                    .append("</span>");
             html.append("</td>\n");
             html.append("        </tr>\n");
         }

@@ -96,11 +96,13 @@ public final class BidirectionalDetector {
     private static List<TypeWithStructure> collectAllTypes(DomainIndex domainIndex) {
         List<TypeWithStructure> result = new java.util.ArrayList<>();
 
-        domainIndex.aggregateRoots().forEach(agg ->
-                result.add(new TypeWithStructure(agg.id().qualifiedName(), agg.structure())));
+        domainIndex
+                .aggregateRoots()
+                .forEach(agg -> result.add(new TypeWithStructure(agg.id().qualifiedName(), agg.structure())));
 
-        domainIndex.entities().forEach(entity ->
-                result.add(new TypeWithStructure(entity.id().qualifiedName(), entity.structure())));
+        domainIndex
+                .entities()
+                .forEach(entity -> result.add(new TypeWithStructure(entity.id().qualifiedName(), entity.structure())));
 
         return result;
     }
@@ -122,9 +124,7 @@ public final class BidirectionalDetector {
             }
 
             // Get target type from collection element
-            String targetFqn = field.elementType()
-                    .map(t -> t.qualifiedName())
-                    .orElse(null);
+            String targetFqn = field.elementType().map(t -> t.qualifiedName()).orElse(null);
 
             if (targetFqn == null) {
                 continue;
@@ -136,18 +136,15 @@ public final class BidirectionalDetector {
             }
 
             // Find target type structure
-            Optional<TypeWithStructure> targetOpt = allTypes.stream()
-                    .filter(t -> t.fqn().equals(targetFqn))
-                    .findFirst();
+            Optional<TypeWithStructure> targetOpt =
+                    allTypes.stream().filter(t -> t.fqn().equals(targetFqn)).findFirst();
 
             if (targetOpt.isEmpty() || targetOpt.get().structure() == null) {
                 continue;
             }
 
             // Look for inverse field in target (a reference back to source)
-            Optional<Field> inverseField = findInverseField(
-                    targetOpt.get().structure(),
-                    source.fqn());
+            Optional<Field> inverseField = findInverseField(targetOpt.get().structure(), source.fqn());
 
             if (inverseField.isPresent()) {
                 // Found bidirectional pair!
@@ -167,8 +164,7 @@ public final class BidirectionalDetector {
     }
 
     private static boolean isIdentifierType(String typeFqn, DomainIndex domainIndex) {
-        return domainIndex.identifiers()
-                .anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
+        return domainIndex.identifiers().anyMatch(id -> id.id().qualifiedName().equals(typeFqn));
     }
 
     /**

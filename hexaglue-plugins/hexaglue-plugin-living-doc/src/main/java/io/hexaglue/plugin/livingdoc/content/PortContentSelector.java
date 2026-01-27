@@ -20,13 +20,13 @@ import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.index.PortIndex;
-import io.hexaglue.plugin.livingdoc.model.DebugInfo;
-import io.hexaglue.syntax.TypeRef;
-import io.hexaglue.plugin.livingdoc.model.MethodDoc;
-import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import io.hexaglue.arch.model.ir.PortDirection;
 import io.hexaglue.arch.model.ir.PortKind;
+import io.hexaglue.plugin.livingdoc.model.DebugInfo;
+import io.hexaglue.plugin.livingdoc.model.MethodDoc;
+import io.hexaglue.plugin.livingdoc.model.PortDoc;
+import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -100,8 +100,9 @@ public final class PortContentSelector {
 
     private MethodDoc toMethodDoc(Method method) {
         String returnType = method.returnType() != null ? formatTypeWithArguments(method.returnType()) : "void";
-        List<String> parameters =
-                method.parameters().stream().map(p -> formatTypeWithArguments(p.type())).collect(Collectors.toList());
+        List<String> parameters = method.parameters().stream()
+                .map(p -> formatTypeWithArguments(p.type()))
+                .collect(Collectors.toList());
         return new MethodDoc(method.name(), returnType, parameters);
     }
 
@@ -120,9 +121,7 @@ public final class PortContentSelector {
             return simpleName;
         }
 
-        String args = typeRef.typeArguments().stream()
-                .map(TypeRef::simpleName)
-                .collect(Collectors.joining(", "));
+        String args = typeRef.typeArguments().stream().map(TypeRef::simpleName).collect(Collectors.joining(", "));
 
         return simpleName + "<" + args + ">";
     }

@@ -193,8 +193,7 @@ class PortCriteriaTest {
             // Create InterfaceFacts directly to simulate "implementedByCore = true"
             // This tests the specific behavior without needing the full classification pipeline
             io.hexaglue.core.classification.semantic.InterfaceFacts markerFacts =
-                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
-                            markerInterface.id(), 1, false);
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(markerInterface.id(), 1, false);
 
             // Verify the facts indicate DRIVING port candidate
             assertThat(markerFacts.implementedByCore()).isTrue();
@@ -226,7 +225,8 @@ class PortCriteriaTest {
                     """);
 
             ApplicationGraph graph = buildGraph();
-            TypeNode useCase = graph.typeNode("com.example.ports.in.OrderUseCase").orElseThrow();
+            TypeNode useCase =
+                    graph.typeNode("com.example.ports.in.OrderUseCase").orElseThrow();
             GraphQuery query = graph.query();
 
             // Verify it has methods
@@ -234,8 +234,7 @@ class PortCriteriaTest {
 
             // Create InterfaceFacts directly to simulate "implementedByCore = true"
             io.hexaglue.core.classification.semantic.InterfaceFacts useCaseFacts =
-                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
-                            useCase.id(), 1, true);
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(useCase.id(), 1, true);
 
             // Build InterfaceFactsIndex with our custom facts
             io.hexaglue.core.classification.semantic.InterfaceFactsIndex factsIndex =
@@ -267,7 +266,8 @@ class PortCriteriaTest {
                     """);
 
             ApplicationGraph graph = buildGraph();
-            TypeNode domainEvent = graph.typeNode("com.example.domain.shared.DomainEvent").orElseThrow();
+            TypeNode domainEvent =
+                    graph.typeNode("com.example.domain.shared.DomainEvent").orElseThrow();
             GraphQuery query = graph.query();
 
             // Verify it has methods (not a marker interface)
@@ -275,8 +275,7 @@ class PortCriteriaTest {
 
             // Create InterfaceFacts to simulate "implementedByCore = true"
             io.hexaglue.core.classification.semantic.InterfaceFacts eventFacts =
-                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(
-                            domainEvent.id(), 1, false);
+                    io.hexaglue.core.classification.semantic.InterfaceFacts.drivingPort(domainEvent.id(), 1, false);
 
             // Build InterfaceFactsIndex
             io.hexaglue.core.classification.semantic.InterfaceFactsIndex factsIndex =

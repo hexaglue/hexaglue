@@ -16,12 +16,12 @@ package io.hexaglue.plugin.livingdoc.renderer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.plugin.livingdoc.model.RelationDoc;
-import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

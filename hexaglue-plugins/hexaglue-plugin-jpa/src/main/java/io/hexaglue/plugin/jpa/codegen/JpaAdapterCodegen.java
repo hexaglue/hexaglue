@@ -268,11 +268,6 @@ public final class JpaAdapterCodegen {
      */
     private static AdapterContext createContext(AdapterSpec spec) {
         return new AdapterContext(
-                spec.domainClass(),
-                spec.entityClass(),
-                "repository",
-                "mapper",
-                spec.idInfo(),
-                spec.isDomainRecord());
+                spec.domainClass(), spec.entityClass(), "repository", "mapper", spec.idInfo(), spec.isDomainRecord());
     }
 }

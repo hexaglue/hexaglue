@@ -358,7 +358,8 @@ class DomainContentSelectorTest {
         @DisplayName("should detect collection cardinality")
         void shouldDetectCollectionCardinality() {
             // Given: ValueObject with a List field
-            Field listField = Field.of("items", TypeRef.parameterized("java.util.List", List.of(TypeRef.of("java.lang.String"))));
+            Field listField =
+                    Field.of("items", TypeRef.parameterized("java.util.List", List.of(TypeRef.of("java.lang.String"))));
             ValueObject vo = valueObject(PKG + ".Order", listField);
 
             ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), vo);

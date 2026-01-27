@@ -14,16 +14,16 @@
 package io.hexaglue.core.analysis;
 
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.DomainRelation;
+import io.hexaglue.arch.model.ir.FetchType;
+import io.hexaglue.arch.model.ir.RelationKind;
 import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.FieldNode;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
-import io.hexaglue.arch.model.ir.CascadeType;
-import io.hexaglue.arch.model.ir.DomainRelation;
-import io.hexaglue.arch.model.ir.FetchType;
-import io.hexaglue.arch.model.ir.RelationKind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

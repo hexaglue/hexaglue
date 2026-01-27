@@ -15,12 +15,12 @@ package io.hexaglue.plugin.livingdoc.renderer;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.plugin.livingdoc.model.DebugInfo;
-import io.hexaglue.plugin.livingdoc.model.MethodDoc;
-import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import io.hexaglue.arch.model.ir.PortDirection;
 import io.hexaglue.arch.model.ir.PortKind;
+import io.hexaglue.plugin.livingdoc.model.DebugInfo;
+import io.hexaglue.plugin.livingdoc.model.MethodDoc;
+import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

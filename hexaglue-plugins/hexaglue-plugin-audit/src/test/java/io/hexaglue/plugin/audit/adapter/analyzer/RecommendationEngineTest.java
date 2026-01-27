@@ -16,6 +16,7 @@ package io.hexaglue.plugin.audit.adapter.analyzer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import io.hexaglue.arch.model.audit.SourceLocation;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
 import io.hexaglue.plugin.audit.domain.model.BuildOutcome;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
@@ -23,7 +24,6 @@ import io.hexaglue.plugin.audit.domain.model.Recommendation;
 import io.hexaglue.plugin.audit.domain.model.RecommendationPriority;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

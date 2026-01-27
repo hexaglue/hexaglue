@@ -15,14 +15,14 @@ package io.hexaglue.plugin.audit.adapter.validator.ddd;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DomainType;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.DependencyEvidence;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
-import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

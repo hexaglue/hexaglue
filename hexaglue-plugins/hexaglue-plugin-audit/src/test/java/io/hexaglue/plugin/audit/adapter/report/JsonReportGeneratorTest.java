@@ -36,7 +36,6 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests for {@link JsonReportGenerator}.
  */
-
 class JsonReportGeneratorTest {
 
     @Test
@@ -165,8 +164,8 @@ class JsonReportGeneratorTest {
         @Test
         void shouldUseDecimalPointsInCouplingMetrics() {
             // Given - a report with coupling metrics containing decimal values
-            var couplingEntry = new ArchitectureAnalysis.PackageCouplingEntry(
-                    "com.example.domain", 5, 3, 0.375, 0.25, 0.125);
+            var couplingEntry =
+                    new ArchitectureAnalysis.PackageCouplingEntry("com.example.domain", 5, 3, 0.375, 0.25, 0.125);
             var analysis = new ArchitectureAnalysis(
                     List.of(), List.of(), List.of(), List.of(), List.of(), List.of(couplingEntry));
 
@@ -183,9 +182,7 @@ class JsonReportGeneratorTest {
             assertThat(json)
                     .as("JSON should use decimal points for abstractness")
                     .contains("\"abstractness\": 0.2500");
-            assertThat(json)
-                    .as("JSON should use decimal points for distance")
-                    .contains("\"distance\": 0.1250");
+            assertThat(json).as("JSON should use decimal points for distance").contains("\"distance\": 0.1250");
             assertThat(DECIMAL_WITH_COMMA.matcher(json).find())
                     .as("JSON must not contain decimal commas (invalid JSON)")
                     .isFalse();
@@ -194,8 +191,7 @@ class JsonReportGeneratorTest {
         @Test
         void shouldUseDecimalPointsInTechnicalDebt() {
             // Given - a report with technical debt containing decimal values
-            var debtCategory =
-                    new TechnicalDebtSummary.DebtCategory("Dependency Cycles", 2.5, 1250.75, "Fix cycles");
+            var debtCategory = new TechnicalDebtSummary.DebtCategory("Dependency Cycles", 2.5, 1250.75, "Fix cycles");
             var debt = new TechnicalDebtSummary(5.25, 2625.50, 131.25, List.of(debtCategory));
 
             var report = createReportWithTechnicalDebt(debt);
@@ -205,12 +201,8 @@ class JsonReportGeneratorTest {
             String json = generator.generate(report);
 
             // Then - JSON must contain decimal points, not commas
-            assertThat(json)
-                    .as("JSON should use decimal points for totalDays")
-                    .contains("\"totalDays\": 5.25");
-            assertThat(json)
-                    .as("JSON should use decimal points for totalCost")
-                    .contains("\"totalCost\": 2625.50");
+            assertThat(json).as("JSON should use decimal points for totalDays").contains("\"totalDays\": 5.25");
+            assertThat(json).as("JSON should use decimal points for totalCost").contains("\"totalCost\": 2625.50");
             assertThat(json)
                     .as("JSON should use decimal points for monthlyInterest")
                     .contains("\"monthlyInterest\": 131.25");
@@ -261,8 +253,8 @@ class JsonReportGeneratorTest {
             try {
                 Locale.setDefault(Locale.FRANCE);
 
-                var couplingEntry = new ArchitectureAnalysis.PackageCouplingEntry(
-                        "com.example", 10, 5, 0.3333, 0.6667, 0.0);
+                var couplingEntry =
+                        new ArchitectureAnalysis.PackageCouplingEntry("com.example", 10, 5, 0.3333, 0.6667, 0.0);
                 var analysis = new ArchitectureAnalysis(
                         List.of(), List.of(), List.of(), List.of(), List.of(), List.of(couplingEntry));
                 var debt = new TechnicalDebtSummary(1.5, 750.0, 37.5, List.of());
@@ -276,7 +268,11 @@ class JsonReportGeneratorTest {
                 assertThat(DECIMAL_WITH_COMMA.matcher(json).find())
                         .as("JSON must use decimal points even with French locale")
                         .isFalse();
-                assertThat(json).contains("0.3333").contains("0.6667").contains("1.50").contains("750.00");
+                assertThat(json)
+                        .contains("0.3333")
+                        .contains("0.6667")
+                        .contains("1.50")
+                        .contains("750.00");
             } finally {
                 // Restore original locale
                 Locale.setDefault(originalLocale);
@@ -372,8 +368,7 @@ class JsonReportGeneratorTest {
         }
 
         private ReportMetadata createDefaultMetadata() {
-            return new ReportMetadata(
-                    "test-project", "1.0.0", Instant.parse("2026-01-22T10:00:00Z"), "1.00s", "5.0.0");
+            return new ReportMetadata("test-project", "1.0.0", Instant.parse("2026-01-22T10:00:00Z"), "1.00s", "5.0.0");
         }
 
         private AuditSummary createPassingSummary() {

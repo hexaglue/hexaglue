@@ -18,11 +18,11 @@ import io.hexaglue.arch.model.DomainType;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
 
 /**
  * Calculates the ratio of boilerplate code to total code in domain types.

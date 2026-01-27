@@ -453,7 +453,9 @@ public final class JsonReportGenerator implements ReportGenerator {
                         .append(quote(p.managedType()))
                         .append(",\n");
                 json.append("      \"methodCount\": ").append(p.methodCount()).append(",\n");
-                json.append("      \"adapterStatus\": ").append(quote(p.adapterStatus())).append("\n");
+                json.append("      \"adapterStatus\": ")
+                        .append(quote(p.adapterStatus()))
+                        .append("\n");
                 json.append("    }");
                 if (i < portMatrix.size() - 1) json.append(",");
                 json.append("\n");

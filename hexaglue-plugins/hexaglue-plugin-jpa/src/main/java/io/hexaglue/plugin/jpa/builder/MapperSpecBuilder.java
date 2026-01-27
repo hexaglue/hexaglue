@@ -469,8 +469,8 @@ public final class MapperSpecBuilder {
                     String accessorMethod = "value";
                     boolean isRecord = identifier.structure().isRecord();
 
-                    mappings.add(
-                            new ValueObjectMappingSpec(wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
+                    mappings.add(new ValueObjectMappingSpec(
+                            wrapperType, simpleName, unwrappedType, accessorMethod, isRecord));
                     processedTypes.add(fieldTypeName);
                 }
             }
@@ -595,12 +595,13 @@ public final class MapperSpecBuilder {
             }
 
             // Check if the field type is an aggregate root
-            boolean isAggregateRoot = domainIndex.aggregateRoots()
+            boolean isAggregateRoot = domainIndex
+                    .aggregateRoots()
                     .anyMatch(agg -> agg.id().qualifiedName().equals(fieldTypeFqn));
 
             // Check if the field type is an entity
-            boolean isEntity = domainIndex.entities()
-                    .anyMatch(e -> e.id().qualifiedName().equals(fieldTypeFqn));
+            boolean isEntity =
+                    domainIndex.entities().anyMatch(e -> e.id().qualifiedName().equals(fieldTypeFqn));
 
             if (isAggregateRoot || isEntity) {
                 // Extract simple name and create mapper class name
