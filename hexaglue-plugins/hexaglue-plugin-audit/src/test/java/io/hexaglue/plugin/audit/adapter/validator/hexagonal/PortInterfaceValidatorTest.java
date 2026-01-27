@@ -22,7 +22,7 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
-import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.arch.model.audit.Codebase;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -15,7 +15,7 @@ package io.hexaglue.core.audit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.spi.audit.LayerClassification;
+import io.hexaglue.arch.model.audit.LayerClassification;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

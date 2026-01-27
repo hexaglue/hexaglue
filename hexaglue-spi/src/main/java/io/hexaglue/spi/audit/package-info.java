@@ -31,25 +31,25 @@
  * <ul>
  *   <li>{@link io.hexaglue.spi.audit.AuditPlugin} - Plugin interface for auditors</li>
  *   <li>{@link io.hexaglue.spi.audit.AuditContext} - Context with codebase and rules</li>
- *   <li>{@link io.hexaglue.spi.audit.AuditSnapshot} - Complete audit results</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.AuditSnapshot} - Complete audit results</li>
  *   <li>{@link io.hexaglue.spi.audit.AuditRule} - Rule interface for checks</li>
- *   <li>{@link io.hexaglue.spi.audit.RuleViolation} - Detected violation</li>
- *   <li>{@link io.hexaglue.spi.audit.CodeUnit} - Code element being audited</li>
- *   <li>{@link io.hexaglue.spi.audit.Codebase} - Collection of code units</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.RuleViolation} - Detected violation</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.CodeUnit} - Code element being audited</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.Codebase} - Collection of code units</li>
  * </ul>
  *
  * <h2>Architecture Classifications</h2>
  * <ul>
- *   <li>{@link io.hexaglue.spi.audit.LayerClassification} - Architectural layer</li>
- *   <li>{@link io.hexaglue.spi.audit.RoleClassification} - Architectural role (DDD patterns)</li>
- *   <li>{@link io.hexaglue.spi.audit.DetectedArchitectureStyle} - Overall architecture style</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.LayerClassification} - Architectural layer</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.RoleClassification} - Architectural role (DDD patterns)</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.DetectedArchitectureStyle} - Overall architecture style</li>
  * </ul>
  *
  * <h2>Metrics</h2>
  * <ul>
- *   <li>{@link io.hexaglue.spi.audit.CodeMetrics} - Code-level metrics (complexity, LOC)</li>
- *   <li>{@link io.hexaglue.spi.audit.QualityMetrics} - Overall quality metrics</li>
- *   <li>{@link io.hexaglue.spi.audit.ArchitectureMetrics} - Architecture metrics (coupling, cohesion)</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.CodeMetrics} - Code-level metrics (complexity, LOC)</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.QualityMetrics} - Overall quality metrics</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.ArchitectureMetrics} - Architecture metrics (coupling, cohesion)</li>
  * </ul>
  *
  * @since 3.0.0

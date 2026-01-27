@@ -19,7 +19,7 @@ import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
-import io.hexaglue.spi.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
 import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;

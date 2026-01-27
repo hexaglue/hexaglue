@@ -15,8 +15,15 @@ package io.hexaglue.core.audit.report;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.spi.audit.*;
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.ArchitectureMetrics;
+import io.hexaglue.arch.model.audit.AuditMetadata;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.QualityMetrics;
+import io.hexaglue.arch.model.audit.RuleViolation;
+import io.hexaglue.arch.model.audit.Severity;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

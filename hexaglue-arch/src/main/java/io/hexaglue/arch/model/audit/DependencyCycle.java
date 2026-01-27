@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 
@@ -40,6 +40,7 @@ import java.util.List;
  * @param kind the kind of cycle
  * @param path the dependency path forming the cycle (first and last elements are the same)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record DependencyCycle(CycleKind kind, List<String> path) {
 

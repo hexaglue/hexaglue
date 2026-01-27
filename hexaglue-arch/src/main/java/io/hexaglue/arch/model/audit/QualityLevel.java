@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Quality level based on Lakos NCCD metric.
@@ -29,6 +29,7 @@ package io.hexaglue.spi.audit;
  * </ul>
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum QualityLevel {
 

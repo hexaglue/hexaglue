@@ -15,7 +15,14 @@ package io.hexaglue.core.audit.metrics;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.hexaglue.spi.audit.*;
+import io.hexaglue.arch.model.audit.CodeMetrics;
+import io.hexaglue.arch.model.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.CodeUnitKind;
+import io.hexaglue.arch.model.audit.DocumentationInfo;
+import io.hexaglue.arch.model.audit.FieldDeclaration;
+import io.hexaglue.arch.model.audit.LayerClassification;
+import io.hexaglue.arch.model.audit.MethodDeclaration;
+import io.hexaglue.arch.model.audit.RoleClassification;
 import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;

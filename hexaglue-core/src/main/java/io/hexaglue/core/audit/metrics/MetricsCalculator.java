@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.audit.metrics;
 
-import io.hexaglue.spi.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.CodeUnit;
 import java.util.List;
 
 /**

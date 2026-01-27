@@ -13,9 +13,9 @@
 
 package io.hexaglue.core.audit.report;
 
-import io.hexaglue.spi.audit.AuditSnapshot;
-import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.audit.Severity;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.RuleViolation;
+import io.hexaglue.arch.model.audit.Severity;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 
@@ -31,6 +31,7 @@ import java.util.List;
  * @param metrics       the code quality metrics
  * @param documentation the documentation information
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record CodeUnit(
         String qualifiedName,

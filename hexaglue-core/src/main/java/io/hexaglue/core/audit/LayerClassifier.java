@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.audit;
 
-import io.hexaglue.spi.audit.LayerClassification;
+import io.hexaglue.arch.model.audit.LayerClassification;
 import java.util.List;
 import java.util.Set;
 

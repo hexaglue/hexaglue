@@ -33,7 +33,7 @@ import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
-import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.Optional;

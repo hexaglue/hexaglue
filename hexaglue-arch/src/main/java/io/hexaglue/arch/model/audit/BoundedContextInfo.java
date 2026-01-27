@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 import java.util.Objects;
@@ -48,6 +48,7 @@ import java.util.Objects;
  * @param rootPackage    the root package that defines this bounded context's boundary
  * @param typeNames      the fully-qualified names of all types in this bounded context
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record BoundedContextInfo(String name, String rootPackage, List<String> typeNames) {
 

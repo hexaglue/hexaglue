@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Architecture-specific metrics for the codebase.
@@ -21,6 +21,7 @@ package io.hexaglue.spi.audit;
  * @param cohesionWithinComponents   average cohesion within components (0-1)
  * @param circularDependencies       number of circular dependencies detected
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record ArchitectureMetrics(
         int componentCount,

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Code quality metrics for a code unit.
@@ -25,6 +25,7 @@ package io.hexaglue.spi.audit;
  * @param numberOfFields         total number of fields
  * @param maintainabilityIndex   maintainability index (0-100, higher is better)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record CodeMetrics(
         int linesOfCode,

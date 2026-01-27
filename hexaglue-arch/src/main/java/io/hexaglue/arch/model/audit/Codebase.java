@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 import java.util.Map;
@@ -25,6 +25,7 @@ import java.util.Set;
  * @param units        all code units in the codebase
  * @param dependencies the dependency map (unit qualified name -> set of dependencies)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record Codebase(String name, String basePackage, List<CodeUnit> units, Map<String, Set<String>> dependencies) {
 

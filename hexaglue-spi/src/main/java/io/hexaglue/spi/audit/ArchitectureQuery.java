@@ -13,6 +13,13 @@
 
 package io.hexaglue.spi.audit;
 
+import io.hexaglue.arch.model.audit.AggregateInfo;
+import io.hexaglue.arch.model.audit.BoundedContextInfo;
+import io.hexaglue.arch.model.audit.CouplingMetrics;
+import io.hexaglue.arch.model.audit.DependencyCycle;
+import io.hexaglue.arch.model.audit.LakosMetrics;
+import io.hexaglue.arch.model.audit.LayerViolation;
+import io.hexaglue.arch.model.audit.StabilityViolation;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

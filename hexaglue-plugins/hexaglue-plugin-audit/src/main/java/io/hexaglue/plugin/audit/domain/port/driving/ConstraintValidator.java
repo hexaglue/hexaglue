@@ -18,7 +18,7 @@ import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.arch.model.audit.Codebase;
 import java.util.List;
 
 /**

@@ -11,31 +11,27 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
- * The kind of code unit being audited.
- *
- * <p>This enum represents the Java construct type of a code unit,
- * similar to {@link io.hexaglue.spi.core.TypeKind} but specifically
- * for audit contexts.
+ * The kind of dependency cycle detected.
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
-public enum CodeUnitKind {
+public enum CycleKind {
+    /**
+     * Direct type-level dependency cycle (A → B → A).
+     */
+    TYPE_LEVEL,
 
-    /** A regular Java class. */
-    CLASS,
+    /**
+     * Package-level dependency cycle.
+     */
+    PACKAGE_LEVEL,
 
-    /** A Java interface. */
-    INTERFACE,
-
-    /** A Java enum. */
-    ENUM,
-
-    /** A Java record. */
-    RECORD,
-
-    /** A Java annotation type. */
-    ANNOTATION
+    /**
+     * Bounded context level cycle (in modular architectures).
+     */
+    BOUNDED_CONTEXT_LEVEL
 }

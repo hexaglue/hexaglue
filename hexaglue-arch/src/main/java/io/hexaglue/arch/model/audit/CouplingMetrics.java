@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Coupling metrics for a package or type.
@@ -33,6 +33,7 @@ package io.hexaglue.spi.audit;
  * @param efferentCoupling outgoing dependencies (Ce)
  * @param abstractness ratio of abstract types (A)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record CouplingMetrics(String packageName, int afferentCoupling, int efferentCoupling, double abstractness) {
 
@@ -93,7 +94,6 @@ public record CouplingMetrics(String packageName, int afferentCoupling, int effe
      * </pre>
      *
      * @return the zone classification
-     * @since 3.0.0
      */
     public ZoneClassification zone() {
         return ZoneClassification.classify(distanceFromMainSequence(), instability());
@@ -105,7 +105,6 @@ public record CouplingMetrics(String packageName, int afferentCoupling, int effe
      * <p>A package is problematic if it's in the Zone of Pain or Zone of Uselessness.
      *
      * @return true for ZONE_OF_PAIN or ZONE_OF_USELESSNESS
-     * @since 3.0.0
      */
     public boolean isProblematic() {
         return zone().isProblematic();

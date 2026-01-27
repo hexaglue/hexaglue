@@ -20,7 +20,7 @@ import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
-import io.hexaglue.spi.audit.Codebase;
+import io.hexaglue.arch.model.audit.Codebase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.audit;
 
+import io.hexaglue.arch.model.audit.AuditSnapshot;
 import io.hexaglue.spi.generation.PluginCategory;
 import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginContext;

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Severity level for audit rule violations.
@@ -26,7 +26,7 @@ package io.hexaglue.spi.audit;
  * </ol>
  *
  * @since 3.0.0
- * @since 5.0.0 - Enriched with BLOCKER, CRITICAL, MAJOR, MINOR for actionable severity levels
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum Severity {
 

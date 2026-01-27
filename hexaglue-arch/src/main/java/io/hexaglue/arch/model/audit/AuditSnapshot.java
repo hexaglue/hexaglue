@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 
@@ -29,6 +29,7 @@ import java.util.List;
  * @param architectureMetrics  architecture-specific metrics
  * @param metadata             audit execution metadata
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record AuditSnapshot(
         Codebase codebase,
