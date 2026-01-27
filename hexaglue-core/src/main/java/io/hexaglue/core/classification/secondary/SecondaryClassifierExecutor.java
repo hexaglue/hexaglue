@@ -18,7 +18,7 @@ import io.hexaglue.spi.classification.ClassificationException;
 import io.hexaglue.spi.classification.HexaglueClassifier;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
-import io.hexaglue.spi.core.TypeInfo;
+import io.hexaglue.arch.model.core.TypeInfo;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import java.time.Duration;
 import java.util.Optional;

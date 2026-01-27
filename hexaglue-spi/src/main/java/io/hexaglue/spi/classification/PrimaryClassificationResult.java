@@ -14,6 +14,9 @@
 package io.hexaglue.spi.classification;
 
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.ClassificationEvidence;
+import io.hexaglue.arch.model.classification.ClassificationStrategy;
 import java.util.List;
 import java.util.Objects;
 

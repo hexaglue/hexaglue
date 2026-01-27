@@ -76,7 +76,7 @@ import io.hexaglue.spi.plugin.PluginContext;
  *
  * <h2>Best Practices</h2>
  * <ul>
- *   <li>Check {@link io.hexaglue.spi.classification.CertaintyLevel} before generating code</li>
+ *   <li>Check {@link io.hexaglue.arch.model.classification.CertaintyLevel} before generating code</li>
  *   <li>Report warnings for uncertain classifications instead of failing</li>
  *   <li>Use {@link io.hexaglue.spi.plugin.DiagnosticReporter} for progress and error messages</li>
  *   <li>Handle {@link java.io.IOException} gracefully and report via diagnostics</li>

@@ -317,16 +317,16 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             return new PrimaryClassificationResult(
                     typeName,
                     null, // kind is null for conflicts
-                    io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN,
-                    io.hexaglue.spi.classification.ClassificationStrategy.WEIGHTED,
+                    io.hexaglue.arch.model.classification.CertaintyLevel.UNCERTAIN,
+                    io.hexaglue.arch.model.classification.ClassificationStrategy.WEIGHTED,
                     coreResult.justification() != null ? coreResult.justification() : "Multiple conflicting criteria",
                     List.of());
         }
 
         // Handle successful classification
         io.hexaglue.arch.ElementKind elementKind = toElementKind(coreResult.kind());
-        io.hexaglue.spi.classification.CertaintyLevel certainty = toSpiCertainty(coreResult.confidence());
-        io.hexaglue.spi.classification.ClassificationStrategy strategy = deriveStrategy(coreResult);
+        io.hexaglue.arch.model.classification.CertaintyLevel certainty = toSpiCertainty(coreResult.confidence());
+        io.hexaglue.arch.model.classification.ClassificationStrategy strategy = deriveStrategy(coreResult);
 
         return new PrimaryClassificationResult(
                 typeName,
@@ -363,44 +363,44 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
     /**
      * Converts core confidence to SPI certainty level.
      */
-    private io.hexaglue.spi.classification.CertaintyLevel toSpiCertainty(ConfidenceLevel confidence) {
+    private io.hexaglue.arch.model.classification.CertaintyLevel toSpiCertainty(ConfidenceLevel confidence) {
         if (confidence == null) {
-            return io.hexaglue.spi.classification.CertaintyLevel.NONE;
+            return io.hexaglue.arch.model.classification.CertaintyLevel.NONE;
         }
         return switch (confidence) {
-            case EXPLICIT -> io.hexaglue.spi.classification.CertaintyLevel.EXPLICIT;
-            case HIGH -> io.hexaglue.spi.classification.CertaintyLevel.CERTAIN_BY_STRUCTURE;
-            case MEDIUM -> io.hexaglue.spi.classification.CertaintyLevel.INFERRED;
-            case LOW -> io.hexaglue.spi.classification.CertaintyLevel.UNCERTAIN;
+            case EXPLICIT -> io.hexaglue.arch.model.classification.CertaintyLevel.EXPLICIT;
+            case HIGH -> io.hexaglue.arch.model.classification.CertaintyLevel.CERTAIN_BY_STRUCTURE;
+            case MEDIUM -> io.hexaglue.arch.model.classification.CertaintyLevel.INFERRED;
+            case LOW -> io.hexaglue.arch.model.classification.CertaintyLevel.UNCERTAIN;
         };
     }
 
     /**
      * Derives the classification strategy from the core result.
      */
-    private io.hexaglue.spi.classification.ClassificationStrategy deriveStrategy(ClassificationResult result) {
+    private io.hexaglue.arch.model.classification.ClassificationStrategy deriveStrategy(ClassificationResult result) {
         if (result.matchedCriteria() == null) {
-            return io.hexaglue.spi.classification.ClassificationStrategy.UNCLASSIFIED;
+            return io.hexaglue.arch.model.classification.ClassificationStrategy.UNCLASSIFIED;
         }
 
         String criteriaName = result.matchedCriteria().toLowerCase();
 
         if (criteriaName.contains("annotation") || criteriaName.contains("@")) {
-            return io.hexaglue.spi.classification.ClassificationStrategy.ANNOTATION;
+            return io.hexaglue.arch.model.classification.ClassificationStrategy.ANNOTATION;
         }
         if (criteriaName.contains("repository")) {
-            return io.hexaglue.spi.classification.ClassificationStrategy.REPOSITORY;
+            return io.hexaglue.arch.model.classification.ClassificationStrategy.REPOSITORY;
         }
         if (criteriaName.contains("record")) {
-            return io.hexaglue.spi.classification.ClassificationStrategy.RECORD;
+            return io.hexaglue.arch.model.classification.ClassificationStrategy.RECORD;
         }
         if (criteriaName.contains("composition")
                 || criteriaName.contains("relationship")
                 || criteriaName.contains("embedded")) {
-            return io.hexaglue.spi.classification.ClassificationStrategy.COMPOSITION;
+            return io.hexaglue.arch.model.classification.ClassificationStrategy.COMPOSITION;
         }
 
-        return io.hexaglue.spi.classification.ClassificationStrategy.WEIGHTED;
+        return io.hexaglue.arch.model.classification.ClassificationStrategy.WEIGHTED;
     }
 
     /**

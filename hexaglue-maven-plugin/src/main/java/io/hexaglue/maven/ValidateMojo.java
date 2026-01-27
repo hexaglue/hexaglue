@@ -19,7 +19,7 @@ import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
-import io.hexaglue.spi.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.CertaintyLevel;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.core.ClassificationConfig;
 import java.io.File;
