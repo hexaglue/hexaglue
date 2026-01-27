@@ -16,7 +16,7 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.spi.ir.MethodKind;
+import io.hexaglue.arch.model.ir.MethodKind;
 import javax.lang.model.element.Modifier;
 
 /**

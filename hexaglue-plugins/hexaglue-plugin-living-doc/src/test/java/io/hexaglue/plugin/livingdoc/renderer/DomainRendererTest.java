@@ -21,7 +21,7 @@ import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.plugin.livingdoc.model.RelationDoc;
-import io.hexaglue.spi.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

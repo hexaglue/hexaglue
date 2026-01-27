@@ -16,10 +16,10 @@ package io.hexaglue.plugin.jpa.util;
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
-import io.hexaglue.spi.ir.FetchType;
-import io.hexaglue.spi.ir.Identity;
-import io.hexaglue.spi.ir.Nullability;
-import io.hexaglue.spi.ir.RelationKind;
+import io.hexaglue.arch.model.ir.FetchType;
+import io.hexaglue.arch.model.ir.Identity;
+import io.hexaglue.arch.model.ir.Nullability;
+import io.hexaglue.arch.model.ir.RelationKind;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Embeddable;
@@ -218,7 +218,7 @@ public final class JpaAnnotations {
      * <p>Uses the SPI's {@link Identity#requiresGeneratedValue()} helper to determine
      * if the annotation is needed. Returns null if no generation is required (e.g., ASSIGNED strategy).
      *
-     * <p>Leverages {@link io.hexaglue.spi.ir.IdentityStrategy#toJpaGenerationType()} to map
+     * <p>Leverages {@link io.hexaglue.arch.model.ir.IdentityStrategy#toJpaGenerationType()} to map
      * SPI strategies to JPA GenerationType values.
      *
      * <p>Examples:
@@ -901,14 +901,14 @@ public final class JpaAnnotations {
     /**
      * Adds the {@code cascade} attribute if not NONE.
      *
-     * <p>Converts the SPI {@link io.hexaglue.spi.ir.CascadeType} to
+     * <p>Converts the SPI {@link io.hexaglue.arch.model.ir.CascadeType} to
      * Jakarta {@link jakarta.persistence.CascadeType}.
      *
      * @param builder the annotation builder
      * @param cascadeType the cascade type from the SPI
      */
-    private static void addCascadeType(AnnotationSpec.Builder builder, io.hexaglue.spi.ir.CascadeType cascadeType) {
-        if (cascadeType == null || cascadeType == io.hexaglue.spi.ir.CascadeType.NONE) {
+    private static void addCascadeType(AnnotationSpec.Builder builder, io.hexaglue.arch.model.ir.CascadeType cascadeType) {
+        if (cascadeType == null || cascadeType == io.hexaglue.arch.model.ir.CascadeType.NONE) {
             return; // No cascade
         }
 

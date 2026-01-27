@@ -18,10 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.spi.ir.MethodKind;
-import io.hexaglue.spi.ir.MethodParameter;
-import io.hexaglue.spi.ir.PortMethod;
-import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.arch.model.ir.MethodKind;
+import io.hexaglue.arch.model.ir.MethodParameter;
+import io.hexaglue.arch.model.ir.PortMethod;
+import io.hexaglue.arch.model.ir.TypeRef;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
@@ -455,7 +455,7 @@ class AdapterMethodSpecTest {
                     .isFalse();
             assertThat(spec.returnCardinality())
                     .as("Direct return type should have SINGLE cardinality")
-                    .isEqualTo(io.hexaglue.spi.ir.Cardinality.SINGLE);
+                    .isEqualTo(io.hexaglue.arch.model.ir.Cardinality.SINGLE);
         }
 
         @Test
@@ -478,7 +478,7 @@ class AdapterMethodSpecTest {
                     .isTrue();
             assertThat(spec.returnCardinality())
                     .as("Optional return type should have OPTIONAL cardinality")
-                    .isEqualTo(io.hexaglue.spi.ir.Cardinality.OPTIONAL);
+                    .isEqualTo(io.hexaglue.arch.model.ir.Cardinality.OPTIONAL);
         }
 
         @Test

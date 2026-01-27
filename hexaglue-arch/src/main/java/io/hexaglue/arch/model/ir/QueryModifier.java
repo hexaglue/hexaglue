@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Query method modifiers for Spring Data derived queries.
@@ -19,6 +19,7 @@ package io.hexaglue.spi.ir;
  * <p>These modifiers affect how the query is executed or how results are processed.
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum QueryModifier {
 

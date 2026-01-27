@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
-import io.hexaglue.spi.ir.MethodKind;
+import io.hexaglue.arch.model.ir.MethodKind;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;

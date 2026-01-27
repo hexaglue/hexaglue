@@ -117,7 +117,7 @@ public record AdapterSpec(
      * @param kind the method kind to count
      * @return the number of methods matching the kind
      */
-    public long methodCountByKind(io.hexaglue.spi.ir.MethodKind kind) {
+    public long methodCountByKind(io.hexaglue.arch.model.ir.MethodKind kind) {
         return methods.stream().filter(m -> m.kind() == kind).count();
     }
 }

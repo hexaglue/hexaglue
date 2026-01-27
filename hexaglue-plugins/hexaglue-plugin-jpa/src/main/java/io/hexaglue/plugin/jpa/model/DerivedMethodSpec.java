@@ -18,10 +18,10 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.index.DomainIndex;
-import io.hexaglue.spi.ir.MethodKind;
-import io.hexaglue.spi.ir.MethodParameter;
-import io.hexaglue.spi.ir.PortMethod;
-import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.arch.model.ir.MethodKind;
+import io.hexaglue.arch.model.ir.MethodParameter;
+import io.hexaglue.arch.model.ir.PortMethod;
+import io.hexaglue.arch.model.ir.TypeRef;
 import java.util.List;
 import java.util.Optional;
 

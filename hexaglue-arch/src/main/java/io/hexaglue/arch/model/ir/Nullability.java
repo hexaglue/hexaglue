@@ -11,33 +11,28 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
- * The Java construct used to define a type.
+ * Nullability of a property.
  *
- * <p>This is distinct from {@link ElementKind} - a VALUE_OBJECT can be
- * implemented as a CLASS or a RECORD.
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
-public enum JavaConstruct {
+public enum Nullability {
 
     /**
-     * A regular Java class.
+     * The property is never null.
      */
-    CLASS,
+    NON_NULL,
 
     /**
-     * A Java record (immutable data carrier).
+     * The property can be null.
      */
-    RECORD,
+    NULLABLE,
 
     /**
-     * A Java enum.
+     * Nullability could not be determined.
      */
-    ENUM,
-
-    /**
-     * A Java interface.
-     */
-    INTERFACE
+    UNKNOWN
 }

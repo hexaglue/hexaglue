@@ -13,9 +13,9 @@
 
 package io.hexaglue.plugin.livingdoc.model;
 
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.PortDirection;
+import io.hexaglue.arch.model.ir.PortKind;
 import java.util.List;
 
 /**

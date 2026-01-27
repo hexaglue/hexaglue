@@ -19,12 +19,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.FetchType;
-import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.IdentityWrapperKind;
-import io.hexaglue.spi.ir.Nullability;
-import io.hexaglue.spi.ir.RelationKind;
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.FetchType;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
+import io.hexaglue.arch.model.ir.IdentityWrapperKind;
+import io.hexaglue.arch.model.ir.Nullability;
+import io.hexaglue.arch.model.ir.RelationKind;
 import org.junit.jupiter.api.Test;
 
 /**

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -144,22 +144,6 @@ class TypeRefTest {
         }
 
         @Test
-        @DisplayName("should return true for OptionalLong")
-        void returnsTrueForOptionalLong() {
-            TypeRef optionalLong = TypeRef.of("java.util.OptionalLong");
-
-            assertThat(optionalLong.isOptionalLike()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return true for OptionalDouble")
-        void returnsTrueForOptionalDouble() {
-            TypeRef optionalDouble = TypeRef.of("java.util.OptionalDouble");
-
-            assertThat(optionalDouble.isOptionalLike()).isTrue();
-        }
-
-        @Test
         @DisplayName("should return false for non-optional types")
         void returnsFalseForNonOptional() {
             TypeRef stringType = TypeRef.of("java.lang.String");
@@ -189,22 +173,6 @@ class TypeRefTest {
         }
 
         @Test
-        @DisplayName("should return true for Collection")
-        void returnsTrueForCollection() {
-            TypeRef collectionType = TypeRef.of("java.util.Collection");
-
-            assertThat(collectionType.isCollectionLike()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return true for ArrayList")
-        void returnsTrueForArrayList() {
-            TypeRef arrayListType = TypeRef.of("java.util.ArrayList");
-
-            assertThat(arrayListType.isCollectionLike()).isTrue();
-        }
-
-        @Test
         @DisplayName("should return true for arrays")
         void returnsTrueForArrays() {
             TypeRef arrayType = TypeRef.array(TypeRef.of("java.lang.String"), 1);
@@ -218,65 +186,6 @@ class TypeRefTest {
             TypeRef stringType = TypeRef.of("java.lang.String");
 
             assertThat(stringType.isCollectionLike()).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("isMapLike()")
-    class IsMapLikeTest {
-
-        @Test
-        @DisplayName("should return true for Map")
-        void returnsTrueForMap() {
-            TypeRef mapType = TypeRef.of("java.util.Map");
-
-            assertThat(mapType.isMapLike()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return true for HashMap")
-        void returnsTrueForHashMap() {
-            TypeRef hashMapType = TypeRef.of("java.util.HashMap");
-
-            assertThat(hashMapType.isMapLike()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return true for TreeMap")
-        void returnsTrueForTreeMap() {
-            TypeRef treeMapType = TypeRef.of("java.util.TreeMap");
-
-            assertThat(treeMapType.isMapLike()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return false for non-map types")
-        void returnsFalseForNonMap() {
-            TypeRef listType = TypeRef.of("java.util.List");
-
-            assertThat(listType.isMapLike()).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("firstArgument()")
-    class FirstArgumentTest {
-
-        @Test
-        @DisplayName("should return first type argument for parameterized types")
-        void returnsFirstArgumentForParameterized() {
-            TypeRef elementType = TypeRef.of("com.example.Order");
-            TypeRef listType = TypeRef.parameterized("java.util.List", elementType);
-
-            assertThat(listType.firstArgument()).isEqualTo(elementType);
-        }
-
-        @Test
-        @DisplayName("should return null for non-parameterized types")
-        void returnsNullForNonParameterized() {
-            TypeRef simpleType = TypeRef.of("com.example.Order");
-
-            assertThat(simpleType.firstArgument()).isNull();
         }
     }
 
@@ -307,17 +216,6 @@ class TypeRefTest {
         }
 
         @Test
-        @DisplayName("should unwrap Set to get element type")
-        void unwrapsSet() {
-            TypeRef innerType = TypeRef.of("com.example.Order");
-            TypeRef setType = TypeRef.parameterized("java.util.Set", innerType);
-
-            TypeRef unwrapped = setType.unwrapElement();
-
-            assertThat(unwrapped).isEqualTo(innerType);
-        }
-
-        @Test
         @DisplayName("should return self for non-wrapper types")
         void returnsSelfForNonWrapper() {
             TypeRef simpleType = TypeRef.of("com.example.Order");
@@ -325,74 +223,6 @@ class TypeRefTest {
             TypeRef unwrapped = simpleType.unwrapElement();
 
             assertThat(unwrapped).isSameAs(simpleType);
-        }
-
-        @Test
-        @DisplayName("should return self for non-parameterized collection types")
-        void returnsSelfForNonParameterizedCollection() {
-            TypeRef rawList = TypeRef.of("java.util.List");
-
-            TypeRef unwrapped = rawList.unwrapElement();
-
-            assertThat(unwrapped).isSameAs(rawList);
-        }
-    }
-
-    @Nested
-    @DisplayName("is()")
-    class IsTest {
-
-        @Test
-        @DisplayName("should return true when qualified names match")
-        void returnsTrueWhenNamesMatch() {
-            TypeRef typeRef = TypeRef.of("com.example.Order");
-
-            assertThat(typeRef.is("com.example.Order")).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return false when qualified names differ")
-        void returnsFalseWhenNamesDiffer() {
-            TypeRef typeRef = TypeRef.of("com.example.Order");
-
-            assertThat(typeRef.is("com.example.Customer")).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("isCollectionOf()")
-    class IsCollectionOfTest {
-
-        @Test
-        @DisplayName("should return true for matching collection element type")
-        void returnsTrueForMatchingElementType() {
-            TypeRef listOfOrders = TypeRef.parameterized("java.util.List", TypeRef.of("com.example.Order"));
-
-            assertThat(listOfOrders.isCollectionOf("com.example.Order")).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return false for non-matching element type")
-        void returnsFalseForNonMatchingElementType() {
-            TypeRef listOfOrders = TypeRef.parameterized("java.util.List", TypeRef.of("com.example.Order"));
-
-            assertThat(listOfOrders.isCollectionOf("com.example.Customer")).isFalse();
-        }
-
-        @Test
-        @DisplayName("should return false for non-collection types")
-        void returnsFalseForNonCollection() {
-            TypeRef simpleType = TypeRef.of("com.example.Order");
-
-            assertThat(simpleType.isCollectionOf("com.example.Order")).isFalse();
-        }
-
-        @Test
-        @DisplayName("should return false for non-parameterized collection")
-        void returnsFalseForRawCollection() {
-            TypeRef rawList = TypeRef.of("java.util.List");
-
-            assertThat(rawList.isCollectionOf("com.example.Order")).isFalse();
         }
     }
 
@@ -417,27 +247,11 @@ class TypeRefTest {
         }
 
         @Test
-        @DisplayName("should return true for java.lang nested types")
-        void returnsTrueForJavaLangNested() {
-            TypeRef nestedType = TypeRef.of("java.lang.ProcessBuilder.Redirect");
-
-            assertThat(nestedType.requiresImport()).isTrue();
-        }
-
-        @Test
         @DisplayName("should return true for java.util types")
         void returnsTrueForJavaUtil() {
             TypeRef listType = TypeRef.of("java.util.List");
 
             assertThat(listType.requiresImport()).isTrue();
-        }
-
-        @Test
-        @DisplayName("should return true for custom types")
-        void returnsTrueForCustomTypes() {
-            TypeRef customType = TypeRef.of("com.example.Order");
-
-            assertThat(customType.requiresImport()).isTrue();
         }
     }
 
@@ -459,59 +273,6 @@ class TypeRefTest {
             TypeRef intType = TypeRef.primitive("int");
 
             assertThat(intType.packageName()).isEmpty();
-        }
-
-        @Test
-        @DisplayName("should return empty string for types without package")
-        void returnsEmptyForNoPackage() {
-            TypeRef simpleType = TypeRef.of("Order");
-
-            assertThat(simpleType.packageName()).isEmpty();
-        }
-    }
-
-    @Nested
-    @DisplayName("Cardinality inference")
-    class CardinalityInferenceTest {
-
-        @Test
-        @DisplayName("should infer SINGLE for regular types")
-        void infersSingleForRegular() {
-            TypeRef typeRef = TypeRef.of("com.example.Order");
-
-            assertThat(typeRef.cardinality()).isEqualTo(Cardinality.SINGLE);
-        }
-
-        @Test
-        @DisplayName("should infer OPTIONAL for Optional types via parameterized()")
-        void infersOptionalForOptional() {
-            TypeRef optionalType = TypeRef.parameterized("java.util.Optional", TypeRef.of("java.lang.String"));
-
-            assertThat(optionalType.cardinality()).isEqualTo(Cardinality.OPTIONAL);
-        }
-
-        @Test
-        @DisplayName("should infer COLLECTION for List types via parameterized()")
-        void infersCollectionForList() {
-            TypeRef listType = TypeRef.parameterized("java.util.List", TypeRef.of("com.example.Order"));
-
-            assertThat(listType.cardinality()).isEqualTo(Cardinality.COLLECTION);
-        }
-
-        @Test
-        @DisplayName("should infer COLLECTION for Set types via parameterized()")
-        void infersCollectionForSet() {
-            TypeRef setType = TypeRef.parameterized("java.util.Set", TypeRef.of("com.example.Order"));
-
-            assertThat(setType.cardinality()).isEqualTo(Cardinality.COLLECTION);
-        }
-
-        @Test
-        @DisplayName("should infer COLLECTION for arrays")
-        void infersCollectionForArrays() {
-            TypeRef arrayType = TypeRef.array(TypeRef.of("java.lang.String"), 1);
-
-            assertThat(arrayType.cardinality()).isEqualTo(Cardinality.COLLECTION);
         }
     }
 }

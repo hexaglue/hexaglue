@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Identity information for an entity or aggregate root.
@@ -29,6 +29,8 @@ package io.hexaglue.spi.ir;
  * @param wrapperKind the kind of wrapper (RECORD, CLASS, or NONE)
  * @param accessorMethodName the method name to access the unwrapped value (e.g., "value" for records,
  *                           "getValue" for classes, null if not wrapped)
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public record Identity(
         String fieldName,

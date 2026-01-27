@@ -11,10 +11,13 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Classification of port interfaces.
+ *
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum PortKind {
 

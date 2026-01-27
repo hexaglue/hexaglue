@@ -60,8 +60,8 @@ class IdFieldSpecTest {
         assertThat(spec.fieldName()).isEqualTo("id");
         assertThat(spec.javaType().toString()).isEqualTo("java.util.UUID");
         assertThat(spec.unwrappedType().toString()).isEqualTo("java.util.UUID");
-        assertThat(spec.strategy()).isEqualTo(io.hexaglue.spi.ir.IdentityStrategy.UUID);
-        assertThat(spec.wrapperKind()).isEqualTo(io.hexaglue.spi.ir.IdentityWrapperKind.NONE);
+        assertThat(spec.strategy()).isEqualTo(io.hexaglue.arch.model.ir.IdentityStrategy.UUID);
+        assertThat(spec.wrapperKind()).isEqualTo(io.hexaglue.arch.model.ir.IdentityWrapperKind.NONE);
         assertThat(spec.isWrapped()).isFalse();
         assertThat(spec.requiresGeneratedValue()).isTrue();
         assertThat(spec.isUuidGenerated()).isTrue();
@@ -84,7 +84,7 @@ class IdFieldSpecTest {
         assertThat(spec.unwrappedType().toString()).isEqualTo("java.util.UUID");
         assertThat(spec.isWrapped()).isTrue();
         // NOTE: Without TypeStructure, detection defaults to CLASS. To get RECORD, pass TypeStructure.
-        assertThat(spec.wrapperKind()).isEqualTo(io.hexaglue.spi.ir.IdentityWrapperKind.CLASS);
+        assertThat(spec.wrapperKind()).isEqualTo(io.hexaglue.arch.model.ir.IdentityWrapperKind.CLASS);
     }
 
     @Test

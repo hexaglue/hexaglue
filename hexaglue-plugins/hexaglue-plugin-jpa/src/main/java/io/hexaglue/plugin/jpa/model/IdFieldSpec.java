@@ -17,8 +17,8 @@ import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
-import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.IdentityWrapperKind;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
+import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 
 /**
  * Intermediate representation of an identity field for JPA entity generation.
