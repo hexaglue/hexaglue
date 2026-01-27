@@ -81,26 +81,6 @@ public record MapperSpec(
     }
 
     /**
-     * Backward-compatible constructor without usedMappers.
-     *
-     * @deprecated Use the canonical constructor with usedMappers parameter
-     */
-    @Deprecated
-    public MapperSpec(
-            String packageName,
-            String interfaceName,
-            TypeName domainType,
-            TypeName entityType,
-            List<MappingSpec> toEntityMappings,
-            List<MappingSpec> toDomainMappings,
-            WrappedIdentitySpec wrappedIdentity,
-            List<ValueObjectMappingSpec> valueObjectMappings,
-            List<EmbeddableMappingSpec> embeddableMappings) {
-        this(packageName, interfaceName, domainType, entityType, toEntityMappings, toDomainMappings,
-                wrappedIdentity, valueObjectMappings, embeddableMappings, List.of());
-    }
-
-    /**
      * Specification for a VALUE_OBJECT that maps to a JPA embeddable class.
      *
      * <p>This is used for complex VALUE_OBJECTs (multiple properties) that need

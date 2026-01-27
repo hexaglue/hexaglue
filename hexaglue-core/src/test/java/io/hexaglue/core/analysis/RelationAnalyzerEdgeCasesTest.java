@@ -15,6 +15,9 @@ package io.hexaglue.core.analysis;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.DomainRelation;
+import io.hexaglue.arch.model.ir.RelationKind;
 import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationTarget;
@@ -28,9 +31,6 @@ import io.hexaglue.core.graph.builder.GraphBuilder;
 import io.hexaglue.core.graph.model.GraphMetadata;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
-import io.hexaglue.arch.model.ir.CascadeType;
-import io.hexaglue.arch.model.ir.DomainRelation;
-import io.hexaglue.arch.model.ir.RelationKind;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

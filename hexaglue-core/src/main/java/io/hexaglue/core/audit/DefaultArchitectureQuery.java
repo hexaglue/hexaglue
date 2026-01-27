@@ -13,11 +13,6 @@
 
 package io.hexaglue.core.audit;
 
-import io.hexaglue.core.graph.ApplicationGraph;
-import io.hexaglue.core.graph.model.Edge;
-import io.hexaglue.core.graph.model.EdgeKind;
-import io.hexaglue.core.graph.model.NodeId;
-import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.arch.model.audit.AggregateInfo;
 import io.hexaglue.arch.model.audit.BoundedContextInfo;
 import io.hexaglue.arch.model.audit.CouplingMetrics;
@@ -26,8 +21,13 @@ import io.hexaglue.arch.model.audit.DependencyCycle;
 import io.hexaglue.arch.model.audit.LakosMetrics;
 import io.hexaglue.arch.model.audit.LayerViolation;
 import io.hexaglue.arch.model.audit.StabilityViolation;
-import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.arch.model.ir.PortDirection;
+import io.hexaglue.core.graph.ApplicationGraph;
+import io.hexaglue.core.graph.model.Edge;
+import io.hexaglue.core.graph.model.EdgeKind;
+import io.hexaglue.core.graph.model.NodeId;
+import io.hexaglue.core.graph.model.TypeNode;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -89,6 +89,7 @@ public final class JpaMapperCodegen {
      * The generator identifier used in {@code @Generated} annotations.
      */
     private static final String GENERATOR_NAME = "io.hexaglue.plugin.jpa";
+
     private static final String PLUGIN_VERSION = Optional.ofNullable(
                     JpaMapperCodegen.class.getPackage().getImplementationVersion())
             .orElse("dev");

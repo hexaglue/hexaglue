@@ -20,7 +20,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -34,7 +33,8 @@ class AuditTypesTest {
         @Test
         void shouldHaveCorrectOrderFromMostToLeastSevere() {
             assertThat(Severity.values())
-                    .containsExactly(Severity.BLOCKER, Severity.CRITICAL, Severity.MAJOR, Severity.MINOR, Severity.INFO);
+                    .containsExactly(
+                            Severity.BLOCKER, Severity.CRITICAL, Severity.MAJOR, Severity.MINOR, Severity.INFO);
         }
     }
 
@@ -256,7 +256,8 @@ class AuditTypesTest {
             var codebase = new Codebase("test", "com.example", List.of(domainUnit, infraUnit), Map.of());
 
             assertThat(codebase.unitsInLayer(LayerClassification.DOMAIN)).hasSize(1);
-            assertThat(codebase.unitsInLayer(LayerClassification.INFRASTRUCTURE)).hasSize(1);
+            assertThat(codebase.unitsInLayer(LayerClassification.INFRASTRUCTURE))
+                    .hasSize(1);
         }
     }
 

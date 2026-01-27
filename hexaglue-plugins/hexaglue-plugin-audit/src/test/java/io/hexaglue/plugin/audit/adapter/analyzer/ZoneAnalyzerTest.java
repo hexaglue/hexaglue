@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.within;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.CouplingMetrics;
 import io.hexaglue.plugin.audit.domain.model.PackageZoneMetrics;
 import io.hexaglue.plugin.audit.domain.model.ZoneCategory;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
-import io.hexaglue.arch.model.audit.CouplingMetrics;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;

@@ -49,25 +49,6 @@ public record Conflict(
     }
 
     /**
-     * Creates a conflict indicating that two criteria matched for different kinds.
-     *
-     * <p>This method defaults to {@link ConflictSeverity#ERROR} for backward compatibility.
-     *
-     * @deprecated Use {@link #error} or {@link #warning} instead for explicit severity.
-     */
-    @Deprecated(since = "0.5.0")
-    public static Conflict between(
-            String kind, String criteria, ConfidenceLevel confidence, int priority, String winnerKind) {
-        return new Conflict(
-                kind,
-                criteria,
-                confidence,
-                priority,
-                "Matched as %s but winner is %s".formatted(kind, winnerKind),
-                ConflictSeverity.ERROR);
-    }
-
-    /**
      * Creates an ERROR-level conflict for incompatible kinds.
      *
      * <p>Use this when the competing kinds cannot conceptually coexist.

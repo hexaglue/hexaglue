@@ -254,9 +254,7 @@ class NamingConventionsTest {
         // "customer" is not a reserved word
         String result = NamingConventions.toTableName("Customer", "");
 
-        assertThat(result)
-                .as("Non-reserved word should not be pluralized")
-                .isEqualTo("customer");
+        assertThat(result).as("Non-reserved word should not be pluralized").isEqualTo("customer");
     }
 
     @Test
@@ -405,9 +403,7 @@ class NamingConventionsTest {
         // "email" is not a reserved word
         String result = NamingConventions.toColumnName("email");
 
-        assertThat(result)
-                .as("Non-reserved word should not be suffixed")
-                .isEqualTo("email");
+        assertThat(result).as("Non-reserved word should not be suffixed").isEqualTo("email");
     }
 
     // =====================================================================

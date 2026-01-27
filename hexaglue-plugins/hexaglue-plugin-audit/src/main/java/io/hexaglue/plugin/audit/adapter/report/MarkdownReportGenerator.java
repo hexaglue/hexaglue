@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.adapter.report;
 
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
 import io.hexaglue.plugin.audit.adapter.diagram.C4DiagramBuilder;
 import io.hexaglue.plugin.audit.adapter.report.model.ArchitectureAnalysis;
 import io.hexaglue.plugin.audit.adapter.report.model.AuditReport;
@@ -24,7 +25,6 @@ import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
 import io.hexaglue.plugin.audit.adapter.report.model.TechnicalDebtSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
-import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -143,9 +143,8 @@ public final class MarkdownReportGenerator implements ReportGenerator {
 
             for (ViolationEntry v : report.violations()) {
                 String emoji = getSeverityEmoji(v.severity());
-                String evidenceText = v.evidence() != null && !v.evidence().isEmpty()
-                        ? escapeMarkdown(v.evidence())
-                        : "–";
+                String evidenceText =
+                        v.evidence() != null && !v.evidence().isEmpty() ? escapeMarkdown(v.evidence()) : "–";
                 md.append("| ")
                         .append(emoji)
                         .append(" ")
@@ -1419,11 +1418,12 @@ public final class MarkdownReportGenerator implements ReportGenerator {
             md.append("| Port | Direction | Kind | Managed Type | Methods | Adapter |\n");
             md.append("|------|-----------|------|--------------|---------|--------|\n");
             for (var port : portMatrix) {
-                String adapterDisplay = switch (port.adapterStatus()) {
-                    case PortMatrixEntry.ADAPTER_DETECTED -> "✅";
-                    case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "⚠️ Not detected";
-                    default -> "❓ Unknown";
-                };
+                String adapterDisplay =
+                        switch (port.adapterStatus()) {
+                            case PortMatrixEntry.ADAPTER_DETECTED -> "✅";
+                            case PortMatrixEntry.ADAPTER_NOT_DETECTED -> "⚠️ Not detected";
+                            default -> "❓ Unknown";
+                        };
                 md.append("| `")
                         .append(port.portName())
                         .append("` | ")

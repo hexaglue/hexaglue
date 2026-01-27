@@ -17,6 +17,8 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.audit.domain.model.BehavioralEvidence;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
@@ -24,8 +26,6 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
-import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 

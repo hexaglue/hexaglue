@@ -18,12 +18,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.CouplingMetrics;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
-import io.hexaglue.arch.model.audit.CouplingMetrics;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

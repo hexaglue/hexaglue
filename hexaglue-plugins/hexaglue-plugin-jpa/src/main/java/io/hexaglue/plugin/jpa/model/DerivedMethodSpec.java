@@ -101,9 +101,7 @@ public record DerivedMethodSpec(
      * @since 5.0.0
      */
     public static DerivedMethodSpec fromV5(
-            io.hexaglue.arch.model.Method method,
-            TypeName entityTypeName,
-            Optional<DomainIndex> domainIndex) {
+            io.hexaglue.arch.model.Method method, TypeName entityTypeName, Optional<DomainIndex> domainIndex) {
         String methodName = method.name();
 
         // Infer method kind from name pattern
@@ -118,20 +116,6 @@ public record DerivedMethodSpec(
         List<ParameterSpec> params = buildParameters(method, domainIndex);
 
         return new DerivedMethodSpec(methodName, returnType, params, kind);
-    }
-
-    /**
-     * Creates a DerivedMethodSpec from a Method from the architectural model.
-     *
-     * @param method the Method from the architectural model
-     * @param entityTypeName the entity class name to use for return types
-     * @return a new DerivedMethodSpec, or null if the method should not be generated
-     * @since 5.0.0
-     * @deprecated Use {@link #fromV5(io.hexaglue.arch.model.Method, TypeName, Optional)} instead
-     */
-    @Deprecated
-    public static DerivedMethodSpec fromV5(io.hexaglue.arch.model.Method method, TypeName entityTypeName) {
-        return fromV5(method, entityTypeName, Optional.empty());
     }
 
     /**
@@ -232,8 +216,8 @@ public record DerivedMethodSpec(
     private static List<ParameterSpec> buildParameters(
             io.hexaglue.arch.model.Method method, Optional<DomainIndex> domainIndex) {
         return method.parameters().stream()
-                .map(param -> new ParameterSpec(
-                        param.name(), resolveTypeNameWithIdentifierUnwrap(param.type(), domainIndex)))
+                .map(param ->
+                        new ParameterSpec(param.name(), resolveTypeNameWithIdentifierUnwrap(param.type(), domainIndex)))
                 .toList();
     }
 
@@ -254,7 +238,9 @@ public record DerivedMethodSpec(
         // C4 fix: Check if the type is an Identifier and unwrap it
         if (domainIndex.isPresent()) {
             String qualifiedName = typeRef.qualifiedName();
-            Optional<Identifier> identifierOpt = domainIndex.get().identifiers()
+            Optional<Identifier> identifierOpt = domainIndex
+                    .get()
+                    .identifiers()
                     .filter(id -> id.id().qualifiedName().equals(qualifiedName))
                     .findFirst();
             if (identifierOpt.isPresent()) {

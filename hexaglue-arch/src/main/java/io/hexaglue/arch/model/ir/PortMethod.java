@@ -85,24 +85,6 @@ public record PortMethod(
     }
 
     /**
-     * Creates a PortMethod from legacy string-based representation.
-     *
-     * @param name the method name
-     * @param returnType the qualified return type name
-     * @param parameterTypes the qualified parameter type names
-     * @return a new PortMethod with CUSTOM kind (classification to be done by Core)
-     * @deprecated Use the full constructor or factory methods instead.
-     */
-    @Deprecated
-    public static PortMethod legacy(String name, String returnType, List<String> parameterTypes) {
-        TypeRef returnTypeRef = TypeRef.of(returnType);
-        List<MethodParameter> params = parameterTypes.stream()
-                .map(type -> MethodParameter.simple("arg", TypeRef.of(type)))
-                .toList();
-        return of(name, returnTypeRef, params, MethodKind.CUSTOM);
-    }
-
-    /**
      * Returns the first parameter, if any.
      *
      * @return the first parameter wrapped in Optional

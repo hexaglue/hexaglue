@@ -110,7 +110,17 @@ public record RelationFieldSpec(
             FetchType fetch,
             boolean orphanRemoval,
             List<AttributeOverride> attributeOverrides) {
-        this(fieldName, targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval, attributeOverrides, false);
+        this(
+                fieldName,
+                targetType,
+                kind,
+                targetKind,
+                mappedBy,
+                cascade,
+                fetch,
+                orphanRemoval,
+                attributeOverrides,
+                false);
     }
 
     /**
@@ -298,7 +308,9 @@ public record RelationFieldSpec(
      * @since 2.0.0
      */
     public static RelationFieldSpec fromV5(
-            Field field, ArchitecturalModel model, Map<String, String> embeddableMapping,
+            Field field,
+            ArchitecturalModel model,
+            Map<String, String> embeddableMapping,
             Map<String, String> entityMapping) {
 
         String targetFqn = field.elementType()
@@ -312,8 +324,7 @@ public record RelationFieldSpec(
         RelationKind kind = detectRelationKindV5(field, targetKind);
 
         // Detect if element type is an enum (for ELEMENT_COLLECTION with @Enumerated)
-        boolean isElementTypeEnum = kind == RelationKind.ELEMENT_COLLECTION
-                && isEnumTypeV5(model, targetFqn);
+        boolean isElementTypeEnum = kind == RelationKind.ELEMENT_COLLECTION && isEnumTypeV5(model, targetFqn);
 
         // For EMBEDDED and ELEMENT_COLLECTION, use embeddable type if available
         // Note: Enums don't use embeddable mapping
@@ -338,8 +349,16 @@ public record RelationFieldSpec(
         String mappedBy = detectMappedByV5(field);
 
         return new RelationFieldSpec(
-                field.name(), targetType, kind, targetKind, mappedBy, cascade, fetch, orphanRemoval,
-                List.of(), isElementTypeEnum);
+                field.name(),
+                targetType,
+                kind,
+                targetKind,
+                mappedBy,
+                cascade,
+                fetch,
+                orphanRemoval,
+                List.of(),
+                isElementTypeEnum);
     }
 
     /**
@@ -538,9 +557,7 @@ public record RelationFieldSpec(
                 return ElementKind.VALUE_OBJECT;
             }
             // Check identifiers - important for cross-aggregate references like CustomerId
-            if (domainIndex
-                    .identifiers()
-                    .anyMatch(id -> id.id().qualifiedName().equals(qualifiedName))) {
+            if (domainIndex.identifiers().anyMatch(id -> id.id().qualifiedName().equals(qualifiedName))) {
                 return ElementKind.IDENTIFIER;
             }
         }
@@ -633,9 +650,9 @@ public record RelationFieldSpec(
             return false;
         }
         var domainIndex = domainIndexOpt.get();
-        return domainIndex.valueObjects()
+        return domainIndex
+                .valueObjects()
                 .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
-                .anyMatch(vo -> vo.structure() != null
-                        && vo.structure().nature() == TypeNature.ENUM);
+                .anyMatch(vo -> vo.structure() != null && vo.structure().nature() == TypeNature.ENUM);
     }
 }

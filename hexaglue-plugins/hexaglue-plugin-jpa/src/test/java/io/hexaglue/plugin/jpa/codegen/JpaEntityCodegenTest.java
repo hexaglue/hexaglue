@@ -22,17 +22,17 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.plugin.jpa.model.AttributeOverride;
-import io.hexaglue.plugin.jpa.model.EntitySpec;
-import io.hexaglue.plugin.jpa.model.IdFieldSpec;
-import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
-import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.arch.model.ir.CascadeType;
 import io.hexaglue.arch.model.ir.FetchType;
 import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 import io.hexaglue.arch.model.ir.Nullability;
 import io.hexaglue.arch.model.ir.RelationKind;
+import io.hexaglue.plugin.jpa.model.AttributeOverride;
+import io.hexaglue.plugin.jpa.model.EntitySpec;
+import io.hexaglue.plugin.jpa.model.IdFieldSpec;
+import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
+import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Set;
@@ -108,7 +108,17 @@ class JpaEntityCodegenTest {
      */
     private PropertyFieldSpec createSimpleProperty(String fieldName, TypeName type, Nullability nullability) {
         return new PropertyFieldSpec(
-                fieldName, type, nullability, fieldName, false, false, false, type.toString(), false, null, null,
+                fieldName,
+                type,
+                nullability,
+                fieldName,
+                false,
+                false,
+                false,
+                type.toString(),
+                false,
+                null,
+                null,
                 List.of());
     }
 
@@ -535,8 +545,8 @@ class JpaEntityCodegenTest {
     @Test
     void generate_shouldAddJoinTableForOwningSideManyToMany_BUG001() {
         // Given: ManyToMany owning side (mappedBy = null)
-        TypeName categoryEntityType = ParameterizedTypeName.get(
-                ClassName.get(Set.class), ClassName.bestGuess("com.example.CategoryEntity"));
+        TypeName categoryEntityType =
+                ParameterizedTypeName.get(ClassName.get(Set.class), ClassName.bestGuess("com.example.CategoryEntity"));
         RelationFieldSpec relation = new RelationFieldSpec(
                 "categories",
                 categoryEntityType,
@@ -577,8 +587,8 @@ class JpaEntityCodegenTest {
     @Test
     void generate_shouldNotAddJoinTableForInverseSideManyToMany_BUG001() {
         // Given: ManyToMany inverse side (mappedBy = "products")
-        TypeName productEntityType = ParameterizedTypeName.get(
-                ClassName.get(Set.class), ClassName.bestGuess("com.example.ProductEntity"));
+        TypeName productEntityType =
+                ParameterizedTypeName.get(ClassName.get(Set.class), ClassName.bestGuess("com.example.ProductEntity"));
         RelationFieldSpec relation = new RelationFieldSpec(
                 "products",
                 productEntityType,
@@ -658,9 +668,8 @@ class JpaEntityCodegenTest {
     @Test
     void generate_shouldAddEnumeratedForEnumElementCollection_BUG004() {
         // Given: ElementCollection of enum type
-        TypeName statusListType = ParameterizedTypeName.get(
-                ClassName.get(List.class),
-                ClassName.bestGuess("com.example.OrderStatus"));
+        TypeName statusListType =
+                ParameterizedTypeName.get(ClassName.get(List.class), ClassName.bestGuess("com.example.OrderStatus"));
         RelationFieldSpec relation = new RelationFieldSpec(
                 "previousStatuses",
                 statusListType,
@@ -671,7 +680,7 @@ class JpaEntityCodegenTest {
                 FetchType.LAZY,
                 false,
                 List.of(),
-                true);  // isElementTypeEnum = true
+                true); // isElementTypeEnum = true
 
         EntitySpec spec = EntitySpec.builder()
                 .packageName(TEST_PACKAGE)
@@ -700,9 +709,8 @@ class JpaEntityCodegenTest {
     @Test
     void generate_shouldNotAddEnumeratedForNonEnumElementCollection_BUG004() {
         // Given: ElementCollection of non-enum type (e.g., embedded value object)
-        TypeName tagListType = ParameterizedTypeName.get(
-                ClassName.get(List.class),
-                ClassName.bestGuess("com.example.TagEmbeddable"));
+        TypeName tagListType =
+                ParameterizedTypeName.get(ClassName.get(List.class), ClassName.bestGuess("com.example.TagEmbeddable"));
         RelationFieldSpec relation = new RelationFieldSpec(
                 "tags",
                 tagListType,
@@ -713,7 +721,7 @@ class JpaEntityCodegenTest {
                 FetchType.LAZY,
                 false,
                 List.of(),
-                false);  // isElementTypeEnum = false
+                false); // isElementTypeEnum = false
 
         EntitySpec spec = EntitySpec.builder()
                 .packageName(TEST_PACKAGE)

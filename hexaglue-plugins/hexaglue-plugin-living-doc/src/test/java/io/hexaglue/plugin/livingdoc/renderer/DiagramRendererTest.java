@@ -16,15 +16,15 @@ package io.hexaglue.plugin.livingdoc.renderer;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.PortDirection;
+import io.hexaglue.arch.model.ir.PortKind;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.plugin.livingdoc.model.RelationDoc;
-import io.hexaglue.arch.model.ir.ConfidenceLevel;
-import io.hexaglue.arch.model.ir.PortDirection;
-import io.hexaglue.arch.model.ir.PortKind;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

@@ -14,11 +14,11 @@
 package io.hexaglue.plugin.audit.domain.port.driving;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
 import java.util.List;
 
 /**

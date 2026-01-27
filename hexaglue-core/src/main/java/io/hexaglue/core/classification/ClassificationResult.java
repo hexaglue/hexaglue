@@ -170,38 +170,6 @@ public record ClassificationResult(
     }
 
     /**
-     * Creates an unclassified result (no criteria matched).
-     *
-     * @deprecated Use {@link #unclassifiedDomain} or {@link #unclassifiedPort} for explicit target.
-     */
-    @Deprecated(since = "3.0.0")
-    public static ClassificationResult unclassified(NodeId subjectId) {
-        return unclassified(subjectId, null);
-    }
-
-    /**
-     * Creates an unclassified result with reason trace.
-     *
-     * @deprecated Use {@link #unclassifiedDomain} or {@link #unclassifiedPort} for explicit target.
-     */
-    @Deprecated(since = "3.0.0")
-    public static ClassificationResult unclassified(NodeId subjectId, ReasonTrace reasonTrace) {
-        return new ClassificationResult(
-                subjectId,
-                null,
-                null,
-                null,
-                null,
-                0,
-                null,
-                List.of(),
-                List.of(),
-                null,
-                ClassificationStatus.UNCLASSIFIED,
-                reasonTrace);
-    }
-
-    /**
      * Creates an unclassified domain result.
      *
      * <p>This indicates that no classification criteria matched with sufficient
@@ -253,38 +221,6 @@ public record ClassificationResult(
                 List.of(),
                 null,
                 ClassificationStatus.UNCLASSIFIED,
-                reasonTrace);
-    }
-
-    /**
-     * Creates a conflict result (multiple incompatible criteria matched).
-     *
-     * @deprecated Use {@link #conflictDomain} or {@link #conflictPort} instead for explicit target.
-     */
-    @Deprecated(since = "0.5.0")
-    public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts) {
-        return conflict(subjectId, conflicts, null);
-    }
-
-    /**
-     * Creates a conflict result with reason trace.
-     *
-     * @deprecated Use {@link #conflictDomain} or {@link #conflictPort} instead for explicit target.
-     */
-    @Deprecated(since = "0.5.0")
-    public static ClassificationResult conflict(NodeId subjectId, List<Conflict> conflicts, ReasonTrace reasonTrace) {
-        return new ClassificationResult(
-                subjectId,
-                null,
-                null,
-                null,
-                null,
-                0,
-                "Multiple conflicting criteria matched",
-                List.of(),
-                conflicts,
-                null,
-                ClassificationStatus.CONFLICT,
                 reasonTrace);
     }
 

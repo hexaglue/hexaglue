@@ -48,41 +48,6 @@ public record Identity(
     }
 
     /**
-     * Returns the qualified name of the declared type.
-     *
-     * @deprecated Use {@link #type()} for full type information.
-     */
-    @Deprecated
-    public String typeName() {
-        return type.qualifiedName();
-    }
-
-    /**
-     * Returns the qualified name of the underlying type.
-     *
-     * @deprecated Use {@link #unwrappedType()} for full type information.
-     */
-    @Deprecated
-    public String unwrappedTypeName() {
-        return unwrappedType.qualifiedName();
-    }
-
-    /**
-     * Creates an Identity with backward-compatible string parameters.
-     *
-     * @deprecated Use the full constructor with TypeRef parameters.
-     */
-    @Deprecated
-    public static Identity of(String fieldName, String typeName, String unwrappedTypeName, IdentityStrategy strategy) {
-        TypeRef type = TypeRef.of(typeName);
-        TypeRef unwrapped = TypeRef.of(unwrappedTypeName);
-        IdentityWrapperKind wrapperKind =
-                typeName.equals(unwrappedTypeName) ? IdentityWrapperKind.NONE : IdentityWrapperKind.RECORD;
-        String accessor = wrapperKind == IdentityWrapperKind.RECORD ? "value" : null;
-        return new Identity(fieldName, type, unwrapped, strategy, wrapperKind, accessor);
-    }
-
-    /**
      * Creates an Identity for an unwrapped (primitive/simple) identifier.
      *
      * @param fieldName the field name

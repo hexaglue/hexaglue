@@ -16,10 +16,10 @@ package io.hexaglue.plugin.audit.adapter.metric;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
-import io.hexaglue.arch.model.audit.Codebase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

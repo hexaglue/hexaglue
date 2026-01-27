@@ -36,5 +36,4 @@ public record SourceRef(String filePath, int lineStart, int lineEnd) {
         int lastSlash = Math.max(filePath.lastIndexOf('/'), filePath.lastIndexOf('\\'));
         return lastSlash < 0 ? filePath : filePath.substring(lastSlash + 1);
     }
-
 }

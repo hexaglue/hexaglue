@@ -13,13 +13,13 @@
 
 package io.hexaglue.plugin.audit.domain.service;
 
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
 import io.hexaglue.plugin.audit.domain.model.BuildOutcome;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;

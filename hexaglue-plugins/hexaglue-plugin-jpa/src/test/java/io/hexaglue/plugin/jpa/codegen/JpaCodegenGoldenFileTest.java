@@ -21,18 +21,18 @@ import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
-import io.hexaglue.plugin.jpa.model.EntitySpec;
-import io.hexaglue.plugin.jpa.model.IdFieldSpec;
-import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
-import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
-import io.hexaglue.plugin.jpa.model.RepositorySpec;
 import io.hexaglue.arch.model.ir.CascadeType;
 import io.hexaglue.arch.model.ir.FetchType;
 import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 import io.hexaglue.arch.model.ir.Nullability;
 import io.hexaglue.arch.model.ir.RelationKind;
+import io.hexaglue.plugin.jpa.model.EmbeddableSpec;
+import io.hexaglue.plugin.jpa.model.EntitySpec;
+import io.hexaglue.plugin.jpa.model.IdFieldSpec;
+import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
+import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
+import io.hexaglue.plugin.jpa.model.RepositorySpec;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
@@ -74,8 +74,7 @@ class JpaCodegenGoldenFileTest {
     private static final String DOMAIN_PACKAGE = "com.example.domain";
 
     // Pattern to normalize @Generated date for comparison
-    private static final Pattern GENERATED_DATE_PATTERN =
-            Pattern.compile("date = \"[^\"]+\"");
+    private static final Pattern GENERATED_DATE_PATTERN = Pattern.compile("date = \"[^\"]+\"");
 
     // =========================================================================
     // Entity Golden Files
@@ -89,70 +88,49 @@ class JpaCodegenGoldenFileTest {
         @DisplayName("Default configuration")
         void defaultConfiguration() throws IOException {
             EntitySpec spec = createOrderEntitySpec(false, false, "");
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-default.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-default.java.txt");
         }
 
         @Test
         @DisplayName("With auditing enabled")
         void withAuditingEnabled() throws IOException {
             EntitySpec spec = createOrderEntitySpec(true, false, "");
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-with-auditing.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-auditing.java.txt");
         }
 
         @Test
         @DisplayName("With optimistic locking enabled")
         void withOptimisticLockingEnabled() throws IOException {
             EntitySpec spec = createOrderEntitySpec(false, true, "");
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-with-locking.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-locking.java.txt");
         }
 
         @Test
         @DisplayName("With table prefix")
         void withTablePrefix() throws IOException {
             EntitySpec spec = createOrderEntitySpec(false, false, "app_");
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-with-prefix.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-prefix.java.txt");
         }
 
         @Test
         @DisplayName("Full configuration")
         void fullConfiguration() throws IOException {
             EntitySpec spec = createOrderEntitySpec(true, true, "app_");
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-full-config.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-full-config.java.txt");
         }
 
         @Test
         @DisplayName("With embedded value object")
         void withEmbeddedValueObject() throws IOException {
             EntitySpec spec = createEntityWithEmbedded();
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-with-embedded.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-embedded.java.txt");
         }
 
         @Test
         @DisplayName("With one-to-many relation")
         void withOneToManyRelation() throws IOException {
             EntitySpec spec = createEntityWithRelations();
-            assertGoldenFile(
-                    JpaEntityCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "entity-with-relations.java.txt");
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-relations.java.txt");
         }
     }
 
@@ -168,20 +146,14 @@ class JpaCodegenGoldenFileTest {
         @DisplayName("Money value object")
         void moneyValueObject() throws IOException {
             EmbeddableSpec spec = createMoneyEmbeddableSpec();
-            assertGoldenFile(
-                    JpaEmbeddableCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "embeddable-money.java.txt");
+            assertGoldenFile(JpaEmbeddableCodegen.generate(spec), INFRA_PACKAGE, "embeddable-money.java.txt");
         }
 
         @Test
         @DisplayName("Address value object")
         void addressValueObject() throws IOException {
             EmbeddableSpec spec = createAddressEmbeddableSpec();
-            assertGoldenFile(
-                    JpaEmbeddableCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "embeddable-address.java.txt");
+            assertGoldenFile(JpaEmbeddableCodegen.generate(spec), INFRA_PACKAGE, "embeddable-address.java.txt");
         }
     }
 
@@ -197,10 +169,7 @@ class JpaCodegenGoldenFileTest {
         @DisplayName("Basic repository")
         void basicRepository() throws IOException {
             RepositorySpec spec = createOrderRepositorySpec();
-            assertGoldenFile(
-                    JpaRepositoryCodegen.generate(spec),
-                    INFRA_PACKAGE,
-                    "repository-order.java.txt");
+            assertGoldenFile(JpaRepositoryCodegen.generate(spec), INFRA_PACKAGE, "repository-order.java.txt");
         }
     }
 
@@ -208,16 +177,15 @@ class JpaCodegenGoldenFileTest {
     // Golden File Assertion
     // =========================================================================
 
-    private void assertGoldenFile(TypeSpec typeSpec, String packageName, String goldenFileName)
-            throws IOException {
+    private void assertGoldenFile(TypeSpec typeSpec, String packageName, String goldenFileName) throws IOException {
         // Generate code
-        JavaFile javaFile = JavaFile.builder(packageName, typeSpec)
-                .indent("    ")
-                .build();
+        JavaFile javaFile =
+                JavaFile.builder(packageName, typeSpec).indent("    ").build();
         String actualCode = normalizeGeneratedCode(javaFile.toString());
 
         // Compare with golden file
-        Path goldenPath = Path.of(System.getProperty("user.dir")).resolve(GOLDEN_DIR).resolve(goldenFileName);
+        Path goldenPath =
+                Path.of(System.getProperty("user.dir")).resolve(GOLDEN_DIR).resolve(goldenFileName);
         if (Files.exists(goldenPath)) {
             String expectedCode = Files.readString(goldenPath, StandardCharsets.UTF_8);
             assertThat(actualCode)
@@ -238,15 +206,15 @@ class JpaCodegenGoldenFileTest {
      */
     private String normalizeGeneratedCode(String code) {
         // Normalize @Generated date to a fixed value
-        return GENERATED_DATE_PATTERN.matcher(code)
-                .replaceAll("date = \"2026-01-01T00:00:00Z\"");
+        return GENERATED_DATE_PATTERN.matcher(code).replaceAll("date = \"2026-01-01T00:00:00Z\"");
     }
 
     // =========================================================================
     // Entity Spec Builders
     // =========================================================================
 
-    private EntitySpec createOrderEntitySpec(boolean enableAuditing, boolean enableOptimisticLocking, String tablePrefix) {
+    private EntitySpec createOrderEntitySpec(
+            boolean enableAuditing, boolean enableOptimisticLocking, String tablePrefix) {
         IdFieldSpec idField = new IdFieldSpec(
                 "id",
                 TypeName.get(UUID.class),
@@ -259,9 +227,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "customer_name",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec totalAmountField = new PropertyFieldSpec(
@@ -269,9 +241,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(BigDecimal.class),
                 Nullability.NON_NULL,
                 "total_amount",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.math.BigDecimal",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec statusField = new PropertyFieldSpec(
@@ -279,9 +255,13 @@ class JpaCodegenGoldenFileTest {
                 ClassName.get("com.example.domain", "OrderStatus"),
                 Nullability.NON_NULL,
                 "status",
-                false, true, false,
+                false,
+                true,
+                false,
                 "com.example.domain.OrderStatus",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         return EntitySpec.builder()
@@ -311,9 +291,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "name",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec priceField = new PropertyFieldSpec(
@@ -321,9 +305,13 @@ class JpaCodegenGoldenFileTest {
                 ClassName.get(INFRA_PACKAGE, "MoneyEmbeddable"),
                 Nullability.NON_NULL,
                 "price",
-                true, false, false,
+                true,
+                false,
+                false,
                 "com.example.domain.Money",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         return EntitySpec.builder()
@@ -350,16 +338,18 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "customer_name",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         RelationFieldSpec itemsRelation = new RelationFieldSpec(
                 "items",
-                ParameterizedTypeName.get(
-                        ClassName.get(List.class),
-                        ClassName.get(INFRA_PACKAGE, "OrderItemEntity")),
+                ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(INFRA_PACKAGE, "OrderItemEntity")),
                 RelationKind.ONE_TO_MANY,
                 ElementKind.ENTITY,
                 "order",
@@ -388,9 +378,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(BigDecimal.class),
                 Nullability.NON_NULL,
                 "amount",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.math.BigDecimal",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec currencyField = new PropertyFieldSpec(
@@ -398,9 +392,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "currency",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         return EmbeddableSpec.builder()
@@ -418,9 +416,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "street",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec cityField = new PropertyFieldSpec(
@@ -428,9 +430,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "city",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec zipCodeField = new PropertyFieldSpec(
@@ -438,9 +444,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "zip_code",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         PropertyFieldSpec countryField = new PropertyFieldSpec(
@@ -448,9 +458,13 @@ class JpaCodegenGoldenFileTest {
                 TypeName.get(String.class),
                 Nullability.NON_NULL,
                 "country",
-                false, false, false,
+                false,
+                false,
+                false,
                 "java.lang.String",
-                false, null, null,
+                false,
+                null,
+                null,
                 List.of());
 
         return EmbeddableSpec.builder()

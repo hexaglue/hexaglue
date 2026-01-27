@@ -346,7 +346,8 @@ class PortClassifierTest {
                     """);
 
             ApplicationGraph graph = buildGraph();
-            TypeNode taskUseCases = graph.typeNode("com.example.ports.in.TaskUseCases").orElseThrow();
+            TypeNode taskUseCases =
+                    graph.typeNode("com.example.ports.in.TaskUseCases").orElseThrow();
             GraphQuery query = graph.query();
 
             // When

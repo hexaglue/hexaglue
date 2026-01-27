@@ -15,11 +15,11 @@ package io.hexaglue.plugin.audit.adapter.metric;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DomainType;
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.MetricThreshold;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.arch.model.audit.Codebase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;

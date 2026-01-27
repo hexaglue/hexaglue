@@ -309,7 +309,8 @@ public final class DiagramRenderer {
             if (!prop.isIdentity() && prop.relationInfo() == null) {
                 // For collections, use the element type from typeArguments
                 String propTypeName;
-                if (prop.cardinality().equals("COLLECTION") && !prop.typeArguments().isEmpty()) {
+                if (prop.cardinality().equals("COLLECTION")
+                        && !prop.typeArguments().isEmpty()) {
                     propTypeName = prop.typeArguments().get(0);
                 } else {
                     propTypeName = extractBaseType(prop.type());

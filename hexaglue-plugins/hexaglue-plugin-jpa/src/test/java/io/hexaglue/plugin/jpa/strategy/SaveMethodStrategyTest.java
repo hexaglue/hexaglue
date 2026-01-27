@@ -19,8 +19,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.arch.model.ir.MethodKind;
+import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -312,7 +312,8 @@ class SaveMethodStrategyTest {
     @Test
     void generate_shouldUseCustomFieldNames() {
         // Given
-        AdapterContext customContext = new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null, true);
+        AdapterContext customContext =
+                new AdapterContext(DOMAIN_TYPE, ENTITY_TYPE, "jpaRepo", "entityMapper", null, true);
         AdapterMethodSpec method = createSaveMethod("save");
 
         // When
