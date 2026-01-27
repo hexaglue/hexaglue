@@ -11,13 +11,16 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Strategy for identity generation.
  *
  * <p>Combines conceptual strategies (NATURAL, SURROGATE) with JPA-specific
  * generation strategies for more precise code generation.
+ *
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum IdentityStrategy {
 

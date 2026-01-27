@@ -11,10 +11,13 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Direction of a port in hexagonal architecture.
+ *
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum PortDirection {
 

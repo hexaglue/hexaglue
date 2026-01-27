@@ -27,7 +27,7 @@ import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
-import io.hexaglue.spi.ir.Nullability;
+import io.hexaglue.arch.model.ir.Nullability;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Optional;
@@ -215,7 +215,7 @@ public final class JpaEntityCodegen {
         FieldSpec.Builder fieldBuilder = FieldSpec.builder(fieldType, id.fieldName(), Modifier.PRIVATE)
                 .addAnnotation(JpaAnnotations.id())
                 .addAnnotation(JpaAnnotations.column(
-                        NamingConventions.toColumnName(id.fieldName()), io.hexaglue.spi.ir.Nullability.NON_NULL));
+                        NamingConventions.toColumnName(id.fieldName()), io.hexaglue.arch.model.ir.Nullability.NON_NULL));
 
         // Add @GeneratedValue if the strategy requires it
         if (id.requiresGeneratedValue()) {
@@ -307,7 +307,7 @@ public final class JpaEntityCodegen {
                 .addAnnotation(JpaAnnotations.relationAnnotation(relation));
 
         // For EMBEDDED relations, add @AttributeOverrides if there are column name conflicts
-        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED && relation.hasAttributeOverrides()) {
+        if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.EMBEDDED && relation.hasAttributeOverrides()) {
             AnnotationSpec overridesAnnotation = JpaAnnotations.attributeOverrides(relation.attributeOverrides());
             if (overridesAnnotation != null) {
                 fieldBuilder.addAnnotation(overridesAnnotation);
@@ -315,7 +315,7 @@ public final class JpaEntityCodegen {
         }
 
         // For ELEMENT_COLLECTION, add @CollectionTable annotation
-        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.ELEMENT_COLLECTION) {
+        if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.ELEMENT_COLLECTION) {
             // Derive collection table name: entity_table + "_" + field_name (plural)
             String tableName = NamingConventions.toSnakeCase(entitySpec.domainSimpleName()) + "_"
                     + NamingConventions.toSnakeCase(relation.fieldName());
@@ -330,7 +330,7 @@ public final class JpaEntityCodegen {
         }
 
         // For MANY_TO_MANY owning side, add @JoinTable annotation (BUG-001 fix)
-        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.MANY_TO_MANY && relation.isOwning()) {
+        if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.MANY_TO_MANY && relation.isOwning()) {
             String targetSimpleName = extractTargetSimpleName(relation.targetType());
             String joinTableName = NamingConventions.toJoinTableName(
                     entitySpec.domainSimpleName(), targetSimpleName);
@@ -342,7 +342,7 @@ public final class JpaEntityCodegen {
         }
 
         // For MANY_TO_ONE, add @JoinColumn annotation (BUG-002 fix)
-        if (relation.kind() == io.hexaglue.spi.ir.RelationKind.MANY_TO_ONE) {
+        if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.MANY_TO_ONE) {
             String joinColumnName = NamingConventions.toForeignKeyColumnName(relation.fieldName());
             fieldBuilder.addAnnotation(JpaAnnotations.joinColumn(joinColumnName));
         }

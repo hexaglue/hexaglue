@@ -20,7 +20,7 @@ import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.plugin.jpa.util.TypeMappings;
-import io.hexaglue.spi.ir.Nullability;
+import io.hexaglue.arch.model.ir.Nullability;
 import java.util.List;
 import java.util.Map;
 

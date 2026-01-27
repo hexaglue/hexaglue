@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Classification of port methods according to Spring Data conventions.
@@ -21,6 +21,7 @@ package io.hexaglue.spi.ir;
  * @see <a href="https://docs.spring.io/spring-data/jpa/reference/repositories/query-keywords-reference.html">
  *     Spring Data Query Keywords Reference</a>
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum MethodKind {
 

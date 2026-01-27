@@ -27,7 +27,7 @@ import io.hexaglue.arch.model.audit.LakosMetrics;
 import io.hexaglue.arch.model.audit.LayerViolation;
 import io.hexaglue.arch.model.audit.StabilityViolation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.ir.PortDirection;
+import io.hexaglue.arch.model.ir.PortDirection;
 import java.util.*;
 import java.util.stream.Collectors;
 

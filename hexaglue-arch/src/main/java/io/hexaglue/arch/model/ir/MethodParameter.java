@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 import java.util.Set;
 
@@ -26,6 +26,7 @@ import java.util.Set;
  * @param isIdentity true if this parameter represents the aggregate's identity
  * @param annotations annotations present on the parameter (e.g., @NotNull, @Valid)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public record MethodParameter(String name, TypeRef type, boolean isIdentity, Set<String> annotations) {
 

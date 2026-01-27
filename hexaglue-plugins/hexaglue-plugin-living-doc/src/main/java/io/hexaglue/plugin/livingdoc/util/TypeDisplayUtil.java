@@ -14,9 +14,9 @@
 package io.hexaglue.plugin.livingdoc.util;
 
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.PortDirection;
+import io.hexaglue.arch.model.ir.PortKind;
 
 /**
  * Utility methods for formatting type information for display.

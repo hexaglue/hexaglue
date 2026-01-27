@@ -551,7 +551,7 @@ public final class EntitySpecBuilder {
         // Group EMBEDDED relations by target type
         Map<String, List<RelationFieldSpec>> embeddedByType = new HashMap<>();
         for (RelationFieldSpec rel : relations) {
-            if (rel.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED && !rel.hasAttributeOverrides()) {
+            if (rel.kind() == io.hexaglue.arch.model.ir.RelationKind.EMBEDDED && !rel.hasAttributeOverrides()) {
                 // Extract simple type name from targetType (e.g., "AddressEmbeddable")
                 String targetTypeName = rel.targetType().toString();
                 embeddedByType.computeIfAbsent(targetTypeName, k -> new ArrayList<>()).add(rel);
@@ -588,7 +588,7 @@ public final class EntitySpecBuilder {
         List<RelationFieldSpec> result = new ArrayList<>();
         for (RelationFieldSpec rel : relations) {
             String targetTypeName = rel.targetType().toString();
-            if (rel.kind() == io.hexaglue.spi.ir.RelationKind.EMBEDDED
+            if (rel.kind() == io.hexaglue.arch.model.ir.RelationKind.EMBEDDED
                     && typeToAttributeNames.containsKey(targetTypeName)) {
                 // Create attribute overrides for this relation
                 List<String> attributeNames = typeToAttributeNames.get(targetTypeName);

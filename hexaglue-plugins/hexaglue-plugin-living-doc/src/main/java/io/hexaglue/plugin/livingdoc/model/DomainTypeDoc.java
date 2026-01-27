@@ -14,7 +14,7 @@
 package io.hexaglue.plugin.livingdoc.model;
 
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import java.util.List;
 
 /**

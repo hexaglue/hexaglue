@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 import java.util.List;
 import java.util.Set;
@@ -19,8 +19,8 @@ import java.util.Set;
 /**
  * Reference to a type with support for generics and type analysis.
  *
- * <p>This is the SPI version of TypeRef, providing type information to plugins
- * without exposing internal implementation details.
+ * <p>This provides type information to plugins without exposing
+ * internal implementation details.
  *
  * @param qualifiedName the fully qualified type name (e.g., "java.util.List")
  * @param simpleName the simple name without package (e.g., "List")
@@ -29,6 +29,8 @@ import java.util.Set;
  * @param array true if this is an array type
  * @param arrayDimensions number of array dimensions (0 if not array)
  * @param cardinality the cardinality (SINGLE, OPTIONAL, COLLECTION)
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public record TypeRef(
         String qualifiedName,

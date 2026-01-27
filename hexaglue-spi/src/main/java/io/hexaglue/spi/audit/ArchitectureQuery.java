@@ -276,7 +276,7 @@ public interface ArchitectureQuery {
      * @return the port direction, or empty if the type is not a recognized port
      * @since 3.0.0
      */
-    Optional<io.hexaglue.spi.ir.PortDirection> findPortDirection(String portQualifiedName);
+    Optional<io.hexaglue.arch.model.ir.PortDirection> findPortDirection(String portQualifiedName);
 
     // === Aggregate membership ===
 

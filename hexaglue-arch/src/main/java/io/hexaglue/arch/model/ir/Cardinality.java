@@ -11,25 +11,35 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
- * Nullability of a property.
+ * Cardinality of a property or return type.
+ *
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
-public enum Nullability {
+public enum Cardinality {
 
     /**
-     * The property is never null.
+     * Single required value (e.g., {@code String name}).
      */
-    NON_NULL,
+    SINGLE,
 
     /**
-     * The property can be null.
+     * Optional value (e.g., {@code Optional<String> middleName}).
      */
-    NULLABLE,
+    OPTIONAL,
 
     /**
-     * Nullability could not be determined.
+     * Collection of values (e.g., {@code List<LineItem> items}).
      */
-    UNKNOWN
+    COLLECTION,
+
+    /**
+     * Stream of values (e.g., {@code Stream<Order> orders}).
+     *
+     * @since 3.0.0
+     */
+    STREAM
 }

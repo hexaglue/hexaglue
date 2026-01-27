@@ -398,15 +398,15 @@ public final class DomainContentSelector {
         return qualifiedName.replace('.', '/') + ".java";
     }
 
-    private io.hexaglue.spi.ir.ConfidenceLevel toSpiConfidenceLevel(ClassificationTrace trace) {
+    private io.hexaglue.arch.model.ir.ConfidenceLevel toSpiConfidenceLevel(ClassificationTrace trace) {
         if (trace == null) {
-            return io.hexaglue.spi.ir.ConfidenceLevel.LOW;
+            return io.hexaglue.arch.model.ir.ConfidenceLevel.LOW;
         }
         ConfidenceLevel level = trace.confidence();
         return switch (level) {
-            case HIGH -> io.hexaglue.spi.ir.ConfidenceLevel.HIGH;
-            case MEDIUM -> io.hexaglue.spi.ir.ConfidenceLevel.MEDIUM;
-            case LOW -> io.hexaglue.spi.ir.ConfidenceLevel.LOW;
+            case HIGH -> io.hexaglue.arch.model.ir.ConfidenceLevel.HIGH;
+            case MEDIUM -> io.hexaglue.arch.model.ir.ConfidenceLevel.MEDIUM;
+            case LOW -> io.hexaglue.arch.model.ir.ConfidenceLevel.LOW;
         };
     }
 

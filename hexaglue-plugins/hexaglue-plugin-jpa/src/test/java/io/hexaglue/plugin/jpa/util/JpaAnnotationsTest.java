@@ -20,13 +20,13 @@ import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
-import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.FetchType;
-import io.hexaglue.spi.ir.Identity;
-import io.hexaglue.spi.ir.IdentityStrategy;
-import io.hexaglue.spi.ir.Nullability;
-import io.hexaglue.spi.ir.RelationKind;
-import io.hexaglue.spi.ir.TypeRef;
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.FetchType;
+import io.hexaglue.arch.model.ir.Identity;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
+import io.hexaglue.arch.model.ir.Nullability;
+import io.hexaglue.arch.model.ir.RelationKind;
+import io.hexaglue.arch.model.ir.TypeRef;
 import org.junit.jupiter.api.Test;
 
 /**

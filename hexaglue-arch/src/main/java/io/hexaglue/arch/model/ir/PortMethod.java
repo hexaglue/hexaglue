@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 import java.util.List;
 import java.util.Optional;
@@ -33,6 +33,7 @@ import java.util.Set;
  * @param orderByProperty property for ordering (e.g., "age" for ...OrderByAge)
  * @param annotations key annotations on the method (@Transactional, etc.)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public record PortMethod(
         String name,

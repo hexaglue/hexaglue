@@ -24,9 +24,9 @@ import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.syntax.TypeRef;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
-import io.hexaglue.spi.ir.ConfidenceLevel;
-import io.hexaglue.spi.ir.PortDirection;
-import io.hexaglue.spi.ir.PortKind;
+import io.hexaglue.arch.model.ir.ConfidenceLevel;
+import io.hexaglue.arch.model.ir.PortDirection;
+import io.hexaglue.arch.model.ir.PortKind;
 import java.util.List;
 import java.util.stream.Collectors;
 

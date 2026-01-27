@@ -15,8 +15,8 @@ package io.hexaglue.core.analysis;
 
 import io.hexaglue.core.classification.ClassificationContext;
 import io.hexaglue.core.graph.model.TypeNode;
-import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.RelationKind;
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.RelationKind;
 
 /**
  * Infers JPA cascade types based on DDD relationship semantics.

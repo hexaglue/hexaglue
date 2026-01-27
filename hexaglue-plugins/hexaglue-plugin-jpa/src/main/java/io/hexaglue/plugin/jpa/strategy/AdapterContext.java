@@ -15,7 +15,7 @@ package io.hexaglue.plugin.jpa.strategy;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
-import io.hexaglue.spi.ir.Identity;
+import io.hexaglue.arch.model.ir.Identity;
 
 /**
  * Context information for adapter method generation.

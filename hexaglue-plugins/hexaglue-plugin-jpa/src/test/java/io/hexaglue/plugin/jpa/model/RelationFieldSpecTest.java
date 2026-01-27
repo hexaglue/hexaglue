@@ -16,10 +16,10 @@ package io.hexaglue.plugin.jpa.model;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.ir.CascadeType;
-import io.hexaglue.spi.ir.DomainRelation;
-import io.hexaglue.spi.ir.FetchType;
-import io.hexaglue.spi.ir.RelationKind;
+import io.hexaglue.arch.model.ir.CascadeType;
+import io.hexaglue.arch.model.ir.DomainRelation;
+import io.hexaglue.arch.model.ir.FetchType;
+import io.hexaglue.arch.model.ir.RelationKind;
 import org.junit.jupiter.api.Test;
 
 /**

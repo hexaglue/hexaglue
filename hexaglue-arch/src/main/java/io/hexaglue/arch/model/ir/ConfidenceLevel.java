@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.ir;
+package io.hexaglue.arch.model.ir;
 
 /**
  * Confidence level of a classification decision.
@@ -19,6 +19,9 @@ package io.hexaglue.spi.ir;
  * <p>Higher confidence means the classification is more reliable.
  * Plugins may use this to adjust their behavior (e.g., skip generation
  * for low-confidence classifications).
+ *
+ * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.ir
  */
 public enum ConfidenceLevel {
 

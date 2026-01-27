@@ -22,7 +22,7 @@ import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
-import io.hexaglue.spi.ir.MethodKind;
+import io.hexaglue.arch.model.ir.MethodKind;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
