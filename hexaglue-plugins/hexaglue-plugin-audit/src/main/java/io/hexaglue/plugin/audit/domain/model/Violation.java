@@ -13,7 +13,7 @@
 
 package io.hexaglue.plugin.audit.domain.model;
 
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;

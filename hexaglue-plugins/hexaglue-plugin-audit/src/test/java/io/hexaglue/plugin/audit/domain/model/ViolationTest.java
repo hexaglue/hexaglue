@@ -16,7 +16,7 @@ package io.hexaglue.plugin.audit.domain.model;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

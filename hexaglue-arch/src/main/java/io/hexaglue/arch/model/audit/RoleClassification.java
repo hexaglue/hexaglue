@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Classification of architectural roles.
@@ -20,6 +20,7 @@ package io.hexaglue.spi.audit;
  * based on DDD tactical patterns and hexagonal architecture concepts.
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum RoleClassification {
 

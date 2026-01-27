@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 
@@ -26,6 +26,7 @@ import java.util.List;
  * @param entities entities within the aggregate boundary
  * @param valueObjects value objects used by the aggregate
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record AggregateInfo(String rootType, List<String> entities, List<String> valueObjects) {
 

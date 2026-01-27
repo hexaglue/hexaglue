@@ -13,6 +13,9 @@
 
 package io.hexaglue.spi.audit;
 
+import io.hexaglue.arch.model.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.RuleViolation;
+import io.hexaglue.arch.model.audit.Severity;
 import java.util.List;
 
 /**

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Lakos metrics for assessing large-scale architectural quality.
@@ -41,6 +41,7 @@ package io.hexaglue.spi.audit;
  * @param nccd           normalized CCD
  * @param racd           relative ACD
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record LakosMetrics(int componentCount, int ccd, double acd, double nccd, double racd) {
 

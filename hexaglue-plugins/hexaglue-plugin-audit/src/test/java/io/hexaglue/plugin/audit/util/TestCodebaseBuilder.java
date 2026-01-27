@@ -13,15 +13,15 @@
 
 package io.hexaglue.plugin.audit.util;
 
-import io.hexaglue.spi.audit.CodeMetrics;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.CodeUnitKind;
-import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.DocumentationInfo;
-import io.hexaglue.spi.audit.FieldDeclaration;
-import io.hexaglue.spi.audit.LayerClassification;
-import io.hexaglue.spi.audit.MethodDeclaration;
-import io.hexaglue.spi.audit.RoleClassification;
+import io.hexaglue.arch.model.audit.CodeMetrics;
+import io.hexaglue.arch.model.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.CodeUnitKind;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.DocumentationInfo;
+import io.hexaglue.arch.model.audit.FieldDeclaration;
+import io.hexaglue.arch.model.audit.LayerClassification;
+import io.hexaglue.arch.model.audit.MethodDeclaration;
+import io.hexaglue.arch.model.audit.RoleClassification;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;

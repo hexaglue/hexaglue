@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.audit;
 
+import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import java.util.List;

@@ -25,9 +25,9 @@ import io.hexaglue.plugin.audit.domain.service.HealthScoreCalculator;
 import io.hexaglue.plugin.audit.domain.service.InventoryBuilder;
 import io.hexaglue.plugin.audit.domain.service.RecommendationGenerator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.AuditSnapshot;
-import io.hexaglue.spi.audit.DetectedArchitectureStyle;
-import io.hexaglue.spi.audit.RuleViolation;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.RuleViolation;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -476,19 +476,19 @@ public record AuditReport(
                 passed,
                 violations.size(),
                 (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.BLOCKER)
+                        .filter(v -> v.severity() == io.hexaglue.arch.model.audit.Severity.BLOCKER)
                         .count(),
                 (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.CRITICAL)
+                        .filter(v -> v.severity() == io.hexaglue.arch.model.audit.Severity.CRITICAL)
                         .count(),
                 (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.MAJOR)
+                        .filter(v -> v.severity() == io.hexaglue.arch.model.audit.Severity.MAJOR)
                         .count(),
                 (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.MINOR)
+                        .filter(v -> v.severity() == io.hexaglue.arch.model.audit.Severity.MINOR)
                         .count(),
                 (int) violations.stream()
-                        .filter(v -> v.severity() == io.hexaglue.spi.audit.Severity.INFO)
+                        .filter(v -> v.severity() == io.hexaglue.arch.model.audit.Severity.INFO)
                         .count());
     }
 

@@ -27,7 +27,7 @@ import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory;
 import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedContextStats;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.BoundedContextInfo;
+import io.hexaglue.arch.model.audit.BoundedContextInfo;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;

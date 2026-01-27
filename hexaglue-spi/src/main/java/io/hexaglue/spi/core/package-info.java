@@ -22,7 +22,7 @@
  * <ul>
  *   <li>{@link io.hexaglue.spi.core.TypeKind} - Java construct classification</li>
  *   <li>{@link io.hexaglue.spi.core.TypeInfo} - Basic type identification</li>
- *   <li>{@link io.hexaglue.spi.core.SourceLocation} - Source code location tracking</li>
+ *   <li>{@link io.hexaglue.arch.model.audit.SourceLocation} - Source code location tracking</li>
  * </ul>
  *
  * @since 3.0.0

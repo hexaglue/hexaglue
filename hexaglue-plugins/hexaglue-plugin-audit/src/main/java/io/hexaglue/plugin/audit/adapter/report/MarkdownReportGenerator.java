@@ -24,7 +24,7 @@ import io.hexaglue.plugin.audit.adapter.report.model.PortMatrixEntry;
 import io.hexaglue.plugin.audit.adapter.report.model.TechnicalDebtSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.ViolationEntry;
 import io.hexaglue.plugin.audit.domain.model.Recommendation;
-import io.hexaglue.spi.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;

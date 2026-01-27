@@ -23,8 +23,8 @@ import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.port.driving.ConstraintValidator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 

@@ -22,7 +22,7 @@ import io.hexaglue.plugin.audit.adapter.report.model.ComponentInventory.BoundedC
 import io.hexaglue.plugin.audit.adapter.report.model.ConstraintsSummary;
 import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
 import io.hexaglue.plugin.audit.adapter.report.model.ReportMetadata;
-import io.hexaglue.spi.audit.DetectedArchitectureStyle;
+import io.hexaglue.arch.model.audit.DetectedArchitectureStyle;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

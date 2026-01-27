@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Overall quality metrics for the codebase.
@@ -21,6 +21,7 @@ package io.hexaglue.spi.audit;
  * @param technicalDebtMinutes    estimated technical debt in minutes
  * @param maintainabilityRating   maintainability rating (0-5, higher is better)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record QualityMetrics(
         double testCoverage, double documentationCoverage, int technicalDebtMinutes, double maintainabilityRating) {

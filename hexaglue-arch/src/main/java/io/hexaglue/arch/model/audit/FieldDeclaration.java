@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.Set;
 
@@ -23,6 +23,7 @@ import java.util.Set;
  * @param modifiers   the field modifiers (e.g., "private", "final")
  * @param annotations the annotation qualified names
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record FieldDeclaration(String name, String type, Set<String> modifiers, Set<String> annotations) {
 

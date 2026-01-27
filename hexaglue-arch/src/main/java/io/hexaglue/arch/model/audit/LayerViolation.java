@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Represents a layer dependency violation.
@@ -32,6 +32,7 @@ package io.hexaglue.spi.audit;
  * @param toLayer the target layer (invalid dependency)
  * @param description human-readable description of the violation
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record LayerViolation(String fromType, String toType, String fromLayer, String toLayer, String description) {
 

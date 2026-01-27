@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 
@@ -24,6 +24,7 @@ import java.util.List;
  * @param javadocCoverage   percentage of public elements with Javadoc (0-100)
  * @param missingDocs       list of elements missing documentation
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record DocumentationInfo(boolean hasJavadoc, int javadocCoverage, List<String> missingDocs) {
 

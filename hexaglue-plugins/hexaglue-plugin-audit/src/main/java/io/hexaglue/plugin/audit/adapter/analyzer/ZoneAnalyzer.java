@@ -16,9 +16,9 @@ package io.hexaglue.plugin.audit.adapter.analyzer;
 import io.hexaglue.plugin.audit.domain.model.PackageZoneMetrics;
 import io.hexaglue.plugin.audit.domain.model.ZoneCategory;
 import io.hexaglue.spi.audit.ArchitectureQuery;
-import io.hexaglue.spi.audit.Codebase;
-import io.hexaglue.spi.audit.CouplingMetrics;
-import io.hexaglue.spi.audit.ZoneClassification;
+import io.hexaglue.arch.model.audit.Codebase;
+import io.hexaglue.arch.model.audit.CouplingMetrics;
+import io.hexaglue.arch.model.audit.ZoneClassification;
 import java.util.List;
 import java.util.Objects;
 

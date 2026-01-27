@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Represents a stability principle violation.
@@ -32,6 +32,7 @@ package io.hexaglue.spi.audit;
  * @param fromStability stability of the source type (0.0 to 1.0)
  * @param toStability stability of the target type (0.0 to 1.0)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record StabilityViolation(String fromType, String toType, double fromStability, double toStability) {
 

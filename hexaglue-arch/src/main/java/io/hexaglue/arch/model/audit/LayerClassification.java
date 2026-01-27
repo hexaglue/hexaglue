@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Classification of architectural layers.
@@ -21,6 +21,7 @@ package io.hexaglue.spi.audit;
  * enforce architectural constraints and detect dependency violations.
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum LayerClassification {
 

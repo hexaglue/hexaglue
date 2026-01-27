@@ -13,7 +13,7 @@
 
 package io.hexaglue.core.engine;
 
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.SourceLocation;
 
 /**
  * A diagnostic message from the analysis.

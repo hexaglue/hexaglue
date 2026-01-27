@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * Classification of a package in the Abstractness-Instability plane.
@@ -31,6 +31,7 @@ package io.hexaglue.spi.audit;
  * </ul>
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum ZoneClassification {
 

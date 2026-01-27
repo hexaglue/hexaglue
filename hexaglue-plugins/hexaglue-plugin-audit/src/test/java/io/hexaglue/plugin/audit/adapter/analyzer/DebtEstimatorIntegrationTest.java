@@ -22,7 +22,7 @@ import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.DebtEstimation;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;

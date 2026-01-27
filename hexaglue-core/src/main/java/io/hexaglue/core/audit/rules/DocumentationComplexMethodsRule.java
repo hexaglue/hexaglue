@@ -14,10 +14,10 @@
 package io.hexaglue.core.audit.rules;
 
 import io.hexaglue.spi.audit.AuditRule;
-import io.hexaglue.spi.audit.CodeUnit;
-import io.hexaglue.spi.audit.RuleViolation;
-import io.hexaglue.spi.audit.Severity;
-import io.hexaglue.spi.core.SourceLocation;
+import io.hexaglue.arch.model.audit.CodeUnit;
+import io.hexaglue.arch.model.audit.RuleViolation;
+import io.hexaglue.arch.model.audit.Severity;
+import io.hexaglue.arch.model.audit.SourceLocation;
 import java.util.ArrayList;
 import java.util.List;
 

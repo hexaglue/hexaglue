@@ -13,7 +13,7 @@
 
 package io.hexaglue.plugin.audit.adapter.report.model;
 
-import io.hexaglue.spi.audit.AggregateInfo;
+import io.hexaglue.arch.model.audit.AggregateInfo;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.ArrayList;
 import java.util.List;

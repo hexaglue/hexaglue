@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.util.List;
 import java.util.Set;
@@ -26,6 +26,7 @@ import java.util.Set;
  * @param annotations    the annotation qualified names
  * @param complexity     the cyclomatic complexity of this method
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record MethodDeclaration(
         String name,

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 /**
  * The detected architectural style of the codebase.
@@ -20,6 +20,7 @@ package io.hexaglue.spi.audit;
  * package structure, naming conventions, and dependency patterns.
  *
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public enum DetectedArchitectureStyle {
 

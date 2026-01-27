@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -23,6 +23,7 @@ import java.time.Instant;
  * @param hexaglueVersion   the HexaGlue version used
  * @param analysisDuration  how long the analysis took
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record AuditMetadata(Instant timestamp, String hexaglueVersion, Duration analysisDuration) {
 

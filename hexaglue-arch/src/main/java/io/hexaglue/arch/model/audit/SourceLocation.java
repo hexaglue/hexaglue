@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.core;
+package io.hexaglue.arch.model.audit;
 
 import java.util.Objects;
 
@@ -34,6 +34,7 @@ import java.util.Objects;
  * @param columnStart the starting column number (1-based)
  * @param columnEnd   the ending column number (1-based)
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.core
  */
 public record SourceLocation(String filePath, int lineStart, int lineEnd, int columnStart, int columnEnd) {
 

@@ -11,9 +11,8 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.audit;
+package io.hexaglue.arch.model.audit;
 
-import io.hexaglue.spi.core.SourceLocation;
 import java.util.List;
 
 /**
@@ -38,6 +37,7 @@ import java.util.List;
  * @param location      the source code location where the violation occurred
  * @param evidence      textual evidence supporting the violation detection
  * @since 3.0.0
+ * @since 5.0.0 - Migrated from io.hexaglue.spi.audit
  */
 public record RuleViolation(
         String ruleId,
@@ -63,7 +63,6 @@ public record RuleViolation(
      * @param message  the message
      * @param location the source location
      * @return a new RuleViolation with empty affected types
-     * @since 5.0.0
      */
     public static RuleViolation of(String ruleId, Severity severity, String message, SourceLocation location) {
         return new RuleViolation(ruleId, severity, message, List.of(), location, "");
@@ -89,7 +88,6 @@ public record RuleViolation(
      * @param affectedTypes the affected type names
      * @param location      the source location
      * @return a new RuleViolation
-     * @since 5.0.0
      */
     public static RuleViolation info(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
@@ -116,7 +114,6 @@ public record RuleViolation(
      * @param affectedTypes the affected type names
      * @param location      the source location
      * @return a new RuleViolation
-     * @since 5.0.0
      */
     public static RuleViolation warning(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
@@ -143,7 +140,6 @@ public record RuleViolation(
      * @param affectedTypes the affected type names
      * @param location      the source location
      * @return a new RuleViolation
-     * @since 5.0.0
      */
     public static RuleViolation error(
             String ruleId, String message, List<String> affectedTypes, SourceLocation location) {
