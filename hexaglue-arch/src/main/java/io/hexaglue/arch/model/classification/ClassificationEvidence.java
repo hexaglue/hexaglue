@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.classification;
+package io.hexaglue.arch.model.classification;
 
 import java.util.Objects;
 
@@ -38,7 +38,7 @@ import java.util.Objects;
  * @param signal      the signal identifier (e.g., "REPOSITORY_MANAGED", "HAS_IDENTITY")
  * @param weight      the weight/confidence of this signal (higher = stronger)
  * @param description human-readable explanation of this signal
- * @since 3.0.0
+ * @since 5.0.0
  */
 public record ClassificationEvidence(String signal, int weight, String description) {
 

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.core;
+package io.hexaglue.arch.model.core;
 
 /**
  * The kind of Java type construct.
@@ -20,7 +20,7 @@ package io.hexaglue.spi.core;
  * independent of its domain or architectural role. It answers the question:
  * "What Java language construct is this?"
  *
- * @since 3.0.0
+ * @since 5.0.0
  */
 public enum TypeKind {
 

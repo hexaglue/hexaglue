@@ -16,13 +16,13 @@ package io.hexaglue.core.classification.secondary;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.ClassificationStrategy;
 import io.hexaglue.spi.classification.ClassificationContext;
-import io.hexaglue.spi.classification.ClassificationStrategy;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
-import io.hexaglue.spi.core.TypeInfo;
-import io.hexaglue.spi.core.TypeKind;
+import io.hexaglue.arch.model.core.TypeInfo;
+import io.hexaglue.arch.model.core.TypeKind;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;

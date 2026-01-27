@@ -13,7 +13,7 @@
 
 package io.hexaglue.spi.classification;
 
-import io.hexaglue.spi.core.TypeInfo;
+import io.hexaglue.arch.model.core.TypeInfo;
 import java.time.Duration;
 import java.util.Optional;
 

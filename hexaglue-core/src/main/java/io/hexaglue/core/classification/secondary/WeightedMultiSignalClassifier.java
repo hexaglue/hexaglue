@@ -14,15 +14,15 @@
 package io.hexaglue.core.classification.secondary;
 
 import io.hexaglue.arch.ElementKind;
-import io.hexaglue.spi.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.CertaintyLevel;
+import io.hexaglue.arch.model.classification.ClassificationEvidence;
+import io.hexaglue.arch.model.classification.ClassificationStrategy;
 import io.hexaglue.spi.classification.ClassificationContext;
-import io.hexaglue.spi.classification.ClassificationEvidence;
-import io.hexaglue.spi.classification.ClassificationStrategy;
 import io.hexaglue.spi.classification.HexaglueClassifier;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
 import io.hexaglue.spi.classification.SecondaryClassificationResult;
-import io.hexaglue.spi.core.TypeInfo;
-import io.hexaglue.spi.core.TypeKind;
+import io.hexaglue.arch.model.core.TypeInfo;
+import io.hexaglue.arch.model.core.TypeKind;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;

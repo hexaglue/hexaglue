@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.classification;
+package io.hexaglue.arch.model.classification;
 
 /**
  * The strategy used to classify a domain type.
@@ -30,7 +30,7 @@ package io.hexaglue.spi.classification;
  *   <li>UNCLASSIFIED - no strategy matched</li>
  * </ol>
  *
- * @since 3.0.0
+ * @since 5.0.0
  */
 public enum ClassificationStrategy {
 

@@ -11,7 +11,7 @@
  * Contact: info@hexaglue.io
  */
 
-package io.hexaglue.spi.core;
+package io.hexaglue.arch.model.core;
 
 import java.util.Objects;
 
@@ -28,7 +28,7 @@ import java.util.Objects;
  * @param simpleName    the simple class name (e.g., "Order")
  * @param packageName   the package name (e.g., "com.example")
  * @param kind          the Java construct kind (CLASS, INTERFACE, ENUM, RECORD, ANNOTATION)
- * @since 3.0.0
+ * @since 5.0.0
  */
 public record TypeInfo(String qualifiedName, String simpleName, String packageName, TypeKind kind) {
 
