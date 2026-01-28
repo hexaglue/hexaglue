@@ -24,10 +24,7 @@ import java.util.Optional;
  * @param wrappedType the type being wrapped (e.g., java.util.UUID)
  * @since 5.0.0
  */
-public record IdentifierComponent(
-        String name,
-        String packageName,
-        String wrappedType) {
+public record IdentifierComponent(String name, String packageName, String wrappedType) {
 
     /**
      * Creates an identifier component with validation.

@@ -22,9 +22,7 @@ import java.util.Objects;
  * @param description description of what the effort includes
  * @since 5.0.0
  */
-public record EffortEstimate(
-        double days,
-        String description) {
+public record EffortEstimate(double days, String description) {
 
     /**
      * Creates an effort estimate with validation.

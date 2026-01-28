@@ -16,6 +16,7 @@ package io.hexaglue.arch;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
@@ -67,8 +68,10 @@ import java.util.Optional;
  * @param classificationReportInternal the classification report with stats and remediations (internal field)
  * @param domainIndexInternal the domain index for domain type access (internal field)
  * @param portIndexInternal the port index for port type access (internal field)
+ * @param compositionIndexInternal the composition index for cross-package relationships (internal field)
  * @since 4.0.0
  * @since 5.0.0 removed ElementRegistry, ElementRef, and related legacy types
+ * @since 5.0.0 added compositionIndex for cross-package composition detection
  */
 public record ArchitecturalModel(
         ProjectContext project,
@@ -77,7 +80,8 @@ public record ArchitecturalModel(
         TypeRegistry typeRegistryInternal,
         ClassificationReport classificationReportInternal,
         DomainIndex domainIndexInternal,
-        PortIndex portIndexInternal) {
+        PortIndex portIndexInternal,
+        CompositionIndex compositionIndexInternal) {
 
     /**
      * Creates a new ArchitecturalModel instance.
@@ -93,13 +97,15 @@ public record ArchitecturalModel(
      * @param classificationReportInternal the classification report, may be null
      * @param domainIndexInternal the domain index, may be null
      * @param portIndexInternal the port index, may be null
+     * @param compositionIndexInternal the composition index, may be null
      * @throws NullPointerException if any required field is null
      */
     public ArchitecturalModel {
         Objects.requireNonNull(project, "project must not be null");
         Objects.requireNonNull(relationships, "relationships must not be null");
         Objects.requireNonNull(analysisMetadata, "analysisMetadata must not be null");
-        // typeRegistryInternal, classificationReportInternal, domainIndexInternal, portIndexInternal may be null
+        // typeRegistryInternal, classificationReportInternal, domainIndexInternal, portIndexInternal,
+        // compositionIndexInternal may be null for backward compatibility
     }
 
     // === New v4.1.0 API ===
@@ -142,6 +148,20 @@ public record ArchitecturalModel(
      */
     public Optional<PortIndex> portIndex() {
         return Optional.ofNullable(portIndexInternal);
+    }
+
+    /**
+     * Returns the composition index if available.
+     *
+     * <p>The composition index provides convenient queries for cross-package
+     * compositional relationships (OWNS, CONTAINS, REFERENCES) enabling
+     * accurate domain model diagrams.</p>
+     *
+     * @return an optional containing the composition index, or empty if not available
+     * @since 5.0.0
+     */
+    public Optional<CompositionIndex> compositionIndex() {
+        return Optional.ofNullable(compositionIndexInternal);
     }
 
     /**
@@ -231,6 +251,7 @@ public record ArchitecturalModel(
      * Builder for ArchitecturalModel.
      *
      * @since 5.0.0 removed ElementRegistry support, use typeRegistry() instead
+     * @since 5.0.0 added compositionIndex support
      */
     public static final class Builder {
         private final ProjectContext project;
@@ -241,6 +262,7 @@ public record ArchitecturalModel(
         private ClassificationReport classificationReport;
         private DomainIndex domainIndex;
         private PortIndex portIndex;
+        private CompositionIndex compositionIndex;
 
         private Builder(ProjectContext project) {
             this.project = Objects.requireNonNull(project, "project must not be null");
@@ -333,6 +355,18 @@ public record ArchitecturalModel(
         }
 
         /**
+         * Sets the composition index (v5.0.0).
+         *
+         * @param compositionIndex the composition index
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder compositionIndex(CompositionIndex compositionIndex) {
+            this.compositionIndex = compositionIndex;
+            return this;
+        }
+
+        /**
          * Builds the model with the specified metadata.
          *
          * @param metadata the analysis metadata
@@ -346,7 +380,8 @@ public record ArchitecturalModel(
                     this.typeRegistry,
                     this.classificationReport,
                     this.domainIndex,
-                    this.portIndex);
+                    this.portIndex,
+                    this.compositionIndex);
         }
 
         /**
@@ -364,7 +399,8 @@ public record ArchitecturalModel(
                     this.typeRegistry,
                     this.classificationReport,
                     this.domainIndex,
-                    this.portIndex);
+                    this.portIndex,
+                    this.compositionIndex);
         }
     }
 }

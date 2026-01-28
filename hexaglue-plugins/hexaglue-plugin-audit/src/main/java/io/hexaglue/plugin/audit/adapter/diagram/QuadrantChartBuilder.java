@@ -41,7 +41,8 @@ public class QuadrantChartBuilder {
     public String build(List<PackageMetric> packageMetrics) {
         StringBuilder sb = new StringBuilder();
         // Configuration to increase chart size and label padding
-        sb.append("%%{init: {\"quadrantChart\": {\"chartWidth\": 600, \"chartHeight\": 600, \"pointTextPadding\": 8}}}%%\n");
+        sb.append(
+                "%%{init: {\"quadrantChart\": {\"chartWidth\": 600, \"chartHeight\": 600, \"pointTextPadding\": 8}}}%%\n");
         sb.append("quadrantChart\n");
         sb.append("    title Package Stability Analysis\n");
         sb.append("    x-axis Concrete --> Abstract\n");

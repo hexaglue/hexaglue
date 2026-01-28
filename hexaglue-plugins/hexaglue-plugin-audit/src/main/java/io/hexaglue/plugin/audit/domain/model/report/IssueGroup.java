@@ -29,12 +29,7 @@ import java.util.Objects;
  * @since 5.0.0
  */
 public record IssueGroup(
-        String id,
-        String theme,
-        String icon,
-        String description,
-        int count,
-        List<IssueEntry> violations) {
+        String id, String theme, String icon, String description, int count, List<IssueEntry> violations) {
 
     /**
      * Creates an issue group with validation.

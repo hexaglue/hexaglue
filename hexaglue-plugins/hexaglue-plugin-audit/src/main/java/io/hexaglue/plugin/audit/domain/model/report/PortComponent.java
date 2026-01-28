@@ -27,6 +27,7 @@ import java.util.Optional;
  * @param hasAdapter whether the port has an adapter implementation
  * @param adapter name of the adapter if present
  * @param orchestrates aggregates orchestrated by this port (for driving ports)
+ * @param methodDetails detailed information about port methods for diagram rendering
  * @since 5.0.0
  */
 public record PortComponent(
@@ -36,7 +37,8 @@ public record PortComponent(
         int methods,
         boolean hasAdapter,
         String adapter,
-        List<String> orchestrates) {
+        List<String> orchestrates,
+        List<MethodDetail> methodDetails) {
 
     /**
      * Creates a port component with validation.
@@ -45,6 +47,7 @@ public record PortComponent(
         Objects.requireNonNull(name, "name is required");
         Objects.requireNonNull(packageName, "packageName is required");
         orchestrates = orchestrates != null ? List.copyOf(orchestrates) : List.of();
+        methodDetails = methodDetails != null ? List.copyOf(methodDetails) : List.of();
     }
 
     /**
@@ -65,7 +68,30 @@ public record PortComponent(
             boolean hasAdapter,
             String adapter,
             List<String> orchestrates) {
-        return new PortComponent(name, packageName, null, methods, hasAdapter, adapter, orchestrates);
+        return new PortComponent(name, packageName, null, methods, hasAdapter, adapter, orchestrates, List.of());
+    }
+
+    /**
+     * Creates a driving port component with method details.
+     *
+     * @param name port name
+     * @param packageName package name
+     * @param methods number of methods
+     * @param hasAdapter whether it has an adapter
+     * @param adapter adapter name
+     * @param orchestrates aggregates it orchestrates
+     * @param methodDetails method details for rendering
+     * @return the port component
+     */
+    public static PortComponent driving(
+            String name,
+            String packageName,
+            int methods,
+            boolean hasAdapter,
+            String adapter,
+            List<String> orchestrates,
+            List<MethodDetail> methodDetails) {
+        return new PortComponent(name, packageName, null, methods, hasAdapter, adapter, orchestrates, methodDetails);
     }
 
     /**
@@ -80,13 +106,31 @@ public record PortComponent(
      * @return the port component
      */
     public static PortComponent driven(
+            String name, String packageName, String kind, int methods, boolean hasAdapter, String adapter) {
+        return new PortComponent(name, packageName, kind, methods, hasAdapter, adapter, List.of(), List.of());
+    }
+
+    /**
+     * Creates a driven port component with method details.
+     *
+     * @param name port name
+     * @param packageName package name
+     * @param kind port kind
+     * @param methods number of methods
+     * @param hasAdapter whether it has an adapter
+     * @param adapter adapter name
+     * @param methodDetails method details for rendering
+     * @return the port component
+     */
+    public static PortComponent driven(
             String name,
             String packageName,
             String kind,
             int methods,
             boolean hasAdapter,
-            String adapter) {
-        return new PortComponent(name, packageName, kind, methods, hasAdapter, adapter, List.of());
+            String adapter,
+            List<MethodDetail> methodDetails) {
+        return new PortComponent(name, packageName, kind, methods, hasAdapter, adapter, List.of(), methodDetails);
     }
 
     /**

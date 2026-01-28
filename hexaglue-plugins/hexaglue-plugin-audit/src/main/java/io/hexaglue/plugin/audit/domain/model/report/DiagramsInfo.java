@@ -24,10 +24,7 @@ import java.util.Objects;
  * @param domainModel domain model diagram info
  * @since 5.0.0
  */
-public record DiagramsInfo(
-        DiagramInfo c4Context,
-        DiagramInfo c4Component,
-        DiagramInfo domainModel) {
+public record DiagramsInfo(DiagramInfo c4Context, DiagramInfo c4Component, DiagramInfo domainModel) {
 
     /**
      * Creates diagrams info with validation.
@@ -46,11 +43,10 @@ public record DiagramsInfo(
     public static DiagramsInfo defaults() {
         return new DiagramsInfo(
                 new DiagramInfo(
-                        "System Context Diagram",
-                        "Shows the system with external systems inferred from driven ports"),
+                        "System Context Diagram", "Shows the system with external systems inferred from driven ports"),
                 new DiagramInfo(
-                        "C4 Component Diagram",
-                        "Shows all ports, aggregates, adapters and their relationships"),
-                new DiagramInfo("Domain Model", "Shows aggregates with their value objects and inter-aggregate references"));
+                        "C4 Component Diagram", "Shows all ports, aggregates, adapters and their relationships"),
+                new DiagramInfo(
+                        "Domain Model", "Shows aggregates with their value objects and inter-aggregate references"));
     }
 }

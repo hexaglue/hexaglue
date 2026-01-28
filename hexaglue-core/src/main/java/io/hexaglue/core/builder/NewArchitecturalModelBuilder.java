@@ -16,6 +16,8 @@ package io.hexaglue.core.builder;
 import io.hexaglue.arch.model.ArchType;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.UnclassifiedType;
+import io.hexaglue.arch.model.graph.RelationshipGraph;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
@@ -90,6 +92,7 @@ public final class NewArchitecturalModelBuilder {
     private final ApplicationTypeBuilder applicationTypeBuilder;
     private final UnclassifiedTypeBuilder unclassifiedTypeBuilder;
     private final ClassificationReportBuilder reportBuilder;
+    private final RelationshipGraphBuilder relationshipGraphBuilder;
 
     /**
      * Creates a new NewArchitecturalModelBuilder with default component builders.
@@ -112,6 +115,7 @@ public final class NewArchitecturalModelBuilder {
         this.applicationTypeBuilder = new ApplicationTypeBuilder(structureBuilder, traceConverter);
         this.unclassifiedTypeBuilder = new UnclassifiedTypeBuilder(structureBuilder, traceConverter, categoryDetector);
         this.reportBuilder = new ClassificationReportBuilder();
+        this.relationshipGraphBuilder = new RelationshipGraphBuilder();
     }
 
     /**
@@ -158,7 +162,11 @@ public final class NewArchitecturalModelBuilder {
         DomainIndex domainIndex = DomainIndex.from(registry);
         PortIndex portIndex = PortIndex.from(registry);
 
-        return new Result(registry, report, domainIndex, portIndex, Instant.now());
+        // 6. Build RelationshipGraph and CompositionIndex
+        RelationshipGraph relationshipGraph = relationshipGraphBuilder.build(registry);
+        CompositionIndex compositionIndex = CompositionIndex.from(relationshipGraph, registry);
+
+        return new Result(registry, report, domainIndex, portIndex, compositionIndex, Instant.now());
     }
 
     private Optional<ClassificationResult> getClassification(TypeNode typeNode, ClassificationResults results) {
@@ -209,14 +217,17 @@ public final class NewArchitecturalModelBuilder {
      * @param classificationReport the report with stats, conflicts, and remediations
      * @param domainIndex the index for domain types
      * @param portIndex the index for port types
+     * @param compositionIndex the index for cross-package composition relationships
      * @param generatedAt the timestamp when the model was generated
      * @since 4.1.0
+     * @since 5.0.0 added compositionIndex
      */
     public record Result(
             TypeRegistry typeRegistry,
             ClassificationReport classificationReport,
             DomainIndex domainIndex,
             PortIndex portIndex,
+            CompositionIndex compositionIndex,
             Instant generatedAt) {
 
         public Result {
@@ -224,6 +235,7 @@ public final class NewArchitecturalModelBuilder {
             Objects.requireNonNull(classificationReport, "classificationReport must not be null");
             Objects.requireNonNull(domainIndex, "domainIndex must not be null");
             Objects.requireNonNull(portIndex, "portIndex must not be null");
+            Objects.requireNonNull(compositionIndex, "compositionIndex must not be null");
             Objects.requireNonNull(generatedAt, "generatedAt must not be null");
         }
 

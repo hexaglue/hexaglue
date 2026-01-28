@@ -71,10 +71,13 @@ class ReportDataTest {
         @Test
         @DisplayName("should reject null sections")
         void shouldRejectNullSections() {
-            assertThatThrownBy(
-                            () -> ReportData.create(
-                                    null, createVerdict(75, ReportStatus.PASSED), createArchitecture(),
-                                    IssuesSummary.empty(), RemediationPlan.empty(), createAppendix()))
+            assertThatThrownBy(() -> ReportData.create(
+                            null,
+                            createVerdict(75, ReportStatus.PASSED),
+                            createArchitecture(),
+                            IssuesSummary.empty(),
+                            RemediationPlan.empty(),
+                            createAppendix()))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("metadata");
         }
@@ -230,7 +233,7 @@ class ReportDataTest {
         @DisplayName("should defensively copy steps list")
         void shouldDefensivelyCopyStepsList() {
             var mutableSteps = new java.util.ArrayList<>(List.of("Step 1"));
-            var suggestion = new Suggestion("Action", mutableSteps, null, null);
+            var suggestion = new Suggestion("Action", mutableSteps, null, null, null);
 
             mutableSteps.add("Step 2");
 
@@ -312,8 +315,7 @@ class ReportDataTest {
     // Helper methods
 
     private ReportMetadata createMetadata() {
-        return new ReportMetadata(
-                "Test Project", "1.0.0", Instant.now(), "42ms", "2.0.0-SNAPSHOT", "2.0.0-SNAPSHOT");
+        return new ReportMetadata("Test Project", "1.0.0", Instant.now(), "42ms", "2.0.0-SNAPSHOT", "2.0.0-SNAPSHOT");
     }
 
     private Verdict createVerdict(int score, ReportStatus status) {

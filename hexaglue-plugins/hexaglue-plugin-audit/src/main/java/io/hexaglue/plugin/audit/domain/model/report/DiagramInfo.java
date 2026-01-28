@@ -23,9 +23,7 @@ import java.util.Objects;
  * @param description what the diagram shows
  * @since 5.0.0
  */
-public record DiagramInfo(
-        String title,
-        String description) {
+public record DiagramInfo(String title, String description) {
 
     /**
      * Creates diagram info with validation.

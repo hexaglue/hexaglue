@@ -23,9 +23,7 @@ import java.util.Objects;
  * @param groups violations grouped by theme
  * @since 5.0.0
  */
-public record IssuesSummary(
-        ViolationCounts summary,
-        List<IssueGroup> groups) {
+public record IssuesSummary(ViolationCounts summary, List<IssueGroup> groups) {
 
     /**
      * Creates an issues summary with validation.

@@ -24,6 +24,7 @@ import java.util.Objects;
  * @param components detailed component breakdown
  * @param diagrams diagram metadata (actual Mermaid content is in DiagramSet)
  * @param relationships list of relationships between components
+ * @param typeViolations list of type-level violations for diagram visualization
  * @since 5.0.0
  */
 public record ArchitectureOverview(
@@ -31,7 +32,8 @@ public record ArchitectureOverview(
         Inventory inventory,
         ComponentDetails components,
         DiagramsInfo diagrams,
-        List<Relationship> relationships) {
+        List<Relationship> relationships,
+        List<TypeViolation> typeViolations) {
 
     /**
      * Creates an architecture overview with validation.
@@ -42,6 +44,19 @@ public record ArchitectureOverview(
         Objects.requireNonNull(components, "components is required");
         Objects.requireNonNull(diagrams, "diagrams is required");
         relationships = relationships != null ? List.copyOf(relationships) : List.of();
+        typeViolations = typeViolations != null ? List.copyOf(typeViolations) : List.of();
+    }
+
+    /**
+     * Constructor for backward compatibility (without typeViolations).
+     */
+    public ArchitectureOverview(
+            String summary,
+            Inventory inventory,
+            ComponentDetails components,
+            DiagramsInfo diagrams,
+            List<Relationship> relationships) {
+        this(summary, inventory, components, diagrams, relationships, List.of());
     }
 
     /**

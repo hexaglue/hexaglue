@@ -69,15 +69,7 @@ public class IssueEnricher {
         String impact = template.impact(violation);
         Suggestion suggestion = template.suggestion(violation);
 
-        return new IssueEntry(
-                id,
-                constraintId,
-                violation.severity(),
-                title,
-                message,
-                location,
-                impact,
-                suggestion);
+        return new IssueEntry(id, constraintId, violation.severity(), title, message, location, impact, suggestion);
     }
 
     /**
@@ -107,8 +99,8 @@ public class IssueEnricher {
             case "ddd:aggregate-boundary" -> "Aggregate boundary violation";
             case "ddd:aggregate-repository" -> "Aggregate without repository";
             case "ddd:domain-purity" -> "Domain purity violation";
-            case "hexagonal:port-coverage" -> constraintId.contains("driving")
-                    ? "Driving port without adapter" : "Driven port without adapter";
+            case "hexagonal:port-coverage" ->
+                constraintId.contains("driving") ? "Driving port without adapter" : "Driven port without adapter";
             case "hexagonal:port-direction" -> "Port direction violation";
             case "hexagonal:layer-isolation" -> "Layer isolation violation";
             case "hexagonal:dependency-inversion" -> "Dependency inversion violation";
@@ -157,9 +149,9 @@ public class IssueEnricher {
         map.put("ddd:aggregate-cycle", new IssueTemplate() {
             @Override
             public String impact(Violation v) {
-                return "Aggregates become tightly coupled, making it impossible to maintain " +
-                        "independent consistency boundaries. This can cause cascade updates, " +
-                        "transactional issues, and makes the domain model harder to evolve.";
+                return "Aggregates become tightly coupled, making it impossible to maintain "
+                        + "independent consistency boundaries. This can cause cascade updates, "
+                        + "transactional issues, and makes the domain model harder to evolve.";
             }
 
             @Override
@@ -170,8 +162,8 @@ public class IssueEnricher {
                                 "Remove the direct reference to the other aggregate",
                                 "Create a domain event to communicate between aggregates",
                                 "Have the other aggregate subscribe to the event"),
-                        "// Instead of: order.reserveInventory(inventoryItem)\n" +
-                                "// Use: domainEvents.publish(new OrderPlaced(orderId, items))",
+                        "// Instead of: order.reserveInventory(inventoryItem)\n"
+                                + "// Use: domainEvents.publish(new OrderPlaced(orderId, items))",
                         "2 days");
             }
         });
@@ -180,9 +172,9 @@ public class IssueEnricher {
         map.put("ddd:value-object-immutable", new IssueTemplate() {
             @Override
             public String impact(Violation v) {
-                return "Value objects must be immutable to guarantee consistency. A mutable " +
-                        "value object can be changed after being assigned to an entity, causing " +
-                        "unexpected behavior and breaking domain invariants.";
+                return "Value objects must be immutable to guarantee consistency. A mutable "
+                        + "value object can be changed after being assigned to an entity, causing "
+                        + "unexpected behavior and breaking domain invariants.";
             }
 
             @Override
@@ -193,11 +185,11 @@ public class IssueEnricher {
                                 "Make all fields final",
                                 "Remove all setter methods",
                                 "Add factory method or use record"),
-                        "public record Money(BigDecimal amount, Currency currency) {\n" +
-                                "    public Money add(Money other) {\n" +
-                                "        return new Money(amount.add(other.amount), currency);\n" +
-                                "    }\n" +
-                                "}",
+                        "public record Money(BigDecimal amount, Currency currency) {\n"
+                                + "    public Money add(Money other) {\n"
+                                + "        return new Money(amount.add(other.amount), currency);\n"
+                                + "    }\n"
+                                + "}",
                         "0.5 days");
             }
         });
@@ -206,28 +198,50 @@ public class IssueEnricher {
         map.put("hexagonal:port-coverage", new IssueTemplate() {
             @Override
             public String impact(Violation v) {
-                return "Ports without adapters cannot be used. The application cannot interact " +
-                        "with external systems or be invoked by driving adapters.";
+                return "Ports without adapters cannot be used. The application cannot interact "
+                        + "with external systems or be invoked by driving adapters.";
             }
 
             @Override
             public Suggestion suggestion(Violation v) {
-                String portType = v.message().toLowerCase().contains("driving")
-                        ? "application service" : "infrastructure adapter";
-                return Suggestion.complete(
-                        "Create an " + portType + " implementing this port",
-                        List.of(
-                                "Create a new class implementing the port interface",
-                                "Implement all required methods",
-                                "Register the implementation with your DI container"),
-                        "@Service\n" +
-                                "public class PortImplementation implements PortInterface {\n" +
-                                "    @Override\n" +
-                                "    public void method() {\n" +
-                                "        // implementation\n" +
-                                "    }\n" +
-                                "}",
-                        "0.5 days");
+                boolean isDriving = v.message().toLowerCase().contains("driving");
+                if (isDriving) {
+                    return Suggestion.complete(
+                            "Create an application service implementing this port",
+                            List.of(
+                                    "Create a new class implementing the port interface",
+                                    "Implement all required methods",
+                                    "Register the implementation with your DI container"),
+                            "@Service\n" + "public class PortImplementation implements PortInterface {\n"
+                                    + "    @Override\n"
+                                    + "    public void method() {\n"
+                                    + "        // implementation\n"
+                                    + "    }\n"
+                                    + "}",
+                            "1 day");
+                } else {
+                    // Driven port: requires full persistence chain (adapter, entity, mapper, converters)
+                    // Can be automated by hexaglue-plugin-jpa
+                    return Suggestion.automatable(
+                            "Create an infrastructure adapter implementing this port",
+                            List.of(
+                                    "Create JPA entity mapping the aggregate",
+                                    "Create mapper to convert between domain and JPA entity",
+                                    "Create JPA repository adapter implementing the port",
+                                    "Add identity converters if using typed identifiers",
+                                    "Register the implementation with your DI container"),
+                            "@Repository\n" + "public class JpaOrderRepository implements OrderRepository {\n"
+                                    + "    private final SpringDataOrderRepository springRepo;\n"
+                                    + "    private final OrderMapper mapper;\n"
+                                    + "    \n"
+                                    + "    @Override\n"
+                                    + "    public void save(Order order) {\n"
+                                    + "        springRepo.save(mapper.toEntity(order));\n"
+                                    + "    }\n"
+                                    + "}",
+                            "3 days",
+                            "hexaglue-plugin-jpa");
+                }
             }
         });
 
@@ -235,9 +249,9 @@ public class IssueEnricher {
         map.put("hexagonal:port-direction", new IssueTemplate() {
             @Override
             public String impact(Violation v) {
-                return "Ports should only be used in the intended direction. " +
-                        "Driving ports should be called from external adapters, " +
-                        "and driven ports should be called from the domain.";
+                return "Ports should only be used in the intended direction. "
+                        + "Driving ports should be called from external adapters, "
+                        + "and driven ports should be called from the domain.";
             }
 
             @Override

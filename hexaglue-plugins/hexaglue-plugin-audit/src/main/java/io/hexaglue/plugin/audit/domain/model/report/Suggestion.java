@@ -27,13 +27,10 @@ import java.util.Optional;
  * @param steps ordered list of steps to perform the fix
  * @param codeExample example code showing the fix (may be null)
  * @param effort estimated effort (e.g., "2 days", "0.5 days")
+ * @param hexagluePlugin name of HexaGlue plugin that can automate this fix (null if manual only)
  * @since 5.0.0
  */
-public record Suggestion(
-        String action,
-        List<String> steps,
-        String codeExample,
-        String effort) {
+public record Suggestion(String action, List<String> steps, String codeExample, String effort, String hexagluePlugin) {
 
     /**
      * Creates a suggestion with validation.
@@ -50,7 +47,7 @@ public record Suggestion(
      * @return the suggestion
      */
     public static Suggestion simple(String action) {
-        return new Suggestion(action, List.of(), null, null);
+        return new Suggestion(action, List.of(), null, null, null);
     }
 
     /**
@@ -61,11 +58,11 @@ public record Suggestion(
      * @return the suggestion
      */
     public static Suggestion withEffort(String action, String effort) {
-        return new Suggestion(action, List.of(), null, effort);
+        return new Suggestion(action, List.of(), null, effort, null);
     }
 
     /**
-     * Creates a complete suggestion.
+     * Creates a complete suggestion (manual fix only).
      *
      * @param action the action to take
      * @param steps steps to follow
@@ -74,7 +71,22 @@ public record Suggestion(
      * @return the suggestion
      */
     public static Suggestion complete(String action, List<String> steps, String codeExample, String effort) {
-        return new Suggestion(action, steps, codeExample, effort);
+        return new Suggestion(action, steps, codeExample, effort, null);
+    }
+
+    /**
+     * Creates a complete suggestion that can be automated by a HexaGlue plugin.
+     *
+     * @param action the action to take
+     * @param steps steps to follow (for manual reference)
+     * @param codeExample example code
+     * @param effort estimated manual effort
+     * @param hexagluePlugin name of the HexaGlue plugin that automates this (e.g., "hexaglue-plugin-jpa")
+     * @return the suggestion
+     */
+    public static Suggestion automatable(
+            String action, List<String> steps, String codeExample, String effort, String hexagluePlugin) {
+        return new Suggestion(action, steps, codeExample, effort, hexagluePlugin);
     }
 
     /**
@@ -111,5 +123,23 @@ public record Suggestion(
      */
     public boolean hasCodeExample() {
         return codeExample != null && !codeExample.isBlank();
+    }
+
+    /**
+     * Checks if this fix can be automated by a HexaGlue plugin.
+     *
+     * @return true if a HexaGlue plugin can automate this fix
+     */
+    public boolean isAutomatableByHexaglue() {
+        return hexagluePlugin != null && !hexagluePlugin.isBlank();
+    }
+
+    /**
+     * Returns the HexaGlue plugin name as optional.
+     *
+     * @return optional plugin name
+     */
+    public Optional<String> hexagluePluginOpt() {
+        return Optional.ofNullable(hexagluePlugin);
     }
 }

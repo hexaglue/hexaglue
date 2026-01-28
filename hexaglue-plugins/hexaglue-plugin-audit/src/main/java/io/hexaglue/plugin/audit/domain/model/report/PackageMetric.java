@@ -28,13 +28,7 @@ import java.util.Objects;
  * @since 5.0.0
  */
 public record PackageMetric(
-        String packageName,
-        int ca,
-        int ce,
-        double instability,
-        double abstractness,
-        double distance,
-        ZoneType zone) {
+        String packageName, int ca, int ce, double instability, double abstractness, double distance, ZoneType zone) {
 
     /**
      * Creates a package metric with validation.

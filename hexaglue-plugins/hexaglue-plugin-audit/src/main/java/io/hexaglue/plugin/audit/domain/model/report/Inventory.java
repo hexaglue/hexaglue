@@ -23,9 +23,7 @@ import java.util.Objects;
  * @param totals total counts across all contexts
  * @since 5.0.0
  */
-public record Inventory(
-        List<BoundedContextInventory> boundedContexts,
-        InventoryTotals totals) {
+public record Inventory(List<BoundedContextInventory> boundedContexts, InventoryTotals totals) {
 
     /**
      * Creates an inventory with validation.

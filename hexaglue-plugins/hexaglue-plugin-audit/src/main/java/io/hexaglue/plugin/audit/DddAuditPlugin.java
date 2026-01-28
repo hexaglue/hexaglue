@@ -40,6 +40,7 @@ import io.hexaglue.arch.model.audit.RuleViolation;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
+import io.hexaglue.plugin.audit.adapter.diagram.DiagramGenerator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
@@ -48,26 +49,25 @@ import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.PortCoverageMetricCalculator;
-import io.hexaglue.plugin.audit.adapter.diagram.DiagramGenerator;
 import io.hexaglue.plugin.audit.adapter.report.ConsoleRenderer;
 import io.hexaglue.plugin.audit.adapter.report.HtmlRenderer;
 import io.hexaglue.plugin.audit.adapter.report.JsonReportRenderer;
 import io.hexaglue.plugin.audit.adapter.report.MarkdownRenderer;
 import io.hexaglue.plugin.audit.adapter.report.ReportFormat;
 import io.hexaglue.plugin.audit.adapter.report.ReportRenderer;
-import io.hexaglue.plugin.audit.domain.model.report.DiagramSet;
-import io.hexaglue.plugin.audit.domain.model.report.ReportData;
-import io.hexaglue.plugin.audit.domain.service.ReportDataBuilder;
 import io.hexaglue.plugin.audit.config.AuditConfiguration;
 import io.hexaglue.plugin.audit.config.ConstraintRegistry;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
 import io.hexaglue.plugin.audit.domain.model.BuildOutcome;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
+import io.hexaglue.plugin.audit.domain.model.report.DiagramSet;
+import io.hexaglue.plugin.audit.domain.model.report.ReportData;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.plugin.audit.domain.service.AuditOrchestrator;
 import io.hexaglue.plugin.audit.domain.service.ConstraintEngine;
 import io.hexaglue.plugin.audit.domain.service.MetricAggregator;
+import io.hexaglue.plugin.audit.domain.service.ReportDataBuilder;
 import io.hexaglue.spi.audit.AuditContext;
 import io.hexaglue.spi.audit.AuditPlugin;
 import io.hexaglue.spi.plugin.PluginConfig;
@@ -631,8 +631,7 @@ public class DddAuditPlugin implements AuditPlugin {
                         String content = renderReport(format, reportData, diagrams);
                         Path outputFile = outputDir.resolve(format.defaultFilename());
                         Files.writeString(outputFile, content);
-                        context.diagnostics()
-                                .info("Generated %s report: %s".formatted(format.name(), outputFile));
+                        context.diagnostics().info("Generated %s report: %s".formatted(format.name(), outputFile));
                     }
                 }
             }
@@ -656,12 +655,13 @@ public class DddAuditPlugin implements AuditPlugin {
      * @since 5.0.0
      */
     private String renderReport(ReportFormat format, ReportData reportData, DiagramSet diagrams) {
-        ReportRenderer renderer = switch (format) {
-            case JSON -> new JsonReportRenderer();
-            case HTML -> new HtmlRenderer();
-            case MARKDOWN -> new MarkdownRenderer();
-            case CONSOLE -> new ConsoleRenderer();
-        };
+        ReportRenderer renderer =
+                switch (format) {
+                    case JSON -> new JsonReportRenderer();
+                    case HTML -> new HtmlRenderer();
+                    case MARKDOWN -> new MarkdownRenderer();
+                    case CONSOLE -> new ConsoleRenderer();
+                };
         return renderer.render(reportData, diagrams);
     }
 

@@ -277,6 +277,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                 .classificationReport(v5Result.classificationReport())
                 .domainIndex(v5Result.domainIndex())
                 .portIndex(v5Result.portIndex())
+                .compositionIndex(v5Result.compositionIndex())
                 .build();
     }
 

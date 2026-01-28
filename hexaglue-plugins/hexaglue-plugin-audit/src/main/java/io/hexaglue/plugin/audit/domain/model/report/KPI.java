@@ -27,14 +27,7 @@ import java.util.Objects;
  * @param status status based on comparison with threshold
  * @since 5.0.0
  */
-public record KPI(
-        String id,
-        String name,
-        double value,
-        String unit,
-        int weight,
-        double threshold,
-        KpiStatus status) {
+public record KPI(String id, String name, double value, String unit, int weight, double threshold, KpiStatus status) {
 
     /**
      * Creates a KPI with validation.

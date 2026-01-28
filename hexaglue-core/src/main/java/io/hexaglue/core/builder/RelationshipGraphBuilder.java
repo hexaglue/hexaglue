@@ -19,8 +19,11 @@ import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.arch.model.graph.RelationshipGraph;
 import io.hexaglue.syntax.TypeRef;
@@ -36,10 +39,12 @@ import java.util.Optional;
  *
  * <h2>Relationship Types Built</h2>
  * <ul>
- *   <li><strong>CONTAINS</strong> - Aggregate → Entity/ValueObject (from aggregate boundary)</li>
+ *   <li><strong>CONTAINS</strong> - Aggregate → Entity/ValueObject (from aggregate boundary or embedded fields)</li>
+ *   <li><strong>OWNS</strong> - Type → Identifier (identity field)</li>
+ *   <li><strong>REFERENCES</strong> - Type → Aggregate (via aggregate reference field)</li>
  *   <li><strong>EMITS</strong> - Aggregate → DomainEvent (from aggregate.domainEvents())</li>
  *   <li><strong>PERSISTS</strong> - Repository → Aggregate (from drivenPort.managedAggregate())</li>
- *   <li><strong>DEPENDS_ON</strong> - Type → Type (via field references)</li>
+ *   <li><strong>DEPENDS_ON</strong> - Type → Type (via field references, fallback)</li>
  *   <li><strong>IMPLEMENTS</strong> - Type → Interface (via structure.interfaces())</li>
  *   <li><strong>EXTENDS</strong> - Type → Superclass (via structure.superclass())</li>
  * </ul>
@@ -101,7 +106,7 @@ public final class RelationshipGraphBuilder {
 
         // Process common relationships for all types
         processInheritance(type, registry, graphBuilder);
-        processDependencies(type, registry, graphBuilder);
+        processFieldCompositions(type, registry, graphBuilder);
     }
 
     /**
@@ -199,21 +204,110 @@ public final class RelationshipGraphBuilder {
     }
 
     /**
-     * Processes field dependencies to extract DEPENDS_ON relationships.
+     * Processes field compositions using FieldRole semantic information.
+     *
+     * <p>This method uses the semantic roles assigned to fields to determine
+     * the appropriate relationship type:
+     * <ul>
+     *   <li>{@link FieldRole#IDENTITY} → {@link RelationType#OWNS}</li>
+     *   <li>{@link FieldRole#EMBEDDED} → {@link RelationType#CONTAINS}</li>
+     *   <li>{@link FieldRole#AGGREGATE_REFERENCE} → {@link RelationType#REFERENCES}</li>
+     *   <li>{@link FieldRole#COLLECTION} → {@link RelationType#CONTAINS}</li>
+     *   <li>Other business-relevant fields → {@link RelationType#DEPENDS_ON}</li>
+     * </ul>
+     *
+     * @param type the type to process
+     * @param registry the type registry for lookups
+     * @param graphBuilder the graph builder to add relationships to
+     * @since 5.0.0
      */
-    private void processDependencies(ArchType type, TypeRegistry registry, RelationshipGraph.Builder graphBuilder) {
+    private void processFieldCompositions(
+            ArchType type, TypeRegistry registry, RelationshipGraph.Builder graphBuilder) {
         TypeId typeId = type.id();
 
-        // DEPENDS_ON: Type -> Field type (if field type is a classified type)
         type.structure().fields().forEach(field -> {
-            Optional<TypeId> dependencyId = extractDependencyType(field, registry);
-            dependencyId.ifPresent(depId -> {
-                // Avoid self-references and already-handled relationships
-                if (!depId.equals(typeId)) {
+            Optional<TypeId> targetId = extractDependencyType(field, registry);
+            if (targetId.isEmpty() || targetId.get().equals(typeId)) {
+                return;
+            }
+
+            TypeId depId = targetId.get();
+
+            // OWNS: Identity field → Identifier type
+            if (field.hasRole(FieldRole.IDENTITY)) {
+                graphBuilder.add(typeId, depId, RelationType.OWNS);
+            }
+            // REFERENCES: Direct reference to another aggregate
+            else if (field.hasRole(FieldRole.AGGREGATE_REFERENCE)) {
+                Optional<TypeId> aggregateId = findAggregateForIdentifier(depId, registry);
+                if (aggregateId.isPresent()) {
+                    graphBuilder.add(typeId, aggregateId.get(), RelationType.REFERENCES);
+                } else {
+                    // Fallback: reference to the identifier itself if aggregate not found
                     graphBuilder.add(typeId, depId, RelationType.DEPENDS_ON);
                 }
-            });
+            }
+            // EMBEDDED: Check if it's a cross-aggregate reference via identifier
+            else if (field.hasRole(FieldRole.EMBEDDED)) {
+                // Check if the embedded type is an Identifier (potential cross-aggregate reference)
+                Optional<?> targetType = registry.get(depId);
+                if (targetType.isPresent() && targetType.get() instanceof Identifier) {
+                    // Find the aggregate that owns this identifier
+                    Optional<TypeId> aggregateId = findAggregateForIdentifier(depId, registry);
+                    if (aggregateId.isPresent() && !aggregateId.get().equals(typeId)) {
+                        // Cross-aggregate reference: Order -> Customer (via CustomerId)
+                        graphBuilder.add(typeId, aggregateId.get(), RelationType.REFERENCES);
+                    }
+                }
+                // Always add CONTAINS for embedded types (VO, Identifier)
+                graphBuilder.add(typeId, depId, RelationType.CONTAINS);
+            }
+            // CONTAINS: Collection of entities/VOs
+            else if (field.hasRole(FieldRole.COLLECTION)) {
+                // Check if target is a domain type (Entity, VO, etc.)
+                Optional<?> targetType = registry.get(depId);
+                if (targetType.isPresent()) {
+                    Object target = targetType.get();
+                    if (target instanceof Entity || target instanceof ValueObject || target instanceof Identifier) {
+                        graphBuilder.add(typeId, depId, RelationType.CONTAINS);
+                    } else {
+                        graphBuilder.add(typeId, depId, RelationType.DEPENDS_ON);
+                    }
+                }
+            }
+            // Fallback: General dependency for non-audit/non-technical fields
+            else if (!field.hasRole(FieldRole.AUDIT) && !field.hasRole(FieldRole.TECHNICAL)) {
+                graphBuilder.add(typeId, depId, RelationType.DEPENDS_ON);
+            }
         });
+    }
+
+    /**
+     * Finds the aggregate root that owns a given identifier type.
+     *
+     * <p>This method searches for an aggregate root whose identity field type
+     * matches the given identifier type.</p>
+     *
+     * @param identifierId the identifier type ID
+     * @param registry the type registry
+     * @return the aggregate root ID if found
+     * @since 5.0.0
+     */
+    private Optional<TypeId> findAggregateForIdentifier(TypeId identifierId, TypeRegistry registry) {
+        return registry.all(AggregateRoot.class)
+                .filter(agg -> {
+                    // Check if the aggregate's identity field type matches the identifier
+                    TypeId identityTypeId = TypeId.of(agg.identityField().type().qualifiedName());
+                    if (identityTypeId.equals(identifierId)) {
+                        return true;
+                    }
+                    // Also check the effective identity type (for wrapped identifiers)
+                    TypeId effectiveTypeId =
+                            TypeId.of(agg.effectiveIdentityType().qualifiedName());
+                    return effectiveTypeId.equals(identifierId);
+                })
+                .map(AggregateRoot::id)
+                .findFirst();
     }
 
     /**

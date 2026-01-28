@@ -28,12 +28,7 @@ import java.util.Optional;
  * @since 5.0.0
  */
 public record MetricEntry(
-        String id,
-        String name,
-        double value,
-        String unit,
-        MetricThreshold threshold,
-        KpiStatus status) {
+        String id, String name, double value, String unit, MetricThreshold threshold, KpiStatus status) {
 
     /**
      * Creates a metric entry with validation.

@@ -25,11 +25,7 @@ import java.util.Optional;
  * @param details optional additional details
  * @since 5.0.0
  */
-public record ScoreDimension(
-        int weight,
-        int score,
-        double contribution,
-        Map<String, String> details) {
+public record ScoreDimension(int weight, int score, double contribution, Map<String, String> details) {
 
     /**
      * Creates a score dimension with validation.
