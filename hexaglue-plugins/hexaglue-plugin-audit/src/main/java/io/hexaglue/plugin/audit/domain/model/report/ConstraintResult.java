@@ -22,9 +22,7 @@ import java.util.Objects;
  * @param violations number of violations found
  * @since 5.0.0
  */
-public record ConstraintResult(
-        String id,
-        int violations) {
+public record ConstraintResult(String id, int violations) {
 
     /**
      * Creates a constraint result with validation.

@@ -18,13 +18,14 @@ import java.util.Optional;
 /**
  * Total effort estimate for all remediation actions.
  *
- * @param days total days required
- * @param cost optional cost estimate
+ * @param days total days required (manual effort)
+ * @param cost optional cost estimate (manual cost)
+ * @param hexaglueSavingsDays days saved by using HexaGlue plugins
+ * @param hexaglueSavingsCost cost saved by using HexaGlue plugins
  * @since 5.0.0
  */
 public record TotalEffort(
-        double days,
-        CostEstimate cost) {
+        double days, CostEstimate cost, double hexaglueSavingsDays, CostEstimate hexaglueSavingsCost) {
 
     /**
      * Creates total effort with validation.
@@ -32,6 +33,9 @@ public record TotalEffort(
     public TotalEffort {
         if (days < 0) {
             throw new IllegalArgumentException("days cannot be negative");
+        }
+        if (hexaglueSavingsDays < 0) {
+            throw new IllegalArgumentException("hexaglueSavingsDays cannot be negative");
         }
     }
 
@@ -42,7 +46,7 @@ public record TotalEffort(
      * @return total effort
      */
     public static TotalEffort days(double days) {
-        return new TotalEffort(days, null);
+        return new TotalEffort(days, null, 0, null);
     }
 
     /**
@@ -54,7 +58,24 @@ public record TotalEffort(
      * @return total effort with cost
      */
     public static TotalEffort withCost(double days, double dailyRate, String currency) {
-        return new TotalEffort(days, CostEstimate.fromDays(days, dailyRate, currency));
+        return new TotalEffort(days, CostEstimate.fromDays(days, dailyRate, currency), 0, null);
+    }
+
+    /**
+     * Creates total effort with cost and HexaGlue savings.
+     *
+     * @param days total manual effort in days
+     * @param hexaglueSavingsDays days that can be saved with HexaGlue
+     * @param dailyRate daily rate
+     * @param currency currency code
+     * @return total effort with cost and savings
+     */
+    public static TotalEffort withSavings(double days, double hexaglueSavingsDays, double dailyRate, String currency) {
+        return new TotalEffort(
+                days,
+                CostEstimate.fromDays(days, dailyRate, currency),
+                hexaglueSavingsDays,
+                CostEstimate.fromDays(hexaglueSavingsDays, dailyRate, currency));
     }
 
     /**
@@ -79,5 +100,46 @@ public record TotalEffort(
             return (int) days + " days";
         }
         return days + " days";
+    }
+
+    /**
+     * Checks if HexaGlue can provide savings.
+     *
+     * @return true if savings are available
+     */
+    public boolean hasHexaglueSavings() {
+        return hexaglueSavingsDays > 0;
+    }
+
+    /**
+     * Returns HexaGlue savings cost as optional.
+     *
+     * @return optional savings cost
+     */
+    public Optional<CostEstimate> hexaglueSavingsCostOpt() {
+        return Optional.ofNullable(hexaglueSavingsCost);
+    }
+
+    /**
+     * Returns the effective days after HexaGlue automation.
+     *
+     * @return days remaining after HexaGlue savings
+     */
+    public double effectiveDays() {
+        return Math.max(0, days - hexaglueSavingsDays);
+    }
+
+    /**
+     * Returns the effective cost after HexaGlue automation.
+     *
+     * @return cost remaining after HexaGlue savings, or empty if no cost info
+     */
+    public Optional<CostEstimate> effectiveCostOpt() {
+        if (cost == null) {
+            return Optional.empty();
+        }
+        double effectiveAmount =
+                Math.max(0, cost.amount() - (hexaglueSavingsCost != null ? hexaglueSavingsCost.amount() : 0));
+        return Optional.of(new CostEstimate(effectiveAmount, cost.currency(), cost.dailyRate()));
     }
 }

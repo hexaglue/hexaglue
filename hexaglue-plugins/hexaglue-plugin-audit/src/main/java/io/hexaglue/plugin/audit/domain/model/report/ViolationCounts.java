@@ -27,13 +27,7 @@ import java.util.List;
  * @param infos number of INFO violations
  * @since 5.0.0
  */
-public record ViolationCounts(
-        int total,
-        int blockers,
-        int criticals,
-        int majors,
-        int minors,
-        int infos) {
+public record ViolationCounts(int total, int blockers, int criticals, int majors, int minors, int infos) {
 
     /**
      * Creates violation counts from a list of issue entries.

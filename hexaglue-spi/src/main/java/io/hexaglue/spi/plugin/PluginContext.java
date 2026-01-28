@@ -14,6 +14,7 @@
 package io.hexaglue.spi.plugin;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
@@ -218,5 +219,35 @@ public interface PluginContext {
      */
     default Optional<ClassificationReport> classificationReport() {
         return model().classificationReport();
+    }
+
+    /**
+     * Returns the composition index for cross-package relationship queries.
+     *
+     * <p>The composition index provides convenient methods to query compositional
+     * relationships (OWNS, CONTAINS, REFERENCES) between types. This is essential
+     * for generating accurate domain model diagrams that show cross-package
+     * relationships.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * context.compositionIndex().ifPresent(compositions -> {
+     *     TypeId orderId = TypeId.of("com.example.Order");
+     *
+     *     // Get all types embedded by Order (regardless of package)
+     *     compositions.embeddedBy(orderId).forEach(typeId ->
+     *         System.out.println("Order embeds: " + typeId.simpleName()));
+     *
+     *     // Get cross-aggregate references
+     *     compositions.referencesFrom(orderId).forEach(ref ->
+     *         System.out.println("Order references: " + ref.aggregateType().simpleName()));
+     * });
+     * }</pre>
+     *
+     * @return an optional containing the composition index, or empty if not available
+     * @since 5.0.0
+     */
+    default Optional<CompositionIndex> compositionIndex() {
+        return model().compositionIndex();
     }
 }

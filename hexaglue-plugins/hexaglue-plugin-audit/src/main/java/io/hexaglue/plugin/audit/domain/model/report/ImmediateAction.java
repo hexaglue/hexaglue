@@ -24,10 +24,7 @@ import java.util.Optional;
  * @param reference link to the related issue (e.g., "#issue-aggregate-cycle-1")
  * @since 5.0.0
  */
-public record ImmediateAction(
-        boolean required,
-        String message,
-        String reference) {
+public record ImmediateAction(boolean required, String message, String reference) {
 
     /**
      * Creates an immediate action with validation.

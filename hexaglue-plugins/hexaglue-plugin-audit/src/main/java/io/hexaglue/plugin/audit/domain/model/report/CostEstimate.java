@@ -23,10 +23,7 @@ import java.util.Objects;
  * @param dailyRate daily rate used for calculation
  * @since 5.0.0
  */
-public record CostEstimate(
-        double amount,
-        String currency,
-        double dailyRate) {
+public record CostEstimate(double amount, String currency, double dailyRate) {
 
     /**
      * Creates a cost estimate with validation.

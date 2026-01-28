@@ -24,10 +24,7 @@ import java.util.Objects;
  * @param totalEffort total estimated effort
  * @since 5.0.0
  */
-public record RemediationPlan(
-        String summary,
-        List<RemediationAction> actions,
-        TotalEffort totalEffort) {
+public record RemediationPlan(String summary, List<RemediationAction> actions, TotalEffort totalEffort) {
 
     /**
      * Creates a remediation plan with validation.

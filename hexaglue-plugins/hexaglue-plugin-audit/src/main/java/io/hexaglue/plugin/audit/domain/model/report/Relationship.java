@@ -24,11 +24,7 @@ import java.util.Objects;
  * @param isCycle whether this relationship is part of a cycle
  * @since 5.0.0
  */
-public record Relationship(
-        String from,
-        String to,
-        String type,
-        boolean isCycle) {
+public record Relationship(String from, String to, String type, boolean isCycle) {
 
     /**
      * Creates a relationship with validation.

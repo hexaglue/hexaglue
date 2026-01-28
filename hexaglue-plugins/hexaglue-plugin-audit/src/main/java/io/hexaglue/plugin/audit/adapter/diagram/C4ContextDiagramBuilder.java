@@ -42,15 +42,12 @@ public class C4ContextDiagramBuilder {
         sb.append("    title System Context - ").append(projectName).append("\n\n");
 
         // User/Actor
-        String actorDesc = !drivingPorts.isEmpty()
-                ? "Interacts via " + drivingPorts.get(0).name()
-                : "Interacts with the system";
+        String actorDesc =
+                !drivingPorts.isEmpty() ? "Interacts via " + drivingPorts.get(0).name() : "Interacts with the system";
         sb.append("    Person(user, \"User\", \"").append(actorDesc).append("\")\n");
 
         // Main system
-        sb.append("    System(app, \"")
-                .append(projectName)
-                .append("\", \"Manages domain operations\")\n\n");
+        sb.append("    System(app, \"").append(projectName).append("\", \"Manages domain operations\")\n\n");
 
         // Infer external systems from driven ports
         Set<String> externalSystems = new HashSet<>();
@@ -78,7 +75,11 @@ public class C4ContextDiagramBuilder {
         for (String extSys : externalSystems) {
             String sysId = sanitizeId(extSys);
             String relType = extSys.contains("Database") ? "Persists data" : "Integrates with";
-            sb.append("    Rel_D(app, ").append(sysId).append(", \"").append(relType).append("\")\n");
+            sb.append("    Rel_D(app, ")
+                    .append(sysId)
+                    .append(", \"")
+                    .append(relType)
+                    .append("\")\n");
         }
 
         sb.append("\n");

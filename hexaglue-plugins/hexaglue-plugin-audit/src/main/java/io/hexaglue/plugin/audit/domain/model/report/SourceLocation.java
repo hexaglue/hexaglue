@@ -24,10 +24,7 @@ import java.util.Optional;
  * @param line line number (may be null if unknown)
  * @since 5.0.0
  */
-public record SourceLocation(
-        String type,
-        String file,
-        Integer line) {
+public record SourceLocation(String type, String file, Integer line) {
 
     /**
      * Creates a source location with validation.

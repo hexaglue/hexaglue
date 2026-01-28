@@ -58,7 +58,9 @@ public class MarkdownRenderer implements ReportRenderer {
     private void renderHeader(StringBuilder md, ReportMetadata metadata) {
         md.append("# ").append(metadata.projectName()).append(" - Architecture Audit Report\n\n");
         md.append("> **Version:** ").append(metadata.projectVersion()).append("  \n");
-        md.append("> **Date:** ").append(DATE_FORMAT.format(metadata.timestamp().atZone(ZoneId.systemDefault()))).append("  \n");
+        md.append("> **Date:** ")
+                .append(DATE_FORMAT.format(metadata.timestamp().atZone(ZoneId.systemDefault())))
+                .append("  \n");
         md.append("> **Duration:** ").append(metadata.duration()).append("\n\n");
         md.append("---\n\n");
     }
@@ -69,9 +71,13 @@ public class MarkdownRenderer implements ReportRenderer {
         // Score badge
         md.append("| Score | Status | Grade |\n");
         md.append("|:-----:|:------:|:-----:|\n");
-        md.append("| **").append(verdict.score()).append("/100** | **")
-                .append(verdict.status()).append("** | **")
-                .append(verdict.grade()).append("** |\n\n");
+        md.append("| **")
+                .append(verdict.score())
+                .append("/100** | **")
+                .append(verdict.status())
+                .append("** | **")
+                .append(verdict.grade())
+                .append("** |\n\n");
 
         md.append(verdict.summary()).append("\n\n");
 
@@ -83,29 +89,43 @@ public class MarkdownRenderer implements ReportRenderer {
             double totalContribution = 0;
             int totalWeight = 0;
             for (KPI kpi : verdict.kpis()) {
-                String statusIcon = switch (kpi.status()) {
-                    case OK -> "\u2705";
-                    case WARNING -> "\u26A0\uFE0F";
-                    case CRITICAL -> "\u274C";
-                };
+                String statusIcon =
+                        switch (kpi.status()) {
+                            case OK -> "\u2705";
+                            case WARNING -> "\u26A0\uFE0F";
+                            case CRITICAL -> "\u274C";
+                        };
                 double contribution = kpi.contribution();
                 totalContribution += contribution;
                 totalWeight += kpi.weight();
-                md.append("| ").append(kpi.name())
-                        .append(" | ").append(String.format(Locale.ROOT, "%.0f", kpi.value())).append(kpi.unit())
-                        .append(" | **").append(String.format(Locale.ROOT, "%.1f", contribution)).append("** (").append(kpi.weight()).append("%)")
-                        .append(" | ").append(statusIcon)
+                md.append("| ")
+                        .append(kpi.name())
+                        .append(" | ")
+                        .append(String.format(Locale.ROOT, "%.0f", kpi.value()))
+                        .append(kpi.unit())
+                        .append(" | **")
+                        .append(String.format(Locale.ROOT, "%.1f", contribution))
+                        .append("** (")
+                        .append(kpi.weight())
+                        .append("%)")
+                        .append(" | ")
+                        .append(statusIcon)
                         .append(" |\n");
             }
             // TOTAL row
-            String totalStatusIcon = switch (verdict.status()) {
-                case PASSED -> "\u2705";
-                case PASSED_WITH_WARNINGS -> "\u26A0\uFE0F";
-                case FAILED -> "\u274C";
-            };
+            String totalStatusIcon =
+                    switch (verdict.status()) {
+                        case PASSED -> "\u2705";
+                        case PASSED_WITH_WARNINGS -> "\u26A0\uFE0F";
+                        case FAILED -> "\u274C";
+                    };
             md.append("| **TOTAL** | | **")
-                    .append(String.format(Locale.ROOT, "%.1f", totalContribution)).append("** (").append(totalWeight).append("%)")
-                    .append(" | ").append(totalStatusIcon)
+                    .append(String.format(Locale.ROOT, "%.1f", totalContribution))
+                    .append("** (")
+                    .append(totalWeight)
+                    .append("%)")
+                    .append(" | ")
+                    .append(totalStatusIcon)
                     .append(" |\n");
             md.append("\n");
         }
@@ -122,7 +142,9 @@ public class MarkdownRenderer implements ReportRenderer {
         if (verdict.immediateAction().required()) {
             md.append("> **\u26A0\uFE0F Immediate Action Required:** ")
                     .append(verdict.immediateAction().message())
-                    .append(" [See issue](").append(verdict.immediateAction().reference()).append(")\n\n");
+                    .append(" [See issue](")
+                    .append(verdict.immediateAction().reference())
+                    .append(")\n\n");
         }
     }
 
@@ -159,12 +181,49 @@ public class MarkdownRenderer implements ReportRenderer {
             md.append("\n```\n\n");
         }
 
-        // Domain Model diagram
-        if (diagrams != null && diagrams.domainModel() != null) {
+        // Domain Model - one diagram per aggregate
+        if (diagrams != null) {
             md.append("### Domain Model\n\n");
-            md.append("```mermaid\n");
-            md.append(diagrams.domainModel());
-            md.append("\n```\n\n");
+            if (!diagrams.aggregateDiagrams().isEmpty()) {
+                for (DiagramSet.AggregateDiagram aggDiagram : diagrams.aggregateDiagrams()) {
+                    md.append("#### ").append(aggDiagram.aggregateName());
+                    if (aggDiagram.hasErrors()) {
+                        md.append(" :warning: **Cycle detected**");
+                    }
+                    md.append("\n\n");
+                    md.append("```mermaid\n");
+                    md.append(aggDiagram.diagram());
+                    md.append("\n```\n\n");
+                }
+            } else if (diagrams.domainModel() != null) {
+                md.append("```mermaid\n");
+                md.append(diagrams.domainModel());
+                md.append("\n```\n\n");
+            }
+
+            // Application Layer diagram (optional, since 5.0.0)
+            if (diagrams.applicationLayer() != null) {
+                md.append("### Application Layer\n\n");
+                md.append("```mermaid\n");
+                md.append(diagrams.applicationLayer());
+                md.append("\n```\n\n");
+            }
+
+            // Ports Layer diagram (optional, since 5.0.0)
+            if (diagrams.portsLayer() != null) {
+                md.append("### Ports Layer\n\n");
+                md.append("```mermaid\n");
+                md.append(diagrams.portsLayer());
+                md.append("\n```\n\n");
+            }
+
+            // Full Architecture diagram (optional, since 5.0.0)
+            if (diagrams.fullArchitecture() != null) {
+                md.append("### Full Architecture Overview\n\n");
+                md.append("```mermaid\n");
+                md.append(diagrams.fullArchitecture());
+                md.append("\n```\n\n");
+            }
         }
     }
 
@@ -219,17 +278,23 @@ public class MarkdownRenderer implements ReportRenderer {
     }
 
     private void renderIssue(StringBuilder md, IssueEntry issue) {
-        String severityBadge = switch (issue.severity()) {
-            case BLOCKER -> "\uD83D\uDED1";
-            case CRITICAL -> "\uD83D\uDD34";
-            case MAJOR -> "\uD83D\uDFE0";
-            case MINOR -> "\uD83D\uDFE1";
-            case INFO -> "\uD83D\uDD35";
-        };
+        String severityBadge =
+                switch (issue.severity()) {
+                    case BLOCKER -> "\uD83D\uDED1";
+                    case CRITICAL -> "\uD83D\uDD34";
+                    case MAJOR -> "\uD83D\uDFE0";
+                    case MINOR -> "\uD83D\uDFE1";
+                    case INFO -> "\uD83D\uDD35";
+                };
 
         // Issue header
-        md.append("#### ").append(severityBadge).append(" ")
-                .append(issue.title()).append(" `").append(issue.id()).append("`\n\n");
+        md.append("#### ")
+                .append(severityBadge)
+                .append(" ")
+                .append(issue.title())
+                .append(" `")
+                .append(issue.id())
+                .append("`\n\n");
 
         md.append("**Message:** ").append(issue.message()).append("\n\n");
         md.append("**Location:** `").append(issue.location().file());
@@ -257,7 +322,9 @@ public class MarkdownRenderer implements ReportRenderer {
             md.append("\n```\n\n");
         }
 
-        suggestion.effortOpt().ifPresent(e -> md.append("**Effort:** ").append(e).append("\n\n"));
+        suggestion
+                .effortOpt()
+                .ifPresent(e -> md.append("**Effort:** ").append(e).append("\n\n"));
 
         md.append("---\n\n");
     }
@@ -272,28 +339,79 @@ public class MarkdownRenderer implements ReportRenderer {
 
         md.append(remediation.summary()).append("\n\n");
 
-        // Total effort
+        // Effort summary table
         TotalEffort effort = remediation.totalEffort();
-        md.append("**Total Effort:** ").append(String.format(Locale.ROOT, "%.1f", effort.days())).append(" days");
-        effort.costOpt().ifPresent(cost ->
-                md.append(" (~").append(cost.currency()).append(" ")
-                        .append(String.format(Locale.ROOT, "%.0f", cost.amount())).append(")"));
-        md.append("\n\n");
-
-        // Actions table
-        md.append("| Priority | Action | Severity | Effort |\n");
-        md.append("|:--------:|--------|:--------:|-------:|\n");
-        for (RemediationAction action : remediation.actions()) {
-            md.append("| ").append(action.priority())
-                    .append(" | ").append(action.title())
-                    .append(" | ").append(action.severity())
-                    .append(" | ").append(String.format(Locale.ROOT, "%.1f", action.effort().days())).append("d |\n");
+        md.append("| | Manual | With HexaGlue | Savings |\n");
+        md.append("|---|-------:|-------:|-------:|\n");
+        md.append("| **Effort** | ")
+                .append(String.format(Locale.ROOT, "%.1f", effort.days()))
+                .append(" days");
+        md.append(" | ")
+                .append(String.format(Locale.ROOT, "%.1f", effort.effectiveDays()))
+                .append(" days");
+        md.append(" | ")
+                .append(String.format(Locale.ROOT, "%.1f", effort.hexaglueSavingsDays()))
+                .append(" days |\n");
+        if (effort.costOpt().isPresent()) {
+            CostEstimate manualCost = effort.cost();
+            md.append("| **Cost** | ")
+                    .append(String.format(Locale.ROOT, "%.0f", manualCost.amount()))
+                    .append(" ")
+                    .append(manualCost.currency());
+            effort.effectiveCostOpt().ifPresent(c -> md.append(" | ")
+                    .append(String.format(Locale.ROOT, "%.0f", c.amount()))
+                    .append(" ")
+                    .append(c.currency()));
+            effort.hexaglueSavingsCostOpt().ifPresent(c -> md.append(" | ")
+                    .append(String.format(Locale.ROOT, "%.0f", c.amount()))
+                    .append(" ")
+                    .append(c.currency())
+                    .append(" |"));
+            md.append("\n");
         }
+        md.append("\n");
+
+        // Actions table with Manual / HexaGlue / Plugin columns
+        md.append("| Action | Manual | HexaGlue | Plugin |\n");
+        md.append("|--------|-------:|-------:|:------:|\n");
+        for (RemediationAction action : remediation.actions()) {
+            md.append("| ").append(action.title());
+            if (action.isAutomatableByHexaglue()) {
+                md.append(" | ~~")
+                        .append(String.format(
+                                Locale.ROOT, "%.1f", action.effort().days()))
+                        .append("d~~");
+                md.append(" | **0d**");
+                md.append(" | `")
+                        .append(extractPluginShortName(action.hexagluePlugin()))
+                        .append("` |\n");
+            } else {
+                md.append(" | ")
+                        .append(String.format(
+                                Locale.ROOT, "%.1f", action.effort().days()))
+                        .append("d");
+                md.append(" | ")
+                        .append(String.format(
+                                Locale.ROOT, "%.1f", action.effort().days()))
+                        .append("d");
+                md.append(" | — |\n");
+            }
+        }
+        md.append("| **TOTAL** | ")
+                .append(String.format(Locale.ROOT, "%.1f", effort.days()))
+                .append("d");
+        md.append(" | **")
+                .append(String.format(Locale.ROOT, "%.1f", effort.effectiveDays()))
+                .append("d** | |\n");
         md.append("\n");
 
         // Detailed actions
         for (RemediationAction action : remediation.actions()) {
-            md.append("### ").append(action.priority()).append(". ").append(action.title()).append("\n\n");
+            md.append("### ")
+                    .append(action.priority())
+                    .append(". ")
+                    .append(action.title())
+                    .append("\n\n");
             md.append(action.description()).append("\n\n");
             md.append("**Impact:** ").append(action.impact()).append("\n\n");
 
@@ -305,6 +423,14 @@ public class MarkdownRenderer implements ReportRenderer {
                 md.append("\n");
             }
         }
+    }
+
+    private String extractPluginShortName(String pluginName) {
+        if (pluginName == null) return "";
+        if (pluginName.startsWith("hexaglue-plugin-")) {
+            return pluginName.substring("hexaglue-plugin-".length());
+        }
+        return pluginName;
     }
 
     private void renderAppendix(StringBuilder md, Appendix appendix, DiagramSet diagrams) {
@@ -328,14 +454,21 @@ public class MarkdownRenderer implements ReportRenderer {
             md.append("| Metric | Value | Status |\n");
             md.append("|--------|------:|:------:|\n");
             for (MetricEntry metric : appendix.metrics()) {
-                String status = switch (metric.status()) {
-                    case OK -> "\u2705";
-                    case WARNING -> "\u26A0\uFE0F";
-                    case CRITICAL -> "\u274C";
-                };
-                md.append("| ").append(metric.name())
-                        .append(" | ").append(String.format(Locale.ROOT, "%.2f", metric.value())).append(" ").append(metric.unit())
-                        .append(" | ").append(status).append(" |\n");
+                String status =
+                        switch (metric.status()) {
+                            case OK -> "\u2705";
+                            case WARNING -> "\u26A0\uFE0F";
+                            case CRITICAL -> "\u274C";
+                        };
+                md.append("| ")
+                        .append(metric.name())
+                        .append(" | ")
+                        .append(String.format(Locale.ROOT, "%.2f", metric.value()))
+                        .append(" ")
+                        .append(metric.unit())
+                        .append(" | ")
+                        .append(status)
+                        .append(" |\n");
             }
             md.append("\n");
         }
@@ -354,13 +487,20 @@ public class MarkdownRenderer implements ReportRenderer {
             md.append("| Package | Ca | Ce | I | A | D | Zone |\n");
             md.append("|---------|---:|---:|--:|--:|--:|------|\n");
             for (PackageMetric pm : appendix.packageMetrics()) {
-                md.append("| ").append(shortenPackage(pm.packageName()))
-                        .append(" | ").append(pm.ca())
-                        .append(" | ").append(pm.ce())
-                        .append(" | ").append(String.format(Locale.ROOT, "%.2f", pm.instability()))
-                        .append(" | ").append(String.format(Locale.ROOT, "%.2f", pm.abstractness()))
-                        .append(" | ").append(String.format(Locale.ROOT, "%.2f", pm.distance()))
-                        .append(" | ").append(pm.zone().label())
+                md.append("| ")
+                        .append(shortenPackage(pm.packageName()))
+                        .append(" | ")
+                        .append(pm.ca())
+                        .append(" | ")
+                        .append(pm.ce())
+                        .append(" | ")
+                        .append(String.format(Locale.ROOT, "%.2f", pm.instability()))
+                        .append(" | ")
+                        .append(String.format(Locale.ROOT, "%.2f", pm.abstractness()))
+                        .append(" | ")
+                        .append(String.format(Locale.ROOT, "%.2f", pm.distance()))
+                        .append(" | ")
+                        .append(pm.zone().label())
                         .append(" |\n");
             }
             md.append("\n");
@@ -369,10 +509,16 @@ public class MarkdownRenderer implements ReportRenderer {
 
     private void renderDimensionRow(StringBuilder md, String name, ScoreDimension dim) {
         int contribution = (int) Math.round(dim.weight() * dim.score() / 100.0);
-        md.append("| ").append(name)
-                .append(" | ").append(dim.weight()).append("%")
-                .append(" | ").append(dim.score()).append("/100")
-                .append(" | ").append(contribution)
+        md.append("| ")
+                .append(name)
+                .append(" | ")
+                .append(dim.weight())
+                .append("%")
+                .append(" | ")
+                .append(dim.score())
+                .append("/100")
+                .append(" | ")
+                .append(contribution)
                 .append(" |\n");
     }
 
@@ -380,7 +526,8 @@ public class MarkdownRenderer implements ReportRenderer {
         md.append("---\n\n");
         md.append("*Generated by [HexaGlue](https://hexaglue.io) ")
                 .append(metadata.hexaglueVersion())
-                .append(" | Plugin version: ").append(metadata.pluginVersion())
+                .append(" | Plugin version: ")
+                .append(metadata.pluginVersion())
                 .append("*\n");
     }
 

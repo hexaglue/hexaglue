@@ -76,6 +76,7 @@ class ValueObjectImmutabilityValidatorTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).constraintId().value()).isEqualTo("ddd:value-object-immutable");
         assertThat(violations.get(0).severity()).isEqualTo(Severity.CRITICAL);
+        assertThat(violations.get(0).affectedTypes()).containsExactly("com.example.domain.Money");
         assertThat(violations.get(0).message())
                 .contains("Money")
                 .contains("setter method")

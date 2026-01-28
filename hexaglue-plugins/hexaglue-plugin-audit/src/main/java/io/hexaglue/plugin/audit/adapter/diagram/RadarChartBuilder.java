@@ -52,8 +52,7 @@ radar-beta
     max 100
     axis ddd["DDD (%d%%)"], hex["Hexagonal (%d%%)"], dep["Dependencies (%d%%)"], cpl["Coupling (%d%%)"], coh["Cohesion (%d%%)"]
     curve target["Threshold"]{%d, %d, %d, %d, %d}
-    curve score["Current Score"]{%d, %d, %d, %d, %d}"""
-                .formatted(
+    curve score["Current Score"]{%d, %d, %d, %d, %d}""".formatted(
                         breakdown.dddCompliance().weight(),
                         breakdown.hexagonalCompliance().weight(),
                         breakdown.dependencyQuality().weight(),
@@ -96,8 +95,7 @@ radar-beta
     max 100
     axis ddd["DDD (%d%%)"], hex["Hexagonal (%d%%)"], dep["Dependencies (%d%%)"], cpl["Coupling (%d%%)"], coh["Cohesion (%d%%)"]
     curve target["Threshold"]{%d, %d, %d, %d, %d}
-    curve score["Current Score"]{%d, %d, %d, %d, %d}"""
-                .formatted(
+    curve score["Current Score"]{%d, %d, %d, %d, %d}""".formatted(
                         breakdown.dddCompliance().weight(),
                         breakdown.hexagonalCompliance().weight(),
                         breakdown.dependencyQuality().weight(),

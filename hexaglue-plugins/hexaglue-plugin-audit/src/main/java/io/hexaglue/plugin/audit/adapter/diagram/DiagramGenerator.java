@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.audit.adapter.diagram;
 
+import io.hexaglue.plugin.audit.domain.model.report.ComponentDetails;
 import io.hexaglue.plugin.audit.domain.model.report.DiagramSet;
 import io.hexaglue.plugin.audit.domain.model.report.ReportData;
 
@@ -22,6 +23,24 @@ import io.hexaglue.plugin.audit.domain.model.report.ReportData;
  * <p>This class coordinates the individual diagram builders to produce
  * a complete {@link DiagramSet} that can be shared between HTML and
  * Markdown renderers, ensuring diagram consistency across formats.
+ *
+ * <h2>Diagrams Generated</h2>
+ * <h3>Required (6 diagrams)</h3>
+ * <ul>
+ *   <li>{@code scoreRadar} - radar-beta chart for scores</li>
+ *   <li>{@code c4Context} - C4Context diagram</li>
+ *   <li>{@code c4Component} - C4Component diagram</li>
+ *   <li>{@code domainModel} - classDiagram for domain model</li>
+ *   <li>{@code violationsPie} - pie chart for violations</li>
+ *   <li>{@code packageZones} - quadrantChart for package metrics</li>
+ * </ul>
+ *
+ * <h3>Optional (since 5.0.0)</h3>
+ * <ul>
+ *   <li>{@code applicationLayer} - classDiagram for application services layer</li>
+ *   <li>{@code portsLayer} - classDiagram for ports layer</li>
+ *   <li>{@code fullArchitecture} - C4Component for full hexagonal architecture overview</li>
+ * </ul>
  *
  * @since 5.0.0
  */
@@ -33,6 +52,9 @@ public class DiagramGenerator {
     private final ClassDiagramBuilder classDiagramBuilder;
     private final PieChartBuilder pieChartBuilder;
     private final QuadrantChartBuilder quadrantChartBuilder;
+    private final ApplicationLayerDiagramBuilder applicationLayerBuilder;
+    private final PortsDiagramBuilder portsDiagramBuilder;
+    private final FullArchitectureDiagramBuilder fullArchitectureBuilder;
 
     /**
      * Creates a diagram generator with default builders.
@@ -44,11 +66,49 @@ public class DiagramGenerator {
                 new C4ComponentDiagramBuilder(),
                 new ClassDiagramBuilder(),
                 new PieChartBuilder(),
-                new QuadrantChartBuilder());
+                new QuadrantChartBuilder(),
+                new ApplicationLayerDiagramBuilder(),
+                new PortsDiagramBuilder(),
+                new FullArchitectureDiagramBuilder());
     }
 
     /**
      * Creates a diagram generator with custom builders.
+     *
+     * @param radarChartBuilder radar chart builder
+     * @param c4ContextBuilder C4 context diagram builder
+     * @param c4ComponentBuilder C4 component diagram builder
+     * @param classDiagramBuilder class diagram builder
+     * @param pieChartBuilder pie chart builder
+     * @param quadrantChartBuilder quadrant chart builder
+     * @param applicationLayerBuilder application layer diagram builder
+     * @param portsDiagramBuilder ports layer diagram builder
+     * @param fullArchitectureBuilder full architecture diagram builder
+     * @since 5.0.0 added applicationLayerBuilder, portsDiagramBuilder, and fullArchitectureBuilder
+     */
+    public DiagramGenerator(
+            RadarChartBuilder radarChartBuilder,
+            C4ContextDiagramBuilder c4ContextBuilder,
+            C4ComponentDiagramBuilder c4ComponentBuilder,
+            ClassDiagramBuilder classDiagramBuilder,
+            PieChartBuilder pieChartBuilder,
+            QuadrantChartBuilder quadrantChartBuilder,
+            ApplicationLayerDiagramBuilder applicationLayerBuilder,
+            PortsDiagramBuilder portsDiagramBuilder,
+            FullArchitectureDiagramBuilder fullArchitectureBuilder) {
+        this.radarChartBuilder = radarChartBuilder;
+        this.c4ContextBuilder = c4ContextBuilder;
+        this.c4ComponentBuilder = c4ComponentBuilder;
+        this.classDiagramBuilder = classDiagramBuilder;
+        this.pieChartBuilder = pieChartBuilder;
+        this.quadrantChartBuilder = quadrantChartBuilder;
+        this.applicationLayerBuilder = applicationLayerBuilder;
+        this.portsDiagramBuilder = portsDiagramBuilder;
+        this.fullArchitectureBuilder = fullArchitectureBuilder;
+    }
+
+    /**
+     * Creates a diagram generator with original builders (backward compatibility).
      *
      * @param radarChartBuilder radar chart builder
      * @param c4ContextBuilder C4 context diagram builder
@@ -64,12 +124,16 @@ public class DiagramGenerator {
             ClassDiagramBuilder classDiagramBuilder,
             PieChartBuilder pieChartBuilder,
             QuadrantChartBuilder quadrantChartBuilder) {
-        this.radarChartBuilder = radarChartBuilder;
-        this.c4ContextBuilder = c4ContextBuilder;
-        this.c4ComponentBuilder = c4ComponentBuilder;
-        this.classDiagramBuilder = classDiagramBuilder;
-        this.pieChartBuilder = pieChartBuilder;
-        this.quadrantChartBuilder = quadrantChartBuilder;
+        this(
+                radarChartBuilder,
+                c4ContextBuilder,
+                c4ComponentBuilder,
+                classDiagramBuilder,
+                pieChartBuilder,
+                quadrantChartBuilder,
+                new ApplicationLayerDiagramBuilder(),
+                new PortsDiagramBuilder(),
+                new FullArchitectureDiagramBuilder());
     }
 
     /**
@@ -77,7 +141,7 @@ public class DiagramGenerator {
      *
      * @param reportData the report data containing all structured information
      * @param projectName the project name for diagram titles
-     * @return complete diagram set with all 6 required diagrams
+     * @return complete diagram set with all required diagrams and optional layer diagrams
      */
     public DiagramSet generate(ReportData reportData, String projectName) {
         return DiagramSet.builder()
@@ -85,8 +149,12 @@ public class DiagramGenerator {
                 .c4Context(generateC4Context(reportData, projectName))
                 .c4Component(generateC4Component(reportData, projectName))
                 .domainModel(generateDomainModel(reportData))
+                .aggregateDiagrams(generateAggregateDiagrams(reportData))
                 .violationsPie(generateViolationsPie(reportData))
                 .packageZones(generatePackageZones(reportData))
+                .applicationLayer(generateApplicationLayer(reportData))
+                .portsLayer(generatePortsLayer(reportData))
+                .fullArchitecture(generateFullArchitecture(reportData, projectName))
                 .build();
     }
 
@@ -122,7 +190,19 @@ public class DiagramGenerator {
      */
     private String generateDomainModel(ReportData reportData) {
         return classDiagramBuilder.build(
-                reportData.architecture().components(), reportData.architecture().relationships());
+                reportData.architecture().components(),
+                reportData.architecture().relationships(),
+                reportData.architecture().typeViolations());
+    }
+
+    /**
+     * Generates individual diagrams for each aggregate.
+     * Currently returns empty list to use single combined domain model diagram.
+     */
+    private java.util.List<DiagramSet.AggregateDiagram> generateAggregateDiagrams(ReportData reportData) {
+        // Return empty list - use combined domainModel diagram instead
+        // Individual diagrams can cause issues with cross-aggregate references
+        return java.util.List.of();
     }
 
     /**
@@ -137,5 +217,70 @@ public class DiagramGenerator {
      */
     private String generatePackageZones(ReportData reportData) {
         return quadrantChartBuilder.build(reportData.appendix().packageMetrics());
+    }
+
+    /**
+     * Generates the application layer class diagram.
+     *
+     * <p>Shows application services, command handlers, and query handlers
+     * with their relationships to aggregates and ports.
+     *
+     * @param reportData the report data
+     * @return the Mermaid diagram, or null if no application layer components
+     * @since 5.0.0
+     */
+    private String generateApplicationLayer(ReportData reportData) {
+        ComponentDetails components = reportData.architecture().components();
+
+        // Skip if no application layer components
+        if (!components.hasApplicationLayer()) {
+            return null;
+        }
+
+        return applicationLayerBuilder.build(
+                components,
+                reportData.architecture().relationships(),
+                reportData.architecture().typeViolations());
+    }
+
+    /**
+     * Generates the ports layer class diagram.
+     *
+     * <p>Shows driving ports (inbound) and driven ports (outbound) with their
+     * adapter implementations.
+     *
+     * @param reportData the report data
+     * @return the Mermaid diagram, or null if no ports
+     * @since 5.0.0
+     */
+    private String generatePortsLayer(ReportData reportData) {
+        ComponentDetails components = reportData.architecture().components();
+
+        // Skip if no ports
+        if (!components.hasPortsLayer()) {
+            return null;
+        }
+
+        return portsDiagramBuilder.build(components, reportData.architecture().typeViolations());
+    }
+
+    /**
+     * Generates the full architecture C4Component diagram.
+     *
+     * <p>Shows the complete hexagonal architecture with all three layers:
+     * Driving Side (application services, driving ports), Domain Core (aggregates),
+     * and Driven Side (driven ports, adapters).
+     *
+     * @param reportData the report data
+     * @param projectName the project name for the diagram title
+     * @return the Mermaid C4Component diagram, or null if insufficient content
+     * @since 5.0.0
+     */
+    private String generateFullArchitecture(ReportData reportData, String projectName) {
+        return fullArchitectureBuilder.build(
+                projectName,
+                reportData.architecture().components(),
+                reportData.architecture().relationships(),
+                reportData.architecture().typeViolations());
     }
 }

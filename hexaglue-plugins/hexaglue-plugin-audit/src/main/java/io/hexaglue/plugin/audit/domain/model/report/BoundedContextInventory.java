@@ -25,12 +25,7 @@ import java.util.Objects;
  * @param domainEvents number of domain events
  * @since 5.0.0
  */
-public record BoundedContextInventory(
-        String name,
-        int aggregates,
-        int entities,
-        int valueObjects,
-        int domainEvents) {
+public record BoundedContextInventory(String name, int aggregates, int entities, int valueObjects, int domainEvents) {
 
     /**
      * Creates a bounded context inventory with validation.

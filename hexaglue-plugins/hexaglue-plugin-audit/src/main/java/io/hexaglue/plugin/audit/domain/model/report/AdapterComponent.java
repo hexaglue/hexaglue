@@ -24,11 +24,7 @@ import java.util.Objects;
  * @param type adapter type (DRIVING or DRIVEN)
  * @since 5.0.0
  */
-public record AdapterComponent(
-        String name,
-        String packageName,
-        String implementsPort,
-        AdapterType type) {
+public record AdapterComponent(String name, String packageName, String implementsPort, AdapterType type) {
 
     /**
      * Creates an adapter component with validation.

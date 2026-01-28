@@ -16,6 +16,7 @@ package io.hexaglue.plugin.audit.domain.model.report;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * A remediation action to fix one or more issues.
@@ -24,10 +25,11 @@ import java.util.Objects;
  * @param severity severity of the issues this action addresses
  * @param title short title of the action
  * @param description detailed description of what to do
- * @param effort estimated effort
+ * @param effort estimated effort (manual)
  * @param impact impact of completing this action
  * @param affectedTypes fully qualified names of affected types
  * @param relatedIssues IDs of related issues
+ * @param hexagluePlugin name of HexaGlue plugin that can automate this (null if manual only)
  * @since 5.0.0
  */
 public record RemediationAction(
@@ -38,7 +40,8 @@ public record RemediationAction(
         EffortEstimate effort,
         String impact,
         List<String> affectedTypes,
-        List<String> relatedIssues) {
+        List<String> relatedIssues,
+        String hexagluePlugin) {
 
     /**
      * Creates a remediation action with validation.
@@ -57,6 +60,33 @@ public record RemediationAction(
     }
 
     /**
+     * Checks if this action can be automated by a HexaGlue plugin.
+     *
+     * @return true if automatable
+     */
+    public boolean isAutomatableByHexaglue() {
+        return hexagluePlugin != null && !hexagluePlugin.isBlank();
+    }
+
+    /**
+     * Returns HexaGlue plugin name as optional.
+     *
+     * @return optional plugin name
+     */
+    public Optional<String> hexagluePluginOpt() {
+        return Optional.ofNullable(hexagluePlugin);
+    }
+
+    /**
+     * Returns the effective effort (0 if automatable by HexaGlue).
+     *
+     * @return effective effort in days
+     */
+    public double effectiveEffortDays() {
+        return isAutomatableByHexaglue() ? 0 : effort.days();
+    }
+
+    /**
      * Builder for RemediationAction.
      */
     public static class Builder {
@@ -68,6 +98,7 @@ public record RemediationAction(
         private String impact;
         private List<String> affectedTypes = List.of();
         private List<String> relatedIssues = List.of();
+        private String hexagluePlugin;
 
         public Builder priority(int priority) {
             this.priority = priority;
@@ -114,9 +145,22 @@ public record RemediationAction(
             return this;
         }
 
+        public Builder hexagluePlugin(String plugin) {
+            this.hexagluePlugin = plugin;
+            return this;
+        }
+
         public RemediationAction build() {
             return new RemediationAction(
-                    priority, severity, title, description, effort, impact, affectedTypes, relatedIssues);
+                    priority,
+                    severity,
+                    title,
+                    description,
+                    effort,
+                    impact,
+                    affectedTypes,
+                    relatedIssues,
+                    hexagluePlugin);
         }
     }
 

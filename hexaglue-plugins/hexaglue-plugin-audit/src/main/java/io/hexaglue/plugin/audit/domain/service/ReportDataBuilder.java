@@ -15,20 +15,34 @@ package io.hexaglue.plugin.audit.domain.service;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
+import io.hexaglue.arch.model.CommandHandler;
+import io.hexaglue.arch.model.DomainEvent;
+import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
+import io.hexaglue.arch.model.QueryHandler;
+import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.audit.AuditSnapshot;
 import io.hexaglue.arch.model.audit.BoundedContextInfo;
+import io.hexaglue.arch.model.graph.RelationType;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
+import io.hexaglue.plugin.audit.adapter.diagram.MermaidTypeConverter;
 import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.model.report.*;
-import io.hexaglue.arch.model.audit.AuditSnapshot;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.time.Duration;
 import java.time.Instant;
@@ -97,19 +111,14 @@ public class ReportDataBuilder {
 
         // Build metadata
         ReportMetadata metadata = new ReportMetadata(
-                projectName,
-                projectVersion,
-                Instant.now(),
-                formatDuration(duration),
-                hexaglueVersion,
-                pluginVersion);
+                projectName, projectVersion, Instant.now(), formatDuration(duration), hexaglueVersion, pluginVersion);
 
         // Calculate health score
         HealthScore healthScore = healthScoreCalculator.calculate(auditResult.violations(), architectureQuery);
 
         // Build sections
         Verdict verdict = buildVerdict(auditResult, healthScore);
-        ArchitectureOverview architecture = buildArchitecture(model, architectureQuery);
+        ArchitectureOverview architecture = buildArchitecture(model, architectureQuery, auditResult.violations());
         IssuesSummary issues = buildIssues(auditResult.violations());
         RemediationPlan remediation = buildRemediation(auditResult.violations(), issues);
         Appendix appendix = buildAppendix(healthScore, auditResult, architectureQuery);
@@ -153,8 +162,12 @@ public class ReportDataBuilder {
     }
 
     private String determineStatusReason(List<Violation> violations) {
-        long blockers = violations.stream().filter(v -> v.severity() == Severity.BLOCKER).count();
-        long criticals = violations.stream().filter(v -> v.severity() == Severity.CRITICAL).count();
+        long blockers = violations.stream()
+                .filter(v -> v.severity() == Severity.BLOCKER)
+                .count();
+        long criticals = violations.stream()
+                .filter(v -> v.severity() == Severity.CRITICAL)
+                .count();
 
         if (blockers > 0) {
             return blockers + " blocking issue" + (blockers > 1 ? "s" : "") + " found";
@@ -197,19 +210,24 @@ public class ReportDataBuilder {
         return ImmediateAction.none();
     }
 
-    private ArchitectureOverview buildArchitecture(ArchitecturalModel model, ArchitectureQuery architectureQuery) {
+    private ArchitectureOverview buildArchitecture(
+            ArchitecturalModel model, ArchitectureQuery architectureQuery, List<Violation> violations) {
         DomainIndex domainIndex = model.domainIndex().orElse(null);
         PortIndex portIndex = model.portIndex().orElse(null);
+        TypeRegistry registry = model.typeRegistry().orElse(null);
+        CompositionIndex compositionIndex = model.compositionIndex().orElse(null);
 
         // Build inventory
         List<BoundedContextInventory> bcInventories = new ArrayList<>();
         if (architectureQuery != null && domainIndex != null) {
             for (BoundedContextInfo bc : architectureQuery.findBoundedContexts()) {
                 // Count aggregates and value objects by filtering domain types belonging to this bounded context
-                int aggregateCount = (int) domainIndex.aggregateRoots()
+                int aggregateCount = (int) domainIndex
+                        .aggregateRoots()
                         .filter(ar -> bc.containsType(ar.id().qualifiedName()))
                         .count();
-                int voCount = (int) domainIndex.valueObjects()
+                int voCount = (int) domainIndex
+                        .valueObjects()
                         .filter(vo -> bc.containsType(vo.id().qualifiedName()))
                         .count();
                 bcInventories.add(new BoundedContextInventory(bc.name(), aggregateCount, 0, voCount, 0));
@@ -219,108 +237,400 @@ public class ReportDataBuilder {
         InventoryTotals totals = calculateTotals(domainIndex, portIndex);
         Inventory inventory = new Inventory(bcInventories, totals);
 
-        // Build component details
-        ComponentDetails components = buildComponentDetails(domainIndex, portIndex, architectureQuery);
+        // Build component details (including application layer from registry)
+        ComponentDetails components = buildComponentDetails(domainIndex, portIndex, registry);
 
-        // Build relationships
-        List<Relationship> relationships = buildRelationships(model, architectureQuery);
+        // Build relationships (cycles from violations + compositions from CompositionIndex)
+        List<Relationship> relationships = buildRelationships(violations, compositionIndex);
+
+        // Build type violations for diagram visualization
+        List<TypeViolation> typeViolations = buildTypeViolations(violations);
 
         String summary = String.format(
                 "Analyzed %d types across %d bounded context%s",
                 totals.total(), bcInventories.size(), bcInventories.size() != 1 ? "s" : "");
 
-        return new ArchitectureOverview(summary, inventory, components, DiagramsInfo.defaults(), relationships);
+        return new ArchitectureOverview(
+                summary, inventory, components, DiagramsInfo.defaults(), relationships, typeViolations);
     }
 
     private InventoryTotals calculateTotals(DomainIndex domainIndex, PortIndex portIndex) {
-        int aggregates = domainIndex != null ? (int) domainIndex.aggregateRoots().count() : 0;
+        int aggregates =
+                domainIndex != null ? (int) domainIndex.aggregateRoots().count() : 0;
         int entities = domainIndex != null ? (int) domainIndex.entities().count() : 0;
-        int valueObjects = domainIndex != null ? (int) domainIndex.valueObjects().count() : 0;
+        int valueObjects =
+                domainIndex != null ? (int) domainIndex.valueObjects().count() : 0;
         int identifiers = domainIndex != null ? (int) domainIndex.identifiers().count() : 0;
-        int domainEvents = domainIndex != null ? (int) domainIndex.domainEvents().count() : 0;
+        int domainEvents =
+                domainIndex != null ? (int) domainIndex.domainEvents().count() : 0;
         int drivingPorts = portIndex != null ? (int) portIndex.drivingPorts().count() : 0;
         int drivenPorts = portIndex != null ? (int) portIndex.drivenPorts().count() : 0;
 
-        return new InventoryTotals(aggregates, entities, valueObjects, identifiers, domainEvents, drivingPorts, drivenPorts);
+        return new InventoryTotals(
+                aggregates, entities, valueObjects, identifiers, domainEvents, drivingPorts, drivenPorts);
     }
 
     private ComponentDetails buildComponentDetails(
-            DomainIndex domainIndex, PortIndex portIndex, ArchitectureQuery architectureQuery) {
+            DomainIndex domainIndex, PortIndex portIndex, TypeRegistry registry) {
 
+        // Domain Layer components
         List<AggregateComponent> aggregates = new ArrayList<>();
+        List<EntityComponent> entities = new ArrayList<>();
         List<ValueObjectComponent> valueObjects = new ArrayList<>();
         List<IdentifierComponent> identifiers = new ArrayList<>();
+        List<DomainEventComponent> domainEvents = new ArrayList<>();
+        List<DomainServiceComponent> domainServices = new ArrayList<>();
+
+        // Application Layer components
+        List<ApplicationServiceComponent> applicationServices = new ArrayList<>();
+        List<CommandHandlerComponent> commandHandlers = new ArrayList<>();
+        List<QueryHandlerComponent> queryHandlers = new ArrayList<>();
+
+        // Ports Layer components
         List<PortComponent> drivingPorts = new ArrayList<>();
         List<PortComponent> drivenPorts = new ArrayList<>();
+
+        // Adapters
         List<AdapterComponent> adapters = new ArrayList<>();
 
         if (domainIndex != null) {
+            // Aggregates
             for (AggregateRoot agg : domainIndex.aggregateRoots().toList()) {
-                aggregates.add(new AggregateComponent(
+                List<FieldDetail> fieldDetails = extractFieldDetails(agg.structure());
+                List<MethodDetail> methodDetails = extractMethodDetails(agg.structure());
+                aggregates.add(AggregateComponent.of(
                         agg.id().simpleName(),
                         extractPackage(agg.id().qualifiedName()),
                         agg.structure().fields().size(),
                         List.of(), // References extracted from relationships
-                        List.of()  // Ports extracted from relationships
-                ));
+                        List.of(), // Ports extracted from relationships
+                        fieldDetails,
+                        methodDetails));
             }
 
+            // Entities
+            for (Entity entity : domainIndex.entities().toList()) {
+                String identityField = entity.identityField().map(f -> f.name()).orElse(null);
+                String owningAggregate = entity.owningAggregate()
+                        .map(ref -> extractSimpleName(ref.qualifiedName()))
+                        .orElse(null);
+                List<FieldDetail> fieldDetails = extractFieldDetails(entity.structure());
+                entities.add(EntityComponent.of(
+                        entity.id().simpleName(),
+                        extractPackage(entity.id().qualifiedName()),
+                        entity.structure().fields().size(),
+                        identityField,
+                        owningAggregate,
+                        fieldDetails));
+            }
+
+            // Value Objects
             for (ValueObject vo : domainIndex.valueObjects().toList()) {
-                valueObjects.add(new ValueObjectComponent(
-                        vo.id().simpleName(),
-                        extractPackage(vo.id().qualifiedName())));
+                List<FieldDetail> fieldDetails = extractFieldDetails(vo.structure());
+                valueObjects.add(ValueObjectComponent.of(
+                        vo.id().simpleName(), extractPackage(vo.id().qualifiedName()), fieldDetails));
             }
 
+            // Identifiers
             for (Identifier id : domainIndex.identifiers().toList()) {
                 identifiers.add(new IdentifierComponent(
                         id.id().simpleName(),
                         extractPackage(id.id().qualifiedName()),
                         id.wrappedType().qualifiedName()));
             }
+
+            // Domain Events
+            for (DomainEvent event : domainIndex.domainEvents().toList()) {
+                String publishedBy = event.sourceAggregate()
+                        .map(ref -> extractSimpleName(ref.qualifiedName()))
+                        .orElse(null);
+                domainEvents.add(DomainEventComponent.of(
+                        event.id().simpleName(),
+                        extractPackage(event.id().qualifiedName()),
+                        event.structure().fields().size(),
+                        publishedBy));
+            }
+
+            // Domain Services
+            for (DomainService svc : domainIndex.domainServices().toList()) {
+                List<String> usedAggregates = svc.injectedPorts().stream()
+                        .map(ref -> extractSimpleName(ref.qualifiedName()))
+                        .toList();
+                domainServices.add(DomainServiceComponent.of(
+                        svc.id().simpleName(),
+                        extractPackage(svc.id().qualifiedName()),
+                        svc.operations().size(),
+                        usedAggregates));
+            }
         }
 
+        // Application Layer from TypeRegistry
+        if (registry != null) {
+            // Application Services
+            for (ApplicationService svc : registry.all(ApplicationService.class).toList()) {
+                List<MethodDetail> methodDetails = extractMethodDetails(svc.structure());
+                applicationServices.add(ApplicationServiceComponent.of(
+                        svc.id().simpleName(),
+                        extractPackage(svc.id().qualifiedName()),
+                        svc.structure().methods().size(),
+                        List.of(), // orchestrates
+                        List.of(), // usesPorts
+                        methodDetails));
+            }
+
+            // Command Handlers
+            for (CommandHandler handler : registry.all(CommandHandler.class).toList()) {
+                commandHandlers.add(CommandHandlerComponent.of(
+                        handler.id().simpleName(), extractPackage(handler.id().qualifiedName())));
+            }
+
+            // Query Handlers
+            for (QueryHandler handler : registry.all(QueryHandler.class).toList()) {
+                queryHandlers.add(QueryHandlerComponent.of(
+                        handler.id().simpleName(), extractPackage(handler.id().qualifiedName())));
+            }
+        }
+
+        // Ports Layer from PortIndex
         if (portIndex != null) {
             for (DrivingPort port : portIndex.drivingPorts().toList()) {
+                List<MethodDetail> methodDetails = extractMethodDetails(port.structure());
                 drivingPorts.add(PortComponent.driving(
                         port.id().simpleName(),
                         extractPackage(port.id().qualifiedName()),
                         port.structure().methods().size(),
                         false,
                         null,
-                        List.of()));
+                        List.of(),
+                        methodDetails));
             }
 
             for (DrivenPort port : portIndex.drivenPorts().toList()) {
+                List<MethodDetail> methodDetails = extractMethodDetails(port.structure());
                 drivenPorts.add(PortComponent.driven(
                         port.id().simpleName(),
                         extractPackage(port.id().qualifiedName()),
                         port.portType().name(),
                         port.structure().methods().size(),
                         false,
-                        null));
+                        null,
+                        methodDetails));
             }
         }
 
-        return new ComponentDetails(aggregates, valueObjects, identifiers, drivingPorts, drivenPorts, adapters);
+        return new ComponentDetails(
+                aggregates,
+                entities,
+                valueObjects,
+                identifiers,
+                domainEvents,
+                domainServices,
+                applicationServices,
+                commandHandlers,
+                queryHandlers,
+                drivingPorts,
+                drivenPorts,
+                adapters);
     }
 
-    private List<Relationship> buildRelationships(ArchitecturalModel model, ArchitectureQuery architectureQuery) {
+    /**
+     * Builds relationships from violations and composition index.
+     *
+     * <p>This method combines:
+     * <ul>
+     *   <li>Cycle relationships from violations (ddd:aggregate-cycle)</li>
+     *   <li>Composition relationships from CompositionIndex (OWNS, CONTAINS, REFERENCES)</li>
+     * </ul>
+     *
+     * @param violations list of audit violations
+     * @param compositionIndex composition index for cross-package relationships (may be null)
+     * @return list of relationships for diagram rendering
+     * @since 5.0.0
+     */
+    private List<Relationship> buildRelationships(List<Violation> violations, CompositionIndex compositionIndex) {
         List<Relationship> relationships = new ArrayList<>();
+        Set<String> addedRelationships = new HashSet<>();
 
-        if (architectureQuery != null) {
-            // Find dependency cycles (type-level cycles can indicate aggregate cycles)
-            var cycles = architectureQuery.findDependencyCycles();
-            for (var cycle : cycles) {
-                List<String> path = cycle.path();
-                for (int i = 0; i < path.size() - 1; i++) {
-                    String from = simpleName(path.get(i));
-                    String to = simpleName(path.get(i + 1));
-                    relationships.add(Relationship.cycle(from, to, "references"));
+        // 1. Add cycle relationships from violations (ddd:aggregate-cycle)
+        for (Violation violation : violations) {
+            if ("ddd:aggregate-cycle".equals(violation.constraintId().value())) {
+                // Extract cycle path from violation message
+                // Format: "Circular dependency between aggregates: A -> B -> A"
+                String message = violation.message();
+                List<String> cyclePath = extractCyclePathFromMessage(message);
+
+                for (int i = 0; i < cyclePath.size() - 1; i++) {
+                    String from = cyclePath.get(i);
+                    String to = cyclePath.get(i + 1);
+                    String key = from + "->" + to;
+                    String reverseKey = to + "->" + from;
+
+                    // Avoid duplicate relationships
+                    if (!addedRelationships.contains(key) && !addedRelationships.contains(reverseKey)) {
+                        relationships.add(Relationship.cycle(from, to, "references"));
+                        addedRelationships.add(key);
+                    }
                 }
             }
         }
 
+        // 2. Add composition relationships from CompositionIndex (cross-package support)
+        if (compositionIndex != null) {
+            compositionIndex.graph().all().forEach(rel -> {
+                String from = rel.source().simpleName();
+                String to = rel.target().simpleName();
+                String key = from + "->" + to;
+
+                // Skip if already added (cycles take priority)
+                if (addedRelationships.contains(key)) {
+                    return;
+                }
+
+                // Map RelationType to relationship type string
+                String type = mapRelationTypeToString(rel.type());
+                if (type != null) {
+                    relationships.add(Relationship.of(from, to, type));
+                    addedRelationships.add(key);
+                }
+            });
+        }
+
         return relationships;
+    }
+
+    /**
+     * Maps a RelationType to a string for diagram rendering.
+     *
+     * @param relationType the relation type from the model
+     * @return the string representation for diagrams, or null if not mappable
+     * @since 5.0.0
+     */
+    private String mapRelationTypeToString(RelationType relationType) {
+        return switch (relationType) {
+            case OWNS -> "owns";
+            case CONTAINS -> "contains";
+            case REFERENCES -> "references";
+            case DEPENDS_ON -> "uses";
+            case PERSISTS -> "persists-via";
+            case EMITS -> "emits";
+            case IMPLEMENTS -> "implements";
+            case EXTENDS -> "extends";
+            case EXPOSES -> "exposes";
+            case ADAPTS -> "adapts";
+            case HANDLES -> "handles";
+        };
+    }
+
+    /**
+     * Extracts cycle path from violation message.
+     * Expected format: "Circular dependency between aggregates: A -> B -> A"
+     */
+    private List<String> extractCyclePathFromMessage(String message) {
+        List<String> path = new ArrayList<>();
+        int colonIndex = message.lastIndexOf(':');
+        if (colonIndex >= 0 && colonIndex < message.length() - 1) {
+            String cycleInfo = message.substring(colonIndex + 1).trim();
+            // Split by " -> "
+            String[] parts = cycleInfo.split("\\s*->\\s*");
+            for (String part : parts) {
+                String trimmed = part.trim();
+                if (!trimmed.isEmpty()) {
+                    path.add(trimmed);
+                }
+            }
+        }
+        return path;
+    }
+
+    /**
+     * Builds type violations for diagram visualization.
+     * Extracts violations that affect specific types for visual highlighting.
+     *
+     * <p>Supports all 11 violation types:
+     * <ul>
+     *   <li>DDD: MUTABLE_VALUE_OBJECT, IMPURE_DOMAIN, BOUNDARY_VIOLATION, MISSING_IDENTITY,
+     *       MISSING_REPOSITORY, EVENT_NAMING</li>
+     *   <li>Hexagonal: PORT_UNCOVERED, DEPENDENCY_INVERSION, LAYER_VIOLATION, PORT_NOT_INTERFACE</li>
+     * </ul>
+     *
+     * @since 5.0.0
+     */
+    private List<TypeViolation> buildTypeViolations(List<Violation> violations) {
+        List<TypeViolation> typeViolations = new ArrayList<>();
+        Set<String> addedTypes = new HashSet<>();
+
+        for (Violation violation : violations) {
+            String constraintId = violation.constraintId().value();
+
+            // Process each affected type
+            for (String qualifiedName : violation.affectedTypes()) {
+                String typeName = extractSimpleName(qualifiedName);
+                if (typeName.isEmpty()) {
+                    continue;
+                }
+
+                // Skip if already added for this type with same violation type
+                String key = typeName + ":" + constraintId;
+                if (addedTypes.contains(key)) {
+                    continue;
+                }
+
+                TypeViolation typeViolation = mapConstraintToTypeViolation(constraintId, typeName);
+                if (typeViolation != null) {
+                    typeViolations.add(typeViolation);
+                    addedTypes.add(key);
+                }
+            }
+        }
+
+        return typeViolations;
+    }
+
+    /**
+     * Maps a constraint ID to a TypeViolation.
+     *
+     * <p>Supports all 11 constraint IDs for diagram visualization:
+     * <ul>
+     *   <li>DDD constraints: value-object-immutable, domain-purity, aggregate-boundary,
+     *       entity-identity, aggregate-repository, event-naming</li>
+     *   <li>Hexagonal constraints: port-coverage, dependency-inversion, layer-isolation,
+     *       port-interface</li>
+     * </ul>
+     *
+     * @param constraintId the constraint ID from the violation
+     * @param typeName the simple name of the affected type
+     * @return a TypeViolation or null if the constraint is not visualized
+     * @since 5.0.0
+     */
+    private static TypeViolation mapConstraintToTypeViolation(String constraintId, String typeName) {
+        return switch (constraintId) {
+            // DDD violations (existing)
+            case "ddd:value-object-immutable" -> TypeViolation.mutableValueObject(typeName);
+            case "ddd:domain-purity" -> TypeViolation.impureDomain(typeName);
+            case "ddd:aggregate-boundary" -> TypeViolation.boundaryViolation(typeName);
+            // DDD violations (new)
+            case "ddd:entity-identity" -> TypeViolation.missingIdentity(typeName);
+            case "ddd:aggregate-repository" -> TypeViolation.missingRepository(typeName);
+            case "ddd:event-naming" -> TypeViolation.eventNaming(typeName);
+            // Hexagonal violations (new)
+            case "hexagonal:port-coverage" -> TypeViolation.portUncovered(typeName);
+            case "hexagonal:dependency-inversion" -> TypeViolation.dependencyInversion(typeName);
+            case "hexagonal:layer-isolation" -> TypeViolation.layerViolation(typeName);
+            case "hexagonal:port-interface" -> TypeViolation.portNotInterface(typeName);
+            // aggregate-cycle is handled separately in buildRelationships
+            default -> null;
+        };
+    }
+
+    /**
+     * Extracts simple name from qualified name.
+     */
+    private String extractSimpleName(String qualifiedName) {
+        if (qualifiedName == null || qualifiedName.isEmpty()) {
+            return "";
+        }
+        int lastDot = qualifiedName.lastIndexOf('.');
+        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
     }
 
     private IssuesSummary buildIssues(List<Violation> violations) {
@@ -329,24 +639,18 @@ public class ReportDataBuilder {
         }
 
         // Enrich violations
-        List<IssueEntry> entries = violations.stream()
-                .map(issueEnricher::enrich)
-                .toList();
+        List<IssueEntry> entries =
+                violations.stream().map(issueEnricher::enrich).toList();
 
         // Group by theme
-        Map<String, List<IssueEntry>> byTheme = entries.stream()
-                .collect(Collectors.groupingBy(this::determineTheme));
+        Map<String, List<IssueEntry>> byTheme = entries.stream().collect(Collectors.groupingBy(this::determineTheme));
 
         List<IssueGroup> groups = new ArrayList<>();
         for (var entry : byTheme.entrySet()) {
             String theme = entry.getKey();
             List<IssueEntry> themeViolations = entry.getValue();
-            groups.add(IssueGroup.of(
-                    themeId(theme),
-                    theme,
-                    themeIcon(theme),
-                    themeDescription(theme),
-                    themeViolations));
+            groups.add(
+                    IssueGroup.of(themeId(theme), theme, themeIcon(theme), themeDescription(theme), themeViolations));
         }
 
         // Sort groups by severity (most severe first)
@@ -392,10 +696,7 @@ public class ReportDataBuilder {
     }
 
     private int maxSeverity(List<IssueEntry> entries) {
-        return entries.stream()
-                .mapToInt(e -> e.severity().ordinal())
-                .min()
-                .orElse(Integer.MAX_VALUE);
+        return entries.stream().mapToInt(e -> e.severity().ordinal()).min().orElse(Integer.MAX_VALUE);
     }
 
     private RemediationPlan buildRemediation(List<Violation> violations, IssuesSummary issues) {
@@ -405,6 +706,7 @@ public class ReportDataBuilder {
 
         List<RemediationAction> actions = new ArrayList<>();
         double totalDays = 0;
+        double hexaglueSavingsDays = 0;
 
         // Group issues by corrective action
         Map<String, List<IssueEntry>> byCorrection = issues.allIssues().stream()
@@ -418,17 +720,22 @@ public class ReportDataBuilder {
             List<IssueEntry> relatedIssues = entry.getValue();
             IssueEntry first = relatedIssues.get(0);
 
-            double effortDays = parseEffort(first.suggestion().effortOpt().orElse("1 day"));
+            double effortPerInstance =
+                    parseEffort(first.suggestion().effortOpt().orElse("1 day"));
+            double effortDays = effortPerInstance * relatedIssues.size();
             totalDays += effortDays;
+
+            // Track HexaGlue savings for automatable actions
+            if (first.suggestion().isAutomatableByHexaglue()) {
+                hexaglueSavingsDays += effortDays;
+            }
 
             List<String> affectedTypes = relatedIssues.stream()
                     .map(e -> e.location().type())
                     .distinct()
                     .toList();
 
-            List<String> issueIds = relatedIssues.stream()
-                    .map(IssueEntry::id)
-                    .toList();
+            List<String> issueIds = relatedIssues.stream().map(IssueEntry::id).toList();
 
             actions.add(RemediationAction.builder()
                     .priority(priority++)
@@ -439,16 +746,24 @@ public class ReportDataBuilder {
                     .impact("Resolves " + relatedIssues.size() + " issue(s)")
                     .affectedTypes(affectedTypes)
                     .relatedIssues(issueIds)
+                    .hexagluePlugin(first.suggestion().hexagluePluginOpt().orElse(null))
                     .build());
         }
 
-        String summary = String.format(
-                "%d action%s required to achieve compliance. Estimated total effort: %.1f days.",
-                actions.size(),
-                actions.size() != 1 ? "s" : "",
-                totalDays);
+        String summary;
+        if (hexaglueSavingsDays > 0) {
+            double effectiveDays = totalDays - hexaglueSavingsDays;
+            summary = String.format(
+                    "%d action%s required. Manual effort: %.1f days. With HexaGlue: %.1f days (saves %.1f days).",
+                    actions.size(), actions.size() != 1 ? "s" : "", totalDays, effectiveDays, hexaglueSavingsDays);
+        } else {
+            summary = String.format(
+                    "%d action%s required to achieve compliance. Estimated total effort: %.1f days.",
+                    actions.size(), actions.size() != 1 ? "s" : "", totalDays);
+        }
 
-        TotalEffort totalEffort = TotalEffort.withCost(totalDays, DEFAULT_DAILY_RATE, DEFAULT_CURRENCY);
+        TotalEffort totalEffort =
+                TotalEffort.withSavings(totalDays, hexaglueSavingsDays, DEFAULT_DAILY_RATE, DEFAULT_CURRENCY);
 
         return new RemediationPlan(summary, actions, totalEffort);
     }
@@ -462,7 +777,8 @@ public class ReportDataBuilder {
         }
     }
 
-    private Appendix buildAppendix(HealthScore healthScore, AuditResult auditResult, ArchitectureQuery architectureQuery) {
+    private Appendix buildAppendix(
+            HealthScore healthScore, AuditResult auditResult, ArchitectureQuery architectureQuery) {
         ScoreBreakdown breakdown = new ScoreBreakdown(
                 ScoreDimension.of(25, healthScore.dddCompliance()),
                 ScoreDimension.of(25, healthScore.hexCompliance()),
@@ -480,9 +796,10 @@ public class ReportDataBuilder {
                             m.name(),
                             m.value(),
                             m.unit(),
-                            m.threshold().map(t -> new MetricEntry.MetricThreshold(
-                                    t.min().orElse(null),
-                                    t.max().orElse(null))).orElse(null),
+                            m.threshold()
+                                    .map(t -> new MetricEntry.MetricThreshold(
+                                            t.min().orElse(null), t.max().orElse(null)))
+                                    .orElse(null),
                             m.exceedsThreshold() ? KpiStatus.CRITICAL : KpiStatus.OK);
                 })
                 .toList();
@@ -533,8 +850,114 @@ public class ReportDataBuilder {
         return lastDot > 0 ? qualifiedName.substring(0, lastDot) : "";
     }
 
-    private String simpleName(String qualifiedName) {
-        int lastDot = qualifiedName.lastIndexOf('.');
-        return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;
+    /**
+     * Extracts field details from a type structure for diagram rendering.
+     *
+     * @param structure the type structure
+     * @return list of field details
+     * @since 5.0.0
+     */
+    private List<FieldDetail> extractFieldDetails(TypeStructure structure) {
+        if (structure == null) {
+            return List.of();
+        }
+        return structure.fields().stream().map(this::toFieldDetail).toList();
+    }
+
+    /**
+     * Converts an arch model Field to a FieldDetail for diagram rendering.
+     *
+     * @param field the field from type structure
+     * @return the field detail
+     * @since 5.0.0
+     */
+    private FieldDetail toFieldDetail(Field field) {
+        String typeMermaid = MermaidTypeConverter.convert(field.type());
+        String visibility = MermaidTypeConverter.visibilitySymbol(field.modifiers());
+        boolean isStatic = MermaidTypeConverter.isStatic(field.modifiers());
+        return FieldDetail.of(field.name(), typeMermaid, visibility, isStatic);
+    }
+
+    /**
+     * Extracts method details from a type structure for diagram rendering.
+     *
+     * <p>Filters out:
+     * <ul>
+     *   <li>Getters (isGetter())</li>
+     *   <li>Setters (isSetter())</li>
+     *   <li>Object methods (equals, hashCode, toString)</li>
+     *   <li>Factory methods (typically static of/from methods)</li>
+     *   <li>Non-public methods</li>
+     * </ul>
+     *
+     * @param structure the type structure
+     * @return list of method details for public business methods
+     * @since 5.0.0
+     */
+    private List<MethodDetail> extractMethodDetails(TypeStructure structure) {
+        if (structure == null) {
+            return List.of();
+        }
+        return structure.methods().stream()
+                .filter(this::isPublicBusinessMethod)
+                .map(this::toMethodDetail)
+                .toList();
+    }
+
+    /**
+     * Determines if a method is a public business method suitable for diagram display.
+     *
+     * <p>Excludes:
+     * <ul>
+     *   <li>Non-public methods</li>
+     *   <li>Getters and setters</li>
+     *   <li>Object methods (equals, hashCode, toString)</li>
+     *   <li>Factory methods (static of/from/create methods)</li>
+     * </ul>
+     *
+     * @param method the method to check
+     * @return true if this is a business method to display
+     * @since 5.0.0
+     */
+    private boolean isPublicBusinessMethod(Method method) {
+        // Must be public
+        if (!method.isPublic()) {
+            return false;
+        }
+        // Exclude getters, setters, object methods
+        if (method.isGetter() || method.isSetter() || method.isObjectMethod()) {
+            return false;
+        }
+        // Exclude factory methods
+        if (method.hasRole(MethodRole.FACTORY)) {
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Converts an arch model Method to a MethodDetail for diagram rendering.
+     *
+     * @param method the method from type structure
+     * @return the method detail
+     * @since 5.0.0
+     */
+    private MethodDetail toMethodDetail(Method method) {
+        // Build signature: (ParamType1, ParamType2): ReturnType
+        StringBuilder signature = new StringBuilder("(");
+        for (int i = 0; i < method.parameters().size(); i++) {
+            if (i > 0) {
+                signature.append(", ");
+            }
+            signature.append(
+                    MermaidTypeConverter.convert(method.parameters().get(i).type()));
+        }
+        signature.append("): ");
+        signature.append(MermaidTypeConverter.convert(method.returnType()));
+
+        String visibility = MermaidTypeConverter.visibilitySymbol(method.modifiers());
+        boolean isStatic = MermaidTypeConverter.isStatic(method.modifiers());
+
+        return MethodDetail.of(method.name(), signature.toString(), visibility, isStatic);
     }
 }
