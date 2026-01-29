@@ -21,11 +21,13 @@ import io.hexaglue.arch.model.Constructor;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.SourceReference;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.JavaModifier;
+import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.frontend.TypeRef;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.ConstructorNode;
@@ -429,6 +431,194 @@ class TypeStructureBuilderTest {
             assertThatThrownBy(() -> builder.build(typeNode, null))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("context");
+        }
+    }
+
+    @Nested
+    @DisplayName("Propagate Documentation")
+    class PropagateDocumentation {
+
+        @Test
+        @DisplayName("should propagate type documentation")
+        void shouldPropagateTypeDocumentation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .documentation("An order entity")
+                    .build();
+            BuilderContext context = createContext(typeNode);
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.documentation()).isPresent();
+            assertThat(structure.documentation().get()).contains("An order entity");
+        }
+
+        @Test
+        @DisplayName("should return empty documentation when absent")
+        void shouldReturnEmptyDocumentationWhenAbsent() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            BuilderContext context = createContext(typeNode);
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.documentation()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should propagate field documentation")
+        void shouldPropagateFieldDocumentation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            FieldNode field = FieldNode.builder()
+                    .simpleName("id")
+                    .declaringTypeName("com.example.Order")
+                    .type(TypeRef.of("java.util.UUID"))
+                    .documentation("The order ID")
+                    .build();
+            BuilderContext context = createContextWithFields(typeNode, List.of(field));
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.fields()).hasSize(1);
+            assertThat(structure.fields().get(0).documentation()).isPresent();
+            assertThat(structure.fields().get(0).documentation().get()).contains("The order ID");
+        }
+
+        @Test
+        @DisplayName("should propagate method documentation")
+        void shouldPropagateMethodDocumentation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            MethodNode method = MethodNode.builder()
+                    .simpleName("findOrder")
+                    .declaringTypeName("com.example.Order")
+                    .returnType(TypeRef.of("com.example.Order"))
+                    .parameters(List.of())
+                    .documentation("Finds an order")
+                    .build();
+            BuilderContext context = createContextWithMethods(typeNode, List.of(method));
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.methods()).hasSize(1);
+            assertThat(structure.methods().get(0).documentation()).isPresent();
+            assertThat(structure.methods().get(0).documentation().get()).contains("Finds an order");
+        }
+    }
+
+    @Nested
+    @DisplayName("Propagate SourceLocation")
+    class PropagateSourceLocation {
+
+        @Test
+        @DisplayName("should propagate type source location")
+        void shouldPropagateTypeSourceLocation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .sourceRef(SourceRef.ofLine("Order.java", 10))
+                    .build();
+            BuilderContext context = createContext(typeNode);
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.sourceLocation()).isPresent();
+            SourceReference ref = structure.sourceLocation().get();
+            assertThat(ref.filePath()).isEqualTo("Order.java");
+            assertThat(ref.lineStart()).isEqualTo(10);
+        }
+
+        @Test
+        @DisplayName("should return empty source location when absent")
+        void shouldReturnEmptySourceLocationWhenAbsent() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            BuilderContext context = createContext(typeNode);
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.sourceLocation()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should propagate field source location")
+        void shouldPropagateFieldSourceLocation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            FieldNode field = FieldNode.builder()
+                    .simpleName("id")
+                    .declaringTypeName("com.example.Order")
+                    .type(TypeRef.of("java.util.UUID"))
+                    .sourceRef(SourceRef.ofLine("Order.java", 20))
+                    .build();
+            BuilderContext context = createContextWithFields(typeNode, List.of(field));
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.fields()).hasSize(1);
+            assertThat(structure.fields().get(0).sourceLocation()).isPresent();
+            SourceReference ref = structure.fields().get(0).sourceLocation().get();
+            assertThat(ref.lineStart()).isEqualTo(20);
+        }
+
+        @Test
+        @DisplayName("should propagate method source location")
+        void shouldPropagateMethodSourceLocation() {
+            // given
+            TypeNode typeNode = TypeNode.builder()
+                    .qualifiedName("com.example.Order")
+                    .form(JavaForm.CLASS)
+                    .build();
+            MethodNode method = MethodNode.builder()
+                    .simpleName("findOrder")
+                    .declaringTypeName("com.example.Order")
+                    .returnType(TypeRef.of("com.example.Order"))
+                    .parameters(List.of())
+                    .sourceRef(SourceRef.ofLine("Order.java", 30))
+                    .build();
+            BuilderContext context = createContextWithMethods(typeNode, List.of(method));
+
+            // when
+            TypeStructure structure = builder.build(typeNode, context);
+
+            // then
+            assertThat(structure.methods()).hasSize(1);
+            assertThat(structure.methods().get(0).sourceLocation()).isPresent();
+            SourceReference ref = structure.methods().get(0).sourceLocation().get();
+            assertThat(ref.lineStart()).isEqualTo(30);
         }
     }
 

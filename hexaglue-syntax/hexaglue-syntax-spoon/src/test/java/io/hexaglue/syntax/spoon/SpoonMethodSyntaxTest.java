@@ -230,4 +230,41 @@ class SpoonMethodSyntaxTest {
             assertThat(syntax.sourceLocation().line()).isGreaterThan(0);
         }
     }
+
+    @Nested
+    @DisplayName("Documentation")
+    class DocumentationTest {
+
+        @Test
+        @DisplayName("should return documentation when present")
+        void shouldReturnDocumentationWhenPresent() {
+            // given
+            CtClass<?> ctClass = model.getElements(
+                            (CtClass<?> c) -> c.getSimpleName().equals("DocumentedClass"))
+                    .get(0);
+            CtMethod<?> method = ctClass.getMethodsByName("getDocumentedField").get(0);
+            MethodSyntax syntax = new SpoonMethodSyntax(method);
+
+            // then
+            assertThat(syntax.documentation()).isPresent();
+            assertThat(syntax.documentation().get()).contains("documented field");
+            assertThat(syntax.documentation().get()).doesNotContain("@param");
+            assertThat(syntax.documentation().get()).doesNotContain("@return");
+        }
+
+        @Test
+        @DisplayName("should return empty when no documentation")
+        void shouldReturnEmptyWhenNoDocumentation() {
+            // given
+            CtClass<?> ctClass = model.getElements(
+                            (CtClass<?> c) -> c.getSimpleName().equals("DocumentedClass"))
+                    .get(0);
+            CtMethod<?> method =
+                    ctClass.getMethodsByName("getUndocumentedField").get(0);
+            MethodSyntax syntax = new SpoonMethodSyntax(method);
+
+            // then
+            assertThat(syntax.documentation()).isEmpty();
+        }
+    }
 }
