@@ -3,7 +3,14 @@ package com.example.ecommerce.domain.customer;
 import java.util.Objects;
 
 /**
- * Value object representing a postal address.
+ * Value object representing a postal address used for billing and shipping.
+ *
+ * <p>An Address is an immutable record composed of street, city, postal code, and
+ * country. It supports formatting as a full address string and country-based queries.
+ * Wither methods allow creating modified copies without breaking immutability.
+ *
+ * <p>A Customer may have multiple addresses and designate one as the default
+ * billing address and another as the default shipping address.
  */
 public record Address(
         String street,

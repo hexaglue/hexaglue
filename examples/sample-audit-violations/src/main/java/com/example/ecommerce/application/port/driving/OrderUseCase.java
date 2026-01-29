@@ -9,8 +9,12 @@ import com.example.ecommerce.domain.order.Money;
 import java.util.List;
 
 /**
- * Driving port (use case interface) for order operations.
- * This is a proper port - it's an interface.
+ * Driving port defining the order management use cases exposed to external actors.
+ *
+ * <p>This interface covers the full order lifecycle: creation, line item addition,
+ * placement, payment confirmation, shipping, cancellation, and retrieval.
+ * It is implemented by {@link com.example.ecommerce.application.service.OrderApplicationService}
+ * and consumed by web controllers and other driving adapters.
  */
 public interface OrderUseCase {
 

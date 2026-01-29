@@ -7,7 +7,12 @@ import com.example.ecommerce.domain.customer.CustomerId;
 import com.example.ecommerce.domain.customer.Email;
 
 /**
- * REST controller for customer operations.
+ * REST controller serving as a driving adapter for customer management operations.
+ *
+ * <p>This controller translates HTTP requests into calls to the {@link CustomerUseCase}
+ * driving port, handling string-to-value-object conversions for identifiers and email
+ * addresses. It exposes registration, profile retrieval, profile updates, address
+ * management, and email verification endpoints.
  */
 public class CustomerController {
 

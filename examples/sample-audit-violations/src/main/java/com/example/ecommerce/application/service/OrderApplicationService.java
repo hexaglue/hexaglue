@@ -14,11 +14,17 @@ import com.example.ecommerce.infrastructure.persistence.JpaOrderRepository;
 import java.util.List;
 
 /**
- * Application service implementing order use cases.
+ * Application service orchestrating the complete order lifecycle.
  *
- * AUDIT VIOLATION: hex:dependency-inversion
+ * <p>This service implements the {@link OrderUseCase} driving port and coordinates
+ * order creation, line item management, placement, payment confirmation via the
+ * payment gateway, shipping, and cancellation. It retrieves and persists orders
+ * through the repository port.
+ *
+ * <p>AUDIT VIOLATION: hex:dependency-inversion.
  * This application service depends directly on the concrete JpaOrderRepository
- * instead of depending only on the OrderRepository interface.
+ * instead of depending only on the OrderRepository port interface, breaking
+ * the dependency inversion principle of hexagonal architecture.
  */
 public class OrderApplicationService implements OrderUseCase {
 

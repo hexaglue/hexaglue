@@ -10,7 +10,12 @@ import java.util.Map;
 import java.util.Optional;
 
 /**
- * JPA implementation of the CustomerRepository port.
+ * JPA-based driven adapter implementing the {@link CustomerRepository} port.
+ *
+ * <p>This adapter provides customer persistence using in-memory HashMap storage
+ * with a secondary index on email addresses for efficient email-based lookups
+ * and uniqueness validation. In a production environment, this would delegate
+ * to JPA's EntityManager for database operations.
  */
 public class JpaCustomerRepository implements CustomerRepository {
 

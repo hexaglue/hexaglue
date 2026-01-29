@@ -4,7 +4,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Value object representing the identity of an InventoryItem.
+ * Identifier value object for the {@link InventoryItem} aggregate root.
+ *
+ * <p>Provides a strongly-typed identity for inventory items, ensuring that
+ * inventory-related operations cannot accidentally use product or order identifiers.
  */
 public record InventoryItemId(UUID value) {
 

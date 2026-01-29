@@ -3,11 +3,16 @@ package com.example.ecommerce.application.port.driving;
 import com.example.ecommerce.domain.product.ProductId;
 
 /**
- * Driving port for inventory operations.
+ * Driving port for inventory availability and reservation operations.
  *
- * AUDIT VIOLATION: hex:port-interface
+ * <p>This port exposes inventory-related use cases to external actors, including
+ * stock availability checks, reservation for pending orders, and release of
+ * reserved stock when orders are cancelled.
+ *
+ * <p>AUDIT VIOLATION: hex:port-interface.
  * This port is incorrectly defined as a concrete class instead of an interface.
- * Ports should always be interfaces to allow multiple implementations.
+ * Ports should always be interfaces to allow multiple implementations and
+ * respect the dependency inversion principle.
  */
 public class InventoryPort {
 

@@ -60,7 +60,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(),
-                    createDebugInfo("OrderRepository", "com.example.ports.out"));
+                    createDebugInfo("OrderRepository", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -94,7 +95,8 @@ class PortRendererTest {
                     ConfidenceLevel.MEDIUM,
                     List.of(),
                     List.of(),
-                    createDebugInfo("SomePort", "com.example.ports"));
+                    createDebugInfo("SomePort", "com.example.ports"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -126,7 +128,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of("com.example.domain.Order", "com.example.domain.Customer"),
                     List.of(),
-                    createDebugInfo("OrderRepository", "com.example.ports.out"));
+                    createDebugInfo("OrderRepository", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -145,7 +148,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(),
-                    createDebugInfo("UtilityPort", "com.example.ports"));
+                    createDebugInfo("UtilityPort", "com.example.ports"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -220,7 +224,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(method1, method2),
-                    createDebugInfo("OrderRepository", "com.example.ports.out"));
+                    createDebugInfo("OrderRepository", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderMethodSignatures(port);
 
@@ -245,7 +250,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(method),
-                    createDebugInfo("OrderQuery", "com.example.ports.in"));
+                    createDebugInfo("OrderQuery", "com.example.ports.in"),
+                    null);
 
             String result = renderer.renderMethodSignatures(port);
 
@@ -263,7 +269,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(method),
-                    createDebugInfo("NotificationPort", "com.example.ports.out"));
+                    createDebugInfo("NotificationPort", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderMethodSignatures(port);
 
@@ -282,7 +289,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(method),
-                    createDebugInfo("OrderCreation", "com.example.ports.in"));
+                    createDebugInfo("OrderCreation", "com.example.ports.in"),
+                    null);
 
             String result = renderer.renderMethodSignatures(port);
 
@@ -310,7 +318,8 @@ class PortRendererTest {
                             List.of("org.springframework.stereotype.Repository"),
                             "src/main/java/com/example/ports/out/OrderRepository.java",
                             10,
-                            25));
+                            25),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -333,7 +342,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of("com.example.domain.Order", "com.example.domain.Customer"),
                     List.of(),
-                    createDebugInfo("OrderRepository", "com.example.ports.out"));
+                    createDebugInfo("OrderRepository", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -356,7 +366,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(method1, method2, method3),
-                    createDebugInfo("OrderRepository", "com.example.ports.out"));
+                    createDebugInfo("OrderRepository", "com.example.ports.out"),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -389,7 +400,8 @@ class PortRendererTest {
                                     "org.springframework.data.repository.Repository"),
                             "OrderRepository.java",
                             10,
-                            25));
+                            25),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -408,7 +420,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(),
-                    new DebugInfo("com.example.ports.PlainPort", List.of(), "PlainPort.java", 5, 15));
+                    new DebugInfo("com.example.ports.PlainPort", List.of(), "PlainPort.java", 5, 15),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -431,7 +444,8 @@ class PortRendererTest {
                             List.of(),
                             "src/main/java/com/example/ports/out/OrderRepository.java",
                             10,
-                            25));
+                            25),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -450,7 +464,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(),
-                    new DebugInfo("com.example.ports.SyntheticPort", List.of(), null, 0, 0));
+                    new DebugInfo("com.example.ports.SyntheticPort", List.of(), null, 0, 0),
+                    null);
 
             String result = renderer.renderDebugSection(port);
 
@@ -479,7 +494,8 @@ class PortRendererTest {
                             List.of("org.springframework.stereotype.Repository"),
                             "src/main/java/com/example/ports/out/OrderRepository.java",
                             10,
-                            25));
+                            25),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -504,7 +520,8 @@ class PortRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of("com.example.domain.Order"),
                     List.of(method),
-                    createDebugInfo("CreateOrderUseCase", "com.example.ports.in"));
+                    createDebugInfo("CreateOrderUseCase", "com.example.ports.in"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -524,7 +541,8 @@ class PortRendererTest {
                     ConfidenceLevel.LOW,
                     List.of(),
                     List.of(),
-                    createDebugInfo("EmptyPort", "com.example.ports"));
+                    createDebugInfo("EmptyPort", "com.example.ports"),
+                    null);
 
             String result = renderer.renderPort(port);
 
@@ -546,7 +564,8 @@ class PortRendererTest {
                 ConfidenceLevel.HIGH,
                 List.of(),
                 List.of(),
-                createDebugInfo("OrderUseCase", "com.example.ports.in"));
+                createDebugInfo("OrderUseCase", "com.example.ports.in"),
+                null);
     }
 
     private String createPortWithKind(PortKind kind) {
@@ -558,7 +577,8 @@ class PortRendererTest {
                 ConfidenceLevel.HIGH,
                 List.of(),
                 List.of(),
-                createDebugInfo("TestPort", "com.example.ports"));
+                createDebugInfo("TestPort", "com.example.ports"),
+                null);
         return renderer.renderPort(port);
     }
 

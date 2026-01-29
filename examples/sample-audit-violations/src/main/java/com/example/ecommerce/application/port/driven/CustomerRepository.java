@@ -7,7 +7,14 @@ import com.example.ecommerce.domain.customer.Email;
 import java.util.Optional;
 
 /**
- * Driven port (repository interface) for Customer persistence.
+ * Driven port defining the persistence contract for {@link com.example.ecommerce.domain.customer.Customer} aggregates.
+ *
+ * <p>This repository interface abstracts the data access layer, enabling the domain
+ * to persist and retrieve customers without coupling to a specific storage technology.
+ * Implementations may use JPA, in-memory storage, or any other persistence mechanism.
+ *
+ * <p>Supports identity-based and email-based lookups, existence checks for email
+ * uniqueness validation, and basic CRUD operations.
  */
 public interface CustomerRepository {
 

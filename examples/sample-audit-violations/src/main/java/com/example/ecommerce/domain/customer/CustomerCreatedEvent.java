@@ -6,8 +6,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event fired when a new customer is created.
- * This event follows proper naming conventions (past tense).
+ * Domain event published when a new customer registers on the e-commerce platform.
+ *
+ * <p>This event captures the initial registration data including the customer's
+ * identity, full name, and email address. It is emitted by the {@link Customer#create}
+ * factory method and can be consumed by downstream services to trigger welcome
+ * emails, initialize loyalty accounts, or synchronize with CRM systems.
+ *
+ * <p>This event follows proper DDD naming conventions using the past tense.
  */
 public record CustomerCreatedEvent(
         UUID eventId,

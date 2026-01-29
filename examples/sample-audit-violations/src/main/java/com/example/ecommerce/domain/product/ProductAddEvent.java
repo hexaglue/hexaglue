@@ -7,9 +7,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event fired when a product is added to the catalog.
+ * Domain event published when a new product is added to the e-commerce catalog.
  *
- * AUDIT VIOLATION: ddd:event-naming
+ * <p>This event captures the product identity, display name, and initial price.
+ * It is consumed by search indexers, catalog synchronization processes, and
+ * marketing systems to feature newly available products.
+ *
+ * <p>AUDIT VIOLATION: ddd:event-naming.
  * This event should be named "ProductAddedEvent" (past tense).
  * "ProductAddEvent" sounds like a command, not an event.
  */

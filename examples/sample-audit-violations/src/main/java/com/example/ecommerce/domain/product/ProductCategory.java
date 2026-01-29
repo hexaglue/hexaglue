@@ -6,7 +6,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Entity representing a product category.
+ * Entity representing a hierarchical product category in the catalog taxonomy.
+ *
+ * <p>Categories organize products into a tree structure where each category may
+ * have a parent category, enabling multi-level classification such as
+ * "Electronics &gt; Computers &gt; Laptops". The full category path can be
+ * retrieved for display in breadcrumb navigation.
  */
 public class ProductCategory extends Entity<UUID> {
 

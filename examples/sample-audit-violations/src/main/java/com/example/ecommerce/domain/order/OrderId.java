@@ -4,7 +4,12 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Value object representing the identity of an Order.
+ * Identifier value object for the {@link Order} aggregate root.
+ *
+ * <p>Wraps a UUID to provide a strongly-typed identity, preventing confusion
+ * between order identifiers and other UUID-based identifiers in the system
+ * such as {@link com.example.ecommerce.domain.customer.CustomerId} or
+ * {@link com.example.ecommerce.domain.product.ProductId}.
  */
 public record OrderId(UUID value) {
 

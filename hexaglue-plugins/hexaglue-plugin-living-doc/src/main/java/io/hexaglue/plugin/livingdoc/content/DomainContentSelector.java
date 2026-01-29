@@ -128,7 +128,8 @@ public final class DomainContentSelector {
                 identityDoc,
                 extractProperties(structure),
                 List.of(), // Relations not tracked in v5 yet
-                toDebugInfo(agg.id().qualifiedName(), structure));
+                toDebugInfo(agg.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(Entity entity) {
@@ -153,7 +154,8 @@ public final class DomainContentSelector {
                 identityDoc,
                 extractProperties(structure),
                 List.of(), // Relations not tracked in v5 yet
-                toDebugInfo(entity.id().qualifiedName(), structure));
+                toDebugInfo(entity.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(ValueObject vo) {
@@ -173,7 +175,8 @@ public final class DomainContentSelector {
                 null,
                 extractProperties(structure),
                 List.of(),
-                toDebugInfo(vo.id().qualifiedName(), structure));
+                toDebugInfo(vo.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(Identifier id) {
@@ -193,7 +196,8 @@ public final class DomainContentSelector {
                 null,
                 extractProperties(structure),
                 List.of(),
-                toDebugInfo(id.id().qualifiedName(), structure));
+                toDebugInfo(id.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(DomainEvent event) {
@@ -213,7 +217,8 @@ public final class DomainContentSelector {
                 null,
                 extractProperties(structure),
                 List.of(),
-                toDebugInfo(event.id().qualifiedName(), structure));
+                toDebugInfo(event.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(DomainService service) {
@@ -232,7 +237,8 @@ public final class DomainContentSelector {
                 null,
                 extractProperties(structure),
                 List.of(),
-                toDebugInfo(service.id().qualifiedName(), structure));
+                toDebugInfo(service.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private DomainTypeDoc toDoc(ApplicationService service) {
@@ -251,7 +257,8 @@ public final class DomainContentSelector {
                 null,
                 extractProperties(structure),
                 List.of(),
-                toDebugInfo(service.id().qualifiedName(), structure));
+                toDebugInfo(service.id().qualifiedName(), structure),
+                structure.documentation().orElse(null));
     }
 
     private IdentityDoc toIdentityDoc(AggregateRoot agg) {

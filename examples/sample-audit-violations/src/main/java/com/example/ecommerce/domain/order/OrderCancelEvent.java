@@ -6,9 +6,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event fired when an order is cancelled.
+ * Domain event published when an order is cancelled by the customer or the system.
  *
- * AUDIT VIOLATION: ddd:event-naming
+ * <p>This event captures the cancellation reason, enabling downstream systems to
+ * release reserved inventory, issue refunds, and update analytics dashboards.
+ *
+ * <p>AUDIT VIOLATION: ddd:event-naming.
  * This event should be named "OrderCancelledEvent" (past tense).
  */
 public record OrderCancelEvent(

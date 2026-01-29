@@ -1,7 +1,11 @@
 package com.example.ecommerce.domain.shared;
 
 /**
- * Base class for entities.
+ * Abstract base class for all domain entities in the e-commerce system.
+ *
+ * <p>Provides identity-based equality semantics: two entities are considered
+ * equal if and only if they share the same type and the same non-null identifier.
+ * Subclasses must implement {@link #getId()} to return their unique identity.
  */
 public abstract class Entity<ID> {
 

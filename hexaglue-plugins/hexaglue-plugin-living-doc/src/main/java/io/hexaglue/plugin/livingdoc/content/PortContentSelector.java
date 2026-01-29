@@ -77,7 +77,8 @@ public final class PortContentSelector {
                 toConfidenceLevel(port.classification()),
                 List.of(), // managedTypes - driving ports don't manage types
                 port.structure().methods().stream().map(this::toMethodDoc).collect(Collectors.toList()),
-                toDebugInfo(port.id().qualifiedName(), port.structure()));
+                toDebugInfo(port.id().qualifiedName(), port.structure()),
+                port.structure().documentation().orElse(null));
     }
 
     private PortDoc toDoc(DrivenPort port) {
@@ -96,7 +97,8 @@ public final class PortContentSelector {
                 toConfidenceLevel(port.classification()),
                 managedTypes,
                 port.structure().methods().stream().map(this::toMethodDoc).collect(Collectors.toList()),
-                toDebugInfo(port.id().qualifiedName(), port.structure()));
+                toDebugInfo(port.id().qualifiedName(), port.structure()),
+                port.structure().documentation().orElse(null));
     }
 
     private MethodDoc toMethodDoc(Method method) {

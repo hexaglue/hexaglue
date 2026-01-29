@@ -12,9 +12,25 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Order aggregate root representing a customer order.
+ * Order aggregate root managing the lifecycle of a customer purchase.
  *
- * AUDIT VIOLATION: ddd:aggregate-cycle
+ * <p>An Order represents a customer's intent to purchase one or more products.
+ * It follows a strict state machine: DRAFT to PENDING_PAYMENT to PAID to
+ * PROCESSING to SHIPPED to DELIVERED. Cancellation is allowed from most states.
+ *
+ * <p>Business rules enforced by this aggregate:
+ * <ul>
+ *   <li>Lines can only be added or removed while the order is in DRAFT status</li>
+ *   <li>An order cannot be placed without at least one order line</li>
+ *   <li>Payment must be confirmed before processing can begin</li>
+ *   <li>Shipping requires a tracking number and carrier name</li>
+ *   <li>The total amount is computed from all order lines in EUR</li>
+ * </ul>
+ *
+ * <p>Domain events emitted: {@link OrderPlaceEvent}, {@link OrderShippedEvent},
+ * {@link OrderCancelEvent}.
+ *
+ * <p>AUDIT VIOLATION: ddd:aggregate-cycle.
  * This aggregate has a direct reference to InventoryItem from another aggregate,
  * creating a potential cycle between Order and Inventory aggregates.
  */

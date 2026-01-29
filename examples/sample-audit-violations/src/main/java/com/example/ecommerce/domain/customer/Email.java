@@ -7,9 +7,16 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 
 /**
- * Value object representing an email address.
+ * Value object representing a validated email address in the customer domain.
  *
- * AUDIT VIOLATION: ddd:domain-purity
+ * <p>Encapsulates email validation logic including format verification via regex,
+ * automatic lowercase normalization, and trimming of whitespace. Provides access
+ * to the local part and domain components of the email address.
+ *
+ * <p>This value object enforces that only syntactically valid email addresses
+ * can exist in the domain model, following the self-validating pattern.
+ *
+ * <p>AUDIT VIOLATION: ddd:domain-purity.
  * This domain value object imports Jakarta Validation annotations,
  * which is an infrastructure concern. Domain objects should be pure
  * and not depend on framework-specific annotations.

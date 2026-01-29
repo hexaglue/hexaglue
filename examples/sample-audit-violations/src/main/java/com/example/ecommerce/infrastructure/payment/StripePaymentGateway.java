@@ -9,7 +9,12 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Stripe implementation of the PaymentGateway port.
+ * Stripe-based driven adapter implementing the {@link PaymentGateway} port.
+ *
+ * <p>This adapter simulates integration with the Stripe payment processing API.
+ * In this demonstration implementation, payments are processed in-memory with
+ * simulated declined card detection (tokens starting with "declined_") and
+ * transaction tracking for refund support.
  */
 public class StripePaymentGateway implements PaymentGateway {
 

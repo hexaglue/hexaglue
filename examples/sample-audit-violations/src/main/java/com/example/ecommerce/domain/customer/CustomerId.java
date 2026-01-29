@@ -4,7 +4,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Value object representing the identity of a Customer.
+ * Identifier value object for the {@link Customer} aggregate root.
+ *
+ * <p>Wraps a UUID to provide a strongly-typed identity that prevents accidental
+ * misuse of raw UUIDs across different aggregate boundaries. Supports generation
+ * of new identifiers and reconstitution from string representations.
  */
 public record CustomerId(UUID value) {
 

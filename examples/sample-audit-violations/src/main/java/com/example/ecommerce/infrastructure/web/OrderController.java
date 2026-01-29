@@ -11,14 +11,16 @@ import org.springframework.stereotype.Controller;
 import java.util.List;
 
 /**
- * REST controller for order operations.
+ * REST controller serving as a driving adapter for order management operations.
  *
- * AUDIT VIOLATION: ddd:domain-purity (if this was in domain - but it's in infrastructure, so OK)
- * Note: Having Spring annotations in infrastructure layer is acceptable.
+ * <p>This controller translates HTTP requests into calls to the {@link OrderUseCase}
+ * driving port, handling string-to-identifier conversions and exposing order creation,
+ * retrieval, placement, and cancellation endpoints. It uses Spring's {@code @Controller}
+ * annotation for framework integration.
  *
- * AUDIT VIOLATION: ddd:aggregate-boundary
- * This controller directly accesses OrderLine which is an internal entity
- * of the Order aggregate, bypassing the aggregate root.
+ * <p>AUDIT VIOLATION: ddd:aggregate-boundary.
+ * This controller directly accesses OrderLine, which is an internal entity
+ * of the Order aggregate, bypassing the aggregate root boundary.
  */
 @Controller
 public class OrderController {

@@ -6,8 +6,13 @@ import com.example.ecommerce.domain.customer.CustomerId;
 import com.example.ecommerce.domain.customer.Email;
 
 /**
- * Driving port (use case interface) for customer operations.
- * This is a proper port - it's an interface.
+ * Driving port defining the customer management use cases exposed to external actors.
+ *
+ * <p>This interface represents the primary entry point for all customer-related
+ * operations in the e-commerce platform, including registration, profile management,
+ * email verification, address handling, and customer retrieval. It is implemented
+ * by {@link com.example.ecommerce.application.service.CustomerApplicationService}
+ * and consumed by driving adapters such as REST controllers and CLI tools.
  */
 public interface CustomerUseCase {
 

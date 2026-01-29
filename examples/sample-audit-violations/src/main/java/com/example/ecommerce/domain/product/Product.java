@@ -7,9 +7,23 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Product aggregate root representing a product in the catalog.
+ * Product aggregate root representing a sellable item in the e-commerce catalog.
  *
- * AUDIT VIOLATION: ddd:aggregate-repository
+ * <p>A Product manages its commercial identity (name, SKU, description), pricing,
+ * categorization, stock quantity, and active/inactive lifecycle. Products can be
+ * activated or deactivated to control their visibility in the storefront.
+ *
+ * <p>Business rules enforced by this aggregate:
+ * <ul>
+ *   <li>A product requires a unique SKU (Stock Keeping Unit) for warehouse identification</li>
+ *   <li>Price changes emit a {@link ProductPriceChangedEvent} for downstream price tracking</li>
+ *   <li>Stock operations enforce positive quantities and prevent negative stock levels</li>
+ *   <li>A product is considered available only when both active and in stock</li>
+ * </ul>
+ *
+ * <p>Domain events emitted: {@link ProductAddEvent}, {@link ProductPriceChangedEvent}.
+ *
+ * <p>AUDIT VIOLATION: ddd:aggregate-repository.
  * This aggregate does not have a corresponding repository port defined.
  * The ProductRepository interface is missing from the ports.
  */

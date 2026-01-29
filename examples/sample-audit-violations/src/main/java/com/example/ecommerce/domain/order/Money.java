@@ -5,10 +5,18 @@ import java.util.Currency;
 import java.util.Objects;
 
 /**
- * Value object representing monetary amounts.
+ * Value object representing a monetary amount with its associated currency.
  *
- * AUDIT VIOLATION: ddd:value-object-immutable
- * This value object has a setter method which violates immutability.
+ * <p>Money encapsulates financial calculations ensuring that operations like
+ * addition and multiplication respect currency boundaries. Two Money instances
+ * with different currencies cannot be added together.
+ *
+ * <p>Factory methods provide convenient construction for common currencies
+ * (EUR, USD) and a zero amount for initialization.
+ *
+ * <p>AUDIT VIOLATION: ddd:value-object-immutable.
+ * This value object has a setter method ({@code setAmount}) which violates
+ * the immutability contract. Value objects should be immutable after creation.
  */
 public class Money {
 

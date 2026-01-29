@@ -4,7 +4,12 @@ import com.example.ecommerce.domain.order.Money;
 import com.example.ecommerce.domain.order.OrderId;
 
 /**
- * Driven port for payment processing.
+ * Driven port defining the contract for external payment processing services.
+ *
+ * <p>This gateway interface abstracts interaction with payment providers (Stripe,
+ * PayPal, etc.), exposing operations for processing payments, issuing refunds,
+ * and checking transaction status. Each operation returns a typed result
+ * indicating success or failure with a descriptive error message.
  */
 public interface PaymentGateway {
 

@@ -15,10 +15,15 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * JPA implementation of the OrderRepository port.
+ * JPA-based driven adapter implementing the {@link OrderRepository} port.
  *
- * AUDIT VIOLATION: ddd:domain-purity (in infrastructure layer - this is acceptable)
- * Infrastructure adapters are allowed to use JPA annotations.
+ * <p>This adapter provides order persistence using JPA's EntityManager for
+ * database operations. In this demonstration, an in-memory HashMap supplements
+ * the JPA storage. It also exposes JPA-specific methods such as {@code flush()}
+ * and {@code clear()} for fine-grained persistence context management.
+ *
+ * <p>Note: Infrastructure adapters are allowed to use JPA annotations as they
+ * reside in the infrastructure layer, outside the domain boundary.
  */
 public class JpaOrderRepository implements OrderRepository {
 

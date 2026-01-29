@@ -8,9 +8,22 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * InventoryItem aggregate root for managing stock levels.
+ * Inventory item aggregate root for tracking warehouse stock of a specific product.
  *
- * AUDIT VIOLATION: ddd:aggregate-cycle
+ * <p>An InventoryItem links a product to its physical stock representation
+ * in the warehouse. It manages stock levels through reservation, release,
+ * confirmation, and replenishment workflows. Each item tracks available
+ * and reserved quantities separately to prevent overselling.
+ *
+ * <p>Business rules enforced by this aggregate:
+ * <ul>
+ *   <li>Reservations can only be made when sufficient available stock exists</li>
+ *   <li>Released quantities cannot exceed the currently reserved amount</li>
+ *   <li>Reorder alerts are triggered when available stock falls below the reorder point</li>
+ *   <li>Warehouse location can be updated for physical inventory management</li>
+ * </ul>
+ *
+ * <p>AUDIT VIOLATION: ddd:aggregate-cycle.
  * This aggregate has a direct reference to Order aggregate,
  * which creates a bidirectional dependency between aggregates.
  */
