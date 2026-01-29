@@ -10,8 +10,11 @@ This document provides detailed information about each constraint validated by t
   - [Value Object Immutability](#value-object-immutability)
   - [Aggregate Cycles](#aggregate-cycles)
   - [Aggregate Consistency](#aggregate-consistency)
+  - [Domain Purity](#domain-purity)
+  - [Event Naming](#event-naming)
 - [Hexagonal Architecture Constraints](#hexagonal-architecture-constraints)
   - [Port Interface](#port-interface)
+  - [Port Coverage](#port-coverage)
   - [Dependency Direction](#dependency-direction)
   - [Layer Isolation](#layer-isolation)
 
@@ -434,6 +437,130 @@ public class OrderController {
 
 ---
 
+### Domain Purity
+
+**Constraint ID**: `ddd:domain-purity`
+**Default Severity**: CRITICAL
+**Category**: Domain-Driven Design
+
+#### Description
+
+The domain layer must remain pure and free from infrastructure concerns. Domain types should not import or depend on infrastructure classes (database drivers, web frameworks, external libraries).
+
+#### Rationale
+
+Impure domain code causes:
+- Technology lock-in
+- Difficulty in testing domain logic
+- Business logic contaminated with technical details
+- Reduced portability and reusability
+
+#### What is Validated
+
+The validator checks that domain types do not:
+- Import infrastructure packages (javax.persistence, org.springframework, etc.)
+- Depend on external framework annotations
+- Reference database-specific types
+
+#### Examples
+
+**PASS - Pure domain**
+```java
+@AggregateRoot
+public class Order {
+    private OrderId id;
+    private List<OrderLine> lines;
+    private Money totalAmount;
+
+    public void addLine(Product product, int quantity) {
+        // Pure business logic
+        lines.add(new OrderLine(product.id(), quantity, product.price()));
+        recalculateTotal();
+    }
+}
+```
+
+**FAIL - Impure domain**
+```java
+@AggregateRoot
+@Entity  // JPA annotation in domain!
+@Table(name = "orders")  // Infrastructure concern!
+public class Order {
+    @Id
+    @GeneratedValue  // Database detail in domain!
+    private Long id;
+
+    @Autowired  // Spring dependency in domain!
+    private EmailService emailService;
+}
+```
+
+#### How to Fix
+
+1. Remove all infrastructure annotations from domain classes
+2. Use separate JPA entities in the infrastructure layer
+3. Define ports for external dependencies
+4. Keep domain classes as pure POJOs or records
+
+---
+
+### Event Naming
+
+**Constraint ID**: `ddd:event-naming`
+**Default Severity**: MINOR
+**Category**: Domain-Driven Design
+
+#### Description
+
+Domain events represent something that has happened in the past. Their names should use past tense to clearly communicate this temporal aspect. Well-named events improve code readability and domain understanding.
+
+#### Rationale
+
+Improper event naming causes:
+- Confusion about whether something has happened or will happen
+- Difficulty understanding the domain flow
+- Inconsistent ubiquitous language
+
+#### What is Validated
+
+The validator checks that domain event names:
+- End with past tense verbs (Created, Updated, Deleted, Placed, etc.)
+- Follow the pattern `{Subject}{PastTenseVerb}` or `{Subject}{PastTenseVerb}Event`
+
+#### Examples
+
+**PASS - Past tense naming**
+```java
+@DomainEvent
+public record OrderPlaced(OrderId orderId, CustomerId customerId, Instant occurredAt) {}
+
+@DomainEvent
+public record PaymentReceived(PaymentId paymentId, Money amount) {}
+
+@DomainEvent
+public record CustomerRegistered(CustomerId customerId, Email email) {}
+```
+
+**FAIL - Imperative or present tense naming**
+```java
+@DomainEvent
+public record PlaceOrder(OrderId orderId) {}  // Imperative - sounds like command
+
+@DomainEvent
+public record OrderPlacing(OrderId orderId) {}  // Present tense - sounds ongoing
+
+@DomainEvent
+public record OrderEvent(OrderId orderId) {}  // Vague - what happened?
+```
+
+#### How to Fix
+
+1. Rename events to past tense: `PlaceOrder` → `OrderPlaced`
+2. Use clear past participles: `Created`, `Updated`, `Deleted`, `Sent`, `Received`
+3. Follow pattern: `{WhatHappened}` not `{WhatToDo}`
+
+---
+
 ## Hexagonal Architecture Constraints
 
 ### Port Interface
@@ -493,6 +620,74 @@ public class PaymentPort {
 1. Convert concrete port classes to interfaces
 2. Move implementation details to adapter classes in infrastructure layer
 3. Use dependency injection to wire adapters at runtime
+
+---
+
+### Port Coverage
+
+**Constraint ID**: `hexagonal:port-coverage`
+**Default Severity**: MAJOR
+**Category**: Hexagonal Architecture
+
+#### Description
+
+Every port (interface defining a boundary contract) should have at least one adapter implementation. Uncovered ports indicate incomplete architecture - either the port is unused or the adapter is missing.
+
+#### Rationale
+
+Uncovered ports cause:
+- Runtime failures when the port is invoked
+- Incomplete system functionality
+- Dead code that confuses developers
+- False sense of abstraction without implementation
+
+#### What is Validated
+
+The validator checks that:
+- Each driven port has at least one implementing adapter
+- Each driving port has at least one adapter using it
+- No orphan ports exist without corresponding adapters
+
+#### Examples
+
+**PASS - Port with adapter**
+```java
+// Port (in domain/application layer)
+public interface OrderRepository {
+    Optional<Order> findById(OrderId id);
+    void save(Order order);
+}
+
+// Adapter (in infrastructure layer)
+@Repository
+public class JpaOrderRepository implements OrderRepository {
+    @Override
+    public Optional<Order> findById(OrderId id) {
+        // JPA implementation
+    }
+
+    @Override
+    public void save(Order order) {
+        // JPA implementation
+    }
+}
+```
+
+**FAIL - Port without adapter**
+```java
+// Port defined but never implemented
+public interface NotificationPort {
+    void sendNotification(Notification notification);
+}
+// No class implements NotificationPort!
+```
+
+#### How to Fix
+
+1. Create an adapter class implementing the port
+2. If the port is truly unused, remove it
+3. For testing, create a mock/stub adapter
+4. Ensure adapters are in the infrastructure layer
 
 ---
 
@@ -653,6 +848,28 @@ public class Order {
     <allowCriticalViolations>true</allowCriticalViolations>
 </config>
 ```
+
+---
+
+## Visual Violation Types
+
+When violations are detected, they are visually highlighted in Mermaid diagrams with distinct color styles:
+
+| Violation Type | Constraint | Color | Style Name |
+|----------------|------------|-------|------------|
+| `CYCLE` | ddd:aggregate-cycle | Red `#FF5978` | Alert |
+| `MUTABLE_VALUE_OBJECT` | ddd:value-object-immutable | Orange `#FF9800` | MutableWarning |
+| `IMPURE_DOMAIN` | ddd:domain-purity | Purple `#9C27B0` | ImpurityWarning |
+| `BOUNDARY_VIOLATION` | ddd:aggregate-consistency | Red `#E53935` | BoundaryWarning |
+| `MISSING_IDENTITY` | ddd:entity-identity | Yellow `#FBC02D` | MissingIdentityWarning |
+| `MISSING_REPOSITORY` | ddd:aggregate-repository | Blue `#1976D2` | MissingRepositoryInfo |
+| `EVENT_NAMING` | ddd:event-naming | Cyan `#00ACC1` | EventNamingWarning |
+| `PORT_UNCOVERED` | hexagonal:port-coverage | Teal `#00897B` | PortUncoveredWarning |
+| `DEPENDENCY_INVERSION` | hexagonal:dependency-inversion | Amber `#FFB300` | DependencyInversionWarning |
+| `LAYER_VIOLATION` | hexagonal:layer-isolation | Grey `#616161` | LayerViolationWarning |
+| `PORT_NOT_INTERFACE` | hexagonal:port-interface | Brown `#8D6E63` | PortNotInterfaceWarning |
+
+These styles are applied automatically in the generated diagrams (domainModel, applicationLayer, portsLayer, fullArchitecture) to help quickly identify problematic types.
 
 ---
 
