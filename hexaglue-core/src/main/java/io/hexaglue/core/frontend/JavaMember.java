@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * A member of a Java type (field, method, or constructor).
  */
-public sealed interface JavaMember extends JavaNamed, JavaAnnotated, JavaSourced
+public sealed interface JavaMember extends JavaNamed, JavaAnnotated, JavaSourced, JavaDocumented
         permits JavaField, JavaMethod, JavaConstructor {
 
     /**

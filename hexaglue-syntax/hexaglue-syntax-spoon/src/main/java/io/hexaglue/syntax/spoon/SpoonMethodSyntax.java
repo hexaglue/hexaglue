@@ -101,6 +101,11 @@ public final class SpoonMethodSyntax implements MethodSyntax {
     }
 
     @Override
+    public Optional<String> documentation() {
+        return JavadocCleaner.clean(ctMethod.getDocComment());
+    }
+
+    @Override
     public SourceLocation sourceLocation() {
         var position = ctMethod.getPosition();
         if (position.isValidPosition()) {

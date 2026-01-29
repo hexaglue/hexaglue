@@ -297,7 +297,8 @@ class UseCaseTest {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     private Parameter param(String name, TypeRef type) {

@@ -20,7 +20,7 @@ import java.util.Set;
 /**
  * A Java type (class, record, interface, enum, or annotation type).
  */
-public interface JavaType extends JavaNamed, JavaAnnotated, JavaSourced {
+public interface JavaType extends JavaNamed, JavaAnnotated, JavaSourced, JavaDocumented {
 
     /**
      * Returns the syntactic form of this type.

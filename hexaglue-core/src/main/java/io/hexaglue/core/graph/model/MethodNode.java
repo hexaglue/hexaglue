@@ -39,6 +39,7 @@ public final class MethodNode extends MemberNode {
     private final List<AnnotationRef> annotations;
     private final SourceRef sourceRef;
     private final OptionalInt cyclomaticComplexity;
+    private final String documentation;
 
     private MethodNode(Builder builder) {
         this.id = Objects.requireNonNull(builder.id, "id is required");
@@ -53,6 +54,7 @@ public final class MethodNode extends MemberNode {
         this.sourceRef = builder.sourceRef;
         this.cyclomaticComplexity =
                 builder.cyclomaticComplexity != null ? builder.cyclomaticComplexity : OptionalInt.empty();
+        this.documentation = builder.documentation;
     }
 
     public static Builder builder() {
@@ -135,6 +137,16 @@ public final class MethodNode extends MemberNode {
     }
 
     /**
+     * Returns the Javadoc documentation of this method, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    public Optional<String> documentation() {
+        return Optional.ofNullable(documentation);
+    }
+
+    /**
      * Returns the parameter types as a comma-separated string.
      */
     public String parameterTypesSignature() {
@@ -204,6 +216,7 @@ public final class MethodNode extends MemberNode {
         private List<AnnotationRef> annotations;
         private SourceRef sourceRef;
         private OptionalInt cyclomaticComplexity;
+        private String documentation;
 
         private Builder() {}
 
@@ -281,6 +294,18 @@ public final class MethodNode extends MemberNode {
          */
         public Builder cyclomaticComplexity(OptionalInt complexity) {
             this.cyclomaticComplexity = complexity != null ? complexity : OptionalInt.empty();
+            return this;
+        }
+
+        /**
+         * Sets the documentation.
+         *
+         * @param documentation the Javadoc documentation (may be null)
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder documentation(String documentation) {
+            this.documentation = documentation;
             return this;
         }
 

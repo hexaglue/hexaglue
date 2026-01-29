@@ -46,14 +46,17 @@ import java.util.stream.Collectors;
  * @param annotations the annotations on this constructor (immutable)
  * @param documentation the constructor's documentation (if present)
  * @param thrownExceptions the exceptions declared to be thrown (immutable)
+ * @param sourceLocation the source code location of this constructor (if available)
  * @since 4.1.0
+ * @since 5.0.0 Added sourceLocation parameter
  */
 public record Constructor(
         List<Parameter> parameters,
         Set<Modifier> modifiers,
         List<Annotation> annotations,
         Optional<String> documentation,
-        List<TypeRef> thrownExceptions) {
+        List<TypeRef> thrownExceptions,
+        Optional<SourceReference> sourceLocation) {
 
     /**
      * Creates a new Constructor.
@@ -63,6 +66,7 @@ public record Constructor(
      * @param annotations the annotations, must not be null
      * @param documentation the documentation, must not be null
      * @param thrownExceptions the thrown exceptions, must not be null
+     * @param sourceLocation the source location, must not be null
      * @throws NullPointerException if any argument is null
      */
     public Constructor {
@@ -71,6 +75,7 @@ public record Constructor(
         Objects.requireNonNull(annotations, "annotations must not be null");
         Objects.requireNonNull(documentation, "documentation must not be null");
         Objects.requireNonNull(thrownExceptions, "thrownExceptions must not be null");
+        Objects.requireNonNull(sourceLocation, "sourceLocation must not be null");
         parameters = List.copyOf(parameters);
         modifiers = Set.copyOf(modifiers);
         annotations = List.copyOf(annotations);
@@ -85,7 +90,7 @@ public record Constructor(
      * @throws NullPointerException if parameters is null
      */
     public static Constructor of(List<Parameter> parameters) {
-        return new Constructor(parameters, Set.of(), List.of(), Optional.empty(), List.of());
+        return new Constructor(parameters, Set.of(), List.of(), Optional.empty(), List.of(), Optional.empty());
     }
 
     /**

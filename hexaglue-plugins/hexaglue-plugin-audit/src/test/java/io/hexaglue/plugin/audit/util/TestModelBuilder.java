@@ -759,7 +759,8 @@ public class TestModelBuilder {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     /**
@@ -784,7 +785,8 @@ public class TestModelBuilder {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     /**
@@ -806,7 +808,8 @@ public class TestModelBuilder {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.of(complexity));
+                OptionalInt.of(complexity),
+                Optional.empty());
     }
 
     /**
@@ -959,7 +962,8 @@ public class TestModelBuilder {
                 Optional.empty(),
                 List.of(),
                 Set.of(MethodRole.SETTER),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
 
         return TypeStructure.builder(TypeNature.CLASS)
                 .modifiers(Set.of(Modifier.PUBLIC))

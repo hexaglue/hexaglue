@@ -53,6 +53,16 @@ public interface ConstructorSyntax {
     Set<Modifier> modifiers();
 
     /**
+     * Returns the Javadoc documentation of this constructor, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    default Optional<String> documentation() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns the source location of this constructor.
      *
      * @return the source location

@@ -15,7 +15,6 @@ package io.hexaglue.plugin.livingdoc.content;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivenPort;
-import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.TypeStructure;
@@ -26,6 +25,7 @@ import io.hexaglue.arch.model.ir.PortKind;
 import io.hexaglue.plugin.livingdoc.model.DebugInfo;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
+import io.hexaglue.plugin.livingdoc.util.PortKindMapper;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -39,28 +39,29 @@ import java.util.stream.Collectors;
  */
 public final class PortContentSelector {
 
-    private final ArchitecturalModel model;
+    private final PortIndex portIndex;
 
     /**
      * Creates a selector using v5 ArchitecturalModel with PortIndex.
      *
+     * <p>The {@link PortIndex} is cached at construction time to avoid
+     * repeated lookups on every selection method call.</p>
+     *
      * @param model the architectural model
+     * @throws IllegalStateException if the model does not contain a PortIndex
      * @since 4.0.0
-     * @since 5.0.0 - Migrated to v5 API
+     * @since 5.0.0 - Migrated to v5 API, cached PortIndex
      */
     public PortContentSelector(ArchitecturalModel model) {
-        this.model = model;
+        this.portIndex =
+                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
     }
 
     public List<PortDoc> selectDrivingPorts() {
-        PortIndex portIndex =
-                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
         return portIndex.drivingPorts().map(this::toDoc).toList();
     }
 
     public List<PortDoc> selectDrivenPorts() {
-        PortIndex portIndex =
-                model.portIndex().orElseThrow(() -> new IllegalStateException("PortIndex required for documentation"));
         return portIndex.drivenPorts().map(this::toDoc).toList();
     }
 
@@ -90,7 +91,7 @@ public final class PortContentSelector {
         return new PortDoc(
                 simpleName,
                 packageName,
-                toPortKind(port.portType()),
+                PortKindMapper.from(port.portType()),
                 PortDirection.DRIVEN,
                 toConfidenceLevel(port.classification()),
                 managedTypes,
@@ -152,16 +153,6 @@ public final class PortContentSelector {
             return null;
         }
         return qualifiedName.replace('.', '/') + ".java";
-    }
-
-    private PortKind toPortKind(DrivenPortType portType) {
-        return switch (portType) {
-            case REPOSITORY -> PortKind.REPOSITORY;
-            case GATEWAY -> PortKind.GATEWAY;
-            case EVENT_PUBLISHER -> PortKind.EVENT_PUBLISHER;
-            case NOTIFICATION -> PortKind.GENERIC;
-            case OTHER -> PortKind.GENERIC;
-        };
     }
 
     private ConfidenceLevel toConfidenceLevel(io.hexaglue.arch.ClassificationTrace trace) {

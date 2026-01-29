@@ -61,7 +61,8 @@ class DerivedMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // Given: DomainIndex with CustomerId identifier that wraps UUID
             Identifier customerIdIdentifier =
@@ -96,7 +97,8 @@ class DerivedMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // Given: Empty DomainIndex (no identifiers)
             TypeRegistry registry = TypeRegistry.builder().build();
@@ -126,7 +128,8 @@ class DerivedMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // When: No DomainIndex provided
             DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.empty());

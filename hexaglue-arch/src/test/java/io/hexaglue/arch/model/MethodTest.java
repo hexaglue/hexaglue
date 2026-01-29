@@ -73,7 +73,16 @@ class MethodTest {
 
             // when
             Method method = new Method(
-                    name, returnType, params, modifiers, annotations, doc, exceptions, roles, OptionalInt.empty());
+                    name,
+                    returnType,
+                    params,
+                    modifiers,
+                    annotations,
+                    doc,
+                    exceptions,
+                    roles,
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.name()).isEqualTo(name);
@@ -141,7 +150,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.signature()).isEqualTo("setName(String)");
@@ -163,7 +173,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.signature()).isEqualTo("transfer(Account, Account, BigDecimal)");
@@ -187,7 +198,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -207,7 +219,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.isPublic()).isTrue();
@@ -227,7 +240,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.isPublic()).isFalse();
@@ -253,7 +267,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // when/then
             assertThatThrownBy(() -> method.parameters().add(Parameter.of("extra", TypeRef.of("String"))))
@@ -273,7 +288,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // when/then
             assertThatThrownBy(() -> method.modifiers().add(Modifier.STATIC))
@@ -436,7 +452,8 @@ class MethodTest {
                     Optional.empty(),
                     List.of(),
                     Set.of(MethodRole.QUERY, MethodRole.COMMAND),
-                    OptionalInt.empty());
+                    OptionalInt.empty(),
+                    Optional.empty());
 
             // then
             assertThat(method.hasRole(MethodRole.QUERY)).isTrue();

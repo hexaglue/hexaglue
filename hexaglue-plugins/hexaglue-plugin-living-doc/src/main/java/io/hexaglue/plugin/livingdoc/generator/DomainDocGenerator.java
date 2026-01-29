@@ -13,7 +13,6 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
-import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
@@ -40,13 +39,17 @@ public final class DomainDocGenerator {
     private final DomainRenderer renderer;
 
     /**
-     * Creates a generator using v4 ArchitecturalModel.
+     * Creates a generator using a pre-built content selector.
      *
-     * @param model the architectural model
+     * <p>The selector is shared across generators to avoid redundant
+     * index lookups and object creation.</p>
+     *
+     * @param contentSelector the domain content selector
      * @since 4.0.0
+     * @since 5.0.0 - Accepts DomainContentSelector instead of ArchitecturalModel
      */
-    public DomainDocGenerator(ArchitecturalModel model) {
-        this.contentSelector = new DomainContentSelector(model);
+    public DomainDocGenerator(DomainContentSelector contentSelector) {
+        this.contentSelector = contentSelector;
         this.renderer = new DomainRenderer();
     }
 

@@ -132,7 +132,26 @@ public final class SpoonTypeAdapter implements JavaType {
     }
 
     @Override
+    public Optional<String> documentation() {
+        String docComment = ctType.getDocComment();
+        return cleanJavadoc(docComment);
+    }
+
+    @Override
     public Optional<SourceRef> sourceRef() {
         return SpoonSourceRefAdapter.adapt(ctType.getPosition());
+    }
+
+    private static Optional<String> cleanJavadoc(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return Optional.empty();
+        }
+        String cleaned = java.util.Arrays.stream(raw.split("\n"))
+                .map(String::trim)
+                .map(line -> line.startsWith("*") ? line.substring(1).trim() : line)
+                .filter(line -> !line.isEmpty())
+                .filter(line -> !line.startsWith("@"))
+                .collect(java.util.stream.Collectors.joining(" "));
+        return cleaned.isEmpty() ? Optional.empty() : Optional.of(cleaned);
     }
 }

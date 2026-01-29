@@ -436,7 +436,8 @@ public final class V5TestModelBuilder {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     /**

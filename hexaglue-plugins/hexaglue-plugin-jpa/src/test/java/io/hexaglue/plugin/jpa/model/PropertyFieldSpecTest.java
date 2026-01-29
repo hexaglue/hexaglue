@@ -78,7 +78,8 @@ class PropertyFieldSpecTest {
                 Optional.empty(), // documentation
                 Optional.empty(), // wrappedType
                 Optional.empty(), // elementType
-                roles);
+                roles,
+                Optional.empty()); // sourceLocation
     }
 
     private static ClassificationTrace createTrace(ElementKind kind) {
@@ -127,7 +128,8 @@ class PropertyFieldSpecTest {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Set.of());
+                    Set.of(),
+                    Optional.empty());
             TypeStructure customerIdStructure = createRecordStructure(List.of(valueField));
             Identifier customerId = Identifier.of(
                     TypeId.of("com.ecommerce.domain.customer.CustomerId"),
@@ -177,7 +179,8 @@ class PropertyFieldSpecTest {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Set.of());
+                    Set.of(),
+                    Optional.empty());
             TypeStructure productIdStructure = createRecordStructure(List.of(valueField));
             Identifier productId = Identifier.of(
                     TypeId.of("com.example.ProductId"),
@@ -336,7 +339,8 @@ class PropertyFieldSpecTest {
                     Optional.empty(), // documentation
                     Optional.of(TypeRef.of("int")), // wrappedType
                     Optional.empty(), // elementType
-                    Set.of());
+                    Set.of(),
+                    Optional.empty()); // sourceLocation
             TypeStructure quantityStructure = createRecordStructure(List.of(valueField));
             ValueObject quantity = ValueObject.of(
                     TypeId.of("com.example.Quantity"), quantityStructure, createTrace(ElementKind.VALUE_OBJECT));

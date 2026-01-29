@@ -62,6 +62,16 @@ public interface FieldSyntax {
     Optional<String> initializer();
 
     /**
+     * Returns the Javadoc documentation of this field, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    default Optional<String> documentation() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns the source location of this field.
      *
      * @return the source location

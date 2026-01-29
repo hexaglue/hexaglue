@@ -13,7 +13,6 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
-import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
 import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
@@ -36,6 +35,7 @@ import java.util.Map;
  * </ol>
  *
  * @since 4.0.0
+ * @since 5.0.0 - Accepts shared selectors and configurable DiagramRenderer
  */
 public final class DiagramGenerator {
 
@@ -44,15 +44,18 @@ public final class DiagramGenerator {
     private final DiagramRenderer renderer;
 
     /**
-     * Creates a generator using v4 ArchitecturalModel.
+     * Creates a generator using shared content selectors and renderer.
      *
-     * @param model the architectural model
-     * @since 4.0.0
+     * @param domainSelector the shared domain content selector
+     * @param portSelector the shared port content selector
+     * @param renderer the diagram renderer (with configurable max properties)
+     * @since 5.0.0
      */
-    public DiagramGenerator(ArchitecturalModel model) {
-        this.domainSelector = new DomainContentSelector(model);
-        this.portSelector = new PortContentSelector(model);
-        this.renderer = new DiagramRenderer();
+    public DiagramGenerator(
+            DomainContentSelector domainSelector, PortContentSelector portSelector, DiagramRenderer renderer) {
+        this.domainSelector = domainSelector;
+        this.portSelector = portSelector;
+        this.renderer = renderer;
     }
 
     public String generate() {

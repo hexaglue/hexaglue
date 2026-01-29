@@ -25,8 +25,29 @@ import java.util.Map;
 
 /**
  * Renders Mermaid diagrams for architecture documentation.
+ *
+ * @since 4.0.0
+ * @since 5.0.0 - Added configurable maxPropertiesInDiagram
  */
 public final class DiagramRenderer {
+
+    private final int maxPropertiesInDiagram;
+
+    /**
+     * Creates a renderer with default settings (max 5 properties per class).
+     */
+    public DiagramRenderer() {
+        this(5);
+    }
+
+    /**
+     * Creates a renderer with configurable property limit.
+     *
+     * @param maxPropertiesInDiagram maximum number of properties to show per class in diagrams
+     */
+    public DiagramRenderer(int maxPropertiesInDiagram) {
+        this.maxPropertiesInDiagram = maxPropertiesInDiagram;
+    }
 
     public String renderDomainClassDiagram(List<DomainTypeDoc> types) {
         StringBuilder sb = new StringBuilder();
@@ -268,7 +289,7 @@ public final class DiagramRenderer {
 
         // Properties (limit to avoid cluttering)
         List<PropertyDoc> props = type.properties();
-        int maxProps = Math.min(props.size(), 5);
+        int maxProps = Math.min(props.size(), maxPropertiesInDiagram);
         for (int i = 0; i < maxProps; i++) {
             PropertyDoc prop = props.get(i);
             if (!prop.isIdentity()) {

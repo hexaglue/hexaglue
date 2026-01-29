@@ -20,10 +20,12 @@ import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.SourceReference;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.frontend.JavaModifier;
+import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.ConstructorNode;
 import io.hexaglue.core.graph.model.FieldNode;
@@ -138,12 +140,14 @@ public final class TypeStructureBuilder {
 
         return TypeStructure.builder(nature)
                 .modifiers(modifiers)
+                .documentation(typeNode.documentation().orElse(null))
                 .superClass(superClass.orElse(null))
                 .interfaces(interfaces)
                 .fields(fields)
                 .methods(methods)
                 .constructors(constructors)
                 .annotations(annotations)
+                .sourceLocation(convertSourceRef(typeNode.sourceRef()).orElse(null))
                 .build();
     }
 
@@ -181,9 +185,11 @@ public final class TypeStructureBuilder {
         return Field.builder(fieldNode.simpleName(), type)
                 .modifiers(mapModifiers(fieldNode.modifiers()))
                 .annotations(annotations)
+                .documentation(fieldNode.documentation().orElse(null))
                 .elementType(elementType.orElse(null))
                 .wrappedType(wrappedType.orElse(null))
                 .roles(roles)
+                .sourceLocation(convertSourceRef(fieldNode.sourceRef()).orElse(null))
                 .build();
     }
 
@@ -254,10 +260,11 @@ public final class TypeStructureBuilder {
                 parameters,
                 mapModifiers(methodNode.modifiers()),
                 annotations,
-                Optional.empty(),
+                methodNode.documentation(),
                 thrownExceptions,
                 roles,
-                complexity);
+                complexity,
+                convertSourceRef(methodNode.sourceRef()));
     }
 
     private Constructor buildConstructor(ConstructorNode constructorNode) {
@@ -270,7 +277,12 @@ public final class TypeStructureBuilder {
                 constructorNode.thrownTypes().stream().map(this::mapTypeRef).toList();
 
         return new Constructor(
-                parameters, mapModifiers(constructorNode.modifiers()), annotations, Optional.empty(), thrownExceptions);
+                parameters,
+                mapModifiers(constructorNode.modifiers()),
+                annotations,
+                constructorNode.documentation(),
+                thrownExceptions,
+                convertSourceRef(constructorNode.sourceRef()));
     }
 
     private Parameter buildParameter(ParameterInfo paramInfo) {
@@ -314,5 +326,16 @@ public final class TypeStructureBuilder {
 
     private Annotation mapAnnotation(AnnotationRef annotationRef) {
         return Annotation.of(annotationRef.qualifiedName());
+    }
+
+    /**
+     * Converts a frontend {@link SourceRef} to an arch {@link SourceReference}.
+     *
+     * @param sourceRef the source reference from the graph layer
+     * @return the converted source reference, or empty if not available
+     * @since 5.0.0
+     */
+    private Optional<SourceReference> convertSourceRef(Optional<SourceRef> sourceRef) {
+        return sourceRef.map(sr -> new SourceReference(sr.filePath(), sr.lineStart(), sr.lineEnd()));
     }
 }

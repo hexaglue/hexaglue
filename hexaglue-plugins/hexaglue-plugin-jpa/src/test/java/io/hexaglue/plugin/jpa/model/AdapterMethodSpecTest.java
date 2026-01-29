@@ -340,7 +340,8 @@ class AdapterMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     java.util.Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);
@@ -366,7 +367,8 @@ class AdapterMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     java.util.Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);
@@ -392,7 +394,8 @@ class AdapterMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     java.util.Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);
@@ -418,7 +421,8 @@ class AdapterMethodSpecTest {
                     Optional.empty(),
                     List.of(),
                     java.util.Set.of(),
-                    java.util.OptionalInt.empty());
+                    java.util.OptionalInt.empty(),
+                    java.util.Optional.empty());
 
             // When
             AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);

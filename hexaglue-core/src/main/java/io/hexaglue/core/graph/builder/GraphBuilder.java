@@ -139,6 +139,7 @@ public final class GraphBuilder {
                 .interfaces(type.interfaces())
                 .annotations(toAnnotationRefs(type.annotations()))
                 .sourceRef(type.sourceRef().orElse(null))
+                .documentation(type.documentation().orElse(null))
                 .build();
     }
 
@@ -214,6 +215,7 @@ public final class GraphBuilder {
                 .modifiers(field.modifiers())
                 .annotations(toAnnotationRefs(field.annotations()))
                 .sourceRef(field.sourceRef().orElse(null))
+                .documentation(field.documentation().orElse(null))
                 .build();
 
         addMemberNode(graph, fieldNode, typeId, knownTypes);
@@ -241,6 +243,7 @@ public final class GraphBuilder {
                 .annotations(toAnnotationRefs(method.annotations()))
                 .sourceRef(method.sourceRef().orElse(null))
                 .cyclomaticComplexity(complexity)
+                .documentation(method.documentation().orElse(null))
                 .build();
 
         addMemberNode(graph, methodNode, typeId, knownTypes);
@@ -282,6 +285,7 @@ public final class GraphBuilder {
                 .modifiers(ctor.modifiers())
                 .annotations(toAnnotationRefs(ctor.annotations()))
                 .sourceRef(ctor.sourceRef().orElse(null))
+                .documentation(ctor.documentation().orElse(null))
                 .build();
 
         addMemberNode(graph, ctorNode, typeId, knownTypes);

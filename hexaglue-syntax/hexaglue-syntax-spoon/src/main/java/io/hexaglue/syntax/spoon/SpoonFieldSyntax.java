@@ -84,6 +84,11 @@ public final class SpoonFieldSyntax implements FieldSyntax {
     }
 
     @Override
+    public Optional<String> documentation() {
+        return JavadocCleaner.clean(ctField.getDocComment());
+    }
+
+    @Override
     public SourceLocation sourceLocation() {
         var position = ctField.getPosition();
         if (position.isValidPosition()) {

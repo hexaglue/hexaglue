@@ -75,7 +75,7 @@ class ConstructorTest {
             List<TypeRef> exceptions = List.of(TypeRef.of("java.lang.IllegalArgumentException"));
 
             // when
-            Constructor ctor = new Constructor(params, modifiers, annotations, doc, exceptions);
+            Constructor ctor = new Constructor(params, modifiers, annotations, doc, exceptions, Optional.empty());
 
             // then
             assertThat(ctor.parameters()).hasSize(1);
@@ -134,7 +134,8 @@ class ConstructorTest {
             // given
             List<Parameter> params =
                     new java.util.ArrayList<>(List.of(Parameter.of("id", TypeRef.of("java.lang.Long"))));
-            Constructor ctor = new Constructor(params, Set.of(), List.of(), Optional.empty(), List.of());
+            Constructor ctor =
+                    new Constructor(params, Set.of(), List.of(), Optional.empty(), List.of(), Optional.empty());
 
             // when/then
             assertThatThrownBy(() -> ctor.parameters().add(Parameter.of("extra", TypeRef.of("String"))))
@@ -147,7 +148,8 @@ class ConstructorTest {
             // given
             List<Parameter> params =
                     new java.util.ArrayList<>(List.of(Parameter.of("id", TypeRef.of("java.lang.Long"))));
-            Constructor ctor = new Constructor(params, Set.of(), List.of(), Optional.empty(), List.of());
+            Constructor ctor =
+                    new Constructor(params, Set.of(), List.of(), Optional.empty(), List.of(), Optional.empty());
 
             // when
             params.add(Parameter.of("extra", TypeRef.of("String")));
