@@ -361,8 +361,11 @@ public final class DomainRenderer {
             if (!notes.isEmpty()) notes.append(", ");
             notes.append("Relation");
         }
-        // Add nullability information
-        if (prop.nullability() != null) {
+        // Show documentation when available, otherwise fall back to nullability
+        if (prop.documentation() != null && !prop.documentation().isBlank()) {
+            if (!notes.isEmpty()) notes.append(" — ");
+            notes.append(prop.documentation());
+        } else if (prop.nullability() != null) {
             if (!notes.isEmpty()) notes.append(", ");
             notes.append(prop.nullability());
         }

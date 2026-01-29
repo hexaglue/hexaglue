@@ -76,14 +76,33 @@ public final class PortRenderer {
         MarkdownBuilder md = new MarkdownBuilder();
         md.paragraph("**Methods**");
 
-        TableBuilder table = md.table("Method", "Return Type", "Parameters");
-        for (MethodDoc method : methods) {
-            table.row(
-                    "`" + method.name() + "`",
-                    "`" + TypeDisplayUtil.simplifyType(method.returnType()) + "`",
-                    formatParameters(method.parameters()));
+        boolean hasDocumentation = methods.stream()
+                .anyMatch(m -> m.documentation() != null && !m.documentation().isBlank());
+
+        if (hasDocumentation) {
+            TableBuilder table = md.table("Method", "Return Type", "Parameters", "Description");
+            for (MethodDoc method : methods) {
+                String description = method.documentation() != null
+                                && !method.documentation().isBlank()
+                        ? method.documentation()
+                        : "-";
+                table.row(
+                        "`" + method.name() + "`",
+                        "`" + TypeDisplayUtil.simplifyType(method.returnType()) + "`",
+                        formatParameters(method.parameters()),
+                        description);
+            }
+            table.end();
+        } else {
+            TableBuilder table = md.table("Method", "Return Type", "Parameters");
+            for (MethodDoc method : methods) {
+                table.row(
+                        "`" + method.name() + "`",
+                        "`" + TypeDisplayUtil.simplifyType(method.returnType()) + "`",
+                        formatParameters(method.parameters()));
+            }
+            table.end();
         }
-        table.end();
 
         return md.build();
     }

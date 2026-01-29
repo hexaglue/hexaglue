@@ -151,6 +151,7 @@ class DiagramRendererTest {
                     false,
                     true,
                     List.of("java.lang.String"),
+                    null,
                     null);
 
             DomainTypeDoc type = new DomainTypeDoc(
@@ -302,6 +303,7 @@ class DiagramRendererTest {
                     false,
                     false,
                     List.of(),
+                    null,
                     null);
 
             DomainTypeDoc order = new DomainTypeDoc(
@@ -340,6 +342,7 @@ class DiagramRendererTest {
                     false,
                     true,
                     List.of("com.example.domain.OrderLineItem"),
+                    null,
                     null);
 
             DomainTypeDoc order = new DomainTypeDoc(
@@ -449,6 +452,7 @@ class DiagramRendererTest {
                     false,
                     false,
                     List.of(),
+                    null,
                     null);
 
             DomainTypeDoc order = new DomainTypeDoc(
@@ -491,6 +495,7 @@ class DiagramRendererTest {
                     false,
                     false,
                     List.of(),
+                    null,
                     null);
 
             DomainTypeDoc customer = new DomainTypeDoc(
@@ -706,7 +711,7 @@ class DiagramRendererTest {
     }
 
     private PropertyDoc createProperty(String name, String type) {
-        return new PropertyDoc(name, type, "SINGLE", "NON_NULL", false, false, true, false, List.of(), null);
+        return new PropertyDoc(name, type, "SINGLE", "NON_NULL", false, false, true, false, List.of(), null, null);
     }
 
     private PortDoc createDrivingPort(String name) {

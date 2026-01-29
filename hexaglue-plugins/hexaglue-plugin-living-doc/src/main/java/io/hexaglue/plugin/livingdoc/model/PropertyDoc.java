@@ -28,6 +28,8 @@ import java.util.List;
  * @param isParameterized whether the type is parameterized
  * @param typeArguments type arguments if parameterized, empty list otherwise
  * @param relationInfo relation information if this property has a relation, or null
+ * @param documentation the field Javadoc description, or null if absent
+ * @since 5.0.0 - added documentation field
  */
 public record PropertyDoc(
         String name,
@@ -39,4 +41,5 @@ public record PropertyDoc(
         boolean isSimple,
         boolean isParameterized,
         List<String> typeArguments,
-        RelationInfoDoc relationInfo) {}
+        RelationInfoDoc relationInfo,
+        String documentation) {}

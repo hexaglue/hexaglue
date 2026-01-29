@@ -326,7 +326,8 @@ public final class DomainContentSelector {
                 true, // isSimple
                 !typeArguments.isEmpty(),
                 typeArguments,
-                null);
+                null,
+                field.documentation().orElse(null));
     }
 
     /**
