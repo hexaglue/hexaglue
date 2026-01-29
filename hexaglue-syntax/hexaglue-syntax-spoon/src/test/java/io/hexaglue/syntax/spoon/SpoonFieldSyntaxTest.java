@@ -129,4 +129,38 @@ class SpoonFieldSyntaxTest {
             assertThat(syntax.sourceLocation().line()).isGreaterThan(0);
         }
     }
+
+    @Nested
+    @DisplayName("Documentation")
+    class DocumentationTest {
+
+        @Test
+        @DisplayName("should return documentation when present")
+        void shouldReturnDocumentationWhenPresent() {
+            // given
+            CtClass<?> ctClass = model.getElements(
+                            (CtClass<?> c) -> c.getSimpleName().equals("DocumentedClass"))
+                    .get(0);
+            CtField<?> field = ctClass.getField("documentedField");
+            FieldSyntax syntax = new SpoonFieldSyntax(field);
+
+            // then
+            assertThat(syntax.documentation()).isPresent();
+            assertThat(syntax.documentation().get()).contains("documented field");
+        }
+
+        @Test
+        @DisplayName("should return empty when no documentation")
+        void shouldReturnEmptyWhenNoDocumentation() {
+            // given
+            CtClass<?> ctClass = model.getElements(
+                            (CtClass<?> c) -> c.getSimpleName().equals("DocumentedClass"))
+                    .get(0);
+            CtField<?> field = ctClass.getField("undocumentedField");
+            FieldSyntax syntax = new SpoonFieldSyntax(field);
+
+            // then
+            assertThat(syntax.documentation()).isEmpty();
+        }
+    }
 }
