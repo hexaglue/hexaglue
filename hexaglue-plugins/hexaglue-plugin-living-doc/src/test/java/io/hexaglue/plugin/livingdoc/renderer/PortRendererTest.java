@@ -162,9 +162,10 @@ class PortRendererTest {
 
         @Test
         void shouldRenderMethodsTable() {
-            MethodDoc method1 = new MethodDoc("save", "com.example.domain.Order", List.of("com.example.domain.Order"));
+            MethodDoc method1 =
+                    new MethodDoc("save", "com.example.domain.Order", List.of("com.example.domain.Order"), null);
             MethodDoc method2 =
-                    new MethodDoc("findById", "java.util.Optional<Order>", List.of("com.example.domain.OrderId"));
+                    new MethodDoc("findById", "java.util.Optional<Order>", List.of("com.example.domain.OrderId"), null);
 
             List<MethodDoc> methods = List.of(method1, method2);
 
@@ -178,7 +179,7 @@ class PortRendererTest {
 
         @Test
         void shouldRenderMethodWithNoParameters() {
-            MethodDoc method = new MethodDoc("getAll", "java.util.List<Order>", List.of());
+            MethodDoc method = new MethodDoc("getAll", "java.util.List<Order>", List.of(), null);
 
             String result = renderer.renderMethods(List.of(method));
 
@@ -190,7 +191,8 @@ class PortRendererTest {
             MethodDoc method = new MethodDoc(
                     "search",
                     "java.util.List<Order>",
-                    List.of("java.lang.String", "java.time.LocalDate", "java.time.LocalDate"));
+                    List.of("java.lang.String", "java.time.LocalDate", "java.time.LocalDate"),
+                    null);
 
             String result = renderer.renderMethods(List.of(method));
 
@@ -199,12 +201,37 @@ class PortRendererTest {
 
         @Test
         void shouldSimplifyTypeNamesInMethodsTable() {
-            MethodDoc method =
-                    new MethodDoc("process", "com.example.dto.OrderDto", List.of("com.example.dto.CreateOrderRequest"));
+            MethodDoc method = new MethodDoc(
+                    "process", "com.example.dto.OrderDto", List.of("com.example.dto.CreateOrderRequest"), null);
 
             String result = renderer.renderMethods(List.of(method));
 
             assertThat(result).contains("| `process` | `OrderDto` | `CreateOrderRequest` |");
+        }
+
+        @Test
+        void shouldRenderMethodDocumentationColumn() {
+            MethodDoc method = new MethodDoc(
+                    "save",
+                    "com.example.domain.Order",
+                    List.of("com.example.domain.Order"),
+                    "Persists the given order");
+
+            String result = renderer.renderMethods(List.of(method));
+
+            assertThat(result).contains("| Method | Return Type | Parameters | Description |");
+            assertThat(result).contains("Persists the given order");
+        }
+
+        @Test
+        void shouldNotRenderDescriptionColumnWhenNoDocumentation() {
+            MethodDoc method =
+                    new MethodDoc("save", "com.example.domain.Order", List.of("com.example.domain.Order"), null);
+
+            String result = renderer.renderMethods(List.of(method));
+
+            assertThat(result).contains("| Method | Return Type | Parameters |");
+            assertThat(result).doesNotContain("| Description |");
         }
     }
 
@@ -213,8 +240,9 @@ class PortRendererTest {
 
         @Test
         void shouldRenderMethodSignaturesSection() {
-            MethodDoc method1 = new MethodDoc("save", "com.example.domain.Order", List.of("com.example.domain.Order"));
-            MethodDoc method2 = new MethodDoc("findById", "java.util.Optional<Order>", List.of("OrderId"));
+            MethodDoc method1 =
+                    new MethodDoc("save", "com.example.domain.Order", List.of("com.example.domain.Order"), null);
+            MethodDoc method2 = new MethodDoc("findById", "java.util.Optional<Order>", List.of("OrderId"), null);
 
             PortDoc port = new PortDoc(
                     "OrderRepository",
@@ -241,7 +269,7 @@ class PortRendererTest {
 
         @Test
         void shouldRenderMethodWithNoParameters() {
-            MethodDoc method = new MethodDoc("getAll", "List<Order>", List.of());
+            MethodDoc method = new MethodDoc("getAll", "List<Order>", List.of(), null);
             PortDoc port = new PortDoc(
                     "OrderQuery",
                     "com.example.ports.in",
@@ -260,7 +288,7 @@ class PortRendererTest {
 
         @Test
         void shouldRenderVoidMethod() {
-            MethodDoc method = new MethodDoc("notify", "void", List.of("String"));
+            MethodDoc method = new MethodDoc("notify", "void", List.of("String"), null);
             PortDoc port = new PortDoc(
                     "NotificationPort",
                     "com.example.ports.out",
@@ -279,8 +307,8 @@ class PortRendererTest {
 
         @Test
         void shouldNumberParametersSequentially() {
-            MethodDoc method =
-                    new MethodDoc("create", "OrderId", List.of("CustomerId", "List<LineItem>", "Address", "Money"));
+            MethodDoc method = new MethodDoc(
+                    "create", "OrderId", List.of("CustomerId", "List<LineItem>", "Address", "Money"), null);
             PortDoc port = new PortDoc(
                     "OrderCreation",
                     "com.example.ports.in",
@@ -304,7 +332,7 @@ class PortRendererTest {
 
         @Test
         void shouldRenderDebugSectionWithAllInformation() {
-            MethodDoc method = new MethodDoc("save", "Order", List.of("Order"));
+            MethodDoc method = new MethodDoc("save", "Order", List.of("Order"), null);
             PortDoc port = new PortDoc(
                     "OrderRepository",
                     "com.example.ports.out",
@@ -354,9 +382,10 @@ class PortRendererTest {
 
         @Test
         void shouldRenderMethodDetailsInDebugSection() {
-            MethodDoc method1 = new MethodDoc("save", "Order", List.of("Order"));
-            MethodDoc method2 = new MethodDoc("findAll", "List<Order>", List.of());
-            MethodDoc method3 = new MethodDoc("search", "List<Order>", List.of("String", "LocalDate", "LocalDate"));
+            MethodDoc method1 = new MethodDoc("save", "Order", List.of("Order"), null);
+            MethodDoc method2 = new MethodDoc("findAll", "List<Order>", List.of(), null);
+            MethodDoc method3 =
+                    new MethodDoc("search", "List<Order>", List.of("String", "LocalDate", "LocalDate"), null);
 
             PortDoc port = new PortDoc(
                     "OrderRepository",
@@ -478,8 +507,8 @@ class PortRendererTest {
 
         @Test
         void shouldRenderCompleteRepositoryPort() {
-            MethodDoc method1 = new MethodDoc("save", "Order", List.of("Order"));
-            MethodDoc method2 = new MethodDoc("findById", "Optional<Order>", List.of("OrderId"));
+            MethodDoc method1 = new MethodDoc("save", "Order", List.of("Order"), null);
+            MethodDoc method2 = new MethodDoc("findById", "Optional<Order>", List.of("OrderId"), null);
 
             PortDoc port = new PortDoc(
                     "OrderRepository",
@@ -510,7 +539,7 @@ class PortRendererTest {
 
         @Test
         void shouldRenderCompleteUseCasePort() {
-            MethodDoc method = new MethodDoc("execute", "OrderId", List.of("CreateOrderRequest"));
+            MethodDoc method = new MethodDoc("execute", "OrderId", List.of("CreateOrderRequest"), null);
 
             PortDoc port = new PortDoc(
                     "CreateOrderUseCase",

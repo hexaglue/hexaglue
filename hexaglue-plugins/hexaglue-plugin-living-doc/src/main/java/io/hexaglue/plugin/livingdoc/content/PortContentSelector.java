@@ -108,7 +108,8 @@ public final class PortContentSelector {
         List<String> parameters = method.parameters().stream()
                 .map(p -> formatTypeWithArguments(p.type()))
                 .collect(Collectors.toList());
-        return new MethodDoc(method.name(), returnType, parameters);
+        return new MethodDoc(
+                method.name(), returnType, parameters, method.documentation().orElse(null));
     }
 
     /**

@@ -204,9 +204,19 @@ class DomainRendererTest {
         @Test
         void shouldRenderPropertiesTable() {
             PropertyDoc prop1 = new PropertyDoc(
-                    "name", "java.lang.String", "SINGLE", "NON_NULL", false, false, true, false, List.of(), null);
+                    "name", "java.lang.String", "SINGLE", "NON_NULL", false, false, true, false, List.of(), null, null);
             PropertyDoc prop2 = new PropertyDoc(
-                    "quantity", "java.lang.Integer", "SINGLE", "NON_NULL", false, false, true, false, List.of(), null);
+                    "quantity",
+                    "java.lang.Integer",
+                    "SINGLE",
+                    "NON_NULL",
+                    false,
+                    false,
+                    true,
+                    false,
+                    List.of(),
+                    null,
+                    null);
 
             List<PropertyDoc> properties = List.of(prop1, prop2);
 
@@ -230,6 +240,7 @@ class DomainRendererTest {
                     false,
                     true,
                     List.of("java.lang.String"),
+                    null,
                     null);
 
             String result = renderer.renderProperties(List.of(prop));
@@ -249,6 +260,7 @@ class DomainRendererTest {
                     false,
                     true,
                     List.of("java.lang.String"),
+                    null,
                     null);
 
             String result = renderer.renderProperties(List.of(prop));
@@ -259,7 +271,7 @@ class DomainRendererTest {
         @Test
         void shouldRenderIdentityPropertyNote() {
             PropertyDoc prop = new PropertyDoc(
-                    "id", "java.lang.Long", "SINGLE", "NON_NULL", true, false, true, false, List.of(), null);
+                    "id", "java.lang.Long", "SINGLE", "NON_NULL", true, false, true, false, List.of(), null, null);
 
             String result = renderer.renderProperties(List.of(prop));
 
@@ -278,6 +290,7 @@ class DomainRendererTest {
                     false,
                     false,
                     List.of(),
+                    null,
                     null);
 
             String result = renderer.renderProperties(List.of(prop));
@@ -303,6 +316,38 @@ class DomainRendererTest {
             String result = renderer.renderType(type);
 
             assertThat(result).doesNotContain("**Properties**");
+        }
+
+        @Test
+        void shouldRenderPropertyDocumentationInNotes() {
+            PropertyDoc prop = new PropertyDoc(
+                    "customerName",
+                    "java.lang.String",
+                    "SINGLE",
+                    "UNKNOWN",
+                    false,
+                    false,
+                    true,
+                    false,
+                    List.of(),
+                    null,
+                    "The full name of the customer");
+
+            String result = renderer.renderProperties(List.of(prop));
+
+            assertThat(result).contains("The full name of the customer");
+            // Documentation replaces nullability display
+            assertThat(result).doesNotContain("UNKNOWN");
+        }
+
+        @Test
+        void shouldFallBackToNullabilityWhenNoDocumentation() {
+            PropertyDoc prop = new PropertyDoc(
+                    "name", "java.lang.String", "SINGLE", "NON_NULL", false, false, true, false, List.of(), null, null);
+
+            String result = renderer.renderProperties(List.of(prop));
+
+            assertThat(result).contains("NON_NULL");
         }
     }
 
@@ -563,6 +608,7 @@ class DomainRendererTest {
                     false,
                     true,
                     List.of("java.lang.String"),
+                    null,
                     null);
             DomainTypeDoc type = new DomainTypeDoc(
                     "Product",
@@ -626,7 +672,17 @@ class DomainRendererTest {
         void shouldRenderCompleteAggregateRoot() {
             IdentityDoc identity = new IdentityDoc("id", "OrderId", "UUID", "ASSIGNED", "RECORD", true, false, null);
             PropertyDoc prop = new PropertyDoc(
-                    "status", "java.lang.String", "SINGLE", "NON_NULL", false, false, true, false, List.of(), null);
+                    "status",
+                    "java.lang.String",
+                    "SINGLE",
+                    "NON_NULL",
+                    false,
+                    false,
+                    true,
+                    false,
+                    List.of(),
+                    null,
+                    null);
             RelationDoc rel = new RelationDoc(
                     "lineItems",
                     "OrderLineItem",

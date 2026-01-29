@@ -21,5 +21,7 @@ import java.util.List;
  * @param name the method name
  * @param returnType the return type qualified name
  * @param parameters list of parameter type qualified names
+ * @param documentation the method Javadoc description, or null if absent
+ * @since 5.0.0 - added documentation field
  */
-public record MethodDoc(String name, String returnType, List<String> parameters) {}
+public record MethodDoc(String name, String returnType, List<String> parameters, String documentation) {}
