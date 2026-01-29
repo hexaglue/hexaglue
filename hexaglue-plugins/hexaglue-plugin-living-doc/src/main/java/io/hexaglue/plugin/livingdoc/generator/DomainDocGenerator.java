@@ -13,8 +13,11 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
+import io.hexaglue.plugin.livingdoc.content.RelationshipEnricher;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
+import io.hexaglue.plugin.livingdoc.model.ArchitecturalDependency;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.renderer.DomainRenderer;
 import io.hexaglue.plugin.livingdoc.util.MarkdownUtil;
@@ -37,6 +40,7 @@ public final class DomainDocGenerator {
 
     private final DomainContentSelector contentSelector;
     private final DomainRenderer renderer;
+    private final RelationshipEnricher relationshipEnricher;
 
     /**
      * Creates a generator using a pre-built content selector.
@@ -49,8 +53,20 @@ public final class DomainDocGenerator {
      * @since 5.0.0 - Accepts DomainContentSelector instead of ArchitecturalModel
      */
     public DomainDocGenerator(DomainContentSelector contentSelector) {
+        this(contentSelector, null);
+    }
+
+    /**
+     * Creates a generator with relationship enrichment support.
+     *
+     * @param contentSelector the domain content selector
+     * @param relationshipEnricher the relationship enricher, or {@code null} if unavailable
+     * @since 5.0.0
+     */
+    public DomainDocGenerator(DomainContentSelector contentSelector, RelationshipEnricher relationshipEnricher) {
         this.contentSelector = contentSelector;
         this.renderer = new DomainRenderer();
+        this.relationshipEnricher = relationshipEnricher;
     }
 
     public String generate() {
@@ -72,7 +88,7 @@ public final class DomainDocGenerator {
                     .paragraph(
                             "Aggregate roots are the entry points to aggregates. They ensure consistency boundaries and manage their own invariants.");
             for (DomainTypeDoc agg : aggregates) {
-                md.raw(renderer.renderType(agg));
+                renderTypeWithDependencies(md, agg);
             }
         }
 
@@ -81,7 +97,7 @@ public final class DomainDocGenerator {
         if (!entities.isEmpty()) {
             md.h2("Entities").paragraph("Entities have identity and are accessed through their aggregate root.");
             for (DomainTypeDoc entity : entities) {
-                md.raw(renderer.renderType(entity));
+                renderTypeWithDependencies(md, entity);
             }
         }
 
@@ -91,7 +107,7 @@ public final class DomainDocGenerator {
             md.h2("Value Objects")
                     .paragraph("Value objects are immutable and defined by their attributes, not identity.");
             for (DomainTypeDoc vo : valueObjects) {
-                md.raw(renderer.renderType(vo));
+                renderTypeWithDependencies(md, vo);
             }
         }
 
@@ -100,7 +116,7 @@ public final class DomainDocGenerator {
         if (!identifiers.isEmpty()) {
             md.h2("Identifiers").paragraph("Identifier types wrap primitive identity values for type safety.");
             for (DomainTypeDoc id : identifiers) {
-                md.raw(renderer.renderType(id));
+                renderTypeWithDependencies(md, id);
             }
         }
 
@@ -110,7 +126,7 @@ public final class DomainDocGenerator {
             md.h2("Domain Events")
                     .paragraph("Domain events represent something meaningful that happened in the domain.");
             for (DomainTypeDoc event : events) {
-                md.raw(renderer.renderType(event));
+                renderTypeWithDependencies(md, event);
             }
         }
 
@@ -121,7 +137,7 @@ public final class DomainDocGenerator {
                     .paragraph(
                             "Domain services contain domain logic that doesn't belong to entities. They have NO dependencies on infrastructure ports.");
             for (DomainTypeDoc service : domainServices) {
-                md.raw(renderer.renderType(service));
+                renderTypeWithDependencies(md, service);
             }
         }
 
@@ -132,7 +148,7 @@ public final class DomainDocGenerator {
                     .paragraph(
                             "Application services orchestrate use cases by coordinating domain logic and infrastructure through ports. They have dependencies on DRIVEN ports.");
             for (DomainTypeDoc service : appServices) {
-                md.raw(renderer.renderType(service));
+                renderTypeWithDependencies(md, service);
             }
         }
 
@@ -160,6 +176,23 @@ public final class DomainDocGenerator {
                 md.bulletItem("[" + type.name() + "](#" + MarkdownUtil.toAnchor(type.name()) + ")");
             }
             md.newline();
+        }
+    }
+
+    /**
+     * Renders a type followed by its architectural dependencies (if enricher is available).
+     */
+    private void renderTypeWithDependencies(MarkdownBuilder md, DomainTypeDoc type) {
+        md.raw(renderer.renderType(type));
+
+        if (relationshipEnricher != null && relationshipEnricher.isAvailable()) {
+            TypeId typeId = TypeId.of(type.debug().qualifiedName());
+            List<ArchitecturalDependency> outgoing = relationshipEnricher.outgoingFrom(typeId);
+            List<ArchitecturalDependency> incoming = relationshipEnricher.incomingTo(typeId);
+
+            if (!outgoing.isEmpty() || !incoming.isEmpty()) {
+                md.raw(renderer.renderArchitecturalDependencies(outgoing, incoming));
+            }
         }
     }
 }

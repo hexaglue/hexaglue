@@ -13,8 +13,10 @@
 
 package io.hexaglue.plugin.livingdoc.renderer;
 
+import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.markdown.TableBuilder;
+import io.hexaglue.plugin.livingdoc.model.ArchitecturalDependency;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.IdentityDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
@@ -115,6 +117,56 @@ public final class DomainRenderer {
         table.end();
 
         return md.build();
+    }
+
+    /**
+     * Renders architectural dependencies (outgoing and incoming) as Markdown tables.
+     *
+     * @param outgoing the outgoing dependencies
+     * @param incoming the incoming dependencies
+     * @return the Markdown content
+     * @since 5.0.0
+     */
+    public String renderArchitecturalDependencies(
+            List<ArchitecturalDependency> outgoing, List<ArchitecturalDependency> incoming) {
+        MarkdownBuilder md = new MarkdownBuilder();
+        md.paragraph("**Architectural Dependencies**");
+
+        if (!outgoing.isEmpty()) {
+            md.raw("*Outgoing:*\n\n");
+            TableBuilder table = md.table("Target", "Relationship");
+            for (ArchitecturalDependency dep : outgoing) {
+                table.row("`" + dep.targetSimpleName() + "`", formatRelationType(dep.relationType()));
+            }
+            table.end();
+        }
+
+        if (!incoming.isEmpty()) {
+            md.raw("*Incoming:*\n\n");
+            TableBuilder table = md.table("Source", "Relationship");
+            for (ArchitecturalDependency dep : incoming) {
+                table.row("`" + dep.targetSimpleName() + "`", formatRelationType(dep.relationType()));
+            }
+            table.end();
+        }
+
+        return md.build();
+    }
+
+    private String formatRelationType(RelationType type) {
+        return switch (type) {
+            case CONTAINS -> "Contains";
+            case OWNS -> "Owns";
+            case REFERENCES -> "References";
+            case DEPENDS_ON -> "Depends on";
+            case EXTENDS -> "Extends";
+            case IMPLEMENTS -> "Implements";
+            case EXPOSES -> "Exposes";
+            case ADAPTS -> "Adapts";
+            case PERSISTS -> "Persists";
+            case EMITS -> "Emits";
+            case HANDLES -> "Handles";
+        };
     }
 
     public String renderDebugSection(DomainTypeDoc type) {

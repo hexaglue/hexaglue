@@ -65,7 +65,7 @@ public final class SpoonFrontend implements JavaFrontend {
     private void configureEnvironment(Environment env, int javaVersion) {
         env.setNoClasspath(false); // We want type resolution
         env.setAutoImports(false); // Don't rewrite imports
-        env.setCommentEnabled(false); // Speed optimization
+        env.setCommentEnabled(true); // Required for Javadoc extraction
         env.setComplianceLevel(javaVersion);
         env.setIgnoreDuplicateDeclarations(true);
         env.setShouldCompile(false); // We only need the model, not bytecode

@@ -36,6 +36,8 @@ import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.graph.RelationshipGraph;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.syntax.TypeRef;
@@ -81,6 +83,36 @@ public final class V5TestModelBuilder {
                 .typeRegistry(registry)
                 .domainIndex(domainIndex)
                 .portIndex(portIndex)
+                .build();
+    }
+
+    /**
+     * Creates an ArchitecturalModel with a relationship graph.
+     *
+     * <p>Builds a model with TypeRegistry, DomainIndex, PortIndex, and
+     * CompositionIndex from the provided graph and types.
+     *
+     * @param project the project context
+     * @param graph the relationship graph
+     * @param types the architectural types to include
+     * @return a complete ArchitecturalModel with CompositionIndex
+     * @since 5.0.0
+     */
+    public static ArchitecturalModel createModelWithGraph(
+            ProjectContext project, RelationshipGraph graph, ArchType... types) {
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
+        Arrays.stream(types).forEach(registryBuilder::add);
+        TypeRegistry registry = registryBuilder.build();
+
+        DomainIndex domainIndex = DomainIndex.from(registry);
+        PortIndex portIndex = PortIndex.from(registry);
+        CompositionIndex compositionIndex = CompositionIndex.from(graph, registry);
+
+        return ArchitecturalModel.builder(project)
+                .typeRegistry(registry)
+                .domainIndex(domainIndex)
+                .portIndex(portIndex)
+                .compositionIndex(compositionIndex)
                 .build();
     }
 

@@ -14,6 +14,7 @@
 package io.hexaglue.plugin.livingdoc.renderer;
 
 import io.hexaglue.plugin.livingdoc.mermaid.MermaidBuilder;
+import io.hexaglue.plugin.livingdoc.model.BoundedContextDoc;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.plugin.livingdoc.model.PortDoc;
 import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
@@ -264,6 +265,113 @@ public final class DiagramRenderer {
 
         sb.append("```\n\n");
         return sb.toString();
+    }
+
+    /**
+     * Renders an enhanced dependencies diagram with bounded context subgraphs.
+     *
+     * <p>If there are fewer than 2 bounded contexts, falls back to the standard
+     * {@link #renderDependenciesDiagram} method.
+     *
+     * @param drivingPorts the driving ports
+     * @param drivenPorts the driven ports
+     * @param aggregates the aggregate roots
+     * @param boundedContexts the bounded contexts
+     * @return the Mermaid diagram
+     * @since 5.0.0
+     */
+    public String renderEnhancedDependenciesDiagram(
+            List<PortDoc> drivingPorts,
+            List<PortDoc> drivenPorts,
+            List<DomainTypeDoc> aggregates,
+            List<BoundedContextDoc> boundedContexts) {
+        if (boundedContexts == null || boundedContexts.size() < 2) {
+            return renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates);
+        }
+
+        StringBuilder sb = new StringBuilder();
+        sb.append("```mermaid\n");
+        sb.append("flowchart TB\n");
+
+        // Driving Adapters
+        sb.append("    subgraph DrivingAdapters[\"Driving Adapters\"]\n");
+        sb.append("        Controller[REST Controller]\n");
+        sb.append("        CLI[CLI]\n");
+        sb.append("    end\n\n");
+
+        // Driving ports
+        sb.append("    subgraph DrivingPorts[\"Driving Ports\"]\n");
+        if (drivingPorts.isEmpty()) {
+            sb.append("        NoDrivingPorts[[\"(none)\"]]\n");
+        } else {
+            for (PortDoc port : drivingPorts) {
+                sb.append("        ")
+                        .append(MermaidBuilder.sanitizeId(port.name()))
+                        .append("[[")
+                        .append(port.name())
+                        .append("]]\n");
+            }
+        }
+        sb.append("    end\n\n");
+
+        // Domain with bounded context subgraphs
+        sb.append("    subgraph Domain[\"Domain\"]\n");
+        for (BoundedContextDoc ctx : boundedContexts) {
+            String ctxId = MermaidBuilder.sanitizeId("BC_" + ctx.name());
+            String ctxLabel = capitalize(ctx.name());
+            sb.append("        subgraph ")
+                    .append(ctxId)
+                    .append("[\"")
+                    .append(ctxLabel)
+                    .append("\"]\n");
+            for (String typeName : ctx.typeNames()) {
+                String nodeId = MermaidBuilder.sanitizeId(typeName);
+                sb.append("            ")
+                        .append(nodeId)
+                        .append("{{")
+                        .append(typeName)
+                        .append("}}\n");
+            }
+            sb.append("        end\n");
+        }
+        sb.append("    end\n\n");
+
+        // Driven ports
+        sb.append("    subgraph DrivenPorts[\"Driven Ports\"]\n");
+        if (drivenPorts.isEmpty()) {
+            sb.append("        NoDrivenPorts[[\"(none)\"]]\n");
+        } else {
+            for (PortDoc port : drivenPorts) {
+                sb.append("        ")
+                        .append(MermaidBuilder.sanitizeId(port.name()))
+                        .append("[[")
+                        .append(port.name())
+                        .append("]]\n");
+            }
+        }
+        sb.append("    end\n\n");
+
+        // Driven Adapters
+        sb.append("    subgraph DrivenAdapters[\"Driven Adapters\"]\n");
+        sb.append("        JpaRepo[JPA Repository]\n");
+        sb.append("        ExtClient[External Client]\n");
+        sb.append("    end\n\n");
+
+        // Dependencies
+        sb.append("    DrivingAdapters --> DrivingPorts\n");
+        sb.append("    DrivingPorts --> Domain\n");
+        sb.append("    DrivenAdapters --> DrivenPorts\n");
+        sb.append("    DrivenPorts --> Domain\n");
+
+        sb.append("```\n\n");
+        return sb.toString();
+    }
+
+    private static String capitalize(String s) {
+        if (s == null || s.isEmpty()) {
+            return s;
+        }
+        return Character.toUpperCase(s.charAt(0)) + s.substring(1);
     }
 
     private void generateClassDefinition(StringBuilder sb, DomainTypeDoc type) {
