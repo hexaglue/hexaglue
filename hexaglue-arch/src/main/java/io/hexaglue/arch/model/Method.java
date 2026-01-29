@@ -79,8 +79,9 @@ import java.util.stream.Collectors;
  * @param thrownExceptions the exceptions declared to be thrown (immutable)
  * @param roles the semantic roles of this method (immutable)
  * @param cyclomaticComplexity the cyclomatic complexity of the method body, if calculated
+ * @param sourceLocation the source code location of this method (if available)
  * @since 4.1.0
- * @since 5.0.0 Added roles and cyclomaticComplexity parameters
+ * @since 5.0.0 Added roles, cyclomaticComplexity, and sourceLocation parameters
  */
 public record Method(
         String name,
@@ -91,7 +92,8 @@ public record Method(
         Optional<String> documentation,
         List<TypeRef> thrownExceptions,
         Set<MethodRole> roles,
-        OptionalInt cyclomaticComplexity) {
+        OptionalInt cyclomaticComplexity,
+        Optional<SourceReference> sourceLocation) {
 
     /**
      * Creates a new Method.
@@ -105,6 +107,7 @@ public record Method(
      * @param thrownExceptions the thrown exceptions, must not be null
      * @param roles the semantic roles, must not be null
      * @param cyclomaticComplexity the cyclomatic complexity, must not be null
+     * @param sourceLocation the source location, must not be null
      * @throws NullPointerException if any argument is null
      * @throws IllegalArgumentException if name is blank
      */
@@ -118,6 +121,7 @@ public record Method(
         Objects.requireNonNull(thrownExceptions, "thrownExceptions must not be null");
         Objects.requireNonNull(roles, "roles must not be null");
         Objects.requireNonNull(cyclomaticComplexity, "cyclomaticComplexity must not be null");
+        Objects.requireNonNull(sourceLocation, "sourceLocation must not be null");
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
@@ -147,7 +151,8 @@ public record Method(
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     /**
@@ -171,7 +176,8 @@ public record Method(
                 Optional.empty(),
                 List.of(),
                 roles,
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 
     /**
@@ -196,7 +202,8 @@ public record Method(
                 Optional.empty(),
                 List.of(),
                 roles,
-                OptionalInt.of(complexity));
+                OptionalInt.of(complexity),
+                Optional.empty());
     }
 
     /**

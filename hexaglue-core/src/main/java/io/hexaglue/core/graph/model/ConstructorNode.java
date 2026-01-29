@@ -35,6 +35,7 @@ public final class ConstructorNode extends MemberNode {
     private final Set<JavaModifier> modifiers;
     private final List<AnnotationRef> annotations;
     private final SourceRef sourceRef;
+    private final String documentation;
 
     private ConstructorNode(Builder builder) {
         this.id = Objects.requireNonNull(builder.id, "id is required");
@@ -45,6 +46,7 @@ public final class ConstructorNode extends MemberNode {
         this.modifiers = builder.modifiers != null ? Set.copyOf(builder.modifiers) : Set.of();
         this.annotations = builder.annotations != null ? List.copyOf(builder.annotations) : List.of();
         this.sourceRef = builder.sourceRef;
+        this.documentation = builder.documentation;
     }
 
     public static Builder builder() {
@@ -108,6 +110,16 @@ public final class ConstructorNode extends MemberNode {
     }
 
     /**
+     * Returns the Javadoc documentation of this constructor, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    public Optional<String> documentation() {
+        return Optional.ofNullable(documentation);
+    }
+
+    /**
      * Returns the parameter types as a comma-separated string.
      */
     public String parameterTypesSignature() {
@@ -137,6 +149,7 @@ public final class ConstructorNode extends MemberNode {
         private Set<JavaModifier> modifiers;
         private List<AnnotationRef> annotations;
         private SourceRef sourceRef;
+        private String documentation;
 
         private Builder() {}
 
@@ -180,6 +193,18 @@ public final class ConstructorNode extends MemberNode {
 
         public Builder sourceRef(SourceRef sourceRef) {
             this.sourceRef = sourceRef;
+            return this;
+        }
+
+        /**
+         * Sets the documentation.
+         *
+         * @param documentation the Javadoc documentation (may be null)
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder documentation(String documentation) {
+            this.documentation = documentation;
             return this;
         }
 

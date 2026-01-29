@@ -211,7 +211,8 @@ class FieldTest {
                     Optional.empty(),
                     Optional.empty(),
                     Optional.empty(),
-                    Set.of());
+                    Set.of(),
+                    Optional.empty());
 
             // when/then
             assertThatThrownBy(() -> field.modifiers().add(Modifier.FINAL))

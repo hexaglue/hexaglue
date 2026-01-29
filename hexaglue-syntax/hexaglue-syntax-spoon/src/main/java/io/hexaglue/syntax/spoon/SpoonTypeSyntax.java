@@ -162,6 +162,11 @@ public final class SpoonTypeSyntax implements TypeSyntax {
     }
 
     @Override
+    public Optional<String> documentation() {
+        return JavadocCleaner.clean(ctType.getDocComment());
+    }
+
+    @Override
     public SourceLocation sourceLocation() {
         var position = ctType.getPosition();
         if (position.isValidPosition()) {

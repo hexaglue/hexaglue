@@ -109,6 +109,7 @@ public record SyntaxCapabilities(Set<Capability> supported) {
                 Capability.FIELD_ACCESSES,
                 Capability.TYPE_RESOLUTION_FULL,
                 Capability.CYCLOMATIC_COMPLEXITY,
+                Capability.COMMENTS_AND_JAVADOC,
                 Capability.ANNOTATION_VALUES_FULL));
     }
 

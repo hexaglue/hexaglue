@@ -119,6 +119,18 @@ public interface TypeSyntax {
      */
     List<AnnotationSyntax> annotations();
 
+    // ===== Documentation =====
+
+    /**
+     * Returns the Javadoc documentation of this type, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    default Optional<String> documentation() {
+        return Optional.empty();
+    }
+
     // ===== Source =====
 
     /**

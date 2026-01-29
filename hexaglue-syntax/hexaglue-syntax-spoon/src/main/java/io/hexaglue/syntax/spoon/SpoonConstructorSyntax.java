@@ -83,6 +83,11 @@ public final class SpoonConstructorSyntax implements ConstructorSyntax {
     }
 
     @Override
+    public Optional<String> documentation() {
+        return JavadocCleaner.clean(ctConstructor.getDocComment());
+    }
+
+    @Override
     public SourceLocation sourceLocation() {
         var position = ctConstructor.getPosition();
         if (position.isValidPosition()) {

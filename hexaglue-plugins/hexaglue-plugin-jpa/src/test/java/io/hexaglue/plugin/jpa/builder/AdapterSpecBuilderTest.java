@@ -501,7 +501,8 @@ class AdapterSpecBuilderTest {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
 
         TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
                 .modifiers(Set.of(Modifier.PUBLIC))
@@ -543,6 +544,7 @@ class AdapterSpecBuilderTest {
                 Optional.empty(),
                 List.of(),
                 Set.of(),
-                OptionalInt.empty());
+                OptionalInt.empty(),
+                Optional.empty());
     }
 }

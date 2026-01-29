@@ -37,6 +37,7 @@ public final class TypeNode extends Node {
     private final List<TypeRef> interfaces;
     private final List<AnnotationRef> annotations;
     private final SourceRef sourceRef;
+    private final String documentation;
 
     private TypeNode(Builder builder) {
         this.id = Objects.requireNonNull(builder.id, "id is required");
@@ -49,6 +50,7 @@ public final class TypeNode extends Node {
         this.interfaces = builder.interfaces != null ? List.copyOf(builder.interfaces) : List.of();
         this.annotations = builder.annotations != null ? List.copyOf(builder.annotations) : List.of();
         this.sourceRef = builder.sourceRef;
+        this.documentation = builder.documentation;
     }
 
     public static Builder builder() {
@@ -111,6 +113,16 @@ public final class TypeNode extends Node {
      */
     public List<TypeRef> interfaces() {
         return interfaces;
+    }
+
+    /**
+     * Returns the Javadoc documentation of this type, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    public Optional<String> documentation() {
+        return Optional.ofNullable(documentation);
     }
 
     // === Convenience methods ===
@@ -193,6 +205,7 @@ public final class TypeNode extends Node {
         private List<TypeRef> interfaces;
         private List<AnnotationRef> annotations;
         private SourceRef sourceRef;
+        private String documentation;
 
         private Builder() {}
 
@@ -257,6 +270,18 @@ public final class TypeNode extends Node {
 
         public Builder sourceRef(SourceRef sourceRef) {
             this.sourceRef = sourceRef;
+            return this;
+        }
+
+        /**
+         * Sets the documentation.
+         *
+         * @param documentation the Javadoc documentation (may be null)
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder documentation(String documentation) {
+            this.documentation = documentation;
             return this;
         }
 

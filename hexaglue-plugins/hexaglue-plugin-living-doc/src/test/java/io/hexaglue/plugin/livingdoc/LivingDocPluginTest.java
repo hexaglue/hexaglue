@@ -24,12 +24,15 @@ import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
+import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +42,7 @@ import org.junit.jupiter.api.Test;
  * Unit tests for LivingDocPlugin using v5 ArchitecturalModel API.
  *
  * @since 4.0.0
- * @since 5.0.0 - Migrated to v5 ArchType API
+ * @since 5.0.0 - Migrated to v5 ArchType API, shared selectors
  */
 class LivingDocPluginTest {
 
@@ -94,7 +97,8 @@ class LivingDocPluginTest {
 
     @Test
     void domainDocGeneratorShouldGenerateValidMarkdown() {
-        DomainDocGenerator generator = new DomainDocGenerator(testModel);
+        DomainContentSelector domainSelector = new DomainContentSelector(testModel);
+        DomainDocGenerator generator = new DomainDocGenerator(domainSelector);
         String result = generator.generate();
 
         assertThat(result).contains("# Domain Model");
@@ -106,7 +110,8 @@ class LivingDocPluginTest {
 
     @Test
     void portDocGeneratorShouldGenerateValidMarkdown() {
-        PortDocGenerator generator = new PortDocGenerator(testModel);
+        PortContentSelector portSelector = new PortContentSelector(testModel);
+        PortDocGenerator generator = new PortDocGenerator(portSelector);
         String result = generator.generate();
 
         assertThat(result).contains("# Ports");
@@ -118,7 +123,10 @@ class LivingDocPluginTest {
 
     @Test
     void diagramGeneratorShouldGenerateMermaidDiagrams() {
-        DiagramGenerator generator = new DiagramGenerator(testModel);
+        DomainContentSelector domainSelector = new DomainContentSelector(testModel);
+        PortContentSelector portSelector = new PortContentSelector(testModel);
+        DiagramRenderer renderer = new DiagramRenderer();
+        DiagramGenerator generator = new DiagramGenerator(domainSelector, portSelector, renderer);
         String result = generator.generate();
 
         assertThat(result).contains("# Architecture Diagrams");

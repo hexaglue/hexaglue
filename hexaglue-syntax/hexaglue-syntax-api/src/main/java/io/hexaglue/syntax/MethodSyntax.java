@@ -81,6 +81,16 @@ public interface MethodSyntax {
     boolean isAbstract();
 
     /**
+     * Returns the Javadoc documentation of this method, if present.
+     *
+     * @return the documentation, or empty if not documented
+     * @since 5.0.0
+     */
+    default Optional<String> documentation() {
+        return Optional.empty();
+    }
+
+    /**
      * Returns the source location of this method.
      *
      * @return the source location

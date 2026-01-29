@@ -46,51 +46,46 @@ import java.util.stream.Collectors;
 public final class DomainContentSelector {
 
     private final ArchitecturalModel model;
+    private final DomainIndex domainIndex;
 
     /**
      * Creates a selector using v5 ArchitecturalModel with DomainIndex.
      *
+     * <p>The {@link DomainIndex} is cached at construction time to avoid
+     * repeated lookups on every selection method call.</p>
+     *
      * @param model the architectural model
+     * @throws IllegalStateException if the model does not contain a DomainIndex
      * @since 4.0.0
-     * @since 5.0.0 - Migrated to v5 API
+     * @since 5.0.0 - Migrated to v5 API, cached DomainIndex
      */
     public DomainContentSelector(ArchitecturalModel model) {
         this.model = model;
+        this.domainIndex = model.domainIndex()
+                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
     }
 
     public List<DomainTypeDoc> selectAggregateRoots() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.aggregateRoots().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectEntities() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.entities().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectValueObjects() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.valueObjects().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectIdentifiers() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.identifiers().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainEvents() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.domainEvents().map(this::toDoc).toList();
     }
 
     public List<DomainTypeDoc> selectDomainServices() {
-        DomainIndex domainIndex = model.domainIndex()
-                .orElseThrow(() -> new IllegalStateException("DomainIndex required for documentation"));
         return domainIndex.domainServices().map(this::toDoc).toList();
     }
 

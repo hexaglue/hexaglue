@@ -17,17 +17,20 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
+import io.hexaglue.plugin.livingdoc.config.LivingDocConfig;
+import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
+import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
-import io.hexaglue.spi.plugin.PluginConfig;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.util.Optional;
 
@@ -46,6 +49,8 @@ import java.util.Optional;
  * <ul>
  *   <li>{@code outputDir} - output directory for documentation (default: "living-doc")</li>
  *   <li>{@code generateDiagrams} - whether to generate Mermaid diagrams (default: true)</li>
+ *   <li>{@code maxPropertiesInDiagram} - max properties per class in diagrams (default: 5)</li>
+ *   <li>{@code includeDebugSections} - whether to include debug sections (default: true)</li>
  * </ul>
  *
  * <p>This plugin requires a v4 {@code ArchitecturalModel}. The documentation models
@@ -56,8 +61,13 @@ import java.util.Optional;
  * and {@link ClassificationReport} APIs for improved classification insights. When
  * available, the plugin logs additional information about classification quality.</p>
  *
+ * <h2>v5.0.0 Architecture</h2>
+ * <p>The plugin creates shared content selectors and a centralized configuration
+ * to avoid redundant lookups and improve consistency across generators.</p>
+ *
  * @since 4.0.0
  * @since 4.1.0 - Added support for new classification report logging
+ * @since 5.0.0 - Shared selectors, centralized config, configurable diagram renderer
  */
 public final class LivingDocPlugin implements GeneratorPlugin {
 
@@ -88,7 +98,6 @@ public final class LivingDocPlugin implements GeneratorPlugin {
 
     @Override
     public void generate(GeneratorContext context) throws Exception {
-        PluginConfig config = context.config();
         ArtifactWriter writer = context.writer();
         DiagnosticReporter diagnostics = context.diagnostics();
 
@@ -108,35 +117,41 @@ public final class LivingDocPlugin implements GeneratorPlugin {
             return;
         }
 
-        // Configuration
-        String outputDir = config.getString("outputDir", "living-doc");
-        boolean generateDiagrams = config.getBoolean("generateDiagrams", true);
+        // Centralized configuration
+        LivingDocConfig config = LivingDocConfig.from(context.config());
 
-        diagnostics.info("Generating living documentation in: " + outputDir);
+        diagnostics.info("Generating living documentation in: " + config.outputDir());
+
+        // Shared content selectors (created once, used by multiple generators)
+        DomainContentSelector domainSelector = new DomainContentSelector(archModel);
+        PortContentSelector portSelector = new PortContentSelector(archModel);
+
+        // Shared diagram renderer with configurable max properties
+        DiagramRenderer diagramRenderer = new DiagramRenderer(config.maxPropertiesInDiagram());
 
         // Generate README/overview using DocumentationModel
         OverviewGenerator overviewGen = new OverviewGenerator(docModel);
-        String readme = overviewGen.generate(generateDiagrams);
-        writer.writeDoc(outputDir + "/README.md", readme);
+        String readme = overviewGen.generate(config.generateDiagrams());
+        writer.writeDoc(config.outputDir() + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
 
         // Generate domain documentation
-        DomainDocGenerator domainGen = new DomainDocGenerator(archModel);
+        DomainDocGenerator domainGen = new DomainDocGenerator(domainSelector);
         String domainDoc = domainGen.generate();
-        writer.writeDoc(outputDir + "/domain.md", domainDoc);
+        writer.writeDoc(config.outputDir() + "/domain.md", domainDoc);
         diagnostics.info("Generated domain model documentation");
 
         // Generate ports documentation
-        PortDocGenerator portGen = new PortDocGenerator(archModel);
+        PortDocGenerator portGen = new PortDocGenerator(portSelector);
         String portsDoc = portGen.generate();
-        writer.writeDoc(outputDir + "/ports.md", portsDoc);
+        writer.writeDoc(config.outputDir() + "/ports.md", portsDoc);
         diagnostics.info("Generated ports documentation");
 
         // Generate diagrams if enabled
-        if (generateDiagrams) {
-            DiagramGenerator diagramGen = new DiagramGenerator(archModel);
+        if (config.generateDiagrams()) {
+            DiagramGenerator diagramGen = new DiagramGenerator(domainSelector, portSelector, diagramRenderer);
             String diagrams = diagramGen.generate();
-            writer.writeDoc(outputDir + "/diagrams.md", diagrams);
+            writer.writeDoc(config.outputDir() + "/diagrams.md", diagrams);
             diagnostics.info("Generated architecture diagrams");
         }
 

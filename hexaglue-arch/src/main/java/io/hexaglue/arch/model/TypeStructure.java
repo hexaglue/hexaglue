@@ -61,7 +61,9 @@ import java.util.Set;
  * @param constructors the constructors declared in this type (immutable)
  * @param annotations the annotations on this type (immutable)
  * @param nestedTypes the nested types declared in this type (immutable)
+ * @param sourceLocation the source code location of this type (if available)
  * @since 4.1.0
+ * @since 5.0.0 Added sourceLocation parameter
  */
 public record TypeStructure(
         TypeNature nature,
@@ -74,7 +76,8 @@ public record TypeStructure(
         List<Method> methods,
         List<Constructor> constructors,
         List<Annotation> annotations,
-        List<TypeRef> nestedTypes) {
+        List<TypeRef> nestedTypes,
+        Optional<SourceReference> sourceLocation) {
 
     /**
      * Creates a new TypeStructure.
@@ -90,6 +93,7 @@ public record TypeStructure(
      * @param constructors the constructors, must not be null
      * @param annotations the annotations, must not be null
      * @param nestedTypes the nested types, must not be null
+     * @param sourceLocation the source location, must not be null
      * @throws NullPointerException if any argument is null
      */
     public TypeStructure {
@@ -104,6 +108,7 @@ public record TypeStructure(
         Objects.requireNonNull(constructors, "constructors must not be null");
         Objects.requireNonNull(annotations, "annotations must not be null");
         Objects.requireNonNull(nestedTypes, "nestedTypes must not be null");
+        Objects.requireNonNull(sourceLocation, "sourceLocation must not be null");
         modifiers = Set.copyOf(modifiers);
         interfaces = List.copyOf(interfaces);
         permittedSubtypes = List.copyOf(permittedSubtypes);
@@ -198,6 +203,7 @@ public record TypeStructure(
         private List<Constructor> constructors = List.of();
         private List<Annotation> annotations = List.of();
         private List<TypeRef> nestedTypes = List.of();
+        private Optional<SourceReference> sourceLocation = Optional.empty();
 
         private Builder(TypeNature nature) {
             Objects.requireNonNull(nature, "nature must not be null");
@@ -315,6 +321,18 @@ public record TypeStructure(
         }
 
         /**
+         * Sets the source location.
+         *
+         * @param sourceLocation the source location (may be null)
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder sourceLocation(SourceReference sourceLocation) {
+            this.sourceLocation = Optional.ofNullable(sourceLocation);
+            return this;
+        }
+
+        /**
          * Builds the TypeStructure.
          *
          * @return a new TypeStructure
@@ -331,7 +349,8 @@ public record TypeStructure(
                     methods,
                     constructors,
                     annotations,
-                    nestedTypes);
+                    nestedTypes,
+                    sourceLocation);
         }
     }
 }

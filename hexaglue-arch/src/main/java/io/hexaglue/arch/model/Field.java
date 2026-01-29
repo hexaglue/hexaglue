@@ -62,7 +62,9 @@ import java.util.Set;
  * @param wrappedType the wrapped type for identifier types (if applicable)
  * @param elementType the element type for collections (if applicable)
  * @param roles the semantic roles this field plays (immutable)
+ * @param sourceLocation the source code location of this field (if available)
  * @since 4.1.0
+ * @since 5.0.0 Added sourceLocation parameter
  */
 public record Field(
         String name,
@@ -72,7 +74,8 @@ public record Field(
         Optional<String> documentation,
         Optional<TypeRef> wrappedType,
         Optional<TypeRef> elementType,
-        Set<FieldRole> roles) {
+        Set<FieldRole> roles,
+        Optional<SourceReference> sourceLocation) {
 
     /**
      * Creates a new Field.
@@ -85,6 +88,7 @@ public record Field(
      * @param wrappedType the wrapped type, must not be null
      * @param elementType the element type, must not be null
      * @param roles the roles, must not be null
+     * @param sourceLocation the source location, must not be null
      * @throws NullPointerException if any argument is null
      * @throws IllegalArgumentException if name is blank
      */
@@ -97,6 +101,7 @@ public record Field(
         Objects.requireNonNull(wrappedType, "wrappedType must not be null");
         Objects.requireNonNull(elementType, "elementType must not be null");
         Objects.requireNonNull(roles, "roles must not be null");
+        Objects.requireNonNull(sourceLocation, "sourceLocation must not be null");
         if (name.isBlank()) {
             throw new IllegalArgumentException("name must not be blank");
         }
@@ -116,7 +121,15 @@ public record Field(
      */
     public static Field of(String name, TypeRef type) {
         return new Field(
-                name, type, Set.of(), List.of(), Optional.empty(), Optional.empty(), Optional.empty(), Set.of());
+                name,
+                type,
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                Optional.empty(),
+                Optional.empty(),
+                Set.of(),
+                Optional.empty());
     }
 
     /**
@@ -184,6 +197,7 @@ public record Field(
         private Optional<TypeRef> wrappedType = Optional.empty();
         private Optional<TypeRef> elementType = Optional.empty();
         private Set<FieldRole> roles = Set.of();
+        private Optional<SourceReference> sourceLocation = Optional.empty();
 
         private Builder(String name, TypeRef type) {
             Objects.requireNonNull(name, "name must not be null");
@@ -262,12 +276,25 @@ public record Field(
         }
 
         /**
+         * Sets the source location.
+         *
+         * @param sourceLocation the source location (may be null)
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder sourceLocation(SourceReference sourceLocation) {
+            this.sourceLocation = Optional.ofNullable(sourceLocation);
+            return this;
+        }
+
+        /**
          * Builds the Field.
          *
          * @return a new Field
          */
         public Field build() {
-            return new Field(name, type, modifiers, annotations, documentation, wrappedType, elementType, roles);
+            return new Field(
+                    name, type, modifiers, annotations, documentation, wrappedType, elementType, roles, sourceLocation);
         }
     }
 }
