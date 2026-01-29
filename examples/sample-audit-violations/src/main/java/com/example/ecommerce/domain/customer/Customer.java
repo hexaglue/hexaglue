@@ -9,7 +9,22 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Customer aggregate root representing a registered customer.
+ * Customer aggregate root representing a registered customer in the e-commerce platform.
+ *
+ * <p>A Customer is the central entity of the customer bounded context. It manages
+ * personal information (name, email), multiple postal addresses, a loyalty program
+ * with tiered benefits (0 to 3), and email verification status.
+ *
+ * <p>Business rules enforced by this aggregate:
+ * <ul>
+ *   <li>A customer must have a verified email before placing orders</li>
+ *   <li>The first address added becomes both the default billing and shipping address</li>
+ *   <li>Only addresses already in the address list can be set as defaults</li>
+ *   <li>Loyalty tier ranges from 0 (standard) to 3 (platinum), with premium status at tier 2+</li>
+ *   <li>Changing email resets the verification status</li>
+ * </ul>
+ *
+ * <p>Domain events emitted: {@link CustomerCreatedEvent}, {@link CustomerAddressChangedEvent}.
  */
 public class Customer extends AggregateRoot<CustomerId> {
 

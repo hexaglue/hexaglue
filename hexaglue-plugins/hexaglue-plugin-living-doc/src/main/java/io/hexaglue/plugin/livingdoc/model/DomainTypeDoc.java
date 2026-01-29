@@ -30,6 +30,8 @@ import java.util.List;
  * @param properties list of properties
  * @param relations list of explicit relations
  * @param debug debug information
+ * @param documentation the Javadoc documentation, or null if not available
+ * @since 5.0.0
  */
 public record DomainTypeDoc(
         String name,
@@ -41,4 +43,5 @@ public record DomainTypeDoc(
         IdentityDoc identity,
         List<PropertyDoc> properties,
         List<RelationDoc> relations,
-        DebugInfo debug) {}
+        DebugInfo debug,
+        String documentation) {}

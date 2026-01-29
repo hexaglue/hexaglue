@@ -71,7 +71,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Money"));
+                    createDebugInfo("Money"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -102,7 +103,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -121,7 +123,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -165,7 +168,8 @@ class DomainRendererTest {
                     identity,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -185,7 +189,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Money"));
+                    createDebugInfo("Money"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -292,7 +297,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("EmptyType"));
+                    createDebugInfo("EmptyType"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -386,7 +392,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("SimpleType"));
+                    createDebugInfo("SimpleType"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -414,7 +421,8 @@ class DomainRendererTest {
                             List.of("jakarta.persistence.Entity"),
                             "src/main/java/com/example/domain/Order.java",
                             10,
-                            50));
+                            50),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -440,7 +448,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    new DebugInfo("com.example.domain.Synthetic", List.of(), null, 0, 0));
+                    new DebugInfo("com.example.domain.Synthetic", List.of(), null, 0, 0),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -464,7 +473,8 @@ class DomainRendererTest {
                             List.of("jakarta.persistence.Entity", "jakarta.persistence.Table"),
                             "Order.java",
                             10,
-                            50));
+                            50),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -485,7 +495,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    new DebugInfo("com.example.domain.Plain", List.of(), "Plain.java", 5, 15));
+                    new DebugInfo("com.example.domain.Plain", List.of(), "Plain.java", 5, 15),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -506,7 +517,8 @@ class DomainRendererTest {
                     identity,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -530,7 +542,8 @@ class DomainRendererTest {
                     identity,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Entity"));
+                    createDebugInfo("Entity"),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -561,7 +574,8 @@ class DomainRendererTest {
                     null,
                     List.of(prop),
                     List.of(),
-                    createDebugInfo("Product"));
+                    createDebugInfo("Product"),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -594,7 +608,8 @@ class DomainRendererTest {
                     null,
                     List.of(),
                     List.of(rel),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderDebugSection(type);
 
@@ -634,7 +649,8 @@ class DomainRendererTest {
                     identity,
                     List.of(prop),
                     List.of(rel),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderType(type);
 
@@ -662,7 +678,8 @@ class DomainRendererTest {
                 null,
                 List.of(),
                 List.of(),
-                createDebugInfo("Order"));
+                createDebugInfo("Order"),
+                null);
     }
 
     private DebugInfo createDebugInfo(String name) {

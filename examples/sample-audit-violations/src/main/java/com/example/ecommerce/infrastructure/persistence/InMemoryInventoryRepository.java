@@ -12,7 +12,11 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
- * In-memory implementation of the InventoryRepository port.
+ * In-memory driven adapter implementing the {@link InventoryRepository} port.
+ *
+ * <p>This adapter stores inventory items in a HashMap with a secondary index
+ * on ProductId for efficient product-based lookups. It is suitable for testing
+ * and demonstration purposes where database persistence is not required.
  */
 public class InMemoryInventoryRepository implements InventoryRepository {
 

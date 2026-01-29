@@ -31,6 +31,11 @@ public final class PortRenderer {
         // Port header
         md.h3(port.name());
 
+        // Documentation (Javadoc)
+        if (port.documentation() != null && !port.documentation().isBlank()) {
+            md.paragraph(port.documentation());
+        }
+
         // Metadata table
         md.table("Property", "Value")
                 .row(

@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Driven port (repository interface) for Order persistence.
+ * Driven port defining the persistence contract for {@link com.example.ecommerce.domain.order.Order} aggregates.
+ *
+ * <p>This repository interface provides storage operations for orders including
+ * save, find by identity, find by customer, existence check, deletion, and counting.
+ * The customer-based query supports the order history feature in the customer dashboard.
  */
 public interface OrderRepository {
 

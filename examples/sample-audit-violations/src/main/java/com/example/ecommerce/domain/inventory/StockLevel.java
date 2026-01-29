@@ -3,7 +3,14 @@ package com.example.ecommerce.domain.inventory;
 import java.util.Objects;
 
 /**
- * Value object representing stock levels for inventory management.
+ * Immutable value object encapsulating the stock level state of an inventory item.
+ *
+ * <p>StockLevel tracks four dimensions of inventory: available quantity (ready for sale),
+ * reserved quantity (held for pending orders), reorder point (threshold that triggers
+ * replenishment), and reorder quantity (amount to order when replenishing).
+ *
+ * <p>All mutation operations return a new StockLevel instance, preserving immutability.
+ * This enables safe concurrent reads and simplifies event-sourced state reconstruction.
  */
 public record StockLevel(
         int available,

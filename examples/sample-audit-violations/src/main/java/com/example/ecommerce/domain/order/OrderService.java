@@ -7,8 +7,16 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * Domain service for complex order operations that don't naturally belong
- * to a single aggregate.
+ * Domain service encapsulating order-related business logic that spans multiple aggregates.
+ *
+ * <p>This service handles cross-cutting order operations that do not naturally belong
+ * to the {@link Order} aggregate root, including shipping cost calculation based on
+ * destination country, product availability validation, loyalty discount application,
+ * and multi-line order creation.
+ *
+ * <p>Shipping rules: base rate of 5.99 EUR for France, 12.99 EUR for EU countries,
+ * 24.99 EUR for international, and a flat 9.99 EUR for bulk orders (more than 5 lines).
+ * Loyalty discounts range from 5% (tier 1) to 15% (tier 3).
  */
 public class OrderService {
 

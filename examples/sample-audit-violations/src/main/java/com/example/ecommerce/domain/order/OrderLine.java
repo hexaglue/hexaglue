@@ -4,9 +4,16 @@ import com.example.ecommerce.domain.shared.Entity;
 import com.example.ecommerce.domain.product.ProductId;
 
 /**
- * Entity representing a line item in an order.
+ * Entity representing a single line item within an {@link Order}.
  *
- * AUDIT VIOLATION: ddd:entity-identity
+ * <p>Each OrderLine captures a product reference, its display name, the quantity
+ * ordered, and the unit price at the time of ordering. The total price is computed
+ * by multiplying the unit price by the quantity.
+ *
+ * <p>OrderLine is an internal entity of the Order aggregate and should only be
+ * accessed and modified through the aggregate root.
+ *
+ * <p>AUDIT VIOLATION: ddd:entity-identity.
  * This entity does not have a proper identity field.
  * The getId() method returns null, which violates the identity requirement.
  */

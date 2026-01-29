@@ -6,8 +6,14 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event fired when a customer's address is changed.
- * This event follows proper naming conventions (past tense).
+ * Domain event published when a customer's default billing address is updated.
+ *
+ * <p>This event captures both the previous and new address, enabling audit trails
+ * and downstream notifications (e.g., fraud detection, shipping recalculation).
+ * It is emitted by {@link Customer#setDefaultBillingAddress} when the billing
+ * address changes.
+ *
+ * <p>This event follows proper DDD naming conventions using the past tense.
  */
 public record CustomerAddressChangedEvent(
         UUID eventId,

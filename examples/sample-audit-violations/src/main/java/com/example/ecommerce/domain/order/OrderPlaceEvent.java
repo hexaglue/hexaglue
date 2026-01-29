@@ -7,9 +7,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Domain event fired when an order is placed.
+ * Domain event published when a customer confirms and submits an order for payment.
  *
- * AUDIT VIOLATION: ddd:event-naming
+ * <p>This event captures the order identity, the associated customer, and the total
+ * monetary amount. It is consumed by payment processing workflows and inventory
+ * reservation systems.
+ *
+ * <p>AUDIT VIOLATION: ddd:event-naming.
  * This event should be named "OrderPlacedEvent" (past tense).
  * "OrderPlaceEvent" sounds like a command, not an event.
  */

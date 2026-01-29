@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Driven port (repository interface) for InventoryItem persistence.
+ * Driven port defining the persistence contract for {@link com.example.ecommerce.domain.inventory.InventoryItem} aggregates.
+ *
+ * <p>This repository interface provides storage and retrieval operations for inventory
+ * items, including lookup by product identifier and a specialized query for items
+ * that have fallen below their reorder threshold, enabling automated replenishment workflows.
  */
 public interface InventoryRepository {
 

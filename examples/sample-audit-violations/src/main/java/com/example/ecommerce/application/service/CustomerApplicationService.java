@@ -9,8 +9,15 @@ import com.example.ecommerce.domain.customer.CustomerId;
 import com.example.ecommerce.domain.customer.Email;
 
 /**
- * Application service implementing customer use cases.
- * This service properly uses port interfaces.
+ * Application service orchestrating customer management use cases.
+ *
+ * <p>This service implements the {@link CustomerUseCase} driving port and coordinates
+ * between the domain layer and driven ports (persistence and notifications). It handles
+ * customer registration with email uniqueness validation, profile updates, email changes
+ * with re-verification, address management, and customer lookup operations.
+ *
+ * <p>This service properly follows hexagonal architecture by depending only on port
+ * interfaces, not on concrete infrastructure implementations.
  */
 public class CustomerApplicationService implements CustomerUseCase {
 

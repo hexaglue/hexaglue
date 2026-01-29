@@ -36,6 +36,11 @@ public final class DomainRenderer {
         // Type header
         md.h3(type.name());
 
+        // Documentation (Javadoc)
+        if (type.documentation() != null && !type.documentation().isBlank()) {
+            md.paragraph(type.documentation());
+        }
+
         // Metadata table
         md.table("Property", "Value")
                 .row(

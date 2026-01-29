@@ -3,9 +3,13 @@ package com.example.ecommerce.application.port.driven;
 import com.example.ecommerce.domain.customer.Email;
 
 /**
- * Driven port for sending notifications.
+ * Driven port defining the contract for sending notifications to customers.
  *
- * AUDIT VIOLATION: hex:port-coverage
+ * <p>This service interface abstracts multi-channel notification delivery,
+ * supporting email, SMS, and push notification channels. It also supports
+ * scheduled email delivery for timed campaigns and delayed notifications.
+ *
+ * <p>AUDIT VIOLATION: hex:port-coverage.
  * This port does not have any adapter implementing it.
  * There is no NotificationAdapter in the infrastructure layer.
  */

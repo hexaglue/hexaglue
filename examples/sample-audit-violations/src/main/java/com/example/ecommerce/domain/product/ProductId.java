@@ -4,7 +4,11 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
- * Value object representing the identity of a Product.
+ * Identifier value object for the {@link Product} aggregate root.
+ *
+ * <p>Wraps a UUID to provide a strongly-typed product identity. Used throughout
+ * the system to reference products in orders, inventory items, and catalog operations
+ * without exposing the underlying UUID representation.
  */
 public record ProductId(UUID value) {
 

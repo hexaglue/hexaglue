@@ -7,7 +7,12 @@ import com.example.ecommerce.domain.product.ProductId;
 import java.util.List;
 
 /**
- * Application service for inventory management.
+ * Application service orchestrating inventory management operations.
+ *
+ * <p>Coordinates stock management workflows including item creation, availability
+ * checks, inventory reservation for pending orders, release of cancelled reservations,
+ * reservation confirmation upon payment, and stock replenishment. Also provides
+ * reorder alerting by identifying items whose stock has fallen below their reorder point.
  */
 public class InventoryApplicationService {
 

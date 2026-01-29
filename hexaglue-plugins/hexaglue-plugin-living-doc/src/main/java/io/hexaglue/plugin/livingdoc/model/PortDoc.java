@@ -29,6 +29,8 @@ import java.util.List;
  * @param managedTypes list of managed domain type qualified names
  * @param methods list of methods
  * @param debug debug information
+ * @param documentation the Javadoc documentation, or null if not available
+ * @since 5.0.0
  */
 public record PortDoc(
         String name,
@@ -38,4 +40,5 @@ public record PortDoc(
         ConfidenceLevel confidence,
         List<String> managedTypes,
         List<MethodDoc> methods,
-        DebugInfo debug) {}
+        DebugInfo debug,
+        String documentation) {}

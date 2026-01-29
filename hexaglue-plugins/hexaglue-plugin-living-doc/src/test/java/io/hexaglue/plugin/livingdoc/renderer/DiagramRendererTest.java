@@ -76,7 +76,8 @@ class DiagramRendererTest {
                     identity,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -99,7 +100,8 @@ class DiagramRendererTest {
                     null,
                     List.of(prop1, prop2, prop3),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -129,7 +131,8 @@ class DiagramRendererTest {
                     null,
                     properties,
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -160,7 +163,8 @@ class DiagramRendererTest {
                     null,
                     List.of(prop),
                     List.of(),
-                    createDebugInfo("Product"));
+                    createDebugInfo("Product"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -208,7 +212,8 @@ class DiagramRendererTest {
                     null,
                     List.of(),
                     List.of(rel),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             DomainTypeDoc lineItem = createSimpleEntity("OrderLineItem");
 
@@ -241,7 +246,8 @@ class DiagramRendererTest {
                     null,
                     List.of(),
                     List.of(rel),
-                    createDebugInfo("OrderLineItem"));
+                    createDebugInfo("OrderLineItem"),
+                    null);
 
             DomainTypeDoc order = createSimpleAggregate("Order");
 
@@ -274,7 +280,8 @@ class DiagramRendererTest {
                     null,
                     List.of(),
                     List.of(rel),
-                    createDebugInfo("Customer"));
+                    createDebugInfo("Customer"),
+                    null);
 
             DomainTypeDoc address = createSimpleValueObject("Address");
 
@@ -307,7 +314,8 @@ class DiagramRendererTest {
                     null,
                     List.of(customerProp),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             DomainTypeDoc customer = createSimpleAggregate("Customer");
 
@@ -344,7 +352,8 @@ class DiagramRendererTest {
                     null,
                     List.of(lineItemsProp),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             DomainTypeDoc lineItem = createSimpleEntity("OrderLineItem");
 
@@ -396,7 +405,8 @@ class DiagramRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("OrderId"));
+                    createDebugInfo("OrderId"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -415,7 +425,8 @@ class DiagramRendererTest {
                     null,
                     List.of(),
                     List.of(),
-                    createDebugInfo("OrderCreated"));
+                    createDebugInfo("OrderCreated"),
+                    null);
 
             String result = renderer.renderDomainClassDiagram(List.of(type));
 
@@ -450,7 +461,8 @@ class DiagramRendererTest {
                     null,
                     List.of(lineItemsProp),
                     List.of(),
-                    createDebugInfo("Order"));
+                    createDebugInfo("Order"),
+                    null);
 
             DomainTypeDoc lineItem = createSimpleEntity("OrderLineItem");
 
@@ -491,7 +503,8 @@ class DiagramRendererTest {
                     null,
                     List.of(addressProp),
                     List.of(),
-                    createDebugInfo("Customer"));
+                    createDebugInfo("Customer"),
+                    null);
 
             DomainTypeDoc address = createSimpleValueObject("Address");
 
@@ -606,7 +619,8 @@ class DiagramRendererTest {
                     ConfidenceLevel.HIGH,
                     List.of(),
                     List.of(),
-                    createDebugInfo("Order-Management", "com.example.ports.in"));
+                    createDebugInfo("Order-Management", "com.example.ports.in"),
+                    null);
 
             String result = renderer.renderPortsFlowDiagram(List.of(port), List.of(), List.of());
 
@@ -657,7 +671,8 @@ class DiagramRendererTest {
                 null,
                 List.of(),
                 List.of(),
-                createDebugInfo(name));
+                createDebugInfo(name),
+                null);
     }
 
     private DomainTypeDoc createSimpleEntity(String name) {
@@ -671,7 +686,8 @@ class DiagramRendererTest {
                 null,
                 List.of(),
                 List.of(),
-                createDebugInfo(name));
+                createDebugInfo(name),
+                null);
     }
 
     private DomainTypeDoc createSimpleValueObject(String name) {
@@ -685,7 +701,8 @@ class DiagramRendererTest {
                 null,
                 List.of(),
                 List.of(),
-                createDebugInfo(name));
+                createDebugInfo(name),
+                null);
     }
 
     private PropertyDoc createProperty(String name, String type) {
@@ -701,7 +718,8 @@ class DiagramRendererTest {
                 ConfidenceLevel.HIGH,
                 List.of(),
                 List.of(),
-                createDebugInfo(name, "com.example.ports.in"));
+                createDebugInfo(name, "com.example.ports.in"),
+                null);
     }
 
     private PortDoc createDrivenPort(String name) {
@@ -713,7 +731,8 @@ class DiagramRendererTest {
                 ConfidenceLevel.HIGH,
                 List.of(),
                 List.of(),
-                createDebugInfo(name, "com.example.ports.out"));
+                createDebugInfo(name, "com.example.ports.out"),
+                null);
     }
 
     private DebugInfo createDebugInfo(String name) {
