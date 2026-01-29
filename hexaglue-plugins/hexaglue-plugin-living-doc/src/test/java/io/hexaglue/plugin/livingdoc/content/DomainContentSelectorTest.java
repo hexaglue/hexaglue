@@ -25,11 +25,17 @@ import io.hexaglue.arch.model.DomainEvent;
 import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.SourceReference;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -444,6 +450,60 @@ class DomainContentSelectorTest {
 
             // Then
             assertThat(selector.selectIdentifiers()).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Source Location Propagation")
+    class SourceLocationPropagation {
+
+        @Test
+        @DisplayName("should propagate source location to debug info")
+        void shouldPropagateSourceLocationToDebugInfo() {
+            // Given: AggregateRoot with a TypeStructure that has a SourceReference
+            Field idField = Field.builder("id", TypeRef.of(PKG + ".OrderId"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+            SourceReference sourceRef = new SourceReference("src/main/java/com/example/domain/Order.java", 15, 42);
+            TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                    .fields(List.of(idField))
+                    .sourceLocation(sourceRef)
+                    .build();
+            AggregateRoot order = AggregateRoot.builder(
+                            TypeId.of(PKG + ".Order"), structure, highConfidence(ElementKind.AGGREGATE_ROOT), idField)
+                    .build();
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), order);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectAggregateRoots();
+
+            // Then
+            assertThat(results).hasSize(1);
+            DomainTypeDoc doc = results.get(0);
+            assertThat(doc.debug().sourceFile()).isEqualTo("src/main/java/com/example/domain/Order.java");
+            assertThat(doc.debug().lineStart()).isEqualTo(15);
+            assertThat(doc.debug().lineEnd()).isEqualTo(42);
+        }
+
+        @Test
+        @DisplayName("should fall back to derived path when no source location")
+        void shouldFallBackToDerivedPathWhenNoSourceLocation() {
+            // Given: AggregateRoot without source location
+            AggregateRoot order = aggregateRoot(PKG + ".Order");
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), order);
+            DomainContentSelector selector = new DomainContentSelector(model);
+
+            // When
+            List<DomainTypeDoc> results = selector.selectAggregateRoots();
+
+            // Then
+            DomainTypeDoc doc = results.get(0);
+            assertThat(doc.debug().sourceFile()).isEqualTo("com/example/domain/Order.java");
+            assertThat(doc.debug().lineStart()).isEqualTo(0);
+            assertThat(doc.debug().lineEnd()).isEqualTo(0);
         }
     }
 }

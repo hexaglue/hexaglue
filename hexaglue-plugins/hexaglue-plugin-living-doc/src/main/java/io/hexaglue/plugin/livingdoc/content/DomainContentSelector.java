@@ -24,6 +24,7 @@ import io.hexaglue.arch.model.DomainService;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.SourceReference;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
@@ -34,6 +35,7 @@ import io.hexaglue.plugin.livingdoc.model.PropertyDoc;
 import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -370,11 +372,11 @@ public final class DomainContentSelector {
     }
 
     private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {
-        // B4: TypeStructure doesn't track exact source location, but we can derive
-        // the expected file path from the qualified name
-        String sourceFile = deriveSourceFilePath(qualifiedName);
-        int lineStart = 0; // Exact line numbers not available without syntax-level info
-        int lineEnd = 0;
+        // Use actual source location from TypeStructure when available, fall back to derived path
+        Optional<SourceReference> srcLoc = structure.sourceLocation();
+        String sourceFile = srcLoc.map(SourceReference::filePath).orElseGet(() -> deriveSourceFilePath(qualifiedName));
+        int lineStart = srcLoc.map(SourceReference::lineStart).orElse(0);
+        int lineEnd = srcLoc.map(SourceReference::lineEnd).orElse(0);
 
         // B6: Store annotation qualified names (renderer adds "@" prefix and simplifies)
         List<String> annotations =
