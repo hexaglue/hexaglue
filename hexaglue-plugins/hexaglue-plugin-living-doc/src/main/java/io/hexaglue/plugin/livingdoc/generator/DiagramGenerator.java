@@ -13,51 +13,42 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
-import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
-import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
-import io.hexaglue.plugin.livingdoc.model.DomainTypeDoc;
-import io.hexaglue.plugin.livingdoc.model.PortDoc;
-import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
+import io.hexaglue.plugin.livingdoc.model.LivingDocDiagramSet;
 import io.hexaglue.plugin.livingdoc.util.PluginVersion;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
- * Generates Mermaid diagrams for the architecture.
+ * Assembles pre-generated Mermaid diagrams into a Markdown document.
  *
- * <p>Uses three-layer architecture:
- * <ol>
- *   <li>ContentSelector - selects and transforms model data to documentation models</li>
- *   <li>DocumentationModel - immutable records representing documentation content</li>
- *   <li>Renderer - renders documentation models to Mermaid diagrams</li>
- * </ol>
+ * <p>Since 5.0.0, this generator is a pure Markdown assembler that receives
+ * all diagrams pre-rendered from {@link LivingDocDiagramSet}, rather than
+ * generating them internally. This eliminates redundant diagram computation
+ * when diagrams are shared across multiple generators.
  *
  * @since 4.0.0
- * @since 5.0.0 - Accepts shared selectors and configurable DiagramRenderer
+ * @since 5.0.0 - Simplified to pure Markdown assembler using LivingDocDiagramSet
  */
 public final class DiagramGenerator {
 
-    private final DomainContentSelector domainSelector;
-    private final PortContentSelector portSelector;
-    private final DiagramRenderer renderer;
+    private final LivingDocDiagramSet diagramSet;
 
     /**
-     * Creates a generator using shared content selectors and renderer.
+     * Creates a generator using a pre-computed diagram set.
      *
-     * @param domainSelector the shared domain content selector
-     * @param portSelector the shared port content selector
-     * @param renderer the diagram renderer (with configurable max properties)
+     * @param diagramSet the shared diagram set containing all pre-rendered diagrams
      * @since 5.0.0
      */
-    public DiagramGenerator(
-            DomainContentSelector domainSelector, PortContentSelector portSelector, DiagramRenderer renderer) {
-        this.domainSelector = domainSelector;
-        this.portSelector = portSelector;
-        this.renderer = renderer;
+    public DiagramGenerator(LivingDocDiagramSet diagramSet) {
+        this.diagramSet = Objects.requireNonNull(diagramSet, "diagramSet must not be null");
     }
 
+    /**
+     * Assembles all diagrams into a single Markdown document.
+     *
+     * @return the generated Markdown content
+     */
     public String generate() {
         MarkdownBuilder md = new MarkdownBuilder()
                 .h1("Architecture Diagrams")
@@ -68,64 +59,26 @@ public final class DiagramGenerator {
                 .horizontalRule();
 
         // Domain Model Class Diagram
-        generateDomainClassDiagram(md);
+        md.h2("Domain Model").paragraph("Class diagram showing domain types.");
+        md.raw(diagramSet.domainModel());
 
         // Aggregate Diagrams
-        generateAggregateDiagrams(md);
+        if (!diagramSet.aggregateDiagrams().isEmpty()) {
+            md.h2("Aggregates").paragraph("Each aggregate root with its entities and value objects.");
+            for (Map.Entry<String, String> entry :
+                    diagramSet.aggregateDiagrams().entrySet()) {
+                md.h3(entry.getKey() + " Aggregate").raw(entry.getValue());
+            }
+        }
 
         // Ports Flow Diagram
-        generatePortsFlowDiagram(md);
+        md.h2("Port Interactions").paragraph("Flow of interactions through the hexagonal architecture.");
+        md.raw(diagramSet.portsFlow());
 
         // Dependencies Diagram
-        generateDependenciesDiagram(md);
+        md.h2("Dependencies").paragraph("Code dependencies in hexagonal architecture point toward the domain.");
+        md.raw(diagramSet.dependencyGraph());
 
         return md.build();
-    }
-
-    private void generateDomainClassDiagram(MarkdownBuilder md) {
-        md.h2("Domain Model").paragraph("Class diagram showing domain types.");
-
-        List<DomainTypeDoc> allTypes = domainSelector.selectAllTypes();
-        md.raw(renderer.renderDomainClassDiagram(allTypes));
-    }
-
-    private void generateAggregateDiagrams(MarkdownBuilder md) {
-        List<DomainTypeDoc> aggregates = domainSelector.selectAggregateRoots();
-        if (aggregates.isEmpty()) {
-            return;
-        }
-
-        md.h2("Aggregates").paragraph("Each aggregate root with its entities and value objects.");
-
-        // Build a map of all types for lookups
-        List<DomainTypeDoc> allTypes = domainSelector.selectAllTypes();
-        Map<String, DomainTypeDoc> typeMap = new HashMap<>();
-        for (DomainTypeDoc type : allTypes) {
-            typeMap.put(type.debug().qualifiedName(), type);
-        }
-
-        for (DomainTypeDoc aggregate : aggregates) {
-            md.h3(aggregate.name() + " Aggregate").raw(renderer.renderAggregateDiagram(aggregate, typeMap));
-        }
-    }
-
-    private void generatePortsFlowDiagram(MarkdownBuilder md) {
-        md.h2("Port Interactions").paragraph("Flow of interactions through the hexagonal architecture.");
-
-        List<PortDoc> drivingPorts = portSelector.selectDrivingPorts();
-        List<PortDoc> drivenPorts = portSelector.selectDrivenPorts();
-        List<DomainTypeDoc> aggregates = domainSelector.selectAggregateRoots();
-
-        md.raw(renderer.renderPortsFlowDiagram(drivingPorts, drivenPorts, aggregates));
-    }
-
-    private void generateDependenciesDiagram(MarkdownBuilder md) {
-        md.h2("Dependencies").paragraph("Code dependencies in hexagonal architecture point toward the domain.");
-
-        List<PortDoc> drivingPorts = portSelector.selectDrivingPorts();
-        List<PortDoc> drivenPorts = portSelector.selectDrivenPorts();
-        List<DomainTypeDoc> aggregates = domainSelector.selectAggregateRoots();
-
-        md.raw(renderer.renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates));
     }
 }

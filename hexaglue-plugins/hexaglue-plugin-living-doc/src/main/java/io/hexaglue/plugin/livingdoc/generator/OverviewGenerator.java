@@ -14,33 +14,49 @@
 package io.hexaglue.plugin.livingdoc.generator;
 
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
-import io.hexaglue.plugin.livingdoc.mermaid.GraphBuilder;
-import io.hexaglue.plugin.livingdoc.mermaid.MermaidBuilder;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocPort;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel.DocType;
 import io.hexaglue.plugin.livingdoc.util.PluginVersion;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Generates the architecture overview documentation.
  *
+ * <p>Since 5.0.0, the overview diagram is received pre-rendered from
+ * {@link io.hexaglue.plugin.livingdoc.model.LivingDocDiagramSet}
+ * rather than being generated internally.
+ *
  * @since 4.0.0 - Migrated to DocumentationModel abstraction
+ * @since 5.0.0 - Receives pre-rendered overview diagram from LivingDocDiagramSet
  */
 public final class OverviewGenerator {
 
     private final DocumentationModel model;
+    private final String overviewDiagram;
 
     /**
-     * Creates an OverviewGenerator from a DocumentationModel.
+     * Creates an OverviewGenerator from a DocumentationModel and optional pre-rendered diagram.
      *
      * @param model the documentation model
+     * @param overviewDiagram the pre-rendered architecture overview diagram, or {@code null} if diagrams are disabled
+     * @since 5.0.0
      */
-    public OverviewGenerator(DocumentationModel model) {
-        this.model = model;
+    public OverviewGenerator(DocumentationModel model, String overviewDiagram) {
+        this.model = Objects.requireNonNull(model, "model must not be null");
+        this.overviewDiagram = overviewDiagram;
     }
 
-    public String generate(boolean includeDiagram) {
+    /**
+     * Generates the architecture overview Markdown content.
+     *
+     * <p>Includes the architecture diagram if one was provided at construction time.
+     *
+     * @return the generated Markdown content
+     * @since 5.0.0
+     */
+    public String generate() {
         MarkdownBuilder md = new MarkdownBuilder()
                 .h1("Architecture Overview")
                 .paragraph(PluginVersion.generatorHeader())
@@ -50,11 +66,12 @@ public final class OverviewGenerator {
         generateSummary(md);
 
         // Quick links
-        generateDocumentationLinks(md, includeDiagram);
+        generateDocumentationLinks(md);
 
         // Architecture overview diagram
-        if (includeDiagram) {
-            generateOverviewDiagram(md);
+        if (overviewDiagram != null) {
+            md.h2("Architecture Diagram");
+            md.raw(overviewDiagram);
         }
 
         // Domain summary
@@ -78,81 +95,14 @@ public final class OverviewGenerator {
                 .end();
     }
 
-    private void generateDocumentationLinks(MarkdownBuilder md, boolean includeDiagram) {
+    private void generateDocumentationLinks(MarkdownBuilder md) {
         md.h2("Documentation")
                 .bulletItem("[Domain Model](domain.md) - Aggregates, entities, and value objects")
                 .bulletItem("[Ports](ports.md) - Driving and driven ports");
-        if (includeDiagram) {
+        if (overviewDiagram != null) {
             md.bulletItem("[Diagrams](diagrams.md) - Architecture diagrams");
         }
         md.newline().horizontalRule();
-    }
-
-    private void generateOverviewDiagram(MarkdownBuilder md) {
-        md.h2("Architecture Diagram");
-
-        GraphBuilder graph = new GraphBuilder(GraphBuilder.Direction.LEFT_TO_RIGHT);
-
-        // External actors
-        graph.startSubgraph("External", "External Actors")
-                .node("UI", "[UI/API]")
-                .endSubgraph();
-
-        // Application layer
-        graph.startSubgraph("Application", "Application");
-
-        // Driving Ports subgraph
-        graph.startSubgraph("DrivingPorts", "Driving Ports");
-        List<DocPort> driving = model.drivingPorts();
-        if (driving.isEmpty()) {
-            graph.node("DP", "[\"(none)\"]");
-        } else {
-            for (DocPort port : driving) {
-                graph.node(MermaidBuilder.sanitizeId(port.simpleName()), "[\"" + port.simpleName() + "\"]");
-            }
-        }
-        graph.endSubgraph();
-
-        // Domain subgraph
-        graph.startSubgraph("Domain", "Domain");
-        List<DocType> aggregates = model.aggregateRoots();
-        if (aggregates.isEmpty()) {
-            graph.node("D", "[\"(domain)\"]");
-        } else {
-            for (DocType agg : aggregates) {
-                graph.node(MermaidBuilder.sanitizeId(agg.simpleName()), "[\"" + agg.simpleName() + "\"]");
-            }
-        }
-        graph.endSubgraph();
-
-        // Driven Ports subgraph
-        graph.startSubgraph("DrivenPorts", "Driven Ports");
-        List<DocPort> driven = model.drivenPorts();
-        if (driven.isEmpty()) {
-            graph.node("DPOUT", "[\"(none)\"]");
-        } else {
-            for (DocPort port : driven) {
-                graph.node(MermaidBuilder.sanitizeId(port.simpleName()), "[\"" + port.simpleName() + "\"]");
-            }
-        }
-        graph.endSubgraph();
-
-        graph.endSubgraph(); // End Application
-
-        // Infrastructure
-        graph.startSubgraph("Infrastructure", "Infrastructure")
-                .node("DB", "[(Database)]")
-                .node("EXT", "[External Services]")
-                .endSubgraph();
-
-        // Connections
-        graph.arrow("UI", "DrivingPorts")
-                .arrow("DrivingPorts", "Domain")
-                .arrow("Domain", "DrivenPorts")
-                .arrow("DrivenPorts", "DB")
-                .arrow("DrivenPorts", "EXT");
-
-        md.raw(graph.build());
     }
 
     private void generateDomainSummary(MarkdownBuilder md) {
