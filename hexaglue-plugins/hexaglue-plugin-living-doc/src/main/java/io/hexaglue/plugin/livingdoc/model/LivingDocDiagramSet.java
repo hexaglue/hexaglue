@@ -83,10 +83,34 @@ public record LivingDocDiagramSet(
             DomainContentSelector domainSelector,
             PortContentSelector portSelector,
             DiagramRenderer renderer) {
+        return generate(docModel, domainSelector, portSelector, renderer, List.of());
+    }
+
+    /**
+     * Generates all living documentation diagrams with bounded context information.
+     *
+     * <p>When more than one bounded context is provided, the dependency graph
+     * uses subgraphs to group types by bounded context.
+     *
+     * @param docModel the documentation model for the overview diagram
+     * @param domainSelector the domain content selector
+     * @param portSelector the port content selector
+     * @param renderer the diagram renderer
+     * @param boundedContexts the detected bounded contexts
+     * @return a fully populated diagram set
+     * @since 5.0.0
+     */
+    public static LivingDocDiagramSet generate(
+            DocumentationModel docModel,
+            DomainContentSelector domainSelector,
+            PortContentSelector portSelector,
+            DiagramRenderer renderer,
+            List<BoundedContextDoc> boundedContexts) {
         Objects.requireNonNull(docModel, "docModel must not be null");
         Objects.requireNonNull(domainSelector, "domainSelector must not be null");
         Objects.requireNonNull(portSelector, "portSelector must not be null");
         Objects.requireNonNull(renderer, "renderer must not be null");
+        Objects.requireNonNull(boundedContexts, "boundedContexts must not be null");
 
         // 1. Architecture overview
         String architectureOverview = generateArchitectureOverview(docModel);
@@ -104,8 +128,9 @@ public record LivingDocDiagramSet(
         List<DomainTypeDoc> aggregates = domainSelector.selectAggregateRoots();
         String portsFlow = renderer.renderPortsFlowDiagram(drivingPorts, drivenPorts, aggregates);
 
-        // 5. Dependency graph
-        String dependencyGraph = renderer.renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates);
+        // 5. Dependency graph (enhanced if multiple bounded contexts)
+        String dependencyGraph =
+                renderer.renderEnhancedDependenciesDiagram(drivingPorts, drivenPorts, aggregates, boundedContexts);
 
         return new LivingDocDiagramSet(
                 architectureOverview, domainModel, aggregateDiagrams, portsFlow, dependencyGraph);

@@ -18,21 +18,29 @@ import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.livingdoc.config.LivingDocConfig;
+import io.hexaglue.plugin.livingdoc.content.BoundedContextDetector;
 import io.hexaglue.plugin.livingdoc.content.DomainContentSelector;
+import io.hexaglue.plugin.livingdoc.content.GlossaryBuilder;
 import io.hexaglue.plugin.livingdoc.content.PortContentSelector;
+import io.hexaglue.plugin.livingdoc.content.RelationshipEnricher;
+import io.hexaglue.plugin.livingdoc.content.StructureBuilder;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
+import io.hexaglue.plugin.livingdoc.model.BoundedContextDoc;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.plugin.livingdoc.model.GlossaryEntry;
 import io.hexaglue.plugin.livingdoc.model.LivingDocDiagramSet;
 import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
+import io.hexaglue.plugin.livingdoc.renderer.IndexRenderer;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginContext;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -127,24 +135,44 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         DomainContentSelector domainSelector = new DomainContentSelector(archModel);
         PortContentSelector portSelector = new PortContentSelector(archModel);
 
+        // Detect bounded contexts from package analysis
+        BoundedContextDetector bcDetector = new BoundedContextDetector(archModel);
+        List<BoundedContextDoc> boundedContexts = bcDetector.detectAll();
+
+        // Relationship enricher for domain documentation
+        RelationshipEnricher relationshipEnricher = new RelationshipEnricher(archModel.compositionIndex());
+
         // Shared diagram renderer with configurable max properties
         DiagramRenderer diagramRenderer = new DiagramRenderer(config.maxPropertiesInDiagram());
 
         // Generate all diagrams once if enabled
         LivingDocDiagramSet diagramSet = null;
         if (config.generateDiagrams()) {
-            diagramSet = LivingDocDiagramSet.generate(docModel, domainSelector, portSelector, diagramRenderer);
+            diagramSet = LivingDocDiagramSet.generate(
+                    docModel, domainSelector, portSelector, diagramRenderer, boundedContexts);
         }
+
+        // Glossary
+        GlossaryBuilder glossaryBuilder = new GlossaryBuilder(archModel);
+        List<GlossaryEntry> glossaryEntries = glossaryBuilder.buildAll();
+
+        // Structure
+        StructureBuilder structureBuilder = new StructureBuilder(archModel);
+        String packageTree = structureBuilder.renderPackageTree();
+
+        // Index renderer
+        IndexRenderer indexRenderer = new IndexRenderer();
 
         // Overview receives pre-rendered diagram (or null when diagrams disabled)
         String overviewDiagram = diagramSet != null ? diagramSet.architectureOverview() : null;
-        OverviewGenerator overviewGen = new OverviewGenerator(docModel, overviewDiagram);
+        OverviewGenerator overviewGen = new OverviewGenerator(
+                docModel, overviewDiagram, boundedContexts, glossaryEntries, packageTree, indexRenderer);
         String readme = overviewGen.generate();
         writer.writeDoc(config.outputDir() + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
 
         // Generate domain documentation
-        DomainDocGenerator domainGen = new DomainDocGenerator(domainSelector);
+        DomainDocGenerator domainGen = new DomainDocGenerator(domainSelector, relationshipEnricher);
         String domainDoc = domainGen.generate();
         writer.writeDoc(config.outputDir() + "/domain.md", domainDoc);
         diagnostics.info("Generated domain model documentation");
