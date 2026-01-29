@@ -17,11 +17,16 @@ import static io.hexaglue.plugin.livingdoc.V5TestModelBuilder.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.SourceReference;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ir.PortDirection;
 import io.hexaglue.arch.model.ir.PortKind;
 import io.hexaglue.plugin.livingdoc.model.MethodDoc;
@@ -355,6 +360,59 @@ class PortContentSelectorTest {
 
             // Then
             assertThat(results.get(0).kind()).isEqualTo(PortKind.GATEWAY);
+        }
+    }
+
+    @Nested
+    @DisplayName("Source Location Propagation")
+    class SourceLocationPropagation {
+
+        @Test
+        @DisplayName("should propagate source location to debug info")
+        void shouldPropagateSourceLocationToDebugInfo() {
+            // Given: DrivenPort with a TypeStructure that has a SourceReference
+            SourceReference sourceRef =
+                    new SourceReference("src/main/java/com/example/ports/out/OrderRepository.java", 8, 25);
+            TypeStructure structure = TypeStructure.builder(TypeNature.INTERFACE)
+                    .sourceLocation(sourceRef)
+                    .build();
+            DrivenPort port = DrivenPort.of(
+                    TypeId.of(PKG + ".out.OrderRepository"),
+                    structure,
+                    highConfidence(ElementKind.DRIVEN_PORT),
+                    DrivenPortType.REPOSITORY);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), port);
+            PortContentSelector selector = new PortContentSelector(model);
+
+            // When
+            List<PortDoc> results = selector.selectDrivenPorts();
+
+            // Then
+            assertThat(results).hasSize(1);
+            PortDoc doc = results.get(0);
+            assertThat(doc.debug().sourceFile()).isEqualTo("src/main/java/com/example/ports/out/OrderRepository.java");
+            assertThat(doc.debug().lineStart()).isEqualTo(8);
+            assertThat(doc.debug().lineEnd()).isEqualTo(25);
+        }
+
+        @Test
+        @DisplayName("should fall back to derived path when no source location")
+        void shouldFallBackToDerivedPathWhenNoSourceLocation() {
+            // Given: DrivenPort without source location
+            DrivenPort port = drivenPort(PKG + ".out.OrderRepository", DrivenPortType.REPOSITORY);
+
+            ArchitecturalModel model = createModel(ProjectContext.forTesting("app", PKG), port);
+            PortContentSelector selector = new PortContentSelector(model);
+
+            // When
+            List<PortDoc> results = selector.selectDrivenPorts();
+
+            // Then
+            PortDoc doc = results.get(0);
+            assertThat(doc.debug().sourceFile()).isEqualTo("com/example/ports/out/OrderRepository.java");
+            assertThat(doc.debug().lineStart()).isEqualTo(0);
+            assertThat(doc.debug().lineEnd()).isEqualTo(0);
         }
     }
 }
