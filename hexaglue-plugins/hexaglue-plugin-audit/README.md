@@ -13,6 +13,9 @@ The DDD Audit Plugin analyzes your domain model to ensure adherence to architect
 - **Configurable Severity Levels**: BLOCKER, CRITICAL, MAJOR, MINOR, INFO
 - **Build Integration**: Fail builds on critical violations
 - **Comprehensive Evidence**: Each violation includes detailed evidence for debugging
+- **Multi-Format Reports**: HTML, Markdown, JSON, and Console output
+- **Mermaid Diagrams**: 9 diagram types including C4, class diagrams, radar charts
+- **Visual Violation Highlighting**: 11 violation types with distinct color styles
 
 ## Installation
 
@@ -158,6 +161,74 @@ The plugin generates an `AuditSnapshot` with:
 [ERROR] Audit FAILED: 1 blocker, 1 critical violations
 ```
 
+## Report Formats
+
+The plugin generates reports in 4 formats:
+
+| Format | File | Description |
+|--------|------|-------------|
+| **HTML** | `audit-report.html` | Interactive report with styled diagrams |
+| **Markdown** | `AUDIT-REPORT.md` | Documentation-friendly format |
+| **JSON** | `audit-report.json` | Machine-readable for CI/CD integration |
+| **Console** | stdout | Build output summary |
+
+### Report Sections
+
+Each report contains 5 sections:
+
+1. **Verdict**: Score, grade (A-F), status, KPIs, immediate action required
+2. **Architecture**: Inventory, C4 diagrams, domain model, relationships
+3. **Issues**: Violations grouped by theme with impact and fix suggestions
+4. **Remediation**: Prioritized actions with effort estimates
+5. **Appendix**: Score breakdown, metrics, constraints, package zones
+
+### JSON for CI/CD Integration
+
+The JSON report includes `typeViolations` for automated analysis:
+
+```bash
+# Extract cycle violations
+jq '.architecture.typeViolations[] | select(.violationType == "CYCLE")' audit-report.json
+
+# Count violations by type
+jq '.architecture.typeViolations | group_by(.violationType) | map({type: .[0].violationType, count: length})' audit-report.json
+```
+
+## Mermaid Diagrams
+
+The plugin generates 9 diagram types:
+
+| Diagram | Type | Description |
+|---------|------|-------------|
+| `scoreRadar` | radar-beta | Quality score visualization |
+| `c4Context` | C4Context | System context diagram |
+| `c4Component` | C4Component | Component architecture |
+| `domainModel` | classDiagram | Domain model with stereotypes |
+| `aggregateDiagrams` | classDiagram | Per-aggregate detail views |
+| `violationsPie` | pie | Violation distribution |
+| `packageZones` | quadrantChart | Package classification |
+| `applicationLayer` | classDiagram | Application services and handlers |
+| `portsLayer` | classDiagram | Driving and driven ports |
+| `fullArchitecture` | C4Component | Complete hexagonal architecture view |
+
+### Visual Violation Highlighting
+
+Types with violations are highlighted with distinct styles in diagrams:
+
+| Violation Type | Color | Constraint |
+|----------------|-------|------------|
+| CYCLE | Red `#FF5978` | ddd:aggregate-cycle |
+| MUTABLE_VALUE_OBJECT | Orange `#FF9800` | ddd:value-object-immutable |
+| IMPURE_DOMAIN | Purple `#9C27B0` | ddd:domain-purity |
+| BOUNDARY_VIOLATION | Red `#E53935` | ddd:aggregate-boundary |
+| MISSING_IDENTITY | Yellow `#FBC02D` | ddd:entity-identity |
+| MISSING_REPOSITORY | Blue `#1976D2` | ddd:aggregate-repository |
+| EVENT_NAMING | Cyan `#00ACC1` | ddd:event-naming |
+| PORT_UNCOVERED | Teal `#00897B` | hexagonal:port-coverage |
+| DEPENDENCY_INVERSION | Amber `#FFB300` | hexagonal:dependency-inversion |
+| LAYER_VIOLATION | Grey `#616161` | hexagonal:layer-isolation |
+| PORT_NOT_INTERFACE | Brown `#8D6E63` | hexagonal:port-interface |
+
 ## Extending the Plugin
 
 ### Custom Validators
@@ -253,6 +324,19 @@ See LICENSE file for details.
 - Discussion: https://github.com/scalastic/hexaglue/discussions
 
 ## Version History
+
+### v5.0.0 (2026-01-28)
+
+Major enhancements to reports and diagrams:
+
+- **Multi-format reports**: HTML, Markdown, JSON, Console with 5 structured sections
+- **JSON `typeViolations`**: Serialized for CI/CD automation
+- **HTML/Markdown parity**: Identical data and diagrams across formats
+- **11 violation types**: Extended from 4 to cover all DDD and Hexagonal constraints
+- **Visual violation styles**: Color-coded highlighting in all diagrams
+- **3 new diagrams**: `applicationLayer`, `portsLayer`, `fullArchitecture`
+- **Attributes and methods**: Class diagrams show typed fields and public methods
+- **Proper HTML encoding**: `<<Stereotype>>` encoded correctly per format
 
 ### v4.1.0 (2026-01-20)
 
