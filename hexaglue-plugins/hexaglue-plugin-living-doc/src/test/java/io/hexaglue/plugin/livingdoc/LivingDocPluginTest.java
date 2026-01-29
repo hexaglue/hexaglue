@@ -32,6 +32,7 @@ import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.plugin.livingdoc.model.LivingDocDiagramSet;
 import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
@@ -83,8 +84,13 @@ class LivingDocPluginTest {
     @Test
     void overviewGeneratorShouldGenerateValidMarkdown() {
         DocumentationModel docModel = DocumentationModelFactory.fromArchModel(testModel);
-        OverviewGenerator generator = new OverviewGenerator(docModel);
-        String result = generator.generate(true);
+        DomainContentSelector domainSelector = new DomainContentSelector(testModel);
+        PortContentSelector portSelector = new PortContentSelector(testModel);
+        DiagramRenderer renderer = new DiagramRenderer();
+
+        LivingDocDiagramSet diagramSet = LivingDocDiagramSet.generate(docModel, domainSelector, portSelector, renderer);
+        OverviewGenerator generator = new OverviewGenerator(docModel, diagramSet.architectureOverview());
+        String result = generator.generate();
 
         assertThat(result).contains("# Architecture Overview");
         assertThat(result).contains("## Summary");
@@ -93,6 +99,17 @@ class LivingDocPluginTest {
         assertThat(result).contains("| Driving Ports | 1 |");
         assertThat(result).contains("| Driven Ports | 1 |");
         assertThat(result).contains("```mermaid");
+    }
+
+    @Test
+    void overviewGeneratorShouldSkipDiagramWhenNull() {
+        DocumentationModel docModel = DocumentationModelFactory.fromArchModel(testModel);
+        OverviewGenerator generator = new OverviewGenerator(docModel, null);
+        String result = generator.generate();
+
+        assertThat(result).contains("# Architecture Overview");
+        assertThat(result).doesNotContain("```mermaid");
+        assertThat(result).doesNotContain("## Architecture Diagram");
     }
 
     @Test
@@ -123,10 +140,13 @@ class LivingDocPluginTest {
 
     @Test
     void diagramGeneratorShouldGenerateMermaidDiagrams() {
+        DocumentationModel docModel = DocumentationModelFactory.fromArchModel(testModel);
         DomainContentSelector domainSelector = new DomainContentSelector(testModel);
         PortContentSelector portSelector = new PortContentSelector(testModel);
         DiagramRenderer renderer = new DiagramRenderer();
-        DiagramGenerator generator = new DiagramGenerator(domainSelector, portSelector, renderer);
+
+        LivingDocDiagramSet diagramSet = LivingDocDiagramSet.generate(docModel, domainSelector, portSelector, renderer);
+        DiagramGenerator generator = new DiagramGenerator(diagramSet);
         String result = generator.generate();
 
         assertThat(result).contains("# Architecture Diagrams");

@@ -26,6 +26,7 @@ import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModel;
 import io.hexaglue.plugin.livingdoc.model.DocumentationModelFactory;
+import io.hexaglue.plugin.livingdoc.model.LivingDocDiagramSet;
 import io.hexaglue.plugin.livingdoc.renderer.DiagramRenderer;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
@@ -129,9 +130,16 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         // Shared diagram renderer with configurable max properties
         DiagramRenderer diagramRenderer = new DiagramRenderer(config.maxPropertiesInDiagram());
 
-        // Generate README/overview using DocumentationModel
-        OverviewGenerator overviewGen = new OverviewGenerator(docModel);
-        String readme = overviewGen.generate(config.generateDiagrams());
+        // Generate all diagrams once if enabled
+        LivingDocDiagramSet diagramSet = null;
+        if (config.generateDiagrams()) {
+            diagramSet = LivingDocDiagramSet.generate(docModel, domainSelector, portSelector, diagramRenderer);
+        }
+
+        // Overview receives pre-rendered diagram (or null when diagrams disabled)
+        String overviewDiagram = diagramSet != null ? diagramSet.architectureOverview() : null;
+        OverviewGenerator overviewGen = new OverviewGenerator(docModel, overviewDiagram);
+        String readme = overviewGen.generate();
         writer.writeDoc(config.outputDir() + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
 
@@ -147,9 +155,9 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         writer.writeDoc(config.outputDir() + "/ports.md", portsDoc);
         diagnostics.info("Generated ports documentation");
 
-        // Generate diagrams if enabled
-        if (config.generateDiagrams()) {
-            DiagramGenerator diagramGen = new DiagramGenerator(domainSelector, portSelector, diagramRenderer);
+        // Generate diagrams file if enabled
+        if (diagramSet != null) {
+            DiagramGenerator diagramGen = new DiagramGenerator(diagramSet);
             String diagrams = diagramGen.generate();
             writer.writeDoc(config.outputDir() + "/diagrams.md", diagrams);
             diagnostics.info("Generated architecture diagrams");
