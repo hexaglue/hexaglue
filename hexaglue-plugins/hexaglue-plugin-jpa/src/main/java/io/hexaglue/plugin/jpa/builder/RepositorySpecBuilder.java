@@ -223,11 +223,10 @@ public final class RepositorySpecBuilder {
                 if (method.isStatic()) {
                     continue;
                 }
-                DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, entityType, domainIndexOpt);
-                if (spec != null) {
+                DerivedMethodSpec.fromV5(method, entityType, domainIndexOpt).ifPresent(spec -> {
                     String signature = computeMethodSignature(spec);
                     methodsBySignature.putIfAbsent(signature, spec);
-                }
+                });
             }
         }
 

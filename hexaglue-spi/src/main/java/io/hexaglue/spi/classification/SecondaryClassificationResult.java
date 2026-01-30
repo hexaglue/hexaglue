@@ -19,6 +19,7 @@ import io.hexaglue.arch.model.classification.ClassificationEvidence;
 import io.hexaglue.arch.model.classification.ClassificationStrategy;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Result of secondary (user-provided) classification.
@@ -26,37 +27,34 @@ import java.util.Objects;
  * <p>Secondary classification results can:
  * <ul>
  *   <li>Override the primary classification with a new decision</li>
- *   <li>Signal to use the primary result (by returning {@code null})</li>
+ *   <li>Signal to use the primary result (by returning {@link Optional#empty()})</li>
  *   <li>Indicate the type could not be classified (via {@link #unclassified()})</li>
  * </ul>
  *
  * <h2>Return Value Semantics</h2>
  * <p>When implementing {@link HexaglueClassifier#classify}, the return value has special meaning:
  * <ul>
- *   <li><b>{@code null}</b> - Accept the primary result (signal to use primary)</li>
- *   <li><b>New result</b> - Override the primary result with this classification</li>
- *   <li><b>{@link #unclassified()}</b> - Explicitly mark as unclassified</li>
+ *   <li><b>{@link Optional#empty()}</b> - Accept the primary result (signal to use primary)</li>
+ *   <li><b>{@code Optional.of(result)}</b> - Override the primary result with this classification</li>
+ *   <li><b>{@code Optional.of(unclassified())}</b> - Explicitly mark as unclassified</li>
  * </ul>
  *
  * <h2>Usage Examples</h2>
  * <pre>{@code
  * // Accept primary result
- * return null;
- *
- * // Or explicitly
- * return SecondaryClassificationResult.usePrimary();
+ * return Optional.empty();
  *
  * // Override with new classification
- * return new SecondaryClassificationResult(
+ * return Optional.of(new SecondaryClassificationResult(
  *     ElementKind.AGGREGATE_ROOT,
  *     CertaintyLevel.INFERRED,
  *     ClassificationStrategy.WEIGHTED,
  *     "Name matches aggregate pattern",
  *     List.of(new ClassificationEvidence("naming", 5, "Ends with Aggregate"))
- * );
+ * ));
  *
  * // Unable to classify
- * return SecondaryClassificationResult.unclassified();
+ * return Optional.of(SecondaryClassificationResult.unclassified());
  * }</pre>
  *
  * @param kind      the classified domain kind (null for unclassified)
@@ -90,7 +88,7 @@ public record SecondaryClassificationResult(
      * Creates an unclassified result.
      *
      * <p>Use this when the secondary classifier cannot determine a classification.
-     * This is different from returning {@code null}, which signals to use the
+     * This is different from returning {@link Optional#empty()}, which signals to use the
      * primary result.
      *
      * @return unclassified result
@@ -102,21 +100,6 @@ public record SecondaryClassificationResult(
                 ClassificationStrategy.UNCLASSIFIED,
                 "No secondary classification",
                 List.of());
-    }
-
-    /**
-     * Signals to use the primary classification result.
-     *
-     * <p>This is equivalent to returning {@code null} from
-     * {@link HexaglueClassifier#classify}, but makes the intent more explicit.
-     *
-     * <p><b>Note:</b> This method returns {@code null} by design. Callers should
-     * check for null and fall back to the primary result.
-     *
-     * @return null (signals to use primary)
-     */
-    public static SecondaryClassificationResult usePrimary() {
-        return null;
     }
 
     /**

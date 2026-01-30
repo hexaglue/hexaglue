@@ -37,7 +37,7 @@ import java.util.Set;
  *     boolean referencedByAggregate = context.alreadyClassified()
  *         .values()
  *         .stream()
- *         .anyMatch(r -> r.kind() == ElementKind.AGGREGATE_ROOT);
+ *         .anyMatch(r -> r.kind().filter(k -> k == ElementKind.AGGREGATE_ROOT).isPresent());
  *
  *     // Access all type names in the analyzed codebase
  *     Set<String> allTypes = context.allTypeNames();

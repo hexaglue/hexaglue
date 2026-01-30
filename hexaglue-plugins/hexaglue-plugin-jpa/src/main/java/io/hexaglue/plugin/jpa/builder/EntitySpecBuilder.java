@@ -235,7 +235,7 @@ public final class EntitySpecBuilder {
 
         // Build IdFieldSpec from v5 Field
         TypeStructure identityTypeStructure =
-                findTypeStructureV5(identityField.type().qualifiedName());
+                findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
         IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
 
         // Build properties and relations from v5 structure
@@ -277,7 +277,7 @@ public final class EntitySpecBuilder {
 
         // Build IdFieldSpec from v5 Field
         TypeStructure identityTypeStructure =
-                findTypeStructureV5(identityField.type().qualifiedName());
+                findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
         IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
 
         // Build properties and relations from v5 structure
@@ -303,7 +303,7 @@ public final class EntitySpecBuilder {
      *
      * @since 5.0.0
      */
-    private TypeStructure findTypeStructureV5(String qualifiedName) {
+    private Optional<TypeStructure> findTypeStructureV5(String qualifiedName) {
         var domainIndexOpt = architecturalModel.domainIndex();
         if (domainIndexOpt.isPresent()) {
             var domainIndex = domainIndexOpt.get();
@@ -314,7 +314,7 @@ public final class EntitySpecBuilder {
                     .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
                     .findFirst();
             if (voOpt.isPresent()) {
-                return voOpt.get().structure();
+                return Optional.of(voOpt.get().structure());
             }
 
             // Check identifiers
@@ -323,10 +323,10 @@ public final class EntitySpecBuilder {
                     .filter(id -> id.id().qualifiedName().equals(qualifiedName))
                     .findFirst();
             if (idOpt.isPresent()) {
-                return idOpt.get().structure();
+                return Optional.of(idOpt.get().structure());
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**

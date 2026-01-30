@@ -16,6 +16,7 @@ package io.hexaglue.plugin.jpa.strategy;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.ir.Identity;
+import java.util.Optional;
 
 /**
  * Context information for adapter method generation.
@@ -87,16 +88,16 @@ public record AdapterContext(
          * Creates IdInfo from an SPI Identity.
          *
          * @param identity the identity from SPI
-         * @return IdInfo for adapter generation
+         * @return IdInfo for adapter generation, or empty if identity is null
          */
-        public static IdInfo from(Identity identity) {
+        public static Optional<IdInfo> from(Identity identity) {
             if (identity == null) {
-                return null;
+                return Optional.empty();
             }
             TypeName wrapped =
                     identity.isWrapped() ? ClassName.bestGuess(identity.type().qualifiedName()) : null;
             TypeName unwrapped = ClassName.bestGuess(identity.unwrappedType().qualifiedName());
-            return new IdInfo(wrapped, unwrapped, identity.isWrapped());
+            return Optional.of(new IdInfo(wrapped, unwrapped, identity.isWrapped()));
         }
 
         /**

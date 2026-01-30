@@ -16,6 +16,7 @@ package io.hexaglue.plugin.audit.adapter.diagram;
 import io.hexaglue.plugin.audit.domain.model.report.ComponentDetails;
 import io.hexaglue.plugin.audit.domain.model.report.DiagramSet;
 import io.hexaglue.plugin.audit.domain.model.report.ReportData;
+import java.util.Optional;
 
 /**
  * Orchestrates the generation of all Mermaid diagrams for the audit report.
@@ -152,9 +153,10 @@ public class DiagramGenerator {
                 .aggregateDiagrams(generateAggregateDiagrams(reportData))
                 .violationsPie(generateViolationsPie(reportData))
                 .packageZones(generatePackageZones(reportData))
-                .applicationLayer(generateApplicationLayer(reportData))
-                .portsLayer(generatePortsLayer(reportData))
-                .fullArchitecture(generateFullArchitecture(reportData, projectName))
+                .applicationLayer(generateApplicationLayer(reportData).orElse(null))
+                .portsLayer(generatePortsLayer(reportData).orElse(null))
+                .fullArchitecture(
+                        generateFullArchitecture(reportData, projectName).orElse(null))
                 .build();
     }
 
@@ -226,15 +228,15 @@ public class DiagramGenerator {
      * with their relationships to aggregates and ports.
      *
      * @param reportData the report data
-     * @return the Mermaid diagram, or null if no application layer components
+     * @return Optional containing the Mermaid diagram, or empty if no application layer components
      * @since 5.0.0
      */
-    private String generateApplicationLayer(ReportData reportData) {
+    private Optional<String> generateApplicationLayer(ReportData reportData) {
         ComponentDetails components = reportData.architecture().components();
 
         // Skip if no application layer components
         if (!components.hasApplicationLayer()) {
-            return null;
+            return Optional.empty();
         }
 
         return applicationLayerBuilder.build(
@@ -250,15 +252,15 @@ public class DiagramGenerator {
      * adapter implementations.
      *
      * @param reportData the report data
-     * @return the Mermaid diagram, or null if no ports
+     * @return Optional containing the Mermaid diagram, or empty if no ports
      * @since 5.0.0
      */
-    private String generatePortsLayer(ReportData reportData) {
+    private Optional<String> generatePortsLayer(ReportData reportData) {
         ComponentDetails components = reportData.architecture().components();
 
         // Skip if no ports
         if (!components.hasPortsLayer()) {
-            return null;
+            return Optional.empty();
         }
 
         return portsDiagramBuilder.build(components, reportData.architecture().typeViolations());
@@ -273,10 +275,10 @@ public class DiagramGenerator {
      *
      * @param reportData the report data
      * @param projectName the project name for the diagram title
-     * @return the Mermaid C4Component diagram, or null if insufficient content
+     * @return Optional containing the Mermaid C4Component diagram, or empty if insufficient content
      * @since 5.0.0
      */
-    private String generateFullArchitecture(ReportData reportData, String projectName) {
+    private Optional<String> generateFullArchitecture(ReportData reportData, String projectName) {
         return fullArchitectureBuilder.build(
                 projectName,
                 reportData.architecture().components(),

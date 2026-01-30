@@ -558,7 +558,7 @@ class DiagramBuildersTest {
             var components = ComponentDetails.empty();
 
             // When
-            String diagram = builder.build(components, List.of(), List.of());
+            String diagram = builder.build(components, List.of(), List.of()).orElse(null);
 
             // Then
             assertThat(diagram).isNull();
@@ -588,7 +588,7 @@ class DiagramBuildersTest {
                     List.of());
 
             // When
-            String diagram = builder.build(components, List.of(), List.of());
+            String diagram = builder.build(components, List.of(), List.of()).orElseThrow();
 
             // Then
             assertThat(diagram).contains("title: Application Layer");
@@ -620,7 +620,7 @@ class DiagramBuildersTest {
                     List.of());
 
             // When
-            String diagram = builder.build(components, List.of(), List.of());
+            String diagram = builder.build(components, List.of(), List.of()).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class PlaceOrderHandler{");
@@ -649,7 +649,7 @@ class DiagramBuildersTest {
                     List.of());
 
             // When
-            String diagram = builder.build(components, List.of(), List.of());
+            String diagram = builder.build(components, List.of(), List.of()).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class GetOrdersHandler{");
@@ -678,7 +678,7 @@ class DiagramBuildersTest {
             var violations = List.of(TypeViolation.dependencyInversion("OrderService"));
 
             // When
-            String diagram = builder.build(components, List.of(), violations);
+            String diagram = builder.build(components, List.of(), violations).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class OrderService:::DependencyInversionWarning");
@@ -699,7 +699,7 @@ class DiagramBuildersTest {
             var components = ComponentDetails.empty();
 
             // When
-            String diagram = builder.build(components, List.of());
+            String diagram = builder.build(components, List.of()).orElse(null);
 
             // Then
             assertThat(diagram).isNull();
@@ -725,7 +725,7 @@ class DiagramBuildersTest {
                     List.of());
 
             // When
-            String diagram = builder.build(components, List.of());
+            String diagram = builder.build(components, List.of()).orElseThrow();
 
             // Then
             assertThat(diagram).contains("title: Ports Layer");
@@ -757,7 +757,7 @@ class DiagramBuildersTest {
                     List.of());
 
             // When
-            String diagram = builder.build(components, List.of());
+            String diagram = builder.build(components, List.of()).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class OrderRepository{");
@@ -787,7 +787,7 @@ class DiagramBuildersTest {
             var violations = List.of(TypeViolation.portUncovered("PaymentGateway"));
 
             // When
-            String diagram = builder.build(components, violations);
+            String diagram = builder.build(components, violations).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class PaymentGateway:::PortUncoveredWarning");
@@ -814,7 +814,7 @@ class DiagramBuildersTest {
             var violations = List.of(TypeViolation.portNotInterface("OrderPort"));
 
             // When
-            String diagram = builder.build(components, violations);
+            String diagram = builder.build(components, violations).orElseThrow();
 
             // Then
             assertThat(diagram).contains("class OrderPort:::PortNotInterfaceWarning");

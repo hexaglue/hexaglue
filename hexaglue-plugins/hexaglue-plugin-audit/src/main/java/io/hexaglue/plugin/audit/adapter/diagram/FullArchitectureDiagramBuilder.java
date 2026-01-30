@@ -22,6 +22,7 @@ import io.hexaglue.plugin.audit.domain.model.report.Relationship;
 import io.hexaglue.plugin.audit.domain.model.report.TypeViolation;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -73,10 +74,10 @@ public class FullArchitectureDiagramBuilder {
      * @param components component details containing all architectural elements
      * @param relationships relationships between components, including cycles
      * @param typeViolations type-level violations for styling (cycles, etc.)
-     * @return Mermaid C4Component diagram code (without code fence), or null if no meaningful content
+     * @return Optional containing Mermaid C4Component diagram code (without code fence), or empty if no meaningful content
      * @since 5.0.0
      */
-    public String build(
+    public Optional<String> build(
             String projectName,
             ComponentDetails components,
             List<Relationship> relationships,
@@ -84,7 +85,7 @@ public class FullArchitectureDiagramBuilder {
 
         // Check if there's meaningful content to display
         if (!hasContent(components)) {
-            return null;
+            return Optional.empty();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -115,7 +116,7 @@ public class FullArchitectureDiagramBuilder {
         // Styles
         appendStyles(sb, components, cycleParticipants);
 
-        return sb.toString().trim();
+        return Optional.of(sb.toString().trim());
     }
 
     /**

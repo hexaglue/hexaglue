@@ -18,6 +18,7 @@ import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents a type dependency edge with classification of dependency type.
@@ -97,15 +98,15 @@ public record DependencyEdge(NodeId from, NodeId to, DependencyType dependencyTy
          * Returns the DependencyType corresponding to the given EdgeKind.
          *
          * @param kind the edge kind
-         * @return the dependency type, or null if not a dependency edge
+         * @return the dependency type, or empty if not a dependency edge
          */
-        public static DependencyType fromEdgeKind(EdgeKind kind) {
+        public static Optional<DependencyType> fromEdgeKind(EdgeKind kind) {
             for (DependencyType type : values()) {
                 if (type.edgeKind == kind) {
-                    return type;
+                    return Optional.of(type);
                 }
             }
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -200,10 +201,9 @@ public record DependencyEdge(NodeId from, NodeId to, DependencyType dependencyTy
      * Creates a DependencyEdge from a basic Edge.
      *
      * @param edge the basic edge
-     * @return the dependency edge, or null if the edge kind is not a dependency
+     * @return the dependency edge, or empty if the edge kind is not a dependency
      */
-    public static DependencyEdge fromEdge(Edge edge) {
-        DependencyType type = DependencyType.fromEdgeKind(edge.kind());
-        return type != null ? new DependencyEdge(edge.from(), edge.to(), type) : null;
+    public static Optional<DependencyEdge> fromEdge(Edge edge) {
+        return DependencyType.fromEdgeKind(edge.kind()).map(type -> new DependencyEdge(edge.from(), edge.to(), type));
     }
 }

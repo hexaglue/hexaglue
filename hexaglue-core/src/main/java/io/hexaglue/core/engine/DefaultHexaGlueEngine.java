@@ -41,6 +41,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -317,7 +318,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         if (coreResult.status() == ClassificationStatus.CONFLICT) {
             return new PrimaryClassificationResult(
                     typeName,
-                    null, // kind is null for conflicts
+                    Optional.empty(),
                     io.hexaglue.arch.model.classification.CertaintyLevel.UNCERTAIN,
                     io.hexaglue.arch.model.classification.ClassificationStrategy.WEIGHTED,
                     coreResult.justification() != null ? coreResult.justification() : "Multiple conflicting criteria",
@@ -325,7 +326,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         }
 
         // Handle successful classification
-        io.hexaglue.arch.ElementKind elementKind = toElementKind(coreResult.kind());
+        Optional<io.hexaglue.arch.ElementKind> elementKind = toElementKind(coreResult.kind());
         io.hexaglue.arch.model.classification.CertaintyLevel certainty = toSpiCertainty(coreResult.confidence());
         io.hexaglue.arch.model.classification.ClassificationStrategy strategy = deriveStrategy(coreResult);
 
@@ -340,25 +341,29 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
     /**
      * Converts kind string to ElementKind.
+     *
+     * @return the element kind, or empty if kind is null or unrecognized
      */
-    private io.hexaglue.arch.ElementKind toElementKind(String kind) {
+    private Optional<io.hexaglue.arch.ElementKind> toElementKind(String kind) {
         if (kind == null) {
-            return null;
+            return Optional.empty();
         }
-        return switch (kind) {
-            case "AGGREGATE_ROOT" -> io.hexaglue.arch.ElementKind.AGGREGATE_ROOT;
-            case "ENTITY" -> io.hexaglue.arch.ElementKind.ENTITY;
-            case "VALUE_OBJECT" -> io.hexaglue.arch.ElementKind.VALUE_OBJECT;
-            case "IDENTIFIER" -> io.hexaglue.arch.ElementKind.IDENTIFIER;
-            case "DOMAIN_EVENT" -> io.hexaglue.arch.ElementKind.DOMAIN_EVENT;
-            case "DOMAIN_SERVICE" -> io.hexaglue.arch.ElementKind.DOMAIN_SERVICE;
-            case "APPLICATION_SERVICE" -> io.hexaglue.arch.ElementKind.APPLICATION_SERVICE;
-            case "INBOUND_ONLY" -> io.hexaglue.arch.ElementKind.INBOUND_ONLY;
-            case "OUTBOUND_ONLY" -> io.hexaglue.arch.ElementKind.OUTBOUND_ONLY;
-            case "SAGA" -> io.hexaglue.arch.ElementKind.SAGA;
-            case "UNCLASSIFIED" -> io.hexaglue.arch.ElementKind.UNCLASSIFIED;
-            default -> null;
-        };
+        io.hexaglue.arch.ElementKind elementKind =
+                switch (kind) {
+                    case "AGGREGATE_ROOT" -> io.hexaglue.arch.ElementKind.AGGREGATE_ROOT;
+                    case "ENTITY" -> io.hexaglue.arch.ElementKind.ENTITY;
+                    case "VALUE_OBJECT" -> io.hexaglue.arch.ElementKind.VALUE_OBJECT;
+                    case "IDENTIFIER" -> io.hexaglue.arch.ElementKind.IDENTIFIER;
+                    case "DOMAIN_EVENT" -> io.hexaglue.arch.ElementKind.DOMAIN_EVENT;
+                    case "DOMAIN_SERVICE" -> io.hexaglue.arch.ElementKind.DOMAIN_SERVICE;
+                    case "APPLICATION_SERVICE" -> io.hexaglue.arch.ElementKind.APPLICATION_SERVICE;
+                    case "INBOUND_ONLY" -> io.hexaglue.arch.ElementKind.INBOUND_ONLY;
+                    case "OUTBOUND_ONLY" -> io.hexaglue.arch.ElementKind.OUTBOUND_ONLY;
+                    case "SAGA" -> io.hexaglue.arch.ElementKind.SAGA;
+                    case "UNCLASSIFIED" -> io.hexaglue.arch.ElementKind.UNCLASSIFIED;
+                    default -> null;
+                };
+        return Optional.ofNullable(elementKind);
     }
 
     /**

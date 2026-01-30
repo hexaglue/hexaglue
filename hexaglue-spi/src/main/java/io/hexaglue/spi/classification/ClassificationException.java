@@ -38,7 +38,7 @@ package io.hexaglue.spi.classification;
  *
  * <h2>Usage Example</h2>
  * <pre>{@code
- * public SecondaryClassificationResult classify(
+ * public Optional<SecondaryClassificationResult> classify(
  *         TypeInfo type,
  *         ClassificationContext context,
  *         Optional<PrimaryClassificationResult> primaryResult) {

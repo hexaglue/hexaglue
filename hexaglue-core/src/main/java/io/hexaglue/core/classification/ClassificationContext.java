@@ -91,14 +91,16 @@ public record ClassificationContext(Map<NodeId, ClassificationResult> domainClas
     }
 
     /**
-     * Returns the domain kind of a type, or null if not classified.
+     * Returns the domain kind of a type, or empty if not classified.
+     *
+     * @return the domain kind wrapped in Optional, empty if not classified
      */
-    public String getKind(NodeId typeId) {
+    public Optional<String> getKind(NodeId typeId) {
         ClassificationResult result = domainClassifications.get(typeId);
         if (result == null || result.status() != ClassificationStatus.CLASSIFIED) {
-            return null;
+            return Optional.empty();
         }
-        return result.kind();
+        return Optional.of(result.kind());
     }
 
     /**

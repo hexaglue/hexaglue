@@ -89,7 +89,8 @@ public final class JpaAnnotationExtractor {
 
             // Check for @Id
             if (hasAnyAnnotation(field, JPA_ID, JAVAX_ID)) {
-                IdentityInfo.GenerationStrategy strategy = extractGenerationStrategy(field);
+                IdentityInfo.GenerationStrategy strategy =
+                        extractGenerationStrategy(field).orElse(null);
                 return Optional.of(new IdentityInfo(field.name(), field.type(), strategy, false, null));
             }
         }
@@ -131,31 +132,32 @@ public final class JpaAnnotationExtractor {
         return basicIdentity;
     }
 
-    private static IdentityInfo.GenerationStrategy extractGenerationStrategy(FieldSyntax field) {
+    private static Optional<IdentityInfo.GenerationStrategy> extractGenerationStrategy(FieldSyntax field) {
         Optional<AnnotationSyntax> genValue = getAnyAnnotation(field, JPA_GENERATED_VALUE, JAVAX_GENERATED_VALUE);
 
         if (genValue.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         AnnotationSyntax ann = genValue.get();
         Optional<AnnotationValue> strategyValue = ann.getValue("strategy");
 
         if (strategyValue.isEmpty()) {
-            return IdentityInfo.GenerationStrategy.AUTO;
+            return Optional.of(IdentityInfo.GenerationStrategy.AUTO);
         }
 
         if (strategyValue.get() instanceof AnnotationValue.EnumValue enumValue) {
-            return switch (enumValue.constantName()) {
-                case "IDENTITY" -> IdentityInfo.GenerationStrategy.IDENTITY;
-                case "SEQUENCE" -> IdentityInfo.GenerationStrategy.SEQUENCE;
-                case "TABLE" -> IdentityInfo.GenerationStrategy.TABLE;
-                case "UUID" -> IdentityInfo.GenerationStrategy.UUID;
-                default -> IdentityInfo.GenerationStrategy.AUTO;
-            };
+            return Optional.of(
+                    switch (enumValue.constantName()) {
+                        case "IDENTITY" -> IdentityInfo.GenerationStrategy.IDENTITY;
+                        case "SEQUENCE" -> IdentityInfo.GenerationStrategy.SEQUENCE;
+                        case "TABLE" -> IdentityInfo.GenerationStrategy.TABLE;
+                        case "UUID" -> IdentityInfo.GenerationStrategy.UUID;
+                        default -> IdentityInfo.GenerationStrategy.AUTO;
+                    });
         }
 
-        return IdentityInfo.GenerationStrategy.AUTO;
+        return Optional.of(IdentityInfo.GenerationStrategy.AUTO);
     }
 
     private static boolean isWrappableType(TypeRef type) {
@@ -245,7 +247,7 @@ public final class JpaAnnotationExtractor {
 
         TypeRef targetType = extractTargetType(field, annotation);
         RelationInfo.CascadeType cascade = extractCascade(annotation);
-        RelationInfo.FetchType fetch = extractFetch(annotation);
+        RelationInfo.FetchType fetch = extractFetch(annotation).orElse(null);
         String mappedBy = annotation.getString("mappedBy").orElse(null);
         boolean orphanRemoval = annotation.getBoolean("orphanRemoval").orElse(false);
 
@@ -318,22 +320,22 @@ public final class JpaAnnotationExtractor {
         };
     }
 
-    private static RelationInfo.FetchType extractFetch(AnnotationSyntax annotation) {
+    private static Optional<RelationInfo.FetchType> extractFetch(AnnotationSyntax annotation) {
         Optional<AnnotationValue> fetchValue = annotation.getValue("fetch");
 
         if (fetchValue.isEmpty()) {
-            return null; // Let RelationInfo use default based on relation kind
+            return Optional.empty(); // Let RelationInfo use default based on relation kind
         }
 
         if (fetchValue.get() instanceof AnnotationValue.EnumValue enumValue) {
             return switch (enumValue.constantName()) {
-                case "LAZY" -> RelationInfo.FetchType.LAZY;
-                case "EAGER" -> RelationInfo.FetchType.EAGER;
-                default -> null;
+                case "LAZY" -> Optional.of(RelationInfo.FetchType.LAZY);
+                case "EAGER" -> Optional.of(RelationInfo.FetchType.EAGER);
+                default -> Optional.empty();
             };
         }
 
-        return null;
+        return Optional.empty();
     }
 
     // ===== Property Extraction =====

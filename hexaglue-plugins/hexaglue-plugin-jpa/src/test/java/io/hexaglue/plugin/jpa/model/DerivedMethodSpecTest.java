@@ -72,10 +72,12 @@ class DerivedMethodSpecTest {
             DomainIndex domainIndex = DomainIndex.from(registry);
 
             // When
-            DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.of(domainIndex));
+            Optional<DerivedMethodSpec> specOpt =
+                    DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.of(domainIndex));
 
             // Then: Parameter type should be UUID, not CustomerId
-            assertThat(spec).isNotNull();
+            assertThat(specOpt).isPresent();
+            DerivedMethodSpec spec = specOpt.get();
             assertThat(spec.parameters()).hasSize(1);
             assertThat(spec.parameters().get(0).type().toString())
                     .as("C4 fix: Identifier type should be unwrapped to UUID")
@@ -105,10 +107,12 @@ class DerivedMethodSpecTest {
             DomainIndex domainIndex = DomainIndex.from(registry);
 
             // When
-            DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.of(domainIndex));
+            Optional<DerivedMethodSpec> specOpt =
+                    DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.of(domainIndex));
 
             // Then: String should remain String
-            assertThat(spec).isNotNull();
+            assertThat(specOpt).isPresent();
+            DerivedMethodSpec spec = specOpt.get();
             assertThat(spec.parameters()).hasSize(1);
             assertThat(spec.parameters().get(0).type().toString()).isEqualTo("java.lang.String");
         }
@@ -132,10 +136,11 @@ class DerivedMethodSpecTest {
                     java.util.Optional.empty());
 
             // When: No DomainIndex provided
-            DerivedMethodSpec spec = DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.empty());
+            Optional<DerivedMethodSpec> specOpt = DerivedMethodSpec.fromV5(method, ENTITY_TYPE, Optional.empty());
 
             // Then: CustomerId should remain as is (fallback behavior)
-            assertThat(spec).isNotNull();
+            assertThat(specOpt).isPresent();
+            DerivedMethodSpec spec = specOpt.get();
             assertThat(spec.parameters()).hasSize(1);
             assertThat(spec.parameters().get(0).type().toString())
                     .isEqualTo("com.ecommerce.domain.customer.CustomerId");

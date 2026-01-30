@@ -206,7 +206,7 @@ public final class MapperSpecBuilder {
         List<MappingSpec> toEntityMappings = buildToEntityMappings(identityFieldName);
         List<MappingSpec> toDomainMappings = buildToDomainMappings(identityFieldName);
 
-        MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentity();
+        MapperSpec.WrappedIdentitySpec wrappedIdentity = detectWrappedIdentity().orElse(null);
         List<ValueObjectMappingSpec> valueObjectMappings = detectValueObjectMappings();
         List<MapperSpec.EmbeddableMappingSpec> embeddableMappings = buildEmbeddableMappings();
 
@@ -300,9 +300,9 @@ public final class MapperSpecBuilder {
     /**
      * Detects wrapped identity.
      *
-     * @return the wrapped identity spec, or null if identity is not wrapped
+     * @return the wrapped identity spec, or empty if identity is not wrapped
      */
-    private MapperSpec.WrappedIdentitySpec detectWrappedIdentity() {
+    private Optional<MapperSpec.WrappedIdentitySpec> detectWrappedIdentity() {
         if (aggregateRoot != null) {
             return detectWrappedIdentityFromField(
                     aggregateRoot.identityField().type(),
@@ -311,11 +311,10 @@ public final class MapperSpecBuilder {
 
         if (entity != null) {
             return entity.identityField()
-                    .map(idField -> detectWrappedIdentityFromField(idField.type(), idField.wrappedType()))
-                    .orElse(null);
+                    .flatMap(idField -> detectWrappedIdentityFromField(idField.type(), idField.wrappedType()));
         }
 
-        return null;
+        return Optional.empty();
     }
 
     /**
@@ -323,10 +322,10 @@ public final class MapperSpecBuilder {
      *
      * @param idType the identity field type
      * @param wrappedType the wrapped type (if present)
-     * @return the wrapped identity spec, or null if identity is not wrapped
+     * @return the wrapped identity spec, or empty if identity is not wrapped
      * @since 5.0.0
      */
-    private MapperSpec.WrappedIdentitySpec detectWrappedIdentityFromField(
+    private Optional<MapperSpec.WrappedIdentitySpec> detectWrappedIdentityFromField(
             io.hexaglue.syntax.TypeRef idType, Optional<io.hexaglue.syntax.TypeRef> wrappedType) {
         // If wrappedType is present in the Field, use it directly
         if (wrappedType.isPresent()) {
@@ -334,7 +333,7 @@ public final class MapperSpecBuilder {
             String unwrappedTypeName = wrappedType.get().qualifiedName();
             // Infer accessor method from the simple name of the wrapped type
             String accessorMethod = inferAccessorMethod(idType.qualifiedName());
-            return new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod);
+            return Optional.of(new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod));
         }
 
         // Fallback: look for v5 ValueObject in domainIndex
@@ -354,11 +353,12 @@ public final class MapperSpecBuilder {
                 String wrapperTypeName = vo.id().qualifiedName();
                 String unwrappedTypeName = wrappedField.type().qualifiedName();
                 String accessorMethod = wrappedField.name();
-                return new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod);
+                return Optional.of(
+                        new MapperSpec.WrappedIdentitySpec(wrapperTypeName, unwrappedTypeName, accessorMethod));
             }
         }
 
-        return null;
+        return Optional.empty();
     }
 
     /**

@@ -101,14 +101,14 @@ public class WeightedMultiSignalClassifier implements HexaglueClassifier {
     }
 
     @Override
-    public SecondaryClassificationResult classify(
+    public Optional<SecondaryClassificationResult> classify(
             TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primaryResult) {
 
         // Trust high-certainty primary results
         if (primaryResult.isPresent()) {
             CertaintyLevel certainty = primaryResult.get().certainty();
             if (certainty == CertaintyLevel.CERTAIN_BY_STRUCTURE || certainty == CertaintyLevel.EXPLICIT) {
-                return null; // Use primary
+                return Optional.empty(); // Use primary
             }
         }
 
@@ -123,7 +123,7 @@ public class WeightedMultiSignalClassifier implements HexaglueClassifier {
         int maxScore = Math.max(aggregateScore, Math.max(entityScore, valueObjectScore));
 
         if (maxScore < minConfidenceThreshold) {
-            return SecondaryClassificationResult.unclassified();
+            return Optional.of(SecondaryClassificationResult.unclassified());
         }
 
         ElementKind kind;
@@ -135,12 +135,12 @@ public class WeightedMultiSignalClassifier implements HexaglueClassifier {
             kind = ElementKind.VALUE_OBJECT;
         }
 
-        return new SecondaryClassificationResult(
+        return Optional.of(new SecondaryClassificationResult(
                 kind,
                 CertaintyLevel.INFERRED,
                 ClassificationStrategy.WEIGHTED,
                 String.format("Weighted scoring: %s=%d", kind, maxScore),
-                evidences);
+                evidences));
     }
 
     /**

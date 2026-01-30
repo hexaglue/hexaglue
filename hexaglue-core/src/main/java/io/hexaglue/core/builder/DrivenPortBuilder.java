@@ -133,9 +133,9 @@ public final class DrivenPortBuilder {
             }
 
             // Check if return type is an Optional or collection and extract the element type
-            String typeName = extractReturnTypeName(returnType);
-            if (typeName != null && isAggregateRoot(typeName, context)) {
-                return Optional.of(TypeRef.of(typeName));
+            Optional<String> typeNameOpt = extractReturnTypeName(returnType);
+            if (typeNameOpt.isPresent() && isAggregateRoot(typeNameOpt.get(), context)) {
+                return Optional.of(TypeRef.of(typeNameOpt.get()));
             }
         }
 
@@ -148,23 +148,23 @@ public final class DrivenPortBuilder {
      * <p>Handles common wrapper types like Optional and collections.</p>
      *
      * @param returnType the return type
-     * @return the extracted type name, or null if not extractable
+     * @return the extracted type name, or empty if not extractable
      */
-    private String extractReturnTypeName(io.hexaglue.core.frontend.TypeRef returnType) {
+    private Optional<String> extractReturnTypeName(io.hexaglue.core.frontend.TypeRef returnType) {
         String rawName = returnType.rawQualifiedName();
 
         // If it's a generic type (Optional, List, etc.), get the type argument
         if (!returnType.arguments().isEmpty()) {
             io.hexaglue.core.frontend.TypeRef typeArg = returnType.arguments().get(0);
-            return typeArg.rawQualifiedName();
+            return Optional.of(typeArg.rawQualifiedName());
         }
 
         // Skip common non-aggregate types
         if (rawName.startsWith("java.") || rawName.equals("void")) {
-            return null;
+            return Optional.empty();
         }
 
-        return rawName;
+        return Optional.of(rawName);
     }
 
     /**

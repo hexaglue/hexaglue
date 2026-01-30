@@ -23,11 +23,15 @@ import io.hexaglue.core.graph.style.PackageOrganizationStyle;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Default implementation of {@link GraphQuery}.
  */
 public final class DefaultGraphQuery implements GraphQuery {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DefaultGraphQuery.class);
 
     private final ApplicationGraph graph;
     private final GraphIndexes indexes;
@@ -191,8 +195,7 @@ public final class DefaultGraphQuery implements GraphQuery {
     public List<MethodCallEdge> methodCallsFrom(NodeId nodeId) {
         return graph.edgesFrom(nodeId).stream()
                 .filter(e -> isMethodCallEdge(e))
-                .map(this::toMethodCallEdge)
-                .filter(Objects::nonNull)
+                .flatMap(e -> toMethodCallEdge(e).stream())
                 .toList();
     }
 
@@ -200,8 +203,7 @@ public final class DefaultGraphQuery implements GraphQuery {
     public List<MethodCallEdge> methodCallsTo(NodeId nodeId) {
         return graph.edgesTo(nodeId).stream()
                 .filter(e -> isMethodCallEdge(e))
-                .map(this::toMethodCallEdge)
-                .filter(Objects::nonNull)
+                .flatMap(e -> toMethodCallEdge(e).stream())
                 .toList();
     }
 
@@ -209,8 +211,7 @@ public final class DefaultGraphQuery implements GraphQuery {
     public List<FieldAccessEdge> fieldAccessesFrom(NodeId nodeId) {
         return graph.edgesFrom(nodeId).stream()
                 .filter(e -> isFieldAccessEdge(e))
-                .map(this::toFieldAccessEdge)
-                .filter(Objects::nonNull)
+                .flatMap(e -> toFieldAccessEdge(e).stream())
                 .toList();
     }
 
@@ -218,8 +219,7 @@ public final class DefaultGraphQuery implements GraphQuery {
     public List<FieldAccessEdge> fieldAccessesTo(NodeId nodeId) {
         return graph.edgesTo(nodeId).stream()
                 .filter(e -> isFieldAccessEdge(e))
-                .map(this::toFieldAccessEdge)
-                .filter(Objects::nonNull)
+                .flatMap(e -> toFieldAccessEdge(e).stream())
                 .toList();
     }
 
@@ -384,10 +384,12 @@ public final class DefaultGraphQuery implements GraphQuery {
      *
      * <p>Since EdgeProof doesn't store full metadata, we create a simplified
      * MethodCallEdge using the edge's from/to nodes as caller/callee.
+     *
+     * @return the method call edge, or empty if conversion fails
      */
-    private MethodCallEdge toMethodCallEdge(Edge edge) {
+    private Optional<MethodCallEdge> toMethodCallEdge(Edge edge) {
         if (edge.proof() == null) {
-            return null;
+            return Optional.empty();
         }
 
         try {
@@ -397,17 +399,18 @@ public final class DefaultGraphQuery implements GraphQuery {
             boolean isConstructorCall = via != null && via.contains("ctor=true");
 
             // Use from/to as calling/called method (simplified representation)
-            return new MethodCallEdge(
+            return Optional.of(new MethodCallEdge(
                     edge.from(),
                     edge.to(),
                     edge.from(), // callingMethod
                     edge.to(), // calledMethod
                     1, // invocationCount (default)
                     isStaticCall,
-                    isConstructorCall);
+                    isConstructorCall));
         } catch (Exception e) {
-            // Failed to create edge - return null
-            return null;
+            // Failed to create edge - log and return empty
+            LOG.debug("Failed to convert edge to MethodCallEdge: {}", e.getMessage(), e);
+            return Optional.empty();
         }
     }
 
@@ -416,10 +419,12 @@ public final class DefaultGraphQuery implements GraphQuery {
      *
      * <p>Since EdgeProof doesn't store full metadata, we parse the access type
      * from the via field if possible, defaulting to READ.
+     *
+     * @return the field access edge, or empty if conversion fails
      */
-    private FieldAccessEdge toFieldAccessEdge(Edge edge) {
+    private Optional<FieldAccessEdge> toFieldAccessEdge(Edge edge) {
         if (edge.proof() == null) {
-            return null;
+            return Optional.empty();
         }
 
         try {
@@ -435,10 +440,11 @@ public final class DefaultGraphQuery implements GraphQuery {
                 }
             }
 
-            return new FieldAccessEdge(edge.from(), edge.to(), accessType);
+            return Optional.of(new FieldAccessEdge(edge.from(), edge.to(), accessType));
         } catch (Exception e) {
-            // Failed to create edge - return null
-            return null;
+            // Failed to create edge - log and return empty
+            LOG.debug("Failed to convert edge to FieldAccessEdge: {}", e.getMessage(), e);
+            return Optional.empty();
         }
     }
 

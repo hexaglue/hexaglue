@@ -60,7 +60,8 @@ class FullArchitectureDiagramBuilderTest {
             List<TypeViolation> violations = List.of();
 
             // When
-            String result = builder.build("TestProject", empty, relationships, violations);
+            String result = builder.build("TestProject", empty, relationships, violations)
+                    .orElse(null);
 
             // Then
             assertThat(result).isNull();
@@ -85,7 +86,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of()); // adapters
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElse(null);
 
             // Then: Should return a diagram even with only aggregates
             // (actually, we want the full architecture so we need at least some ports or services)
@@ -104,7 +106,8 @@ class FullArchitectureDiagramBuilderTest {
             ComponentDetails components = createMinimalComponents();
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).isNotNull();
@@ -119,7 +122,8 @@ class FullArchitectureDiagramBuilderTest {
             ComponentDetails components = createMinimalComponents();
 
             // When
-            String result = builder.build("MyAwesomeProject", components, List.of(), List.of());
+            String result = builder.build("MyAwesomeProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("title Full Architecture - MyAwesomeProject");
@@ -137,7 +141,8 @@ class FullArchitectureDiagramBuilderTest {
             ComponentDetails components = createComponentsWithAllLayers();
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("Container_Boundary(driving, \"Driving Side\")");
@@ -152,7 +157,8 @@ class FullArchitectureDiagramBuilderTest {
             ComponentDetails components = createComponentsWithAllLayers();
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("Container_Boundary(domain, \"Domain Core\")");
@@ -167,7 +173,8 @@ class FullArchitectureDiagramBuilderTest {
             ComponentDetails components = createComponentsWithAllLayers();
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("Container_Boundary(driven, \"Driven Side\")");
@@ -202,7 +209,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of());
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("Rel_D(");
@@ -233,7 +241,8 @@ class FullArchitectureDiagramBuilderTest {
                             AdapterComponent.AdapterType.DRIVEN)));
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("implemented by");
@@ -253,7 +262,8 @@ class FullArchitectureDiagramBuilderTest {
             List<TypeViolation> violations = List.of(TypeViolation.cycle("Order"), TypeViolation.cycle("Customer"));
 
             // When
-            String result = builder.build("TestProject", components, relationships, violations);
+            String result = builder.build("TestProject", components, relationships, violations)
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("BiRel(");
@@ -269,7 +279,8 @@ class FullArchitectureDiagramBuilderTest {
             List<TypeViolation> violations = List.of(TypeViolation.cycle("Order"), TypeViolation.cycle("Customer"));
 
             // When
-            String result = builder.build("TestProject", components, relationships, violations);
+            String result = builder.build("TestProject", components, relationships, violations)
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("UpdateElementStyle(");
@@ -305,7 +316,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of());
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then: Should contain max 15 aggregates
             assertThat(result).isNotNull();
@@ -345,7 +357,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of());
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("ComponentDb(");
@@ -370,7 +383,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of());
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then: Should contain Component but NOT ComponentDb for the gateway
             assertThat(result).contains("PaymentGateway");
@@ -402,7 +416,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of()); // no adapters
 
             // When
-            String result = builder.build("MinimalProject", components, List.of(), List.of());
+            String result = builder.build("MinimalProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then: Should still generate a diagram showing Domain Core and Driven Side
             assertThat(result).isNotNull();
@@ -439,7 +454,8 @@ class FullArchitectureDiagramBuilderTest {
                     List.of());
 
             // When
-            String result = builder.build("TestProject", components, List.of(), List.of());
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
 
             // Then
             assertThat(result).contains("OrderUseCase");

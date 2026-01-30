@@ -18,6 +18,7 @@ import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents an inheritance edge (extends relationship) with direct/transitive flag.
@@ -120,13 +121,13 @@ public record InheritanceEdge(NodeId from, NodeId to, boolean isDirect) implemen
      * <p>Assumes the edge is direct unless proven otherwise through analysis.
      *
      * @param edge the basic edge
-     * @return the inheritance edge, or null if not an EXTENDS edge
+     * @return the inheritance edge, or empty if not an EXTENDS edge
      */
-    public static InheritanceEdge fromEdge(Edge edge) {
+    public static Optional<InheritanceEdge> fromEdge(Edge edge) {
         if (edge.kind() != EdgeKind.EXTENDS) {
-            return null;
+            return Optional.empty();
         }
         // Default to direct - transitive edges must be computed separately
-        return new InheritanceEdge(edge.from(), edge.to(), true);
+        return Optional.of(new InheritanceEdge(edge.from(), edge.to(), true));
     }
 }
