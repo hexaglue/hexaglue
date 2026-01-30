@@ -71,39 +71,6 @@ public record PropertyFieldSpec(
     }
 
     /**
-     * Convenience constructor without attribute overrides.
-     * This maintains backward compatibility with existing code.
-     *
-     * @deprecated Use the full constructor with attributeOverrides parameter
-     */
-    public PropertyFieldSpec(
-            String fieldName,
-            TypeName javaType,
-            Nullability nullability,
-            String columnName,
-            boolean isEmbedded,
-            boolean isValueObject,
-            boolean isEnum,
-            String typeQualifiedName,
-            boolean isWrappedForeignKey,
-            TypeName unwrappedType,
-            String wrapperAccessorMethod) {
-        this(
-                fieldName,
-                javaType,
-                nullability,
-                columnName,
-                isEmbedded,
-                isValueObject,
-                isEnum,
-                typeQualifiedName,
-                isWrappedForeignKey,
-                unwrappedType,
-                wrapperAccessorMethod,
-                List.of());
-    }
-
-    /**
      * Returns true if this property has attribute overrides.
      *
      * @return true if attributeOverrides is not empty
@@ -263,7 +230,8 @@ public record PropertyFieldSpec(
                     embeddableFqn,
                     false, // isWrappedForeignKey
                     null, // unwrappedType - not applicable for complex VOs
-                    null); // wrapperAccessorMethod - not applicable
+                    null, // wrapperAccessorMethod - not applicable
+                    List.of());
         }
 
         return new PropertyFieldSpec(
@@ -277,7 +245,8 @@ public record PropertyFieldSpec(
                 typeQualifiedName,
                 isWrappedForeignKey,
                 unwrappedType,
-                wrapperAccessorMethod);
+                wrapperAccessorMethod,
+                List.of());
     }
 
     /**

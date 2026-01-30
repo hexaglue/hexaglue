@@ -39,8 +39,6 @@
                         <configuration>
                             <basePackage>com.example</basePackage>
                             <failOnError>false</failOnError>
-                            <consoleReport>true</consoleReport>
-                            <htmlReport>true</htmlReport>
                         </configuration>
                     </execution>
                 </executions>
