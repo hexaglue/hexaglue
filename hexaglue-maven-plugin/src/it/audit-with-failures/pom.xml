@@ -32,8 +32,6 @@
                             <basePackage>com.example</basePackage>
                             <failOnError>false</failOnError>
                             <failOnWarning>false</failOnWarning>
-                            <consoleReport>true</consoleReport>
-                            <htmlReport>true</htmlReport>
                             <auditConfig>
                                 <thresholds>
                                     <maxCyclomaticComplexity>5</maxCyclomaticComplexity>
