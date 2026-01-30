@@ -21,6 +21,8 @@ import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 /**
@@ -41,6 +43,8 @@ import java.util.stream.Collectors;
  * @since 5.0.0 Updated to pass ArchitecturalModel to calculators for v5 ArchType access
  */
 public class MetricAggregator {
+
+    private static final Logger LOGGER = Logger.getLogger(MetricAggregator.class.getName());
 
     private final Map<String, MetricCalculator> calculators;
 
@@ -89,9 +93,10 @@ public class MetricAggregator {
                         Metric metric = calculator.calculate(model, codebase, architectureQuery);
                         return Map.entry(calculator.metricName(), metric);
                     } catch (Exception e) {
-                        // Log error but continue with other calculators
-                        System.err.println(
-                                "Error calculating metric " + calculator.metricName() + ": " + e.getMessage());
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Error calculating metric " + calculator.metricName() + ": " + e.getMessage(),
+                                e);
                         return null;
                     }
                 })

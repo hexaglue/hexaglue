@@ -47,6 +47,7 @@ final class PluginOutputStore {
      * @param <T> the value type
      * @return the output value, or empty if not found or wrong type
      */
+    // Suppressed: safe cast to T after type.isInstance() check guarantees the value is of type T
     @SuppressWarnings("unchecked")
     <T> Optional<T> get(String pluginId, String key, Class<T> type) {
         Map<String, Object> pluginOutputs = outputs.get(pluginId);

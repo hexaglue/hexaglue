@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Domain service for executing constraint validators.
@@ -39,6 +41,8 @@ import java.util.Set;
  * @since 5.0.0 Updated to pass ArchitecturalModel to validators for v5 ArchType access
  */
 public class ConstraintEngine {
+
+    private static final Logger LOGGER = Logger.getLogger(ConstraintEngine.class.getName());
 
     private final Map<ConstraintId, ConstraintValidator> validators;
 
@@ -85,9 +89,10 @@ public class ConstraintEngine {
                     try {
                         return validator.validate(model, codebase, query).stream();
                     } catch (Exception e) {
-                        // Log error but continue with other validators
-                        System.err.println(
-                                "Error executing validator " + validator.constraintId() + ": " + e.getMessage());
+                        LOGGER.log(
+                                Level.WARNING,
+                                "Error executing validator " + validator.constraintId() + ": " + e.getMessage(),
+                                e);
                         return java.util.stream.Stream.empty();
                     }
                 })

@@ -62,12 +62,11 @@ import java.util.stream.Stream;
 public final class CompositionIndex {
 
     private final RelationshipGraph graph;
-    private final TypeRegistry registry;
     private final Map<TypeId, TypeId> identifierToAggregate;
 
     private CompositionIndex(RelationshipGraph graph, TypeRegistry registry) {
         this.graph = Objects.requireNonNull(graph, "graph must not be null");
-        this.registry = Objects.requireNonNull(registry, "registry must not be null");
+        Objects.requireNonNull(registry, "registry must not be null");
         this.identifierToAggregate = buildIdentifierIndex(registry);
     }
 

@@ -100,10 +100,6 @@ public final class RelationshipGraphBuilder {
             processDomainService(domainService, registry, graphBuilder);
         }
 
-        if (type instanceof Entity entity) {
-            processEntity(entity, registry, graphBuilder);
-        }
-
         // Process common relationships for all types
         processInheritance(type, registry, graphBuilder);
         processFieldCompositions(type, registry, graphBuilder);
@@ -162,20 +158,6 @@ public final class RelationshipGraphBuilder {
                 graphBuilder.add(serviceId, portId, RelationType.DEPENDS_ON);
             }
         });
-    }
-
-    /**
-     * Processes an Entity to extract owning aggregate relationship.
-     *
-     * <p>Note: The CONTAINS relationship is already created from the aggregate side
-     * via processAggregateRoot. This method is kept for potential future enhancements
-     * like inverse relationship tracking.</p>
-     */
-    @SuppressWarnings("unused") // Reserved for future inverse relationship tracking
-    private void processEntity(Entity entity, TypeRegistry registry, RelationshipGraph.Builder graphBuilder) {
-        // If entity has an owning aggregate, the CONTAINS relationship is already created
-        // from the aggregate side. This method is a placeholder for potential future
-        // enhancements like inverse relationship tracking or validation.
     }
 
     /**
