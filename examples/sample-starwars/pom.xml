@@ -21,7 +21,6 @@
 
     <properties>
         <java.version>17</java.version>
-        <mapstruct.version>1.6.3</mapstruct.version>
     </properties>
 
     <dependencies>
@@ -36,13 +35,6 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
-        </dependency>
-
-        <!-- MapStruct for object mapping -->
-        <dependency>
-            <groupId>org.mapstruct</groupId>
-            <artifactId>mapstruct</artifactId>
-            <version>${mapstruct.version}</version>
         </dependency>
 
         <!-- Test dependencies -->
@@ -90,28 +82,7 @@
                         <artifactId>hexaglue-plugin-audit</artifactId>
                         <version>2.0.0-SNAPSHOT</version>
                     </dependency>
-                    <!-- Required: jakarta.persistence-api is 'provided' in the plugin -->
-                    <dependency>
-                        <groupId>jakarta.persistence</groupId>
-                        <artifactId>jakarta.persistence-api</artifactId>
-                        <version>3.2.0</version>
-                    </dependency>
                 </dependencies>
-            </plugin>
-
-            <!-- Maven Compiler with MapStruct processor -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${mapstruct.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
             </plugin>
 
             <!-- Spring Boot Plugin -->

@@ -18,33 +18,30 @@ import javax.inject.Singleton;
 import org.apache.maven.AbstractMavenLifecycleParticipant;
 import org.apache.maven.MavenExecutionException;
 import org.apache.maven.execution.MavenSession;
+import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.model.PluginExecution;
 import org.apache.maven.project.MavenProject;
+import org.codehaus.plexus.util.xml.Xpp3Dom;
 
 /**
- * Maven lifecycle participant that automatically binds HexaGlue goals to Maven phases.
+ * Maven lifecycle participant that automatically binds HexaGlue goals to Maven phases
+ * and configures transitive dependencies required by HexaGlue plugins.
  *
  * <p>When the HexaGlue Maven Plugin is declared with {@code <extensions>true</extensions>},
- * this participant automatically adds default executions:
+ * this participant automatically:
  * <ul>
- *   <li>{@code generate} goal bound to {@code generate-sources} phase</li>
- *   <li>{@code audit} goal bound to {@code verify} phase</li>
+ *   <li>Adds {@code generate} goal bound to {@code generate-sources} phase</li>
+ *   <li>Adds {@code audit} goal bound to {@code verify} phase</li>
+ *   <li>Injects MapStruct dependencies when the JPA plugin is detected</li>
  * </ul>
  *
- * <p>This eliminates the need for users to explicitly declare an {@code <executions>}
- * block in their pom.xml:
- *
- * <pre>{@code
- * <plugin>
- *     <groupId>io.hexaglue</groupId>
- *     <artifactId>hexaglue-maven-plugin</artifactId>
- *     <extensions>true</extensions>
- *     <configuration>
- *         <basePackage>com.example</basePackage>
- *     </configuration>
- * </plugin>
- * }</pre>
+ * <p>MapStruct auto-configuration: when {@code hexaglue-plugin-jpa} is declared as a
+ * plugin dependency, this participant injects {@code org.mapstruct:mapstruct} (compile)
+ * and {@code org.mapstruct:mapstruct-processor} (provided) into the project dependencies.
+ * If the project already declares these dependencies, they are not overwritten.
+ * If {@code maven-compiler-plugin} has {@code annotationProcessorPaths} configured,
+ * the processor is also added there.
  *
  * @since 3.0.0
  */
@@ -63,6 +60,17 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
     private static final String AUDIT_PHASE = "verify";
     private static final String AUDIT_EXECUTION_ID = "default-hexaglue-audit";
 
+    private static final String JPA_PLUGIN_GROUP_ID = "io.hexaglue.plugins";
+    private static final String JPA_PLUGIN_ARTIFACT_ID = "hexaglue-plugin-jpa";
+
+    private static final String MAPSTRUCT_GROUP_ID = "org.mapstruct";
+    private static final String MAPSTRUCT_ARTIFACT_ID = "mapstruct";
+    private static final String MAPSTRUCT_PROCESSOR_ARTIFACT_ID = "mapstruct-processor";
+    private static final String MAPSTRUCT_VERSION = "1.6.3";
+
+    private static final String COMPILER_PLUGIN_GROUP_ID = "org.apache.maven.plugins";
+    private static final String COMPILER_PLUGIN_ARTIFACT_ID = "maven-compiler-plugin";
+
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
         for (MavenProject project : session.getProjects()) {
@@ -78,6 +86,11 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
 
         injectGoalIfNeeded(hexagluePlugin, GENERATE_GOAL, GENERATE_PHASE, GENERATE_EXECUTION_ID);
         injectGoalIfNeeded(hexagluePlugin, AUDIT_GOAL, AUDIT_PHASE, AUDIT_EXECUTION_ID);
+
+        if (hasJpaPlugin(hexagluePlugin)) {
+            injectMapStructDependencies(project);
+            injectMapStructAnnotationProcessor(project);
+        }
     }
 
     private void injectGoalIfNeeded(Plugin plugin, String goal, String phase, String executionId) {
@@ -109,5 +122,96 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
                 .filter(p -> GROUP_ID.equals(p.getGroupId()) && ARTIFACT_ID.equals(p.getArtifactId()))
                 .findFirst()
                 .orElse(null);
+    }
+
+    private boolean hasJpaPlugin(Plugin hexagluePlugin) {
+        return hexagluePlugin.getDependencies().stream()
+                .anyMatch(d ->
+                        JPA_PLUGIN_GROUP_ID.equals(d.getGroupId()) && JPA_PLUGIN_ARTIFACT_ID.equals(d.getArtifactId()));
+    }
+
+    /**
+     * Injects MapStruct compile and processor dependencies into the project
+     * if not already present.
+     */
+    private void injectMapStructDependencies(MavenProject project) {
+        if (!hasProjectDependency(project, MAPSTRUCT_GROUP_ID, MAPSTRUCT_ARTIFACT_ID)) {
+            project.getDependencies().add(createDependency(MAPSTRUCT_GROUP_ID, MAPSTRUCT_ARTIFACT_ID, null));
+        }
+        if (!hasProjectDependency(project, MAPSTRUCT_GROUP_ID, MAPSTRUCT_PROCESSOR_ARTIFACT_ID)) {
+            project.getDependencies()
+                    .add(createDependency(MAPSTRUCT_GROUP_ID, MAPSTRUCT_PROCESSOR_ARTIFACT_ID, "provided"));
+        }
+    }
+
+    /**
+     * If {@code maven-compiler-plugin} has {@code annotationProcessorPaths} configured,
+     * adds the MapStruct processor to the list (unless already present).
+     */
+    private void injectMapStructAnnotationProcessor(MavenProject project) {
+        Plugin compilerPlugin = findPlugin(project, COMPILER_PLUGIN_GROUP_ID, COMPILER_PLUGIN_ARTIFACT_ID);
+        if (compilerPlugin == null) {
+            return;
+        }
+
+        Object configObj = compilerPlugin.getConfiguration();
+        if (!(configObj instanceof Xpp3Dom config)) {
+            return;
+        }
+
+        Xpp3Dom paths = config.getChild("annotationProcessorPaths");
+        if (paths == null) {
+            return;
+        }
+
+        if (hasAnnotationProcessorPath(paths, MAPSTRUCT_GROUP_ID, MAPSTRUCT_PROCESSOR_ARTIFACT_ID)) {
+            return;
+        }
+
+        Xpp3Dom processorPath = new Xpp3Dom("path");
+        addChild(processorPath, "groupId", MAPSTRUCT_GROUP_ID);
+        addChild(processorPath, "artifactId", MAPSTRUCT_PROCESSOR_ARTIFACT_ID);
+        addChild(processorPath, "version", MAPSTRUCT_VERSION);
+        paths.addChild(processorPath);
+    }
+
+    private boolean hasProjectDependency(MavenProject project, String groupId, String artifactId) {
+        return project.getDependencies().stream()
+                .anyMatch(d -> groupId.equals(d.getGroupId()) && artifactId.equals(d.getArtifactId()));
+    }
+
+    private Dependency createDependency(String groupId, String artifactId, String scope) {
+        Dependency dep = new Dependency();
+        dep.setGroupId(groupId);
+        dep.setArtifactId(artifactId);
+        dep.setVersion(MAPSTRUCT_VERSION);
+        if (scope != null) {
+            dep.setScope(scope);
+        }
+        return dep;
+    }
+
+    private Plugin findPlugin(MavenProject project, String groupId, String artifactId) {
+        return project.getBuild().getPlugins().stream()
+                .filter(p -> groupId.equals(p.getGroupId()) && artifactId.equals(p.getArtifactId()))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean hasAnnotationProcessorPath(Xpp3Dom paths, String groupId, String artifactId) {
+        for (Xpp3Dom child : paths.getChildren()) {
+            Xpp3Dom gid = child.getChild("groupId");
+            Xpp3Dom aid = child.getChild("artifactId");
+            if (gid != null && aid != null && groupId.equals(gid.getValue()) && artifactId.equals(aid.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void addChild(Xpp3Dom parent, String name, String value) {
+        Xpp3Dom child = new Xpp3Dom(name);
+        child.setValue(value);
+        parent.addChild(child);
     }
 }
