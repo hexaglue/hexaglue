@@ -6,36 +6,36 @@
     </clipPath>
     <g id="Associer" clip-path="url(#clipPath1)">
         <g id="Ligne-2">
-            <path id="Triangle" fill="#2d4199" fill-rule="evenodd" stroke="none" d="M 70.887253 147.791199 L 8.6648 255.772583 L 133.109711 255.772583 Z"/>
-            <path id="Triangle-copie-3" fill="#9f295b" fill-rule="evenodd" stroke="none" d="M 436.734619 147.791199 L 374.512146 255.772583 L 498.957062 255.772583 Z"/>
-            <path id="Triangle-copie" fill="#363592" fill-rule="evenodd" stroke="none" d="M 193.373596 147.791199 L 131.151138 255.772583 L 255.596054 255.772583 Z"/>
-            <path id="Triangle-copie-2" fill="#4d308c" fill-rule="evenodd" stroke="none" d="M 314.24826 147.791199 L 252.025818 255.772583 L 376.470734 255.772583 Z"/>
+            <path id="Triangle" fill="#2d4199" fill-rule="evenodd" stroke="none" d="M 68.887253 148.791199 L 6.6648 256.772583 L 131.109711 256.772583 Z"/>
+            <path id="Triangle-copie-3" fill="#9f295b" fill-rule="evenodd" stroke="none" d="M 438.734619 148.791199 L 376.512146 256.772583 L 500.957062 256.772583 Z"/>
+            <path id="Triangle-copie" fill="#363592" fill-rule="evenodd" stroke="none" d="M 192.373596 148.791199 L 130.151138 256.772583 L 254.596054 256.772583 Z"/>
+            <path id="Triangle-copie-2" fill="#4d308c" fill-rule="evenodd" stroke="none" d="M 315.24826 148.791199 L 253.025818 256.772583 L 377.470734 256.772583 Z"/>
+            <path id="path1" fill="#343795" fill-rule="evenodd" stroke="none" d="M 377.148438 257.384216 L 439.37088 149.402863 L 314.925964 149.402863 Z"/>
+            <path id="path2" fill="#353896" fill-rule="evenodd" stroke="none" d="M 253.662094 257.384216 L 315.884552 149.402863 L 191.439636 149.402863 Z"/>
+            <path id="path3" fill="#284fa1" fill-rule="evenodd" stroke="none" d="M 130.787415 257.384216 L 193.009857 149.402863 L 68.564957 149.402863 Z"/>
         </g>
         <g id="Ligne-2-inv">
-            <path id="path1" fill="#343795" fill-rule="evenodd" stroke="none" d="M 375.148438 257.384216 L 437.37088 149.402863 L 312.925964 149.402863 Z"/>
-            <path id="path2" fill="#353896" fill-rule="evenodd" stroke="none" d="M 252.662094 257.384216 L 314.884552 149.402863 L 190.439636 149.402863 Z"/>
-            <path id="path3" fill="#284fa1" fill-rule="evenodd" stroke="none" d="M 131.787415 257.384216 L 194.009857 149.402863 L 69.564957 149.402863 Z"/>
-            <path id="Triangle-copie-8" fill="#4f9ac7" fill-rule="evenodd" stroke="none" d="M 377.103119 43.033142 L 314.880646 151.014526 L 439.325562 151.014526 Z"/>
-            <path id="Triangle-copie-7" fill="#2d61ac" fill-rule="evenodd" stroke="none" d="M 132.130417 43.033142 L 69.907967 151.014526 L 194.352875 151.014526 Z"/>
-            <path id="Triangle-copie-6" fill="#3371b2" fill-rule="evenodd" stroke="none" d="M 253.005096 43.033142 L 190.782654 151.014526 L 315.22757 151.014526 Z"/>
-            <path id="Triangle-copie-5" fill="#4ba1c8" fill-rule="evenodd" stroke="none" d="M 315.516907 152.62619 L 377.73938 44.644806 L 253.294464 44.644806 Z"/>
-            <path id="Triangle-copie-4" fill="#3a79b6" fill-rule="evenodd" stroke="none" d="M 191.418915 152.62619 L 253.641373 44.644806 L 129.196457 44.644806 Z"/>
+            <path id="Triangle-copie-8" fill="#4f9ac7" fill-rule="evenodd" stroke="none" d="M 377.103119 42.033142 L 314.880646 150.014526 L 439.325562 150.014526 Z"/>
+            <path id="Triangle-copie-7" fill="#2d61ac" fill-rule="evenodd" stroke="none" d="M 130.130417 42.033142 L 67.907967 150.014526 L 192.352875 150.014526 Z"/>
+            <path id="Triangle-copie-6" fill="#3371b2" fill-rule="evenodd" stroke="none" d="M 254.005096 42.033142 L 191.782654 150.014526 L 316.22757 150.014526 Z"/>
+            <path id="Triangle-copie-5" fill="#4ba1c8" fill-rule="evenodd" stroke="none" d="M 315.516907 150.62619 L 377.73938 42.644806 L 253.294464 42.644806 Z"/>
+            <path id="Triangle-copie-4" fill="#3a79b6" fill-rule="evenodd" stroke="none" d="M 192.418915 150.62619 L 254.641373 42.644806 L 130.196457 42.644806 Z"/>
         </g>
         <g id="Ligne-3">
-            <path id="path4" fill="#e2322b" fill-rule="evenodd" stroke="none" d="M 437.999359 362.142273 L 500.221832 254.160919 L 375.776917 254.160919 Z"/>
-            <path id="path5" fill="#4f2e89" fill-rule="evenodd" stroke="none" d="M 72.152008 362.142273 L 134.374466 254.160919 L 9.929557 254.160919 Z"/>
-            <path id="path6" fill="#8c296c" fill-rule="evenodd" stroke="none" d="M 315.513031 362.142273 L 377.735474 254.160919 L 253.290573 254.160919 Z"/>
-            <path id="path7" fill="#762a7c" fill-rule="evenodd" stroke="none" d="M 194.638351 362.142273 L 256.860809 254.160919 L 132.415894 254.160919 Z"/>
-            <path id="path8" fill="#602c80" fill-rule="evenodd" stroke="none" d="M 133.73819 250.937592 L 71.515739 358.918976 L 195.960648 358.918976 Z"/>
-            <path id="path9" fill="#872971" fill-rule="evenodd" stroke="none" d="M 256.224548 250.937592 L 194.002075 358.918976 L 318.446991 358.918976 Z"/>
-            <path id="path10" fill="#b42b47" fill-rule="evenodd" stroke="none" d="M 377.099213 250.937592 L 314.87677 358.918976 L 439.321655 358.918976 Z"/>
+            <path id="path4" fill="#e2322b" fill-rule="evenodd" stroke="none" d="M 438.999359 364.142273 L 501.221832 256.160919 L 376.776917 256.160919 Z"/>
+            <path id="path5" fill="#4f2e89" fill-rule="evenodd" stroke="none" d="M 69.152008 364.142273 L 131.374466 256.160919 L 6.929557 256.160919 Z"/>
+            <path id="path6" fill="#8c296c" fill-rule="evenodd" stroke="none" d="M 315.513031 364.142273 L 377.735474 256.160919 L 253.290573 256.160919 Z"/>
+            <path id="path7" fill="#762a7c" fill-rule="evenodd" stroke="none" d="M 192.638351 364.142273 L 254.860809 256.160919 L 130.415894 256.160919 Z"/>
+            <path id="path8" fill="#602c80" fill-rule="evenodd" stroke="none" d="M 130.73819 255.937592 L 68.515739 363.918976 L 192.960648 363.918976 Z"/>
+            <path id="path9" fill="#872971" fill-rule="evenodd" stroke="none" d="M 254.224533 255.937592 L 192.002075 363.918976 L 316.446991 363.918976 Z"/>
+            <path id="path10" fill="#b42b47" fill-rule="evenodd" stroke="none" d="M 377.099213 255.937592 L 314.87677 363.918976 L 439.321655 363.918976 Z"/>
         </g>
         <g id="Ligne-3-inv">
-            <path id="path11" fill="#88296d" fill-rule="evenodd" stroke="none" d="M 131.783524 466.90033 L 194.005966 358.918945 L 69.561066 358.918945 Z"/>
-            <path id="path12" fill="#ce2c34" fill-rule="evenodd" stroke="none" d="M 376.756195 466.90033 L 438.978638 358.918945 L 314.533752 358.918945 Z"/>
-            <path id="path13" fill="#aa2854" fill-rule="evenodd" stroke="none" d="M 255.881516 466.90033 L 318.103973 358.918945 L 193.659073 358.918945 Z"/>
-            <path id="path14" fill="#9a2a62" fill-rule="evenodd" stroke="none" d="M 193.369705 357.307312 L 131.147247 465.288696 L 255.592163 465.288696 Z"/>
-            <path id="path15" fill="#ba2b49" fill-rule="evenodd" stroke="none" d="M 317.467712 357.307312 L 255.245255 465.288696 L 379.690155 465.288696 Z"/>
+            <path id="path11" fill="#88296d" fill-rule="evenodd" stroke="none" d="M 130.783524 471.90033 L 193.005966 363.918945 L 68.561066 363.918945 Z"/>
+            <path id="path12" fill="#ce2c34" fill-rule="evenodd" stroke="none" d="M 376.756195 471.90033 L 438.978638 363.918945 L 314.533752 363.918945 Z"/>
+            <path id="path13" fill="#aa2854" fill-rule="evenodd" stroke="none" d="M 253.881516 471.90033 L 316.103973 363.918945 L 191.659073 363.918945 Z"/>
+            <path id="path14" fill="#9a2a62" fill-rule="evenodd" stroke="none" d="M 192.369705 364.307312 L 130.147247 472.288696 L 254.592163 472.288696 Z"/>
+            <path id="path15" fill="#ba2b49" fill-rule="evenodd" stroke="none" d="M 315.467712 364.307312 L 253.245255 472.288696 L 377.690155 472.288696 Z"/>
         </g>
     </g>
 </svg>
