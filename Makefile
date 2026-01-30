@@ -7,6 +7,8 @@
         build quick verify ci all \
         release-check release install
 
+.DELETE_ON_ERROR:
+
 # Default target
 .DEFAULT_GOAL := help
 
@@ -21,6 +23,12 @@ RESET := \033[0m
 BUILD_DIR := build
 REPORTS_DIR := target/quality
 
+# Shared command fragments (DRY)
+QUALITY_PREPARE = mkdir -p $(BUILD_DIR) && rm -rf $(REPORTS_DIR) target/reports
+QUALITY_AGGREGATE = echo "$(CYAN)Generating aggregated reports...$(RESET)" \
+    && mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q \
+    && mv target/reports $(REPORTS_DIR)
+
 ## help: Show this help message
 help:
 	@echo ""
@@ -34,7 +42,7 @@ help:
 	@echo "  $(GREEN)format-check$(RESET)   Check code formatting"
 	@echo ""
 	@echo "$(YELLOW)Quality targets:$(RESET)"
-	@echo "  $(GREEN)quality$(RESET)        Run all quality checks with aggregated reports"
+	@echo "  $(GREEN)quality$(RESET)        Run quality checks with aggregated reports (no tests)"
 	@echo "  $(GREEN)checkstyle$(RESET)     Run Checkstyle with aggregated report"
 	@echo "  $(GREEN)spotbugs$(RESET)       Run SpotBugs (XML reports per module)"
 	@echo "  $(GREEN)pmd$(RESET)            Run PMD with aggregated report"
@@ -45,23 +53,22 @@ help:
 	@echo "  $(GREEN)integration$(RESET)    Run integration tests on examples"
 	@echo ""
 	@echo "$(YELLOW)Combined targets:$(RESET)"
-	@echo "  $(GREEN)build$(RESET)          Clean build with tests"
-	@echo "  $(GREEN)quick$(RESET)          Quick rebuild (clean + compile, no tests)"
-	@echo "  $(GREEN)verify$(RESET)         Tests + quality (incremental)"
-	@echo "  $(GREEN)ci$(RESET)             Full CI pipeline (clean + test + quality)"
-	@echo "  $(GREEN)all$(RESET)            Everything (clean + test + quality + coverage)"
+	@echo "  $(GREEN)build$(RESET)          clean + test"
+	@echo "  $(GREEN)quick$(RESET)          Clean install without tests"
+	@echo "  $(GREEN)install$(RESET)        Clean build with tests + install to local repo"
+	@echo "  $(GREEN)verify$(RESET)         test + quality (incremental, no clean)"
+	@echo "  $(GREEN)ci$(RESET)             clean + verify"
+	@echo "  $(GREEN)all$(RESET)            ci + coverage"
 	@echo ""
 	@echo "$(YELLOW)Release:$(RESET)"
 	@echo "  $(GREEN)release-check$(RESET)  Build release artifacts (dry-run)"
 	@echo "  $(GREEN)release$(RESET)        Deploy to Maven Central"
 	@echo ""
-	@echo "$(YELLOW)Reports location after 'make quality':$(RESET)"
+	@echo "$(YELLOW)Reports location:$(RESET)"
 	@echo "  - Checkstyle: $(REPORTS_DIR)/checkstyle-aggregate.html"
 	@echo "  - PMD:        $(REPORTS_DIR)/pmd.html"
-	@echo "  - Source XRef:$(REPORTS_DIR)/xref/"
+	@echo "  - Source XRef: $(REPORTS_DIR)/xref/"
 	@echo "  - SpotBugs:   <module>/target/spotbugsXml.xml (per module)"
-	@echo ""
-	@echo "$(YELLOW)Reports location after 'make coverage':$(RESET)"
 	@echo "  - Coverage:   target/coverage/index.html"
 	@echo ""
 
@@ -99,23 +106,17 @@ format-check:
 # Quality Targets
 # =============================================================================
 
-## quality: Run all quality checks with aggregated HTML reports
+## quality: Run quality checks with aggregated HTML reports (no tests)
 quality:
 	@echo "$(CYAN)Running quality checks...$(RESET)"
-	@mkdir -p $(BUILD_DIR)
-	@rm -rf $(REPORTS_DIR) target/reports
-	@# Run all quality checks (compile + check)
+	@$(QUALITY_PREPARE)
 	@mvn verify -Pquality -DskipTests 2>&1 | tee $(BUILD_DIR)/build.log
-	@# Generate aggregated HTML reports
-	@echo "$(CYAN)Generating aggregated reports...$(RESET)"
-	@mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q
-	@# Move reports to quality directory
-	@mv target/reports $(REPORTS_DIR)
+	@$(QUALITY_AGGREGATE)
 	@echo ""
 	@echo "$(GREEN)Quality reports generated:$(RESET)"
 	@echo "  - Checkstyle: $(REPORTS_DIR)/checkstyle-aggregate.html"
 	@echo "  - PMD:        $(REPORTS_DIR)/pmd.html"
-	@echo "  - Source XRef:$(REPORTS_DIR)/xref/"
+	@echo "  - Source XRef: $(REPORTS_DIR)/xref/"
 	@echo "  - SpotBugs:   <module>/target/spotbugsXml.xml (per module)"
 	@echo "  - Build log:  $(BUILD_DIR)/build.log"
 
@@ -172,51 +173,30 @@ integration:
 # Combined Targets
 # =============================================================================
 
-## build: Clean build with tests
-build:
-	@echo "$(CYAN)Clean build with tests...$(RESET)"
-	@mvn clean test
+## build: Clean build with tests (clean + test)
+build: clean test
+	@echo "$(GREEN)Build complete.$(RESET)"
 
-## quick: Quick rebuild without tests (clean + compile + install)
+## quick: Clean install without tests
 quick:
 	@echo "$(CYAN)Quick rebuild (no tests)...$(RESET)"
-	@mvn clean install -DskipTests
+	@mvn clean install -DskipTests -q
 
-## verify: Tests + quality checks (incremental, no clean)
+## verify: Tests + quality checks with reports (incremental, no clean)
 verify:
 	@echo "$(CYAN)Running tests and quality checks...$(RESET)"
-	@mkdir -p $(BUILD_DIR)
-	@rm -rf $(REPORTS_DIR) target/reports
+	@$(QUALITY_PREPARE)
 	@mvn verify -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
-	@mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q
-	@mv target/reports $(REPORTS_DIR)
+	@$(QUALITY_AGGREGATE)
 	@echo "$(GREEN)Done. Reports in $(REPORTS_DIR)/$(RESET)"
 
-## ci: Full CI pipeline (clean + test + quality)
-ci:
-	@echo "$(CYAN)Running full CI pipeline...$(RESET)"
-	@mkdir -p $(BUILD_DIR)
-	@rm -rf $(REPORTS_DIR) target/reports
-	@mvn clean verify -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
-	@mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q
-	@mv target/reports $(REPORTS_DIR)
-	@echo "$(GREEN)CI build complete.$(RESET)"
-	@echo "  - Quality: $(REPORTS_DIR)/"
-	@echo "  - Coverage: target/coverage/index.html"
-	@echo "  - Build log: $(BUILD_DIR)/build.log"
+## ci: Full CI pipeline (clean + verify)
+ci: clean verify
+	@echo "$(GREEN)CI build complete. Reports in $(REPORTS_DIR)/$(RESET)"
 
-## all: Full build (clean + test + quality + coverage)
-all:
-	@echo "$(CYAN)Running full build...$(RESET)"
-	@mkdir -p $(BUILD_DIR)
-	@rm -rf $(REPORTS_DIR) target/reports
-	@mvn clean verify -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
-	@mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q
-	@mv target/reports $(REPORTS_DIR)
-	@echo "$(GREEN)Full build complete!$(RESET)"
-	@echo "  - Quality:  $(REPORTS_DIR)/"
-	@echo "  - Coverage: target/coverage/index.html"
-	@echo "  - Build log: $(BUILD_DIR)/build.log"
+## all: Full build (ci + coverage)
+all: ci coverage
+	@echo "$(GREEN)Full build complete.$(RESET)"
 
 # =============================================================================
 # Release
@@ -232,9 +212,7 @@ release:
 	@echo "$(YELLOW)Deploying to Maven Central...$(RESET)"
 	@mvn clean deploy -Prelease -DskipTests
 
-# =============================================================================
-# Aliases (backwards compatibility)
-# =============================================================================
-
-## install: Alias for 'quick' (backwards compatibility)
-install: quick
+## install: Clean build with tests and install to local Maven repo
+install:
+	@echo "$(CYAN)Building and installing to local repo...$(RESET)"
+	@mvn clean install
