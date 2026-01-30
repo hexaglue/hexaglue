@@ -15,6 +15,8 @@ package io.hexaglue.core.frontend.spoon.adapters;
 
 import io.hexaglue.core.frontend.TypeRef;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import spoon.reflect.reference.CtArrayTypeReference;
 import spoon.reflect.reference.CtTypeReference;
 
@@ -22,6 +24,8 @@ import spoon.reflect.reference.CtTypeReference;
  * Adapts Spoon's {@link CtTypeReference} to {@link TypeRef}.
  */
 public final class SpoonTypeRefAdapter {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SpoonTypeRefAdapter.class);
 
     private SpoonTypeRefAdapter() {}
 
@@ -63,6 +67,7 @@ public final class SpoonTypeRefAdapter {
             return qn;
         } catch (Exception e) {
             // Fallback for unresolved types
+            LOG.debug("Failed to adapt type reference, falling back to toString: {}", e.getMessage());
             return ref.toString();
         }
     }

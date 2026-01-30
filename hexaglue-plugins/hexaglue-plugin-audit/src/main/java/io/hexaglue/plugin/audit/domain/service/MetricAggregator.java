@@ -20,6 +20,7 @@ import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -87,20 +88,19 @@ public class MetricAggregator {
         return toCalculate.stream()
                 .map(calculators::get)
                 .filter(Objects::nonNull)
-                .map(calculator -> {
+                .flatMap(calculator -> {
                     try {
                         // Use the v5 method that accepts ArchitecturalModel
                         Metric metric = calculator.calculate(model, codebase, architectureQuery);
-                        return Map.entry(calculator.metricName(), metric);
+                        return Optional.of(Map.entry(calculator.metricName(), metric)).stream();
                     } catch (Exception e) {
                         LOGGER.log(
                                 Level.WARNING,
                                 "Error calculating metric " + calculator.metricName() + ": " + e.getMessage(),
                                 e);
-                        return null;
+                        return Optional.<Map.Entry<String, Metric>>empty().stream();
                     }
                 })
-                .filter(Objects::nonNull)
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
 

@@ -25,6 +25,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -101,10 +102,7 @@ public class RecommendationGenerator {
             ConstraintId constraintId = entry.getKey();
             List<Violation> group = entry.getValue();
 
-            Recommendation recommendation = createRecommendationForGroup(constraintId, group);
-            if (recommendation != null) {
-                recommendations.add(recommendation);
-            }
+            createRecommendationForGroup(constraintId, group).ifPresent(recommendations::add);
         }
 
         return recommendations;
@@ -112,10 +110,15 @@ public class RecommendationGenerator {
 
     /**
      * Creates a recommendation for a group of violations with the same constraint.
+     *
+     * @param constraintId the constraint ID
+     * @param violations the list of violations
+     * @return Optional containing the recommendation, or empty if violations list is empty
      */
-    private Recommendation createRecommendationForGroup(ConstraintId constraintId, List<Violation> violations) {
+    private Optional<Recommendation> createRecommendationForGroup(
+            ConstraintId constraintId, List<Violation> violations) {
         if (violations.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         Severity maxSeverity = violations.stream()
@@ -135,7 +138,7 @@ public class RecommendationGenerator {
         String description = createDescription(constraintId, violations);
         String impact = createImpact(constraintId, maxSeverity);
 
-        return Recommendation.builder()
+        return Optional.of(Recommendation.builder()
                 .priority(priority)
                 .title(title)
                 .description(description)
@@ -143,7 +146,7 @@ public class RecommendationGenerator {
                 .estimatedEffort(effort)
                 .expectedImpact(impact)
                 .relatedViolations(List.of(constraintId))
-                .build();
+                .build());
     }
 
     /**

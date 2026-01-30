@@ -20,6 +20,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import spoon.reflect.code.CtExpression;
 import spoon.reflect.code.CtFieldRead;
 import spoon.reflect.code.CtLiteral;
@@ -69,10 +70,7 @@ public final class SpoonAnnotationSyntax implements AnnotationSyntax {
         Map<String, CtExpression<?>> spoonValues = (Map<String, CtExpression<?>>) (Map<?, ?>) ctAnnotation.getValues();
 
         for (Map.Entry<String, CtExpression<?>> entry : spoonValues.entrySet()) {
-            AnnotationValue converted = convertExpression(entry.getValue());
-            if (converted != null) {
-                result.put(entry.getKey(), converted);
-            }
+            convertExpression(entry.getValue()).ifPresent(converted -> result.put(entry.getKey(), converted));
         }
 
         return Map.copyOf(result);
@@ -82,20 +80,23 @@ public final class SpoonAnnotationSyntax implements AnnotationSyntax {
 
     /**
      * Converts a Spoon expression to our AnnotationValue.
+     *
+     * @param expr the Spoon expression to convert
+     * @return an Optional containing the converted AnnotationValue, or empty if the expression is null
      */
-    private AnnotationValue convertExpression(CtExpression<?> expr) {
+    private Optional<AnnotationValue> convertExpression(CtExpression<?> expr) {
         if (expr == null) {
-            return null;
+            return Optional.empty();
         }
 
         // String literal
         if (expr instanceof CtLiteral<?> literal) {
             Object value = literal.getValue();
             if (value instanceof String stringValue) {
-                return AnnotationValue.ofString(stringValue);
+                return Optional.of(AnnotationValue.ofString(stringValue));
             }
             // Other primitives (int, boolean, etc.)
-            return AnnotationValue.ofPrimitive(value);
+            return Optional.of(AnnotationValue.ofPrimitive(value));
         }
 
         // Enum value
@@ -104,32 +105,32 @@ public final class SpoonAnnotationSyntax implements AnnotationSyntax {
             if (targetType instanceof CtTypeAccess<?> typeAccess) {
                 String enumType = typeAccess.getAccessedType().getQualifiedName();
                 String constantName = fieldRead.getVariable().getSimpleName();
-                return AnnotationValue.ofEnum(enumType, constantName);
+                return Optional.of(AnnotationValue.ofEnum(enumType, constantName));
             }
         }
 
         // Class reference
         if (expr instanceof CtTypeAccess<?> typeAccess) {
             TypeRef typeRef = convertTypeRef(typeAccess.getAccessedType());
-            return AnnotationValue.ofClass(typeRef);
+            return Optional.of(AnnotationValue.ofClass(typeRef));
         }
 
         // Nested annotation
         if (expr instanceof CtAnnotation<?> nestedAnnotation) {
-            return AnnotationValue.ofAnnotation(new SpoonAnnotationSyntax(nestedAnnotation));
+            return Optional.of(AnnotationValue.ofAnnotation(new SpoonAnnotationSyntax(nestedAnnotation)));
         }
 
         // Array
         if (expr instanceof CtNewArray<?> newArray) {
             List<AnnotationValue> elements = newArray.getElements().stream()
                     .map(this::convertExpression)
-                    .filter(Objects::nonNull)
+                    .flatMap(Optional::stream)
                     .toList();
-            return AnnotationValue.ofArray(elements);
+            return Optional.of(AnnotationValue.ofArray(elements));
         }
 
         // Default: try to convert as a literal string representation
-        return AnnotationValue.ofString(expr.toString());
+        return Optional.of(AnnotationValue.ofString(expr.toString()));
     }
 
     /**

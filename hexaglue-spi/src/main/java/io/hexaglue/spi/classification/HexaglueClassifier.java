@@ -51,7 +51,7 @@ import java.util.Optional;
  *     }
  *
  *     @Override
- *     public SecondaryClassificationResult classify(
+ *     public Optional<SecondaryClassificationResult> classify(
  *             TypeInfo type,
  *             ClassificationContext context,
  *             Optional<PrimaryClassificationResult> primaryResult) {
@@ -59,22 +59,22 @@ import java.util.Optional;
  *         // Trust high-certainty primary results
  *         if (primaryResult.isPresent() &&
  *             primaryResult.get().certainty().isReliable()) {
- *             return null; // Use primary result
+ *             return Optional.empty(); // Use primary result
  *         }
  *
  *         // Apply custom logic
  *         if (type.simpleName().endsWith("Aggregate")) {
- *             return new SecondaryClassificationResult(
+ *             return Optional.of(new SecondaryClassificationResult(
  *                 ElementKind.AGGREGATE_ROOT,
  *                 CertaintyLevel.INFERRED,
  *                 ClassificationStrategy.WEIGHTED,
  *                 "Name ends with 'Aggregate'",
  *                 List.of(new ClassificationEvidence(
  *                     "naming_pattern", 5, "Suffix matches aggregate pattern"))
- *             );
+ *             ));
  *         }
  *
- *         return SecondaryClassificationResult.unclassified();
+ *         return Optional.of(SecondaryClassificationResult.unclassified());
  *     }
  * }
  * }</pre>
@@ -89,9 +89,9 @@ public interface HexaglueClassifier {
      * <p>This method is called for each type after primary classification completes.
      * It receives the primary classification result (if any) and can choose to:
      * <ul>
-     *   <li>Return {@code null} to accept the primary result</li>
-     *   <li>Return a new {@link SecondaryClassificationResult} to override</li>
-     *   <li>Return {@link SecondaryClassificationResult#unclassified()} if unable to classify</li>
+     *   <li>Return {@link Optional#empty()} to accept the primary result</li>
+     *   <li>Return {@code Optional.of(result)} to override with a new classification</li>
+     *   <li>Return {@code Optional.of(SecondaryClassificationResult.unclassified())} if unable to classify</li>
      * </ul>
      *
      * <p><b>Contract:</b>
@@ -105,10 +105,10 @@ public interface HexaglueClassifier {
      * @param type          the type to classify
      * @param context       the classification context with previously classified types
      * @param primaryResult the primary classification result, if available
-     * @return the secondary classification result, or null to use primary
+     * @return the secondary classification result, or {@link Optional#empty()} to use primary
      * @throws ClassificationException if classification fails critically
      */
-    SecondaryClassificationResult classify(
+    Optional<SecondaryClassificationResult> classify(
             TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primaryResult);
 
     /**

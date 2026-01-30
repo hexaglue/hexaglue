@@ -21,6 +21,7 @@ import io.hexaglue.plugin.audit.domain.model.report.Relationship;
 import io.hexaglue.plugin.audit.domain.model.report.TypeViolation;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -45,14 +46,14 @@ public class ApplicationLayerDiagramBuilder {
      * @param components component details containing application layer components
      * @param relationships relationships to show connections
      * @param typeViolations type-level violations for styling
-     * @return Mermaid classDiagram code (without code fence), or null if no components
+     * @return Optional containing Mermaid classDiagram code (without code fence), or empty if no components
      */
-    public String build(
+    public Optional<String> build(
             ComponentDetails components, List<Relationship> relationships, List<TypeViolation> typeViolations) {
 
         // Check if there are any application layer components
         if (!components.hasApplicationLayer()) {
-            return null;
+            return Optional.empty();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -164,7 +165,7 @@ public class ApplicationLayerDiagramBuilder {
             }
         }
 
-        return sb.toString().trim();
+        return Optional.of(sb.toString().trim());
     }
 
     /**
@@ -181,9 +182,9 @@ public class ApplicationLayerDiagramBuilder {
      *
      * @param components component details
      * @param relationships relationships
-     * @return Mermaid classDiagram code (without code fence)
+     * @return Optional containing Mermaid classDiagram code (without code fence)
      */
-    public String build(ComponentDetails components, List<Relationship> relationships) {
+    public Optional<String> build(ComponentDetails components, List<Relationship> relationships) {
         return build(components, relationships, List.of());
     }
 }

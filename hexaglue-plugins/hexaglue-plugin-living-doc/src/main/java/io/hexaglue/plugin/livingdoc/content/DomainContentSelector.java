@@ -375,7 +375,8 @@ public final class DomainContentSelector {
     private DebugInfo toDebugInfo(String qualifiedName, TypeStructure structure) {
         // Use actual source location from TypeStructure when available, fall back to derived path
         Optional<SourceReference> srcLoc = structure.sourceLocation();
-        String sourceFile = srcLoc.map(SourceReference::filePath).orElseGet(() -> deriveSourceFilePath(qualifiedName));
+        String sourceFile = srcLoc.map(SourceReference::filePath)
+                .orElseGet(() -> deriveSourceFilePath(qualifiedName).orElse(null));
         int lineStart = srcLoc.map(SourceReference::lineStart).orElse(0);
         int lineEnd = srcLoc.map(SourceReference::lineEnd).orElse(0);
 
@@ -392,15 +393,15 @@ public final class DomainContentSelector {
      * <p>For example, "com.example.domain.Order" becomes "com/example/domain/Order.java"
      *
      * @param qualifiedName the fully qualified class name
-     * @return the expected source file path
+     * @return the expected source file path, or empty if qualifiedName is null/empty
      * @since 5.0.0
      */
-    private String deriveSourceFilePath(String qualifiedName) {
+    private Optional<String> deriveSourceFilePath(String qualifiedName) {
         if (qualifiedName == null || qualifiedName.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
         // Replace dots with path separators and add .java extension
-        return qualifiedName.replace('.', '/') + ".java";
+        return Optional.of(qualifiedName.replace('.', '/') + ".java");
     }
 
     private io.hexaglue.arch.model.ir.ConfidenceLevel toSpiConfidenceLevel(ClassificationTrace trace) {

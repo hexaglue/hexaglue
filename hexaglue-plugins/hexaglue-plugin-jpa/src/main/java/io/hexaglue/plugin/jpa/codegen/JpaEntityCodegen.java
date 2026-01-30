@@ -269,10 +269,7 @@ public final class JpaEntityCodegen {
             fieldBuilder.addAnnotation(JpaAnnotations.embedded());
             // Add @AttributeOverrides if there are column name conflicts
             if (property.hasAttributeOverrides()) {
-                AnnotationSpec overridesAnnotation = JpaAnnotations.attributeOverrides(property.attributeOverrides());
-                if (overridesAnnotation != null) {
-                    fieldBuilder.addAnnotation(overridesAnnotation);
-                }
+                JpaAnnotations.attributeOverrides(property.attributeOverrides()).ifPresent(fieldBuilder::addAnnotation);
             }
         } else {
             // Simple properties and wrapped foreign keys both use @Column
@@ -309,10 +306,7 @@ public final class JpaEntityCodegen {
 
         // For EMBEDDED relations, add @AttributeOverrides if there are column name conflicts
         if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.EMBEDDED && relation.hasAttributeOverrides()) {
-            AnnotationSpec overridesAnnotation = JpaAnnotations.attributeOverrides(relation.attributeOverrides());
-            if (overridesAnnotation != null) {
-                fieldBuilder.addAnnotation(overridesAnnotation);
-            }
+            JpaAnnotations.attributeOverrides(relation.attributeOverrides()).ifPresent(fieldBuilder::addAnnotation);
         }
 
         // For ELEMENT_COLLECTION, add @CollectionTable annotation

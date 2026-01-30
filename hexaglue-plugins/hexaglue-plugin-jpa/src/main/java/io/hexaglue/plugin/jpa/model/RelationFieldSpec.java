@@ -346,7 +346,7 @@ public record RelationFieldSpec(
         CascadeType cascade = detectCascadeTypeV5(field);
         FetchType fetch = detectFetchTypeV5(field);
         boolean orphanRemoval = detectOrphanRemovalV5(field);
-        String mappedBy = detectMappedByV5(field);
+        String mappedBy = detectMappedByV5(field).orElse(null);
 
         return new RelationFieldSpec(
                 field.name(),
@@ -497,16 +497,16 @@ public record RelationFieldSpec(
      *
      * @since 5.0.0
      */
-    private static String detectMappedByV5(Field field) {
+    private static Optional<String> detectMappedByV5(Field field) {
         var mappedByOpt = extractRelationAnnotationValue(field, "mappedBy");
         if (mappedByOpt.isPresent()) {
             Object value = mappedByOpt.get();
             String str = String.valueOf(value);
             if (!str.isBlank() && !str.equals("null")) {
-                return str;
+                return Optional.of(str);
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     /**

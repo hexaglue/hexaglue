@@ -401,7 +401,8 @@ public class ValidateMojo extends AbstractMojo {
                 md.append("|------|------|----------|\n");
                 for (PrimaryClassificationResult r : explicit) {
                     String simpleName = extractSimpleName(r.typeName());
-                    md.append(String.format("| `%s` | %s | %s |%n", simpleName, r.kind(), r.certainty()));
+                    md.append(String.format(
+                            "| `%s` | %s | %s |%n", simpleName, r.kind().orElse(null), r.certainty()));
                 }
                 md.append("\n");
             }
@@ -416,7 +417,8 @@ public class ValidateMojo extends AbstractMojo {
                 for (PrimaryClassificationResult r : inferred) {
                     String simpleName = extractSimpleName(r.typeName());
                     md.append(String.format(
-                            "| `%s` | %s | %s | %s |%n", simpleName, r.kind(), r.certainty(), r.reasoning()));
+                            "| `%s` | %s | %s | %s |%n",
+                            simpleName, r.kind().orElse(null), r.certainty(), r.reasoning()));
                 }
                 md.append("\n");
             }

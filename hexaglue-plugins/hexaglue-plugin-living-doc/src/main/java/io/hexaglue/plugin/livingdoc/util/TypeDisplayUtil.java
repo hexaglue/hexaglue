@@ -17,6 +17,7 @@ import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.model.ir.ConfidenceLevel;
 import io.hexaglue.arch.model.ir.PortDirection;
 import io.hexaglue.arch.model.ir.PortKind;
+import java.util.Optional;
 
 /**
  * Utility methods for formatting type information for display.
@@ -256,16 +257,16 @@ public final class TypeDisplayUtil {
      * <p>Delegates to {@link #getStereotype(ElementKind)} after parsing the string.
      *
      * @param kind the domain kind string
-     * @return stereotype label for UML diagrams, or null if null/invalid
+     * @return stereotype label for UML diagrams, or empty if null/invalid
      */
-    public static String getStereotype(String kind) {
+    public static Optional<String> getStereotype(String kind) {
         if (kind == null) {
-            return null;
+            return Optional.empty();
         }
         try {
-            return getStereotype(ElementKind.valueOf(kind));
+            return Optional.of(getStereotype(ElementKind.valueOf(kind)));
         } catch (IllegalArgumentException e) {
-            return null;
+            return Optional.empty();
         }
     }
 

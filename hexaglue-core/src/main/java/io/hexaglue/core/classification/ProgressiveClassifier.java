@@ -376,12 +376,12 @@ public final class ProgressiveClassifier {
 
         for (JavaMethod method : methods) {
             // Extract CtMethod from SpoonMethodAdapter
-            CtMethod<?> ctMethod = extractCtMethod(method);
-            if (ctMethod == null) {
+            Optional<CtMethod<?>> ctMethodOpt = extractCtMethod(method);
+            if (ctMethodOpt.isEmpty()) {
                 continue;
             }
 
-            MethodBodyAnalysis analysis = spoonAnalyzer.analyzeMethodBody(ctMethod);
+            MethodBodyAnalysis analysis = spoonAnalyzer.analyzeMethodBody(ctMethodOpt.get());
 
             totalInvocations += analysis.invocations().size();
 
@@ -446,12 +446,14 @@ public final class ProgressiveClassifier {
 
     /**
      * Extracts the underlying CtMethod from a JavaMethod (if it's a SpoonMethodAdapter).
+     *
+     * @return the CtMethod, or empty if not extractable
      */
-    private CtMethod<?> extractCtMethod(JavaMethod method) {
+    private Optional<CtMethod<?>> extractCtMethod(JavaMethod method) {
         if (method instanceof SpoonMethodAdapter adapter) {
-            return adapter.getCtMethod();
+            return Optional.of(adapter.getCtMethod());
         }
-        return null;
+        return Optional.empty();
     }
 
     /**

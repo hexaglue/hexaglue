@@ -18,6 +18,7 @@ import io.hexaglue.plugin.audit.domain.model.report.PortComponent;
 import io.hexaglue.plugin.audit.domain.model.report.TypeViolation;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -41,13 +42,13 @@ public class PortsDiagramBuilder {
      *
      * @param components component details containing ports
      * @param typeViolations type-level violations for styling
-     * @return Mermaid classDiagram code (without code fence), or null if no ports
+     * @return Optional containing Mermaid classDiagram code (without code fence), or empty if no ports
      */
-    public String build(ComponentDetails components, List<TypeViolation> typeViolations) {
+    public Optional<String> build(ComponentDetails components, List<TypeViolation> typeViolations) {
 
         // Check if there are any ports
         if (!components.hasPortsLayer()) {
-            return null;
+            return Optional.empty();
         }
 
         StringBuilder sb = new StringBuilder();
@@ -174,7 +175,7 @@ public class PortsDiagramBuilder {
             }
         }
 
-        return sb.toString().trim();
+        return Optional.of(sb.toString().trim());
     }
 
     /**
@@ -189,9 +190,9 @@ public class PortsDiagramBuilder {
      * Builds a ports layer class diagram without violation styling.
      *
      * @param components component details
-     * @return Mermaid classDiagram code (without code fence)
+     * @return Optional containing Mermaid classDiagram code (without code fence)
      */
-    public String build(ComponentDetails components) {
+    public Optional<String> build(ComponentDetails components) {
         return build(components, List.of());
     }
 }

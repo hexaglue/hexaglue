@@ -27,6 +27,7 @@ import io.hexaglue.arch.model.ir.Nullability;
 import io.hexaglue.arch.model.ir.RelationKind;
 import io.hexaglue.arch.model.ir.TypeRef;
 import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
+import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -130,9 +131,9 @@ class JpaAnnotationsTest {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
         Identity identity = Identity.unwrapped("id", uuidType, IdentityStrategy.ASSIGNED);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNull();
+        assertThat(annotation).isEmpty();
     }
 
     @Test
@@ -140,9 +141,9 @@ class JpaAnnotationsTest {
         TypeRef stringType = TypeRef.of("java.lang.String");
         Identity identity = Identity.unwrapped("isbn", stringType, IdentityStrategy.NATURAL);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNull();
+        assertThat(annotation).isEmpty();
     }
 
     @Test
@@ -150,10 +151,10 @@ class JpaAnnotationsTest {
         TypeRef longType = TypeRef.of("java.lang.Long");
         Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.AUTO);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNotNull();
-        String annotationCode = annotation.toString();
+        assertThat(annotation).isPresent();
+        String annotationCode = annotation.get().toString();
         assertThat(annotationCode)
                 .contains("@jakarta.persistence.GeneratedValue")
                 .contains("strategy = jakarta.persistence.GenerationType.AUTO");
@@ -164,10 +165,10 @@ class JpaAnnotationsTest {
         TypeRef longType = TypeRef.of("java.lang.Long");
         Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.IDENTITY);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNotNull();
-        String annotationCode = annotation.toString();
+        assertThat(annotation).isPresent();
+        String annotationCode = annotation.get().toString();
         assertThat(annotationCode)
                 .contains("@jakarta.persistence.GeneratedValue")
                 .contains("strategy = jakarta.persistence.GenerationType.IDENTITY");
@@ -178,10 +179,10 @@ class JpaAnnotationsTest {
         TypeRef longType = TypeRef.of("java.lang.Long");
         Identity identity = Identity.unwrapped("id", longType, IdentityStrategy.SEQUENCE);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNotNull();
-        String annotationCode = annotation.toString();
+        assertThat(annotation).isPresent();
+        String annotationCode = annotation.get().toString();
         assertThat(annotationCode)
                 .contains("@jakarta.persistence.GeneratedValue")
                 .contains("strategy = jakarta.persistence.GenerationType.SEQUENCE");
@@ -192,10 +193,10 @@ class JpaAnnotationsTest {
         TypeRef uuidType = TypeRef.of("java.util.UUID");
         Identity identity = Identity.unwrapped("id", uuidType, IdentityStrategy.UUID);
 
-        AnnotationSpec annotation = JpaAnnotations.generatedValue(identity);
+        Optional<AnnotationSpec> annotation = JpaAnnotations.generatedValue(identity);
 
-        assertThat(annotation).isNotNull();
-        String annotationCode = annotation.toString();
+        assertThat(annotation).isPresent();
+        String annotationCode = annotation.get().toString();
         assertThat(annotationCode)
                 .contains("@jakarta.persistence.GeneratedValue")
                 .contains("strategy = jakarta.persistence.GenerationType.UUID");

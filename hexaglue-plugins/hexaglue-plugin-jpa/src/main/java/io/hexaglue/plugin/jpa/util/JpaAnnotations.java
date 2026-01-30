@@ -36,6 +36,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.Version;
+import java.util.Optional;
 import javax.annotation.processing.Generated;
 
 /**
@@ -216,7 +217,7 @@ public final class JpaAnnotations {
      * Builds a {@code @GeneratedValue} annotation based on the identity strategy.
      *
      * <p>Uses the SPI's {@link Identity#requiresGeneratedValue()} helper to determine
-     * if the annotation is needed. Returns null if no generation is required (e.g., ASSIGNED strategy).
+     * if the annotation is needed. Returns empty if no generation is required (e.g., ASSIGNED strategy).
      *
      * <p>Leverages {@link io.hexaglue.arch.model.ir.IdentityStrategy#toJpaGenerationType()} to map
      * SPI strategies to JPA GenerationType values.
@@ -226,31 +227,31 @@ public final class JpaAnnotations {
      *   <li>AUTO strategy → {@code @GeneratedValue(strategy = GenerationType.AUTO)}</li>
      *   <li>IDENTITY strategy → {@code @GeneratedValue(strategy = GenerationType.IDENTITY)}</li>
      *   <li>UUID strategy → {@code @GeneratedValue(strategy = GenerationType.UUID)}</li>
-     *   <li>ASSIGNED strategy → {@code null} (no annotation)</li>
+     *   <li>ASSIGNED strategy → {@code Optional.empty()} (no annotation)</li>
      * </ul>
      *
      * @param identity the identity metadata from the SPI
-     * @return the {@code @GeneratedValue} annotation spec, or null if not needed
+     * @return the {@code @GeneratedValue} annotation spec, or empty if not needed
      * @throws IllegalArgumentException if identity is null
      */
-    public static AnnotationSpec generatedValue(Identity identity) {
+    public static Optional<AnnotationSpec> generatedValue(Identity identity) {
         if (identity == null) {
             throw new IllegalArgumentException("Identity cannot be null");
         }
 
         // Use SPI helper to determine if @GeneratedValue is needed
         if (!identity.strategy().requiresGeneratedValue()) {
-            return null; // No annotation needed
+            return Optional.empty(); // No annotation needed
         }
 
         String jpaStrategy = identity.strategy().toJpaGenerationType();
         if (jpaStrategy == null) {
-            return null; // Fallback: no annotation
+            return Optional.empty(); // Fallback: no annotation
         }
 
-        return AnnotationSpec.builder(GeneratedValue.class)
+        return Optional.of(AnnotationSpec.builder(GeneratedValue.class)
                 .addMember("strategy", "$T.$L", jakarta.persistence.GenerationType.class, jpaStrategy)
-                .build();
+                .build());
     }
 
     // =====================================================================
@@ -363,17 +364,17 @@ public final class JpaAnnotations {
      * }</pre>
      *
      * @param overrides the list of attribute overrides
-     * @return the {@code @AttributeOverrides} annotation spec, or null if the list is empty
+     * @return the {@code @AttributeOverrides} annotation spec, or empty if the list is empty
      * @throws IllegalArgumentException if overrides is null
      * @since 2.0.0
      */
-    public static AnnotationSpec attributeOverrides(
+    public static Optional<AnnotationSpec> attributeOverrides(
             java.util.List<io.hexaglue.plugin.jpa.model.AttributeOverride> overrides) {
         if (overrides == null) {
             throw new IllegalArgumentException("Overrides cannot be null");
         }
         if (overrides.isEmpty()) {
-            return null; // No overrides needed
+            return Optional.empty(); // No overrides needed
         }
 
         AnnotationSpec.Builder builder = AnnotationSpec.builder(jakarta.persistence.AttributeOverrides.class);
@@ -391,7 +392,7 @@ public final class JpaAnnotations {
         arrayBuilder.add("}");
 
         builder.addMember("value", arrayBuilder.build());
-        return builder.build();
+        return Optional.of(builder.build());
     }
 
     /**

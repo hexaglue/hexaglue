@@ -259,10 +259,10 @@ public final class HexaGlueTestHarness {
             String content = entry.getValue();
 
             // Extract package from content
-            String packageName = extractPackage(content);
+            Optional<String> packageName = extractPackage(content);
             Path packageDir = tempDir;
-            if (packageName != null && !packageName.isEmpty()) {
-                packageDir = tempDir.resolve(packageName.replace('.', '/'));
+            if (packageName.isPresent() && !packageName.get().isEmpty()) {
+                packageDir = tempDir.resolve(packageName.get().replace('.', '/'));
             }
             Files.createDirectories(packageDir);
 
@@ -271,14 +271,20 @@ public final class HexaGlueTestHarness {
         }
     }
 
-    private String extractPackage(String content) {
+    /**
+     * Extracts the package declaration from Java source content.
+     *
+     * @param content the Java source code
+     * @return the package name if present, empty otherwise
+     */
+    private Optional<String> extractPackage(String content) {
         for (String line : content.split("\n")) {
             line = line.trim();
             if (line.startsWith("package ") && line.endsWith(";")) {
-                return line.substring(8, line.length() - 1).trim();
+                return Optional.of(line.substring(8, line.length() - 1).trim());
             }
         }
-        return null;
+        return Optional.empty();
     }
 
     private void requireAnalyzed() {

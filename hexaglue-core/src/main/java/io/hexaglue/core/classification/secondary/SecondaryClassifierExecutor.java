@@ -47,7 +47,7 @@ import java.util.concurrent.TimeoutException;
  *   <li><b>Completes successfully</b>: Result is returned</li>
  *   <li><b>Times out</b>: Execution is cancelled, warning is logged, primary result used</li>
  *   <li><b>Throws exception</b>: Exception is logged, primary result used</li>
- *   <li><b>Returns null</b>: Signals to use primary result (normal flow)</li>
+ *   <li><b>Returns empty</b>: Signals to use primary result (normal flow)</li>
  * </ul>
  *
  * <h2>Thread Safety</h2>
@@ -94,7 +94,7 @@ public class SecondaryClassifierExecutor {
      * <p><b>Return value semantics:</b>
      * <ul>
      *   <li>{@code Optional.of(result)} - Secondary classifier produced a result</li>
-     *   <li>{@code Optional.empty()} - Use primary result (timeout, exception, or null)</li>
+     *   <li>{@code Optional.empty()} - Use primary result (timeout, exception, or empty)</li>
      * </ul>
      *
      * @param classifier    the secondary classifier to execute
@@ -113,24 +113,25 @@ public class SecondaryClassifierExecutor {
         String classifierId = classifier.id();
         String typeName = type.simpleName();
 
-        Future<SecondaryClassificationResult> future =
+        Future<Optional<SecondaryClassificationResult>> future =
                 executorService.submit(() -> executeClassifier(classifier, type, context, primaryResult));
 
         try {
-            SecondaryClassificationResult result = future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+            Optional<SecondaryClassificationResult> result = future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
 
-            if (result == null) {
-                // Null signals to use primary result
+            if (result.isEmpty()) {
+                // Empty signals to use primary result
                 diagnostics.info(
                         String.format("Secondary classifier '%s' delegated to primary for %s", classifierId, typeName));
                 return Optional.empty();
             }
 
+            SecondaryClassificationResult classification = result.get();
             diagnostics.info(String.format(
                     "Secondary classifier '%s' succeeded for %s (kind=%s, certainty=%s)",
-                    classifierId, typeName, result.kind(), result.certainty()));
+                    classifierId, typeName, classification.kind(), classification.certainty()));
 
-            return Optional.of(result);
+            return result;
 
         } catch (TimeoutException e) {
             future.cancel(true);
@@ -158,16 +159,17 @@ public class SecondaryClassifierExecutor {
      * @param type          the type to classify
      * @param context       the classification context
      * @param primaryResult the primary result
-     * @return the classification result
+     * @return the classification result, or empty to use primary
      * @throws ClassificationException if classification fails critically
      */
-    private SecondaryClassificationResult executeClassifier(
+    private Optional<SecondaryClassificationResult> executeClassifier(
             HexaglueClassifier classifier,
             TypeInfo type,
             ClassificationContext context,
             Optional<PrimaryClassificationResult> primaryResult) {
 
         try {
+            // SPI was updated in Batch 1 to return Optional, so just return it directly
             return classifier.classify(type, context, primaryResult);
 
         } catch (ClassificationException e) {

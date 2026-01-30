@@ -228,8 +228,7 @@ public class StyleDetector {
         // Modular monolith detection is more complex - look for multiple top-level packages
         Set<String> topLevelPackages = graph.typeNodes().stream()
                 .map(TypeNode::packageName)
-                .map(this::extractTopLevelPackage)
-                .filter(Objects::nonNull)
+                .flatMap(pkg -> extractTopLevelPackage(pkg).stream())
                 .collect(Collectors.toSet());
 
         List<String> markers = new ArrayList<>();
@@ -247,9 +246,14 @@ public class StyleDetector {
         return new StyleScore(score, description, markers);
     }
 
-    private String extractTopLevelPackage(String packageName) {
+    /**
+     * Extracts the top-level package from a package name.
+     *
+     * @return the top-level package, or empty if not extractable
+     */
+    private Optional<String> extractTopLevelPackage(String packageName) {
         if (packageName == null || packageName.isEmpty()) {
-            return null;
+            return Optional.empty();
         }
 
         String[] parts = packageName.split("\\.");
@@ -262,7 +266,7 @@ public class StyleDetector {
             startIndex++;
         }
 
-        return startIndex < parts.length ? parts[startIndex] : null;
+        return startIndex < parts.length ? Optional.of(parts[startIndex]) : Optional.empty();
     }
 
     private boolean isCommonPrefix(String part) {

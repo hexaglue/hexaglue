@@ -19,8 +19,11 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -49,6 +52,8 @@ import java.util.stream.Collectors;
  * and template rendering can be performed concurrently from multiple threads.
  */
 public final class SimpleTemplateEngine implements TemplateEngine {
+
+    private static final Logger LOG = Logger.getLogger(SimpleTemplateEngine.class.getName());
 
     private static final Pattern VARIABLE_PATTERN = Pattern.compile("\\$\\{([^}]+)}");
     private static final Pattern HELPER_PATTERN = Pattern.compile("helper:([^:]+):(.+)");
@@ -126,53 +131,63 @@ public final class SimpleTemplateEngine implements TemplateEngine {
         if (helperMatcher.matches()) {
             String helperName = helperMatcher.group(1);
             String variableName = helperMatcher.group(2);
-            String value = resolveValue(variableName, context);
+            Optional<String> value = resolveValue(variableName, context);
             Function<String, String> helper = helpers.get(helperName);
-            if (helper != null && value != null) {
-                return helper.apply(value);
+            if (helper != null && value.isPresent()) {
+                return helper.apply(value.get());
             }
             return defaultValue != null ? defaultValue : "${" + expression + "}";
         }
 
         // Simple variable lookup
-        String value = resolveValue(expression, context);
-        if (value != null) {
-            return value;
+        Optional<String> value = resolveValue(expression, context);
+        if (value.isPresent()) {
+            return value.get();
         }
 
         return defaultValue != null ? defaultValue : "${" + expression + "}";
     }
 
     @SuppressWarnings("unchecked")
-    private String resolveValue(String path, Map<String, Object> context) {
+    private Optional<String> resolveValue(String path, Map<String, Object> context) {
         String[] parts = path.split("\\.");
         Object current = context;
 
         for (String part : parts) {
             if (current == null) {
-                return null;
+                return Optional.empty();
             }
             if (current instanceof Map) {
                 current = ((Map<String, Object>) current).get(part);
             } else {
                 // Try bean-style property access
-                current = getProperty(current, part);
+                current = getProperty(current, part).orElse(null);
             }
         }
 
-        return current != null ? current.toString() : null;
+        return current != null ? Optional.of(current.toString()) : Optional.empty();
     }
 
-    private Object getProperty(Object obj, String propertyName) {
+    private Optional<Object> getProperty(Object obj, String propertyName) {
         try {
             String getterName = "get" + capitalize(propertyName);
-            return obj.getClass().getMethod(getterName).invoke(obj);
+            return Optional.ofNullable(obj.getClass().getMethod(getterName).invoke(obj));
         } catch (Exception e) {
+            LOG.log(
+                    Level.FINEST,
+                    () -> String.format(
+                            "Getter '%s' not found on %s, trying field access",
+                            propertyName, obj.getClass().getSimpleName()));
             try {
                 // Try direct field access
-                return obj.getClass().getField(propertyName).get(obj);
+                return Optional.ofNullable(obj.getClass().getField(propertyName).get(obj));
             } catch (Exception ex) {
-                return null;
+                LOG.log(
+                        Level.FINEST,
+                        () -> String.format(
+                                "Field '%s' not found on %s",
+                                propertyName, obj.getClass().getSimpleName()));
+                return Optional.empty();
             }
         }
     }

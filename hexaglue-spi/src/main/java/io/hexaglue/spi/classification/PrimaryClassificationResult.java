@@ -19,6 +19,7 @@ import io.hexaglue.arch.model.classification.ClassificationEvidence;
 import io.hexaglue.arch.model.classification.ClassificationStrategy;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Result of primary (deterministic) classification.
@@ -38,7 +39,7 @@ import java.util.Objects;
  *
  * <h2>Usage in Secondary Classifiers</h2>
  * <pre>{@code
- * public SecondaryClassificationResult classify(
+ * public Optional<SecondaryClassificationResult> classify(
  *         TypeInfo type,
  *         ClassificationContext context,
  *         Optional<PrimaryClassificationResult> primaryResult) {
@@ -46,7 +47,7 @@ import java.util.Objects;
  *     // Trust high-certainty primary results
  *     if (primaryResult.isPresent() &&
  *         primaryResult.get().certainty().isReliable()) {
- *         return null; // Use primary
+ *         return Optional.empty(); // Use primary
  *     }
  *
  *     // Override uncertain primary results with custom logic
@@ -55,17 +56,18 @@ import java.util.Objects;
  * }</pre>
  *
  * @param typeName  the fully qualified type name
- * @param kind      the classified element kind (may be null if unclassified)
+ * @param kind      the classified element kind (empty if unclassified or conflict)
  * @param certainty the certainty level of the classification
  * @param strategy  the strategy used to produce this classification
  * @param reasoning human-readable explanation of the classification
  * @param evidences list of evidence supporting this classification
  * @since 3.0.0
  * @since 4.0.0 Changed kind type from ElementKind to ElementKind
+ * @since 5.0.0 Changed kind to Optional&lt;ElementKind&gt;
  */
 public record PrimaryClassificationResult(
         String typeName,
-        ElementKind kind,
+        Optional<ElementKind> kind,
         CertaintyLevel certainty,
         ClassificationStrategy strategy,
         String reasoning,
@@ -78,7 +80,7 @@ public record PrimaryClassificationResult(
      */
     public PrimaryClassificationResult {
         Objects.requireNonNull(typeName, "typeName required");
-        // kind can be null for unclassified types
+        Objects.requireNonNull(kind, "kind required (use Optional.empty() for unclassified)");
         Objects.requireNonNull(certainty, "certainty required");
         Objects.requireNonNull(strategy, "strategy required");
         Objects.requireNonNull(reasoning, "reasoning required");
@@ -88,10 +90,10 @@ public record PrimaryClassificationResult(
     /**
      * Returns true if this result indicates the type was successfully classified.
      *
-     * @return true if kind is not null and certainty is not NONE
+     * @return true if kind is present and certainty is not NONE
      */
     public boolean isClassified() {
-        return kind != null && certainty != CertaintyLevel.NONE;
+        return kind.isPresent() && certainty != CertaintyLevel.NONE;
     }
 
     /**
@@ -134,6 +136,11 @@ public record PrimaryClassificationResult(
      */
     public static PrimaryClassificationResult unclassified(String typeName, String reasoning) {
         return new PrimaryClassificationResult(
-                typeName, null, CertaintyLevel.NONE, ClassificationStrategy.UNCLASSIFIED, reasoning, List.of());
+                typeName,
+                Optional.empty(),
+                CertaintyLevel.NONE,
+                ClassificationStrategy.UNCLASSIFIED,
+                reasoning,
+                List.of());
     }
 }

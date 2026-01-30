@@ -182,19 +182,20 @@ public final class CachedSpoonAnalyzer {
         List<CtInvocation<?>> invocations = body.getElements(element -> element instanceof CtInvocation<?>);
 
         return invocations.stream()
-                .map(this::toMethodInvocation)
-                .filter(Objects::nonNull)
+                .flatMap(inv -> toMethodInvocation(inv).stream())
                 .collect(Collectors.toList());
     }
 
     /**
      * Converts a Spoon invocation to our MethodInvocation record.
+     *
+     * @return the method invocation, or empty if conversion fails
      */
-    private MethodBodyAnalysis.MethodInvocation toMethodInvocation(CtInvocation<?> invocation) {
+    private Optional<MethodBodyAnalysis.MethodInvocation> toMethodInvocation(CtInvocation<?> invocation) {
         try {
             CtExecutableReference<?> executable = invocation.getExecutable();
             if (executable == null) {
-                return null;
+                return Optional.empty();
             }
 
             String targetMethod = executable.getDeclaringType() != null
@@ -205,10 +206,10 @@ public final class CachedSpoonAnalyzer {
             int lineNumber =
                     invocation.getPosition() != null ? invocation.getPosition().getLine() : 0;
 
-            return new MethodBodyAnalysis.MethodInvocation(targetMethod, isStatic, lineNumber);
+            return Optional.of(new MethodBodyAnalysis.MethodInvocation(targetMethod, isStatic, lineNumber));
         } catch (Exception e) {
             LOG.debug("Failed to analyze invocation: {}", e.getMessage());
-            return null;
+            return Optional.empty();
         }
     }
 

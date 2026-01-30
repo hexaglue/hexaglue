@@ -128,10 +128,12 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        ElementKind targetKind = getElementKind(elementId, context, targetType, query);
-        if (targetKind == null) {
+        Optional<ElementKind> targetKindOpt = getElementKind(elementId, context, targetType, query);
+        if (targetKindOpt.isEmpty()) {
             return Optional.empty();
         }
+
+        ElementKind targetKind = targetKindOpt.get();
 
         // VALUE_OBJECT in collection → ELEMENT_COLLECTION
         if (targetKind == ElementKind.VALUE_OBJECT) {
@@ -220,10 +222,12 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        ElementKind targetKind = getElementKind(typeId, context, targetType, query);
-        if (targetKind == null) {
+        Optional<ElementKind> targetKindOpt = getElementKind(typeId, context, targetType, query);
+        if (targetKindOpt.isEmpty()) {
             return Optional.empty();
         }
+
+        ElementKind targetKind = targetKindOpt.get();
 
         // VALUE_OBJECT → EMBEDDED (but NOT for enums - they use @Enumerated)
         if (targetKind == ElementKind.VALUE_OBJECT) {
@@ -301,10 +305,12 @@ public final class RelationAnalyzer {
         }
 
         // Use heuristic detection with targetType for unclassified records/enums
-        ElementKind targetKind = getElementKind(valueId, context, targetType, query);
-        if (targetKind == null) {
+        Optional<ElementKind> targetKindOpt = getElementKind(valueId, context, targetType, query);
+        if (targetKindOpt.isEmpty()) {
             return Optional.empty();
         }
+
+        ElementKind targetKind = targetKindOpt.get();
 
         // Map<K, VALUE_OBJECT> → ELEMENT_COLLECTION
         if (targetKind == ElementKind.VALUE_OBJECT) {
@@ -368,37 +374,39 @@ public final class RelationAnalyzer {
      * @param context the classification context
      * @param targetType optional TypeNode for heuristic detection
      * @param query the graph query for field access
-     * @return the domain kind, or null if unknown
+     * @return the domain kind wrapped in Optional, empty if unknown
      */
-    private ElementKind getElementKind(
+    private Optional<ElementKind> getElementKind(
             NodeId typeId, ClassificationContext context, Optional<TypeNode> targetType, GraphQuery query) {
         // First try classification context
-        String kind = context.getKind(typeId);
-        if (kind != null) {
-            try {
-                return ElementKind.valueOf(kind);
-            } catch (IllegalArgumentException e) {
-                // Fall through to heuristics
-            }
-        }
+        return context.getKind(typeId)
+                .flatMap(kind -> {
+                    try {
+                        return Optional.of(ElementKind.valueOf(kind));
+                    } catch (IllegalArgumentException e) {
+                        // Fall through to heuristics
+                        return Optional.empty();
+                    }
+                })
+                .or(() -> {
+                    // Heuristic: If type is not classified, infer from Java form
+                    if (targetType.isPresent()) {
+                        TypeNode node = targetType.get();
 
-        // Heuristic: If type is not classified, infer from Java form
-        if (targetType.isPresent()) {
-            TypeNode node = targetType.get();
+                        // Records and enums are VALUE_OBJECT by convention
+                        if (node.isRecord() || node.isEnum()) {
+                            return Optional.of(ElementKind.VALUE_OBJECT);
+                        }
 
-            // Records and enums are VALUE_OBJECT by convention
-            if (node.isRecord() || node.isEnum()) {
-                return ElementKind.VALUE_OBJECT;
-            }
+                        // Classes without identity fields are likely VALUE_OBJECTs
+                        // This heuristic helps detect embedded collection elements like OrderLine
+                        if (node.isClass() && !node.isInterface() && !hasIdentityField(node, query)) {
+                            return Optional.of(ElementKind.VALUE_OBJECT);
+                        }
+                    }
 
-            // Classes without identity fields are likely VALUE_OBJECTs
-            // This heuristic helps detect embedded collection elements like OrderLine
-            if (node.isClass() && !node.isInterface() && !hasIdentityField(node, query)) {
-                return ElementKind.VALUE_OBJECT;
-            }
-        }
-
-        return null;
+                    return Optional.empty();
+                });
     }
 
     /**

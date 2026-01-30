@@ -84,6 +84,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.logging.Logger;
 
 /**
  * DDD Audit Plugin for HexaGlue.
@@ -116,6 +117,8 @@ import java.util.Set;
  * @since 4.1.0 - Added support for new classification report and indices
  */
 public class DddAuditPlugin implements AuditPlugin {
+
+    private static final Logger LOG = Logger.getLogger(DddAuditPlugin.class.getName());
 
     public static final String PLUGIN_ID = "io.hexaglue.plugin.audit.ddd";
 
@@ -753,7 +756,7 @@ public class DddAuditPlugin implements AuditPlugin {
                     formats.add(format);
                 }
             } catch (IllegalArgumentException e) {
-                // Ignore invalid format names
+                LOG.warning("Invalid report format: " + trimmed);
             }
         }
         return formats;

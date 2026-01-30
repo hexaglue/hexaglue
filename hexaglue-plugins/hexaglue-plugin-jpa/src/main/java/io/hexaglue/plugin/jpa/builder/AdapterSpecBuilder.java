@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -171,7 +172,7 @@ public final class AdapterSpecBuilder {
         List<AdapterMethodSpec> methods = buildAdapterMethodSpecs();
 
         // Build IdInfo
-        AdapterContext.IdInfo idInfo = buildIdInfo();
+        AdapterContext.IdInfo idInfo = buildIdInfo().orElse(null);
 
         // Determine if domain class is a record
         boolean isDomainRecord = isDomainRecord();
@@ -207,15 +208,15 @@ public final class AdapterSpecBuilder {
     /**
      * Builds IdInfo from domain source.
      */
-    private AdapterContext.IdInfo buildIdInfo() {
+    private Optional<AdapterContext.IdInfo> buildIdInfo() {
         if (aggregateRoot != null) {
-            return buildIdInfoFromField(aggregateRoot.identityField());
+            return Optional.of(buildIdInfoFromField(aggregateRoot.identityField()));
         } else {
             var identityFieldOpt = entity.identityField();
             if (identityFieldOpt.isEmpty()) {
-                return null;
+                return Optional.empty();
             }
-            return buildIdInfoFromField(identityFieldOpt.get());
+            return Optional.of(buildIdInfoFromField(identityFieldOpt.get()));
         }
     }
 

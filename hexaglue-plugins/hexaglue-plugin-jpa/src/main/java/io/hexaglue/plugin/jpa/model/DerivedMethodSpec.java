@@ -68,12 +68,12 @@ public record DerivedMethodSpec(
      *
      * @param method the SPI port method
      * @param entityTypeName the entity class name to use for return types
-     * @return a new DerivedMethodSpec, or null if the method should not be generated
+     * @return a new DerivedMethodSpec, or empty if the method should not be generated
      */
-    public static DerivedMethodSpec from(PortMethod method, TypeName entityTypeName) {
+    public static Optional<DerivedMethodSpec> from(PortMethod method, TypeName entityTypeName) {
         // Only generate derived methods for property-based queries
         if (!isPropertyBasedMethod(method.kind())) {
-            return null;
+            return Optional.empty();
         }
 
         String methodName = method.name();
@@ -82,7 +82,7 @@ public record DerivedMethodSpec(
                 .map(DerivedMethodSpec::toParameterSpec)
                 .toList();
 
-        return new DerivedMethodSpec(methodName, returnType, params, method.kind());
+        return Optional.of(new DerivedMethodSpec(methodName, returnType, params, method.kind()));
     }
 
     /**
@@ -97,10 +97,10 @@ public record DerivedMethodSpec(
      * @param method the Method from the architectural model
      * @param entityTypeName the entity class name to use for return types
      * @param domainIndex optional domain index for Identifier type resolution
-     * @return a new DerivedMethodSpec, or null if the method should not be generated
+     * @return a new DerivedMethodSpec, or empty if the method should not be generated
      * @since 5.0.0
      */
-    public static DerivedMethodSpec fromV5(
+    public static Optional<DerivedMethodSpec> fromV5(
             io.hexaglue.arch.model.Method method, TypeName entityTypeName, Optional<DomainIndex> domainIndex) {
         String methodName = method.name();
 
@@ -109,13 +109,13 @@ public record DerivedMethodSpec(
 
         // Only generate derived methods for property-based queries
         if (!isPropertyBasedMethod(kind)) {
-            return null;
+            return Optional.empty();
         }
 
         TypeName returnType = resolveReturnType(method, kind, entityTypeName);
         List<ParameterSpec> params = buildParameters(method, domainIndex);
 
-        return new DerivedMethodSpec(methodName, returnType, params, kind);
+        return Optional.of(new DerivedMethodSpec(methodName, returnType, params, kind));
     }
 
     /**

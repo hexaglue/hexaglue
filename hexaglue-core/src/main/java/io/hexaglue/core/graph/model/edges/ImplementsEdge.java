@@ -18,6 +18,7 @@ import io.hexaglue.core.graph.model.EdgeKind;
 import io.hexaglue.core.graph.model.NodeId;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Represents an implements edge with direct/transitive flag.
@@ -120,13 +121,13 @@ public record ImplementsEdge(NodeId from, NodeId to, boolean isDirect) implement
      * <p>Assumes the edge is direct unless proven otherwise through analysis.
      *
      * @param edge the basic edge
-     * @return the implements edge, or null if not an IMPLEMENTS edge
+     * @return the implements edge, or empty if not an IMPLEMENTS edge
      */
-    public static ImplementsEdge fromEdge(Edge edge) {
+    public static Optional<ImplementsEdge> fromEdge(Edge edge) {
         if (edge.kind() != EdgeKind.IMPLEMENTS) {
-            return null;
+            return Optional.empty();
         }
         // Default to direct - transitive edges must be computed separately
-        return new ImplementsEdge(edge.from(), edge.to(), true);
+        return Optional.of(new ImplementsEdge(edge.from(), edge.to(), true));
     }
 }

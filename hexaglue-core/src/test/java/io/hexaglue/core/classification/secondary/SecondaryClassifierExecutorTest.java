@@ -75,10 +75,10 @@ class SecondaryClassifierExecutorTest {
     }
 
     @Test
-    @DisplayName("Should return empty when classifier returns null (use primary)")
-    void classifierReturnsNull_usePrimary() {
+    @DisplayName("Should return empty when classifier returns empty (use primary)")
+    void classifierReturnsEmpty_usePrimary() {
         // Given
-        HexaglueClassifier classifier = new NullReturningClassifier();
+        HexaglueClassifier classifier = new EmptyReturningClassifier();
         TypeInfo type = createTestType("Order");
 
         // When
@@ -182,7 +182,7 @@ class SecondaryClassifierExecutorTest {
         TypeInfo type = createTestType("Order");
         PrimaryClassificationResult primary = new PrimaryClassificationResult(
                 "Order",
-                ElementKind.ENTITY,
+                Optional.of(ElementKind.ENTITY),
                 CertaintyLevel.UNCERTAIN,
                 ClassificationStrategy.WEIGHTED,
                 "test",
@@ -193,7 +193,7 @@ class SecondaryClassifierExecutorTest {
 
         // Then
         assertThat(classifier.getCapturedPrimary()).isPresent();
-        assertThat(classifier.getCapturedPrimary().get().kind()).isEqualTo(ElementKind.ENTITY);
+        assertThat(classifier.getCapturedPrimary().get().kind()).contains(ElementKind.ENTITY);
     }
 
     // ========== HELPER METHODS ==========
@@ -215,27 +215,27 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
-            return new SecondaryClassificationResult(
+            return Optional.of(new SecondaryClassificationResult(
                     ElementKind.AGGREGATE_ROOT,
                     CertaintyLevel.INFERRED,
                     ClassificationStrategy.WEIGHTED,
                     "Test success",
-                    List.of());
+                    List.of()));
         }
     }
 
-    static class NullReturningClassifier implements HexaglueClassifier {
+    static class EmptyReturningClassifier implements HexaglueClassifier {
         @Override
         public String id() {
-            return "test.null";
+            return "test.empty";
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
-            return null; // Signal to use primary
+            return Optional.empty(); // Signal to use primary
         }
     }
 
@@ -257,14 +257,14 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             try {
                 Thread.sleep(5000); // Sleep way longer than timeout
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            return SecondaryClassificationResult.unclassified();
+            return Optional.of(SecondaryClassificationResult.unclassified());
         }
     }
 
@@ -286,7 +286,7 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             try {
                 Thread.sleep(5000);
@@ -294,7 +294,7 @@ class SecondaryClassifierExecutorTest {
                 wasInterrupted.set(true);
                 Thread.currentThread().interrupt();
             }
-            return null;
+            return Optional.empty();
         }
     }
 
@@ -305,7 +305,7 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             throw new RuntimeException("Unexpected error");
         }
@@ -318,7 +318,7 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             throw new ClassificationException("Classification failed for " + type.simpleName());
         }
@@ -344,19 +344,19 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             try {
                 Thread.sleep(executionTime.toMillis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
-            return new SecondaryClassificationResult(
+            return Optional.of(new SecondaryClassificationResult(
                     ElementKind.VALUE_OBJECT,
                     CertaintyLevel.INFERRED,
                     ClassificationStrategy.WEIGHTED,
                     "Custom timeout test",
-                    List.of());
+                    List.of()));
         }
     }
 
@@ -369,10 +369,10 @@ class SecondaryClassifierExecutorTest {
         }
 
         @Override
-        public SecondaryClassificationResult classify(
+        public Optional<SecondaryClassificationResult> classify(
                 TypeInfo type, ClassificationContext context, Optional<PrimaryClassificationResult> primary) {
             this.capturedPrimary = primary;
-            return null;
+            return Optional.empty();
         }
 
         public Optional<PrimaryClassificationResult> getCapturedPrimary() {
