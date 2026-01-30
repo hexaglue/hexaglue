@@ -55,62 +55,57 @@ HexaGlue is an **architecture compiler** for Java applications.
 
 At compile time, it turns your codebase into a **semantic graph** of **architectural intent**.
 
-By **modelizing** an Abstract Syntax Tree (AST), HexaGlue **classifies**:
+To do so, it **parses** your source code, builds an **application graph**, and **classifies**:
 
-* **Domain concepts**  
+* **Domain concepts**
   Aggregates, entities, value objects, identifiers
 
-* **Architectural boundaries**  
+* **Architectural boundaries**
   Ports, their direction (driving / driven), and their relationships
 
-* **Structural relationships**  
+* **Structural relationships**
   How domain types connect, reference, and depend on each other
 
-From this model, HexaGlue can **validate** and **generate**, always respecting your architecture, never making blind assumptions.
+From this **architectural model**, plugins — discovered via SPI — can **audit**, **document**, and **generate**, always respecting your architecture, never making blind assumptions.
 
 ```mermaid
 flowchart LR
-  %% ------------------------------------------------------------
-  %% WHY: Architectural friction -> HexaGlue pipeline -> Outcomes
-  %% ------------------------------------------------------------
-  subgraph HEXA["🚀 HexaGlue: compile-time architecture"]
-    A["🧠 MODELIZE<br>Semantic graph"]:::step
-    C["🏷️ CLASSIFY<br>Concepts"]:::step
-    V["🚦 VALIDATE<br>No ambiguities"]:::step
-    G["⚙️ GENERATE<br>Plugins design"]:::step
-
-    A e1@--> C
-    C e2@--> V
-    V e3@--> G
+ subgraph CORE["🧠 HexaGlue Core"]
+    direction TB
+        P["🧬 PARSE<br>Semantic model"]
+        G["🔬 ANALYZE<br>Application graph"]
+        C["🗂️ CLASSIFY<br>Ports · Actors · Domain"]
+        M["🔀 MODELIZE<br>Architectural model"]
   end
-
-  subgraph OUT["🎯 What you get"]
-    O1["📘 Living Documentation"]:::out
-    O2["🛡️ Architecture Audit"]:::out
-    O3["🔁 Infrastructure Code<br>(JPA / REST / Messaging…)"]:::out
+ subgraph PLUGINS["🔌 Plugins (via SPI)"]
+        O1["📘 Living Documentation"]
+        O2["🛡️ Architecture Audit"]
+        O3["🏛️ 🔬Infrastructure Code<br>(JPA / REST / Messaging…)"]
   end
+    MVN["⚙️ Maven Plugin<br>compile · verify"] L_MVN_CORE_0@==> CORE
+    P L_P_G_0@--> G
+    G L_G_C_0@--> C
+    C L_C_M_0@--> M
+    CORE L_CORE_O1_0@==> O1 & O2 & O3
 
-  G f1@==> O1
-  G f2@==> O2
-  G f3@==> O3
+     P:::step
+     G:::step
+     C:::step
+     M:::step
+     O1:::step
+     O2:::step
+     O3:::step
+     MVN:::maven
+    classDef step fill:#f8fafc,stroke:#64748b,stroke-width:1px,color:#0f172a
+    classDef maven fill:#eff6ff,stroke:#3b82f6,stroke-width:1px,color:#0f172a
 
-  %% ------------------------------------------------------------
-  %% Animated links
-  %% ------------------------------------------------------------
-  e1@{ animate: true }
-  e2@{ animate: true }
-  e3@{ animate: true }
-
-  classDef animate stroke-dasharray: 9,5,stroke-dashoffset: 900,animation: dash 25s linear infinite;
-  class f1 animate
-  class f2 animate
-  class f3 animate
-
-  %% ------------------------------------------------------------
-  %% Node styles
-  %% ------------------------------------------------------------
-  classDef step fill:#f8fafc,stroke:#64748b,stroke-width:1px,color:#0f172a;
-  classDef out fill:#ecfdf5,stroke:#34d399,stroke-width:1px,color:#0f172a;
+    L_MVN_CORE_0@{ animation: slow } 
+    L_P_G_0@{ animation: slow } 
+    L_G_C_0@{ animation: slow } 
+    L_C_M_0@{ animation: slow } 
+    L_CORE_O1_0@{ animation: slow } 
+    L_CORE_O2_0@{ animation: slow } 
+    L_CORE_O3_0@{ animation: slow }
 ```
 
 ---
