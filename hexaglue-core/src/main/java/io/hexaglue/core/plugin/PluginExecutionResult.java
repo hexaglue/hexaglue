@@ -93,6 +93,7 @@ public record PluginExecutionResult(List<PluginResult> pluginResults) {
      * @param <T> the value type
      * @return the output value, or empty if not found or wrong type
      */
+    // Suppressed: safe cast to T after type.isInstance() check guarantees the value is of type T
     @SuppressWarnings("unchecked")
     public <T> Optional<T> findOutput(String key, Class<T> type) {
         for (PluginResult result : pluginResults) {

@@ -77,7 +77,7 @@ import spoon.reflect.declaration.CtMethod;
  * <p>Example usage:
  * <pre>{@code
  * AnalysisBudget budget = AnalysisBudget.mediumProject();
- * ProgressiveClassifier classifier = new ProgressiveClassifier(budget);
+ * ProgressiveClassifier classifier = new ProgressiveClassifier(budget, semanticModel, spoonAnalyzer);
  *
  * ClassificationResults results = classifier.classifyProgressive(graph);
  *
@@ -125,29 +125,6 @@ public final class ProgressiveClassifier {
      */
     public ProgressiveClassifier(JavaSemanticModel semanticModel, CachedSpoonAnalyzer spoonAnalyzer) {
         this(AnalysisBudget.mediumProject(), semanticModel, spoonAnalyzer);
-    }
-
-    /**
-     * Creates a progressive classifier with the given budget.
-     *
-     * @param budget the analysis budget
-     * @deprecated Use {@link #ProgressiveClassifier(AnalysisBudget, JavaSemanticModel, CachedSpoonAnalyzer)}
-     */
-    @Deprecated
-    public ProgressiveClassifier(AnalysisBudget budget) {
-        this.budget = Objects.requireNonNull(budget, "budget cannot be null");
-        this.semanticModel = null;
-        this.spoonAnalyzer = null;
-    }
-
-    /**
-     * Creates a progressive classifier with a default medium project budget.
-     *
-     * @deprecated Use {@link #ProgressiveClassifier(JavaSemanticModel, CachedSpoonAnalyzer)}
-     */
-    @Deprecated
-    public ProgressiveClassifier() {
-        this(AnalysisBudget.mediumProject());
     }
 
     /**

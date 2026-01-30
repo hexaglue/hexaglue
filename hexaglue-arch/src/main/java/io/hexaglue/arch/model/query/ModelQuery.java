@@ -127,6 +127,7 @@ public final class ModelQuery {
      * @param <T> the expected type
      * @return the type if found
      */
+    // Suppressed: TypeRegistry stores ArchType values; caller specifies T via context, erasure requires cast
     @SuppressWarnings("unchecked")
     public <T extends ArchType> Optional<T> find(TypeId id) {
         return (Optional<T>) registry.get(id);

@@ -217,6 +217,7 @@ public class ValidateMojo extends AbstractMojo {
                 Set.of()); // No plugins
     }
 
+    // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast
     @SuppressWarnings("unchecked")
     private ClassificationConfig loadClassificationConfig() {
         Path baseDir = project.getBasedir().toPath();

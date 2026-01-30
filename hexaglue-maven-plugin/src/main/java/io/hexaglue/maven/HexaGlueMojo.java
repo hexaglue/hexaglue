@@ -266,6 +266,7 @@ public class HexaGlueMojo extends AbstractMojo {
                 return Map.of();
             }
 
+            // Suppressed: SnakeYAML returns untyped Map, safe because we checked instanceof Map above
             @SuppressWarnings("unchecked")
             Map<String, Object> pluginsMap = (Map<String, Object>) pluginsObj;
 
@@ -275,6 +276,7 @@ public class HexaGlueMojo extends AbstractMojo {
                 Object configObj = entry.getValue();
 
                 if (configObj instanceof Map) {
+                    // Suppressed: safe cast after instanceof Map check, SnakeYAML plugin config is Map<String, Object>
                     @SuppressWarnings("unchecked")
                     Map<String, Object> configMap = (Map<String, Object>) configObj;
                     result.put(pluginId, configMap);
@@ -322,6 +324,7 @@ public class HexaGlueMojo extends AbstractMojo {
      * @return the classification configuration, or defaults if not configured
      * @since 3.0.0
      */
+    // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast
     @SuppressWarnings("unchecked")
     private ClassificationConfig loadClassificationConfig() {
         Path baseDir = project.getBasedir().toPath();

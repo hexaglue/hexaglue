@@ -127,36 +127,6 @@ class ProgressiveClassifierIntegrationTest {
     }
 
     @Test
-    @DisplayName("Should work with deprecated constructor for backward compatibility")
-    void shouldWorkWithDeprecatedConstructor() throws IOException {
-        // Given
-        writeSource("com/example/Product.java", """
-                package com.example;
-                public class Product {
-                    private String name;
-                }
-                """);
-
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
-        JavaSemanticModel model = frontend.build(input);
-
-        GraphMetadata metadata =
-                GraphMetadata.of("com.example", 17, model.types().size());
-        ApplicationGraph graph = graphBuilder.build(model, metadata);
-
-        @SuppressWarnings("deprecation")
-        ProgressiveClassifier classifier = new ProgressiveClassifier();
-
-        // When - should not throw even without semantic model
-        ClassificationResults results = classifier.classifyProgressive(graph);
-
-        // Then
-        assertThat(results).isNotNull();
-        // Pass 3 won't perform deep analysis, but should still complete
-        assertThat(classifier.pass3Duration()).isNotNull();
-    }
-
-    @Test
     @DisplayName("Should analyze method bodies for classification")
     void shouldAnalyzeMethodBodiesForClassification() throws IOException {
         // Given - Entity with mutable behavior (field writes)
