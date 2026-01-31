@@ -152,8 +152,7 @@ public final class AdapterSpecBuilder {
         // Derive class name based on number of ports
         String className;
         if (drivenPorts.size() == 1) {
-            className = NamingConventions.toClassName(
-                    drivenPorts.get(0).id().simpleName(), config.adapterSuffix());
+            className = NamingConventions.toClassName(drivenPorts.get(0).id().simpleName(), config.adapterSuffix());
         } else {
             className = NamingConventions.toClassName(simpleName, config.adapterSuffix());
         }

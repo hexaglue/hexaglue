@@ -19,11 +19,20 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
+import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
+import io.hexaglue.syntax.Modifier;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -213,6 +222,9 @@ public final class MapperSpecBuilder {
         // BUG-009 fix: Detect entity relationships and add corresponding mappers
         List<ClassName> usedMappers = detectUsedMappers();
 
+        // Issue-3: Detect reconstitution factory method for rich domain objects
+        ReconstitutionSpec reconstitutionSpec = detectReconstitutionSpec(qualifiedName);
+
         return new MapperSpec(
                 infrastructurePackage,
                 interfaceName,
@@ -223,7 +235,8 @@ public final class MapperSpecBuilder {
                 wrappedIdentity,
                 valueObjectMappings,
                 embeddableMappings,
-                usedMappers);
+                usedMappers,
+                reconstitutionSpec);
     }
 
     /**
@@ -614,6 +627,182 @@ public final class MapperSpecBuilder {
         }
 
         return usedMappers;
+    }
+
+    // =====================================================================
+    // Reconstitution detection (Issue-3)
+    // =====================================================================
+
+    /**
+     * Detects whether the domain type needs a reconstitution factory method for {@code toDomain()}.
+     *
+     * <p>A reconstitution spec is generated when the domain type does NOT have both a public
+     * no-arg constructor and setters (which MapStruct needs). In that case, we look for a
+     * static factory method with {@link MethodRole#FACTORY} role and generate a {@code default}
+     * method that calls it directly.
+     *
+     * @param domainQualifiedName the fully qualified name of the domain type
+     * @return the reconstitution spec, or {@code null} if MapStruct can handle the type natively
+     * @since 5.0.0
+     */
+    private ReconstitutionSpec detectReconstitutionSpec(String domainQualifiedName) {
+        TypeStructure structure;
+        String identityTypeFqn;
+
+        if (aggregateRoot != null) {
+            structure = aggregateRoot.structure();
+            identityTypeFqn = aggregateRoot.identityField().type().qualifiedName();
+        } else {
+            structure = entity.structure();
+            identityTypeFqn =
+                    entity.identityField().map(f -> f.type().qualifiedName()).orElse(null);
+        }
+
+        // Check if MapStruct can handle this type natively
+        boolean hasPublicNoArgCtor = structure.constructors().stream()
+                .anyMatch(
+                        ctor -> ctor.parameters().isEmpty() && ctor.modifiers().contains(Modifier.PUBLIC));
+        boolean hasSetters = structure.methods().stream().anyMatch(m -> m.hasRole(MethodRole.SETTER));
+
+        if (hasPublicNoArgCtor && hasSetters) {
+            return null;
+        }
+
+        // Find the best factory method
+        Method factoryMethod = selectBestFactoryMethod(structure.methods());
+        if (factoryMethod == null) {
+            return null;
+        }
+
+        List<ReconstitutionParameterSpec> paramSpecs = buildReconstitutionParameters(factoryMethod, identityTypeFqn);
+
+        return new ReconstitutionSpec(factoryMethod.name(), domainQualifiedName, paramSpecs);
+    }
+
+    /**
+     * Selects the best static factory method from the type's methods.
+     *
+     * <p>Selection strategy:
+     * <ol>
+     *   <li>Prefer a method named "reconstitute" (convention for persistence reconstruction)</li>
+     *   <li>Otherwise, select the factory method with the most parameters</li>
+     * </ol>
+     *
+     * @param methods the methods to search
+     * @return the best factory method, or {@code null} if none found
+     * @since 5.0.0
+     */
+    private Method selectBestFactoryMethod(List<Method> methods) {
+        List<Method> factoryMethods = methods.stream()
+                .filter(m -> m.hasRole(MethodRole.FACTORY))
+                .filter(Method::isStatic)
+                .toList();
+
+        if (factoryMethods.isEmpty()) {
+            return null;
+        }
+
+        // Prefer "reconstitute" by name
+        Optional<Method> reconstitute = factoryMethods.stream()
+                .filter(m -> "reconstitute".equals(m.name()))
+                .findFirst();
+
+        if (reconstitute.isPresent()) {
+            return reconstitute.get();
+        }
+
+        // Otherwise, select the one with the most parameters
+        return factoryMethods.stream()
+                .max(Comparator.comparingInt(m -> m.parameters().size()))
+                .orElse(null);
+    }
+
+    /**
+     * Builds the reconstitution parameter specifications from a factory method's parameters.
+     *
+     * <p>For each parameter, determines:
+     * <ul>
+     *   <li>The entity field name it maps to (by parameter name, or "id" for identity types)</li>
+     *   <li>The conversion kind (DIRECT, WRAPPED_IDENTITY, VALUE_OBJECT, ENTITY_RELATION)</li>
+     * </ul>
+     *
+     * @param factoryMethod the factory method to analyze
+     * @param identityTypeFqn the FQN of the domain's identity type (for identity parameter detection)
+     * @return the ordered list of parameter specifications
+     * @since 5.0.0
+     */
+    private List<ReconstitutionParameterSpec> buildReconstitutionParameters(
+            Method factoryMethod, String identityTypeFqn) {
+        List<ReconstitutionParameterSpec> paramSpecs = new ArrayList<>();
+
+        for (Parameter param : factoryMethod.parameters()) {
+            String paramTypeFqn = param.type().qualifiedName();
+
+            // Determine entity field name: identity type maps to "id", others use param name
+            String entityFieldName;
+            if (identityTypeFqn != null && paramTypeFqn.equals(identityTypeFqn)) {
+                entityFieldName = "id";
+            } else {
+                entityFieldName = param.name();
+            }
+
+            ConversionKind conversionKind = resolveConversionKind(paramTypeFqn);
+
+            paramSpecs.add(
+                    new ReconstitutionParameterSpec(param.name(), paramTypeFqn, entityFieldName, conversionKind));
+        }
+
+        return paramSpecs;
+    }
+
+    /**
+     * Determines the conversion kind for a parameter type by consulting the {@link io.hexaglue.arch.model.index.DomainIndex}.
+     *
+     * <ul>
+     *   <li>Type is an {@code Identifier} → {@link ConversionKind#WRAPPED_IDENTITY}</li>
+     *   <li>Type is a single-value {@code ValueObject} → {@link ConversionKind#VALUE_OBJECT}</li>
+     *   <li>Type is an {@code Entity} or {@code AggregateRoot} → {@link ConversionKind#ENTITY_RELATION}</li>
+     *   <li>Otherwise → {@link ConversionKind#DIRECT}</li>
+     * </ul>
+     *
+     * @param paramTypeFqn the fully qualified name of the parameter type
+     * @return the conversion kind
+     * @since 5.0.0
+     */
+    private ConversionKind resolveConversionKind(String paramTypeFqn) {
+        if (architecturalModel.domainIndex().isEmpty()) {
+            return ConversionKind.DIRECT;
+        }
+
+        var domainIndex = architecturalModel.domainIndex().get();
+
+        // Check if it's an Identifier
+        boolean isIdentifier =
+                domainIndex.identifiers().anyMatch(id -> id.id().qualifiedName().equals(paramTypeFqn));
+        if (isIdentifier) {
+            return ConversionKind.WRAPPED_IDENTITY;
+        }
+
+        // Check if it's a single-value ValueObject
+        boolean isSingleValueVO = domainIndex
+                .valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(paramTypeFqn))
+                .anyMatch(io.hexaglue.arch.model.ValueObject::isSingleValue);
+        if (isSingleValueVO) {
+            return ConversionKind.VALUE_OBJECT;
+        }
+
+        // Check if it's an Entity or AggregateRoot
+        boolean isEntity =
+                domainIndex.entities().anyMatch(e -> e.id().qualifiedName().equals(paramTypeFqn));
+        boolean isAggregateRoot = domainIndex
+                .aggregateRoots()
+                .anyMatch(agg -> agg.id().qualifiedName().equals(paramTypeFqn));
+        if (isEntity || isAggregateRoot) {
+            return ConversionKind.ENTITY_RELATION;
+        }
+
+        return ConversionKind.DIRECT;
     }
 
     /**
