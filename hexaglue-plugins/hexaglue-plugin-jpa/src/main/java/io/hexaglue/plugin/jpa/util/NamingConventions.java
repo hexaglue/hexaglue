@@ -302,6 +302,49 @@ public final class NamingConventions {
     }
 
     /**
+     * Generates a Java class name by merging a base name with a suffix,
+     * detecting and removing the longest overlap between the end of the
+     * base name and the beginning of the suffix.
+     *
+     * <p>This prevents doubled segments when concatenating names that already
+     * share a common part, following the same pattern as
+     * {@link #toForeignKeyColumnName(String)} which prevents double {@code _id} suffixes.
+     *
+     * <p>Examples:
+     * <ul>
+     *   <li>{@code toClassName("CustomerRepository", "RepositoryAdapter")} → {@code "CustomerRepositoryAdapter"}</li>
+     *   <li>{@code toClassName("Order", "Adapter")} → {@code "OrderAdapter"} (no overlap)</li>
+     *   <li>{@code toClassName("Repository", "Repository")} → {@code "Repository"} (full overlap)</li>
+     *   <li>{@code toClassName("CustomerRepository", "")} → {@code "CustomerRepository"} (empty suffix)</li>
+     * </ul>
+     *
+     * @param baseName the base class name (e.g., port simple name)
+     * @param suffix the suffix to append (e.g., adapter suffix from config)
+     * @return the merged class name without duplicated overlap
+     * @throws IllegalArgumentException if baseName is null or empty
+     * @since 5.0.0
+     */
+    public static String toClassName(String baseName, String suffix) {
+        if (baseName == null || baseName.isEmpty()) {
+            throw new IllegalArgumentException("Base name cannot be null or empty");
+        }
+        if (suffix == null || suffix.isEmpty()) {
+            return baseName;
+        }
+
+        // Find the longest suffix of baseName that is also a prefix of suffix
+        int maxOverlap = Math.min(baseName.length(), suffix.length());
+        int overlap = 0;
+        for (int len = 1; len <= maxOverlap; len++) {
+            if (baseName.endsWith(suffix.substring(0, len))) {
+                overlap = len;
+            }
+        }
+
+        return baseName + suffix.substring(overlap);
+    }
+
+    /**
      * Generates a join table name for many-to-many relationships.
      *
      * <p>Join table names combine both entity names in snake_case, typically

@@ -23,6 +23,7 @@ import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
 import io.hexaglue.plugin.jpa.model.JpaModelUtils;
 import io.hexaglue.plugin.jpa.strategy.AdapterContext;
+import io.hexaglue.plugin.jpa.util.NamingConventions;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -151,9 +152,10 @@ public final class AdapterSpecBuilder {
         // Derive class name based on number of ports
         String className;
         if (drivenPorts.size() == 1) {
-            className = drivenPorts.get(0).id().simpleName() + config.adapterSuffix();
+            className = NamingConventions.toClassName(
+                    drivenPorts.get(0).id().simpleName(), config.adapterSuffix());
         } else {
-            className = simpleName + config.adapterSuffix();
+            className = NamingConventions.toClassName(simpleName, config.adapterSuffix());
         }
 
         // Convert all ports to TypeNames for implements clause
