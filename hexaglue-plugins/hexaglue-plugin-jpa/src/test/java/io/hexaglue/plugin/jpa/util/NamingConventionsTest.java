@@ -469,6 +469,74 @@ class NamingConventionsTest {
     }
 
     // =====================================================================
+    // toClassName tests
+    // =====================================================================
+
+    @Test
+    void toClassName_shouldMergeOverlappingSuffix() {
+        String result = NamingConventions.toClassName("CustomerRepository", "RepositoryAdapter");
+
+        assertThat(result).isEqualTo("CustomerRepositoryAdapter");
+    }
+
+    @Test
+    void toClassName_shouldSimplyConcatWhenNoOverlap() {
+        String result = NamingConventions.toClassName("Order", "Adapter");
+
+        assertThat(result).isEqualTo("OrderAdapter");
+    }
+
+    @Test
+    void toClassName_shouldReturnBaseNameWhenSuffixIsEmpty() {
+        String result = NamingConventions.toClassName("CustomerRepository", "");
+
+        assertThat(result).isEqualTo("CustomerRepository");
+    }
+
+    @Test
+    void toClassName_shouldReturnBaseNameWhenSuffixIsNull() {
+        String result = NamingConventions.toClassName("CustomerRepository", null);
+
+        assertThat(result).isEqualTo("CustomerRepository");
+    }
+
+    @Test
+    void toClassName_shouldHandleFullOverlap() {
+        String result = NamingConventions.toClassName("Repository", "Repository");
+
+        assertThat(result).isEqualTo("Repository");
+    }
+
+    @Test
+    void toClassName_shouldHandlePartialOverlapAtEnd() {
+        String result = NamingConventions.toClassName("OrderGateway", "GatewayAdapter");
+
+        assertThat(result).isEqualTo("OrderGatewayAdapter");
+    }
+
+    @Test
+    void toClassName_shouldBeCaseSensitive() {
+        // "repository" (lowercase) does not overlap with "Repository" (uppercase)
+        String result = NamingConventions.toClassName("Customerrepository", "RepositoryAdapter");
+
+        assertThat(result).isEqualTo("CustomerrepositoryRepositoryAdapter");
+    }
+
+    @Test
+    void toClassName_shouldThrowExceptionForNullBaseName() {
+        assertThatThrownBy(() -> NamingConventions.toClassName(null, "Adapter"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Base name cannot be null or empty");
+    }
+
+    @Test
+    void toClassName_shouldThrowExceptionForEmptyBaseName() {
+        assertThatThrownBy(() -> NamingConventions.toClassName("", "Adapter"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Base name cannot be null or empty");
+    }
+
+    // =====================================================================
     // toJoinTableName tests
     // =====================================================================
 

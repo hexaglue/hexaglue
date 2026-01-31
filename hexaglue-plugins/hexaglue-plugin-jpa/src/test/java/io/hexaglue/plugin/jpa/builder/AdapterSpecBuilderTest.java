@@ -467,6 +467,78 @@ class AdapterSpecBuilderTest {
         }
     }
 
+    @Nested
+    @DisplayName("Bug fix: double suffix in adapter naming")
+    class DoubleSuffixBugFix {
+
+        @Test
+        @DisplayName("should not produce double 'Repository' in adapter class name")
+        void shouldNotProduceDoubleRepositoryInAdapterClassName() {
+            // Given: suffix "RepositoryAdapter" and port name "CustomerRepository"
+            // Expected: "CustomerRepositoryAdapter", NOT "CustomerRepositoryRepositoryAdapter"
+            JpaConfig configWithRepositoryAdapter = new JpaConfig(
+                    "Entity", "Embeddable", "JpaRepository", "RepositoryAdapter", "Mapper", "", false, false, true,
+                    true, true, true);
+
+            DrivenPort port = createSimplePort("CustomerRepository");
+
+            // When
+            AdapterSpec spec = AdapterSpecBuilder.builder()
+                    .drivenPorts(List.of(port))
+                    .aggregateRoot(orderAggregate)
+                    .config(configWithRepositoryAdapter)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.className())
+                    .as("Should merge overlapping 'Repository' segment")
+                    .isEqualTo("CustomerRepositoryAdapter");
+        }
+
+        @Test
+        @DisplayName("should handle non-overlapping suffix normally")
+        void shouldHandleNonOverlappingSuffixNormally() {
+            // Given: suffix "Adapter" and port name "OrderRepository"
+            // Expected: "OrderRepositoryAdapter" (simple concatenation)
+            DrivenPort port = createSimplePort("OrderRepository");
+
+            // When
+            AdapterSpec spec = AdapterSpecBuilder.builder()
+                    .drivenPorts(List.of(port))
+                    .aggregateRoot(orderAggregate)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.className()).isEqualTo("OrderRepositoryAdapter");
+        }
+
+        @Test
+        @DisplayName("should not produce double suffix for multi-port adapter")
+        void shouldNotProduceDoubleSuffixForMultiPortAdapter() {
+            // Given: multi-port case uses aggregate name, suffix "RepositoryAdapter"
+            JpaConfig configWithRepositoryAdapter = new JpaConfig(
+                    "Entity", "Embeddable", "JpaRepository", "RepositoryAdapter", "Mapper", "", false, false, true,
+                    true, true, true);
+
+            DrivenPort port1 = createSimplePort("ReadableOrderRepository");
+            DrivenPort port2 = createSimplePort("WritableOrderRepository");
+
+            // When: multi-port uses aggregate name "Order" + suffix "RepositoryAdapter"
+            AdapterSpec spec = AdapterSpecBuilder.builder()
+                    .drivenPorts(List.of(port1, port2))
+                    .aggregateRoot(orderAggregate)
+                    .config(configWithRepositoryAdapter)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: "Order" + "RepositoryAdapter" = "OrderRepositoryAdapter" (no overlap)
+            assertThat(spec.className()).isEqualTo("OrderRepositoryAdapter");
+        }
+    }
+
     // ===== Helper Methods =====
 
     private AggregateRoot createOrderAggregate() {
