@@ -21,8 +21,13 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
 import java.util.List;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -53,7 +58,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -77,7 +83,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -102,7 +109,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -125,7 +133,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -151,7 +160,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -180,7 +190,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -211,7 +222,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -241,7 +253,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -269,7 +282,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -295,7 +309,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -318,7 +333,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -353,7 +369,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -377,7 +394,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -400,7 +418,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -436,7 +455,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -476,7 +496,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -513,7 +534,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(emailVoSpec),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -548,7 +570,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(emailVoSpec, phoneVoSpec),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -578,7 +601,8 @@ class JpaMapperCodegenTest {
                 null,
                 List.of(classVoSpec),
                 List.of(),
-                List.of());
+                List.of(),
+                null);
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -588,5 +612,237 @@ class JpaMapperCodegenTest {
         assertThat(generatedCode)
                 .contains("return vo != null ? vo.getAmount() : null")
                 .contains("default com.example.Money mapToMoney(java.math.BigDecimal value)");
+    }
+
+    // =====================================================================
+    // Reconstitution default method tests (Issue-3)
+    // =====================================================================
+
+    @Nested
+    @DisplayName("Reconstitution Default Method")
+    class ReconstitutionDefaultMethod {
+
+        @Test
+        @DisplayName("should generate default method when reconstitution spec is present")
+        void should_generateDefaultMethod_whenReconstitutionSpecPresent() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "id", "com.example.domain.CustomerId", "id", ConversionKind.WRAPPED_IDENTITY),
+                            new ReconstitutionParameterSpec(
+                                    "firstName", "java.lang.String", "firstName", ConversionKind.DIRECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: toDomain should be a default method, not abstract
+            assertThat(generatedCode).contains("default");
+            assertThat(generatedCode).doesNotContain("abstract com.example.domain.Order toDomain");
+        }
+
+        @Test
+        @DisplayName("should include null check in generated method")
+        void should_includeNullCheck_inGeneratedMethod() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(new ReconstitutionParameterSpec(
+                            "firstName", "java.lang.String", "firstName", ConversionKind.DIRECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then
+            assertThat(generatedCode).contains("if (entity == null)");
+            assertThat(generatedCode).contains("return null");
+        }
+
+        @Test
+        @DisplayName("should call factory method with correct class name")
+        void should_callFactoryMethod_withCorrectClassName() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(new ReconstitutionParameterSpec(
+                            "firstName", "java.lang.String", "firstName", ConversionKind.DIRECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should call Customer.reconstitute(...)
+            assertThat(generatedCode).contains("Customer.reconstitute(");
+        }
+
+        @Test
+        @DisplayName("should generate direct getter calls for DIRECT parameters")
+        void should_generateDirectGetterCalls_forDirectParameters() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "firstName", "java.lang.String", "firstName", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "phone", "java.lang.String", "phone", ConversionKind.DIRECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then
+            assertThat(generatedCode).contains("entity.getFirstName()");
+            assertThat(generatedCode).contains("entity.getPhone()");
+        }
+
+        @Test
+        @DisplayName("should generate map() calls for WRAPPED_IDENTITY parameters")
+        void should_generateMapCalls_forWrappedIdentityParameters() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(new ReconstitutionParameterSpec(
+                            "id", "com.example.domain.CustomerId", "id", ConversionKind.WRAPPED_IDENTITY)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then
+            assertThat(generatedCode).contains("map(entity.getId())");
+        }
+
+        @Test
+        @DisplayName("should generate mapToXxx() calls for VALUE_OBJECT parameters")
+        void should_generateMapToXxxCalls_forValueObjectParameters() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(new ReconstitutionParameterSpec(
+                            "email", "com.example.domain.Email", "email", ConversionKind.VALUE_OBJECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then
+            assertThat(generatedCode).contains("mapToEmail(entity.getEmail())");
+        }
+
+        @Test
+        @DisplayName("should fallback to abstract method when no reconstitution spec")
+        void should_fallbackToAbstractMethod_whenNoReconstitutionSpec() {
+            // Given
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: toDomain should NOT be a default method (implicitly abstract in interface)
+            assertThat(generatedCode).contains("toDomain(");
+            // No "default" keyword before toDomain, no null check, no reconstitute call
+            assertThat(generatedCode).doesNotContain("default com.example.domain.Order toDomain");
+            assertThat(generatedCode).doesNotContain("reconstitute");
+        }
     }
 }

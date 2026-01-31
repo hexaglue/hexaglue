@@ -1,0 +1,486 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
+package io.hexaglue.plugin.jpa.builder;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.hexaglue.arch.ArchitecturalModel;
+import io.hexaglue.arch.ClassificationTrace;
+import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Constructor;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.Method;
+import io.hexaglue.arch.model.MethodRole;
+import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.plugin.jpa.JpaConfig;
+import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
+import io.hexaglue.syntax.Modifier;
+import io.hexaglue.syntax.TypeRef;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Optional;
+import java.util.OptionalInt;
+import java.util.Set;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+/**
+ * Unit tests for {@link MapperSpecBuilder} reconstitution detection logic.
+ *
+ * <p>These tests validate the detection of domain factory methods (e.g., {@code reconstitute()})
+ * and the generation of {@link ReconstitutionSpec} for rich domain objects that cannot be
+ * instantiated via MapStruct's default no-arg constructor + setters strategy.
+ *
+ * @since 5.0.0
+ */
+@DisplayName("MapperSpecBuilder - Reconstitution Detection")
+class MapperSpecBuilderReconstitutionTest {
+
+    private static final String DOMAIN_PKG = "com.example.domain";
+    private static final String INFRA_PKG = "com.example.infrastructure.jpa";
+
+    private JpaConfig config;
+
+    @BeforeEach
+    void setUp() {
+        config = new JpaConfig(
+                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
+    }
+
+    private ClassificationTrace highConfidence(ElementKind kind) {
+        return ClassificationTrace.highConfidence(kind, "test", "Test classification");
+    }
+
+    @Nested
+    @DisplayName("Factory Method Detection")
+    class FactoryMethodDetection {
+
+        @Test
+        @DisplayName("should detect reconstitute() method")
+        void should_detectReconstituteMethod() {
+            // Given: A domain class with private constructor and reconstitute() factory
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().factoryMethodName()).isEqualTo("reconstitute");
+        }
+
+        @Test
+        @DisplayName("should prefer reconstitute over other factory methods")
+        void should_preferReconstitute_overOtherFactoryMethods() {
+            // Given: A domain class with both reconstitute() and create() factory methods
+            Method reconstituteMethod = createStaticFactoryMethod(
+                    "reconstitute",
+                    TypeRef.of(DOMAIN_PKG + ".Customer"),
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+            Method createMethod = createStaticFactoryMethod(
+                    "create",
+                    TypeRef.of(DOMAIN_PKG + ".Customer"),
+                    List.of(Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+
+            AggregateRoot aggregate = createAggregateWithMethods(List.of(reconstituteMethod, createMethod), List.of());
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().factoryMethodName()).isEqualTo("reconstitute");
+        }
+
+        @Test
+        @DisplayName("should return null when public no-arg constructor and setters exist")
+        void should_returnNull_whenPublicNoArgCtorAndSetters() {
+            // Given: A domain class with public no-arg constructor and setters (MapStruct-compatible)
+            Constructor publicNoArgCtor = new Constructor(
+                    List.of(), Set.of(Modifier.PUBLIC), List.of(), Optional.empty(), List.of(), Optional.empty());
+            Method setter = new Method(
+                    "setFirstName",
+                    TypeRef.of("void"),
+                    List.of(Parameter.of("firstName", TypeRef.of("java.lang.String"))),
+                    Set.of(Modifier.PUBLIC),
+                    List.of(),
+                    Optional.empty(),
+                    List.of(),
+                    Set.of(MethodRole.SETTER),
+                    OptionalInt.empty(),
+                    Optional.empty());
+
+            AggregateRoot aggregate = createAggregateWithMethods(List.of(setter), List.of(publicNoArgCtor));
+            ArchitecturalModel model = buildModelWith(aggregate);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: MapStruct can handle this natively
+            assertThat(spec.reconstitutionSpec()).isNull();
+        }
+
+        @Test
+        @DisplayName("should return null when no factory methods exist")
+        void should_returnNull_whenNoFactoryMethods() {
+            // Given: A domain class with no factory methods and no public no-arg ctor
+            Constructor privateCtor = new Constructor(
+                    List.of(Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId"))),
+                    Set.of(Modifier.PRIVATE),
+                    List.of(),
+                    Optional.empty(),
+                    List.of(),
+                    Optional.empty());
+
+            Method getter = new Method(
+                    "getFirstName",
+                    TypeRef.of("java.lang.String"),
+                    List.of(),
+                    Set.of(Modifier.PUBLIC),
+                    List.of(),
+                    Optional.empty(),
+                    List.of(),
+                    Set.of(MethodRole.GETTER),
+                    OptionalInt.empty(),
+                    Optional.empty());
+
+            AggregateRoot aggregate = createAggregateWithMethods(List.of(getter), List.of(privateCtor));
+            ArchitecturalModel model = buildModelWith(aggregate);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: No factory method found, fallback to abstract
+            assertThat(spec.reconstitutionSpec()).isNull();
+        }
+
+        @Test
+        @DisplayName("should select method with most params when no reconstitute name")
+        void should_selectMethodWithMostParams_whenNoReconstitute() {
+            // Given: Two factory methods, neither named "reconstitute"
+            Method fromMethod = createStaticFactoryMethod(
+                    "from",
+                    TypeRef.of(DOMAIN_PKG + ".Customer"),
+                    List.of(Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId"))));
+            Method restoreMethod = createStaticFactoryMethod(
+                    "restore",
+                    TypeRef.of(DOMAIN_PKG + ".Customer"),
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String")),
+                            Parameter.of("lastName", TypeRef.of("java.lang.String"))));
+
+            AggregateRoot aggregate = createAggregateWithMethods(List.of(fromMethod, restoreMethod), List.of());
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: "restore" has more params, so it's selected
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().factoryMethodName()).isEqualTo("restore");
+        }
+    }
+
+    @Nested
+    @DisplayName("Parameter Matching")
+    class ParameterMatching {
+
+        @Test
+        @DisplayName("should match param to entity field by name")
+        void should_matchParamToEntityFieldByName() {
+            // Given
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).hasSize(2);
+            assertThat(spec.reconstitutionSpec().parameters().get(1).entityFieldName())
+                    .isEqualTo("firstName");
+        }
+
+        @Test
+        @DisplayName("should map identity param to id field")
+        void should_mapIdentityParamToIdField() {
+            // Given: reconstitute(CustomerId id, ...) - the identity type param maps to JPA "id" field
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: The identity-type parameter maps to "id" (JPA entity field)
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters().get(0).entityFieldName())
+                    .isEqualTo("id");
+        }
+
+        @Test
+        @DisplayName("should detect WRAPPED_IDENTITY conversion for identity types")
+        void should_detectWrappedIdentityConversion() {
+            // Given
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute", List.of(Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters().get(0).conversionKind())
+                    .isEqualTo(ConversionKind.WRAPPED_IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should detect VALUE_OBJECT conversion for single-value VOs")
+        void should_detectValueObjectConversion() {
+            // Given
+            ValueObject emailVo = createSingleValueVO("Email", "java.lang.String");
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("email", TypeRef.of(DOMAIN_PKG + ".Email"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier(), emailVo);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("email");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.VALUE_OBJECT);
+            });
+        }
+
+        @Test
+        @DisplayName("should detect DIRECT conversion for primitive types")
+        void should_detectDirectConversion_forPrimitiveTypes() {
+            // Given
+            AggregateRoot aggregate = createAggregateWithReconstitute(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("firstName");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.DIRECT);
+            });
+        }
+    }
+
+    // ===== Helper Methods =====
+
+    /**
+     * Creates an aggregate with a reconstitute-style factory method and no public no-arg constructor.
+     */
+    private AggregateRoot createAggregateWithReconstitute(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod =
+                createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Customer"), params);
+        return createAggregateWithMethods(List.of(factoryMethod), List.of());
+    }
+
+    /**
+     * Creates an aggregate with specified methods and constructors.
+     */
+    private AggregateRoot createAggregateWithMethods(List<Method> methods, List<Constructor> constructors) {
+        Field identityField = Field.builder("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(
+                        identityField,
+                        Field.of("firstName", TypeRef.of("java.lang.String")),
+                        Field.of("lastName", TypeRef.of("java.lang.String"))))
+                .methods(methods)
+                .constructors(constructors)
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Customer"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
+    }
+
+    /**
+     * Creates a static factory method with the FACTORY role.
+     */
+    private Method createStaticFactoryMethod(String name, TypeRef returnType, List<Parameter> params) {
+        return new Method(
+                name,
+                returnType,
+                params,
+                Set.of(Modifier.PUBLIC, Modifier.STATIC),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Set.of(MethodRole.FACTORY),
+                OptionalInt.empty(),
+                Optional.empty());
+    }
+
+    /**
+     * Creates a CustomerId identifier wrapping UUID.
+     */
+    private Identifier createCustomerIdIdentifier() {
+        Field valueField = Field.builder("value", TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.RECORD)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(valueField))
+                .build();
+
+        return Identifier.of(
+                TypeId.of(DOMAIN_PKG + ".CustomerId"),
+                structure,
+                highConfidence(ElementKind.IDENTIFIER),
+                TypeRef.of("java.util.UUID"));
+    }
+
+    /**
+     * Creates a single-value ValueObject (e.g., Email wrapping String).
+     */
+    private ValueObject createSingleValueVO(String simpleName, String wrappedTypeFqn) {
+        Field valueField = Field.builder("value", TypeRef.of(wrappedTypeFqn)).build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.RECORD)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(valueField))
+                .build();
+
+        return ValueObject.of(
+                TypeId.of(DOMAIN_PKG + "." + simpleName), structure, highConfidence(ElementKind.VALUE_OBJECT));
+    }
+
+    /**
+     * Builds an ArchitecturalModel containing the given aggregate and optional domain types.
+     */
+    private ArchitecturalModel buildModelWith(
+            AggregateRoot aggregate, io.hexaglue.arch.model.ArchType... additionalTypes) {
+        TypeRegistry.Builder registryBuilder = TypeRegistry.builder();
+        registryBuilder.add(aggregate);
+        for (io.hexaglue.arch.model.ArchType type : additionalTypes) {
+            registryBuilder.add(type);
+        }
+        TypeRegistry registry = registryBuilder.build();
+        DomainIndex domainIndex = DomainIndex.from(registry);
+
+        ProjectContext project = ProjectContext.of("test-project", DOMAIN_PKG, Path.of("."));
+        return ArchitecturalModel.builder(project)
+                .typeRegistry(registry)
+                .domainIndex(domainIndex)
+                .build();
+    }
+}

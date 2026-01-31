@@ -55,6 +55,8 @@ import java.util.List;
  * @param valueObjectMappings information about Value Objects that need conversion methods
  * @param embeddableMappings information about VALUE_OBJECTs that map to JPA embeddables
  * @param usedMappers list of other mappers this mapper should delegate to for entity relationships
+ * @param reconstitutionSpec specification for generating a default toDomain() method using a factory method,
+ *        or null to fall back to MapStruct's abstract method generation
  * @since 2.0.0
  */
 public record MapperSpec(
@@ -67,7 +69,8 @@ public record MapperSpec(
         WrappedIdentitySpec wrappedIdentity,
         List<ValueObjectMappingSpec> valueObjectMappings,
         List<EmbeddableMappingSpec> embeddableMappings,
-        List<ClassName> usedMappers) {
+        List<ClassName> usedMappers,
+        ReconstitutionSpec reconstitutionSpec) {
 
     /**
      * Canonical constructor with defensive copies.
@@ -212,5 +215,69 @@ public record MapperSpec(
      */
     public boolean hasCustomMappings() {
         return !toEntityMappings.isEmpty() || !toDomainMappings.isEmpty();
+    }
+
+    /**
+     * Specification for generating a {@code default toDomain()} method that calls
+     * a domain factory method (e.g., {@code reconstitute()}) instead of relying
+     * on MapStruct's abstract method generation.
+     *
+     * <p>This is needed when domain objects follow DDD rich model patterns with
+     * private constructors and no setters. MapStruct cannot instantiate such objects
+     * via its default strategy (no-arg constructor + setters).
+     *
+     * @param factoryMethodName the name of the static factory method (e.g., "reconstitute")
+     * @param domainTypeQualifiedName the fully qualified name of the domain type
+     * @param parameters the ordered list of parameter specifications for the factory call
+     * @since 5.0.0
+     */
+    public record ReconstitutionSpec(
+            String factoryMethodName, String domainTypeQualifiedName, List<ReconstitutionParameterSpec> parameters) {
+
+        /**
+         * Canonical constructor with defensive copy.
+         */
+        public ReconstitutionSpec {
+            parameters = List.copyOf(parameters);
+        }
+    }
+
+    /**
+     * Specification for a single parameter in a reconstitution factory method call.
+     *
+     * <p>Each parameter maps to an entity getter expression. The {@link ConversionKind}
+     * determines how the getter value is transformed before being passed to the factory.
+     *
+     * @param parameterName the parameter name in the factory method
+     * @param parameterTypeQualifiedName the fully qualified type of the parameter
+     * @param entityFieldName the corresponding field name on the JPA entity
+     * @param conversionKind how to convert the entity field value to the parameter type
+     * @since 5.0.0
+     */
+    public record ReconstitutionParameterSpec(
+            String parameterName,
+            String parameterTypeQualifiedName,
+            String entityFieldName,
+            ConversionKind conversionKind) {}
+
+    /**
+     * Describes how an entity field value is converted when passed to
+     * the domain reconstitution factory method.
+     *
+     * @since 5.0.0
+     */
+    public enum ConversionKind {
+
+        /** Direct pass-through, no conversion needed (e.g., {@code entity.getFirstName()}). */
+        DIRECT,
+
+        /** Wrapped identity conversion via existing {@code map()} helper (e.g., {@code map(entity.getId())}). */
+        WRAPPED_IDENTITY,
+
+        /** Single-value Value Object conversion via {@code mapToXxx()} helper (e.g., {@code mapToEmail(entity.getEmail())}). */
+        VALUE_OBJECT,
+
+        /** Entity relationship, delegated via {@code @Mapper(uses={})} (e.g., {@code entity.getItems()}). */
+        ENTITY_RELATION
     }
 }

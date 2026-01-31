@@ -15,14 +15,19 @@ package io.hexaglue.plugin.jpa.codegen;
 
 import com.palantir.javapoet.AnnotationSpec;
 import com.palantir.javapoet.ClassName;
+import com.palantir.javapoet.CodeBlock;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
+import io.hexaglue.plugin.jpa.util.NamingConventions;
 import java.util.Optional;
 import javax.lang.model.element.Modifier;
 
@@ -310,26 +315,33 @@ public final class JpaMapperCodegen {
     }
 
     /**
-     * Creates the {@code toDomain()} method with custom mappings.
+     * Creates the {@code toDomain()} method, dispatching between abstract and default implementations.
      *
-     * <p>This method converts JPA entities to domain objects. It:
-     * <ul>
-     *   <li>Takes a JPA entity as parameter</li>
-     *   <li>Returns a domain object</li>
-     *   <li>Applies {@code @Mapping} annotations from the spec</li>
-     *   <li>Is abstract (MapStruct generates implementation)</li>
-     * </ul>
-     *
-     * <p>Generated signature:
-     * <pre>{@code
-     * @Mapping(target = "orderId", source = "id")
-     * Order toDomain(OrderEntity entity);
-     * }</pre>
+     * <p>When a {@link ReconstitutionSpec} is present, generates a {@code default} method that
+     * calls the domain factory method directly. Otherwise, falls back to an abstract method
+     * for MapStruct to implement.
      *
      * @param spec the mapper specification
      * @return the {@code toDomain()} method spec
+     * @since 5.0.0
      */
     private static MethodSpec createToDomainMethod(MapperSpec spec) {
+        if (spec.reconstitutionSpec() != null) {
+            return createToDomainDefaultMethod(spec);
+        }
+        return createToDomainAbstractMethod(spec);
+    }
+
+    /**
+     * Creates an abstract {@code toDomain()} method with custom mappings.
+     *
+     * <p>This is the original behavior: MapStruct generates the implementation via
+     * no-arg constructor + setters. Used when the domain type is MapStruct-compatible.
+     *
+     * @param spec the mapper specification
+     * @return the abstract {@code toDomain()} method spec
+     */
+    private static MethodSpec createToDomainAbstractMethod(MapperSpec spec) {
         MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("toDomain")
                 .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
                 .returns(spec.domainType())
@@ -344,6 +356,104 @@ public final class JpaMapperCodegen {
         }
 
         return methodBuilder.build();
+    }
+
+    /**
+     * Creates a {@code default toDomain()} method that calls the domain's factory method.
+     *
+     * <p>This is used for rich domain objects that cannot be instantiated via MapStruct's
+     * default strategy (no-arg constructor + setters). The generated method calls the
+     * domain's reconstitution factory directly.
+     *
+     * <p>Generated code example:
+     * <pre>{@code
+     * default Customer toDomain(CustomerJpaEntity entity) {
+     *     if (entity == null) {
+     *         return null;
+     *     }
+     *     return Customer.reconstitute(
+     *         map(entity.getId()),
+     *         entity.getFirstName(),
+     *         mapToEmail(entity.getEmail())
+     *     );
+     * }
+     * }</pre>
+     *
+     * @param spec the mapper specification containing the reconstitution spec
+     * @return the default {@code toDomain()} method spec
+     * @since 5.0.0
+     */
+    private static MethodSpec createToDomainDefaultMethod(MapperSpec spec) {
+        ReconstitutionSpec reconstitution = spec.reconstitutionSpec();
+        ClassName domainClass = ClassName.bestGuess(reconstitution.domainTypeQualifiedName());
+
+        CodeBlock.Builder bodyBuilder = CodeBlock.builder();
+
+        // Null check
+        bodyBuilder.beginControlFlow("if (entity == null)");
+        bodyBuilder.addStatement("return null");
+        bodyBuilder.endControlFlow();
+
+        // Build factory method call with arguments
+        if (reconstitution.parameters().isEmpty()) {
+            bodyBuilder.addStatement("return $T.$L()", domainClass, reconstitution.factoryMethodName());
+        } else {
+            // Multi-line factory call
+            StringBuilder format = new StringBuilder("return $T.$L(\n");
+            for (int i = 0; i < reconstitution.parameters().size(); i++) {
+                ReconstitutionParameterSpec param = reconstitution.parameters().get(i);
+                String getterExpr = buildGetterExpression(param);
+                format.append("    ").append(getterExpr);
+                if (i < reconstitution.parameters().size() - 1) {
+                    format.append(",\n");
+                }
+            }
+            format.append(")");
+            bodyBuilder.addStatement(format.toString(), domainClass, reconstitution.factoryMethodName());
+        }
+
+        return MethodSpec.methodBuilder("toDomain")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(spec.domainType())
+                .addParameter(spec.entityType(), "entity")
+                .addJavadoc(
+                        "Converts a JPA entity to a domain object using the {@code $L()} factory method.\n\n",
+                        reconstitution.factoryMethodName())
+                .addJavadoc("@param entity the JPA entity to convert\n")
+                .addJavadoc("@return the corresponding domain object, or null if entity is null\n")
+                .addCode(bodyBuilder.build())
+                .build();
+    }
+
+    /**
+     * Builds the getter expression for a reconstitution parameter based on its conversion kind.
+     *
+     * <ul>
+     *   <li>{@link ConversionKind#DIRECT} → {@code entity.getFieldName()}</li>
+     *   <li>{@link ConversionKind#WRAPPED_IDENTITY} → {@code map(entity.getFieldName())}</li>
+     *   <li>{@link ConversionKind#VALUE_OBJECT} → {@code mapToSimpleName(entity.getFieldName())}</li>
+     *   <li>{@link ConversionKind#ENTITY_RELATION} → {@code entity.getFieldName()}</li>
+     * </ul>
+     *
+     * @param param the parameter specification
+     * @return the Java expression string
+     * @since 5.0.0
+     */
+    private static String buildGetterExpression(ReconstitutionParameterSpec param) {
+        String capitalizedFieldName = NamingConventions.capitalize(param.entityFieldName());
+        String getter = "entity.get" + capitalizedFieldName + "()";
+
+        return switch (param.conversionKind()) {
+            case DIRECT -> getter;
+            case WRAPPED_IDENTITY -> "map(" + getter + ")";
+            case VALUE_OBJECT -> {
+                // Extract simple name from qualified name for mapToXxx method
+                String fqn = param.parameterTypeQualifiedName();
+                String simpleName = fqn.substring(fqn.lastIndexOf('.') + 1);
+                yield "mapTo" + simpleName + "(" + getter + ")";
+            }
+            case ENTITY_RELATION -> getter;
+        };
     }
 
     /**

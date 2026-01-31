@@ -477,8 +477,18 @@ class AdapterSpecBuilderTest {
             // Given: suffix "RepositoryAdapter" and port name "CustomerRepository"
             // Expected: "CustomerRepositoryAdapter", NOT "CustomerRepositoryRepositoryAdapter"
             JpaConfig configWithRepositoryAdapter = new JpaConfig(
-                    "Entity", "Embeddable", "JpaRepository", "RepositoryAdapter", "Mapper", "", false, false, true,
-                    true, true, true);
+                    "Entity",
+                    "Embeddable",
+                    "JpaRepository",
+                    "RepositoryAdapter",
+                    "Mapper",
+                    "",
+                    false,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true);
 
             DrivenPort port = createSimplePort("CustomerRepository");
 
@@ -520,8 +530,18 @@ class AdapterSpecBuilderTest {
         void shouldNotProduceDoubleSuffixForMultiPortAdapter() {
             // Given: multi-port case uses aggregate name, suffix "RepositoryAdapter"
             JpaConfig configWithRepositoryAdapter = new JpaConfig(
-                    "Entity", "Embeddable", "JpaRepository", "RepositoryAdapter", "Mapper", "", false, false, true,
-                    true, true, true);
+                    "Entity",
+                    "Embeddable",
+                    "JpaRepository",
+                    "RepositoryAdapter",
+                    "Mapper",
+                    "",
+                    false,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true);
 
             DrivenPort port1 = createSimplePort("ReadableOrderRepository");
             DrivenPort port2 = createSimplePort("WritableOrderRepository");
