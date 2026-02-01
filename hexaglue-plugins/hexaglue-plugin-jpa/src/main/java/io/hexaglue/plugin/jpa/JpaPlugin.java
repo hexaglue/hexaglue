@@ -265,9 +265,12 @@ public final class JpaPlugin implements GeneratorPlugin {
         List<AggregateRoot> allAggregates = domainIndex.aggregateRoots().toList();
 
         // Issue 13 fix: discover child entity types from aggregate roots.
-        // These may be classified as VALUE_OBJECT or UNCLASSIFIED in domainIndex
-        // but the aggregate explicitly declares them as entities via entities().
+        // Two discovery mechanisms:
+        // 1. From AggregateRoot.entities() — explicit entity declarations (non-collection references)
+        // 2. From collection fields — scan List<X>/Set<X> where X is entity-like (has id, in registry)
         Set<String> childEntityFqns = new LinkedHashSet<>();
+
+        // Mechanism 1: explicit entity declarations
         for (AggregateRoot aggregate : allAggregates) {
             for (TypeRef entityRef : aggregate.entities()) {
                 String fqn = entityRef.qualifiedName();
@@ -279,6 +282,53 @@ public final class JpaPlugin implements GeneratorPlugin {
                 }
             }
         }
+
+        // Mechanism 2: discover entity-like types from aggregate collection fields.
+        // A collection element type is treated as a child entity if:
+        // - It exists in the type registry (known domain type)
+        // - It is NOT already mapped (not an aggregate root, entity, or embeddable)
+        // - Its structure has an identity-like field (IDENTITY role or field named "id")
+        for (AggregateRoot aggregate : allAggregates) {
+            for (Field field : aggregate.structure().getFieldsWithRole(FieldRole.COLLECTION)) {
+                Optional<String> elementFqnOpt = field.elementType().map(TypeRef::qualifiedName);
+                if (elementFqnOpt.isEmpty()) {
+                    // Fallback: extract from type arguments (e.g., List<OrderLine> → OrderLine)
+                    var typeArgs = field.type().typeArguments();
+                    if (!typeArgs.isEmpty()) {
+                        elementFqnOpt = Optional.of(typeArgs.get(0).qualifiedName());
+                    }
+                }
+                if (elementFqnOpt.isEmpty()) {
+                    continue;
+                }
+
+                String elementFqn = elementFqnOpt.get();
+
+                // Skip if already mapped as entity, aggregate root, or embeddable
+                if (entityMapping.containsKey(elementFqn)
+                        || embeddableMapping.containsKey(elementFqn)
+                        || childEntityFqns.contains(elementFqn)) {
+                    continue;
+                }
+
+                // Check if the type exists in the registry and has entity-like characteristics
+                model.typeRegistry()
+                        .flatMap(registry -> registry.get(TypeId.of(elementFqn)))
+                        .ifPresent(archType -> {
+                            boolean hasIdentity = !archType.structure()
+                                            .getFieldsWithRole(FieldRole.IDENTITY)
+                                            .isEmpty()
+                                    || archType.structure().getField("id").isPresent();
+                            if (hasIdentity) {
+                                childEntityFqns.add(elementFqn);
+                                String simpleName = TypeId.of(elementFqn).simpleName();
+                                String entityClassName = simpleName + config.entitySuffix();
+                                entityMapping.put(elementFqn, infraPackage + "." + entityClassName);
+                            }
+                        });
+            }
+        }
+
         if (!childEntityFqns.isEmpty()) {
             diagnostics.info("Discovered " + childEntityFqns.size() + " child entity types from aggregate roots");
         }
@@ -337,6 +387,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .embeddableMapping(embeddableMapping)
+                            .entityMapping(entityMapping)
+                            .childEntityFqns(childEntityFqns)
                             .build();
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
@@ -405,6 +457,8 @@ public final class JpaPlugin implements GeneratorPlugin {
                             .config(config)
                             .infrastructurePackage(infraPackage)
                             .embeddableMapping(embeddableMapping)
+                            .entityMapping(entityMapping)
+                            .childEntityFqns(childEntityFqns)
                             .build();
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);

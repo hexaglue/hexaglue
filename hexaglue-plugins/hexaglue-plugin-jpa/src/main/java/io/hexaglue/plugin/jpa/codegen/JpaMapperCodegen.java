@@ -21,6 +21,7 @@ import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ChildEntityConversionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
@@ -28,7 +29,9 @@ import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import io.hexaglue.plugin.jpa.util.JpaAnnotations;
 import io.hexaglue.plugin.jpa.util.NamingConventions;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -176,6 +179,45 @@ public final class JpaMapperCodegen {
             }
         }
 
+        // Issue-14: Add child entity conversion methods
+        if (spec.childEntityConversions() != null
+                && !spec.childEntityConversions().isEmpty()) {
+            // Track already-added VO/embeddable methods to avoid duplicates
+            Set<String> addedVoTypes = new HashSet<>();
+            if (spec.valueObjectMappings() != null) {
+                for (ValueObjectMappingSpec voSpec : spec.valueObjectMappings()) {
+                    addedVoTypes.add(voSpec.valueObjectType());
+                }
+            }
+            Set<String> addedEmbeddableTypes = new HashSet<>();
+            if (spec.embeddableMappings() != null) {
+                for (MapperSpec.EmbeddableMappingSpec embSpec : spec.embeddableMappings()) {
+                    addedEmbeddableTypes.add(embSpec.domainTypeFqn());
+                }
+            }
+
+            for (ChildEntityConversionSpec childSpec : spec.childEntityConversions()) {
+                builder.addMethod(createChildToEntityMethod(childSpec));
+                builder.addMethod(createChildToDomainMethod(childSpec));
+
+                // Add child-specific VO conversion methods (deduplicated)
+                for (ValueObjectMappingSpec voSpec : childSpec.valueObjectMappings()) {
+                    if (addedVoTypes.add(voSpec.valueObjectType())) {
+                        builder.addMethod(createValueObjectToUnwrappedMethod(voSpec));
+                        builder.addMethod(createValueObjectToWrappedMethod(voSpec));
+                    }
+                }
+
+                // Add child-specific embeddable conversion methods (deduplicated)
+                for (MapperSpec.EmbeddableMappingSpec embSpec : childSpec.embeddableMappings()) {
+                    if (addedEmbeddableTypes.add(embSpec.domainTypeFqn())) {
+                        builder.addMethod(createEmbeddableToEntityMethod(embSpec));
+                        builder.addMethod(createEmbeddableToDomainMethod(embSpec));
+                    }
+                }
+            }
+        }
+
         // Issue-11: Add audit temporal conversion helper if needed
         if (spec.reconstitutionSpec() != null) {
             boolean hasAuditTemporal = spec.reconstitutionSpec().parameters().stream()
@@ -248,6 +290,152 @@ public final class JpaMapperCodegen {
                 .addJavadoc("@param embeddable the JPA embeddable to convert\n")
                 .addJavadoc("@return the corresponding domain VALUE_OBJECT\n")
                 .build();
+    }
+
+    // =====================================================================
+    // Child entity conversion methods (Issue-14)
+    // =====================================================================
+
+    /**
+     * Creates an abstract {@code toEntity()} method for a child entity type.
+     *
+     * <p>Generates a method like:
+     * <pre>{@code
+     * @Mapping(target = "createdAt", ignore = true)
+     * @Mapping(target = "updatedAt", ignore = true)
+     * OrderLineJpaEntity toEntity(OrderLine domain);
+     * }</pre>
+     *
+     * @param childSpec the child entity conversion specification
+     * @return the method spec for child domain → entity conversion
+     * @since 5.0.0
+     */
+    private static MethodSpec createChildToEntityMethod(ChildEntityConversionSpec childSpec) {
+        ClassName childDomainClass = ClassName.bestGuess(childSpec.childDomainTypeFqn());
+        ClassName childEntityClass = ClassName.bestGuess(childSpec.childEntityTypeFqn());
+
+        MethodSpec.Builder methodBuilder = MethodSpec.methodBuilder("toEntity")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(childEntityClass)
+                .addParameter(childDomainClass, "domain")
+                .addJavadoc(
+                        "Converts a {@link $L} domain object to a {@link $L} JPA entity.\n\n",
+                        childSpec.childDomainSimpleName(),
+                        childSpec.childEntitySimpleName())
+                .addJavadoc("@param domain the child domain object to convert\n")
+                .addJavadoc("@return the corresponding child JPA entity\n");
+
+        // Add @Mapping annotations (e.g., audit field ignores)
+        for (MappingSpec mapping : childSpec.toEntityMappings()) {
+            methodBuilder.addAnnotation(buildMappingAnnotation(mapping));
+        }
+
+        return methodBuilder.build();
+    }
+
+    /**
+     * Creates a {@code toDomain()} method for a child entity type.
+     *
+     * <p>If the child has a reconstitution spec, generates a {@code default} method
+     * that calls the factory method or constructor directly (same pattern as parent toDomain).
+     * Otherwise, generates an abstract method for MapStruct.
+     *
+     * @param childSpec the child entity conversion specification
+     * @return the method spec for child entity → domain conversion
+     * @since 5.0.0
+     */
+    private static MethodSpec createChildToDomainMethod(ChildEntityConversionSpec childSpec) {
+        ClassName childDomainClass = ClassName.bestGuess(childSpec.childDomainTypeFqn());
+        ClassName childEntityClass = ClassName.bestGuess(childSpec.childEntityTypeFqn());
+
+        if (childSpec.reconstitutionSpec() != null) {
+            ReconstitutionSpec reconstitution = childSpec.reconstitutionSpec();
+            CodeBlock body = buildReconstitutionCodeBlock(reconstitution);
+
+            String javadocAction = reconstitution.factoryMethodName() != null
+                    ? "using the {@code " + reconstitution.factoryMethodName() + "()} factory method"
+                    : "using the constructor";
+
+            return MethodSpec.methodBuilder("toDomain")
+                    .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                    .returns(childDomainClass)
+                    .addParameter(childEntityClass, "entity")
+                    .addJavadoc(
+                            "Converts a {@link $L} JPA entity to a {@link $L} domain object " + javadocAction + ".\n\n",
+                            childSpec.childEntitySimpleName(),
+                            childSpec.childDomainSimpleName())
+                    .addJavadoc("@param entity the child JPA entity to convert\n")
+                    .addJavadoc("@return the corresponding child domain object, or null if entity is null\n")
+                    .addCode(body)
+                    .build();
+        }
+
+        // Abstract method for MapStruct to implement
+        return MethodSpec.methodBuilder("toDomain")
+                .addModifiers(Modifier.PUBLIC, Modifier.ABSTRACT)
+                .returns(childDomainClass)
+                .addParameter(childEntityClass, "entity")
+                .addJavadoc(
+                        "Converts a {@link $L} JPA entity to a {@link $L} domain object.\n\n",
+                        childSpec.childEntitySimpleName(),
+                        childSpec.childDomainSimpleName())
+                .addJavadoc("@param entity the child JPA entity to convert\n")
+                .addJavadoc("@return the corresponding child domain object\n")
+                .build();
+    }
+
+    /**
+     * Builds a reconstitution code block that calls either a static factory method or a constructor.
+     *
+     * <p>When {@code factoryMethodName} is non-null, generates:
+     * {@code return Type.factoryMethod(param1, param2, ...)}
+     *
+     * <p>When {@code factoryMethodName} is null (constructor-based), generates:
+     * {@code return new Type(param1, param2, ...)}
+     *
+     * @param reconstitution the reconstitution specification
+     * @return the code block with null check and reconstitution call
+     * @since 5.0.0
+     */
+    private static CodeBlock buildReconstitutionCodeBlock(ReconstitutionSpec reconstitution) {
+        ClassName domainClass = ClassName.bestGuess(reconstitution.domainTypeQualifiedName());
+        boolean isConstructorBased = reconstitution.factoryMethodName() == null;
+
+        CodeBlock.Builder bodyBuilder = CodeBlock.builder();
+        bodyBuilder.beginControlFlow("if (entity == null)");
+        bodyBuilder.addStatement("return null");
+        bodyBuilder.endControlFlow();
+
+        if (reconstitution.parameters().isEmpty()) {
+            if (isConstructorBased) {
+                bodyBuilder.addStatement("return new $T()", domainClass);
+            } else {
+                bodyBuilder.addStatement("return $T.$L()", domainClass, reconstitution.factoryMethodName());
+            }
+        } else {
+            StringBuilder format;
+            if (isConstructorBased) {
+                format = new StringBuilder("return new $T(\n");
+            } else {
+                format = new StringBuilder("return $T.$L(\n");
+            }
+            for (int i = 0; i < reconstitution.parameters().size(); i++) {
+                ReconstitutionParameterSpec param = reconstitution.parameters().get(i);
+                String getterExpr = buildGetterExpression(param);
+                format.append("    ").append(getterExpr);
+                if (i < reconstitution.parameters().size() - 1) {
+                    format.append(",\n");
+                }
+            }
+            format.append(")");
+            if (isConstructorBased) {
+                bodyBuilder.addStatement(format.toString(), domainClass);
+            } else {
+                bodyBuilder.addStatement(format.toString(), domainClass, reconstitution.factoryMethodName());
+            }
+        }
+
+        return bodyBuilder.build();
     }
 
     /**
@@ -368,13 +556,14 @@ public final class JpaMapperCodegen {
     }
 
     /**
-     * Creates a {@code default toDomain()} method that calls the domain's factory method.
+     * Creates a {@code default toDomain()} method that calls the domain's factory method
+     * or constructor.
      *
      * <p>This is used for rich domain objects that cannot be instantiated via MapStruct's
      * default strategy (no-arg constructor + setters). The generated method calls the
-     * domain's reconstitution factory directly.
+     * domain's reconstitution factory or constructor directly.
      *
-     * <p>Generated code example:
+     * <p>Generated code example (factory method):
      * <pre>{@code
      * default Customer toDomain(CustomerJpaEntity entity) {
      *     if (entity == null) {
@@ -388,49 +577,42 @@ public final class JpaMapperCodegen {
      * }
      * }</pre>
      *
+     * <p>Generated code example (constructor-based):
+     * <pre>{@code
+     * default OrderLine toDomain(OrderLineJpaEntity entity) {
+     *     if (entity == null) {
+     *         return null;
+     *     }
+     *     return new OrderLine(
+     *         entity.getId(),
+     *         mapToProductId(entity.getProductId()),
+     *         entity.getProductName(),
+     *         entity.getQuantity(),
+     *         toDomain(entity.getUnitPrice())
+     *     );
+     * }
+     * }</pre>
+     *
      * @param spec the mapper specification containing the reconstitution spec
      * @return the default {@code toDomain()} method spec
      * @since 5.0.0
      */
     private static MethodSpec createToDomainDefaultMethod(MapperSpec spec) {
         ReconstitutionSpec reconstitution = spec.reconstitutionSpec();
-        ClassName domainClass = ClassName.bestGuess(reconstitution.domainTypeQualifiedName());
 
-        CodeBlock.Builder bodyBuilder = CodeBlock.builder();
-
-        // Null check
-        bodyBuilder.beginControlFlow("if (entity == null)");
-        bodyBuilder.addStatement("return null");
-        bodyBuilder.endControlFlow();
-
-        // Build factory method call with arguments
-        if (reconstitution.parameters().isEmpty()) {
-            bodyBuilder.addStatement("return $T.$L()", domainClass, reconstitution.factoryMethodName());
-        } else {
-            // Multi-line factory call
-            StringBuilder format = new StringBuilder("return $T.$L(\n");
-            for (int i = 0; i < reconstitution.parameters().size(); i++) {
-                ReconstitutionParameterSpec param = reconstitution.parameters().get(i);
-                String getterExpr = buildGetterExpression(param);
-                format.append("    ").append(getterExpr);
-                if (i < reconstitution.parameters().size() - 1) {
-                    format.append(",\n");
-                }
-            }
-            format.append(")");
-            bodyBuilder.addStatement(format.toString(), domainClass, reconstitution.factoryMethodName());
-        }
+        CodeBlock body = buildReconstitutionCodeBlock(reconstitution);
+        String javadocAction = reconstitution.factoryMethodName() != null
+                ? "using the {@code " + reconstitution.factoryMethodName() + "()} factory method"
+                : "using the constructor";
 
         return MethodSpec.methodBuilder("toDomain")
                 .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
                 .returns(spec.domainType())
                 .addParameter(spec.entityType(), "entity")
-                .addJavadoc(
-                        "Converts a JPA entity to a domain object using the {@code $L()} factory method.\n\n",
-                        reconstitution.factoryMethodName())
+                .addJavadoc("Converts a JPA entity to a domain object " + javadocAction + ".\n\n")
                 .addJavadoc("@param entity the JPA entity to convert\n")
                 .addJavadoc("@return the corresponding domain object, or null if entity is null\n")
-                .addCode(bodyBuilder.build())
+                .addCode(body)
                 .build();
     }
 
@@ -468,6 +650,8 @@ public final class JpaMapperCodegen {
             }
             case EMBEDDED_VALUE_OBJECT -> "toDomain(" + getter + ")";
             case ENTITY_RELATION -> getter;
+            case CHILD_ENTITY_COLLECTION ->
+                getter + ".stream().map(this::toDomain).collect(java.util.stream.Collectors.toList())";
             case AUDIT_TEMPORAL -> "toLocalDateTime(" + getter + ")";
         };
     }

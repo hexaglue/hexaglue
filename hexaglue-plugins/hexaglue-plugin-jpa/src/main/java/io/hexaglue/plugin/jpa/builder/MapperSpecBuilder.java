@@ -17,14 +17,17 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Constructor;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ChildEntityConversionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
@@ -93,6 +96,8 @@ public final class MapperSpecBuilder {
     private JpaConfig config;
     private String infrastructurePackage;
     private Map<String, String> embeddableMapping = Map.of();
+    private Set<String> childEntityFqns = Set.of();
+    private Map<String, String> entityMapping = Map.of();
 
     /** Audit field names added by JPA entity codegen when auditing is enabled. */
     private static final Set<String> AUDIT_FIELD_NAMES = Set.of("createdAt", "updatedAt");
@@ -191,6 +196,36 @@ public final class MapperSpecBuilder {
     }
 
     /**
+     * Sets the child entity fully qualified names discovered from aggregate roots.
+     *
+     * <p>These are entity types that appear in aggregate collection fields
+     * (e.g., {@code List<OrderLine>}) and need child entity conversion methods.
+     *
+     * @param childEntityFqns the set of child entity FQNs
+     * @return this builder
+     * @since 5.0.0
+     */
+    public MapperSpecBuilder childEntityFqns(Set<String> childEntityFqns) {
+        this.childEntityFqns = childEntityFqns != null ? childEntityFqns : Set.of();
+        return this;
+    }
+
+    /**
+     * Sets the mapping from domain type FQNs to generated JPA entity FQNs.
+     *
+     * <p>This mapping is used to resolve child entity types to their JPA counterparts
+     * when generating child entity conversion methods.
+     *
+     * @param entityMapping map from domain FQN to JPA entity FQN
+     * @return this builder
+     * @since 5.0.0
+     */
+    public MapperSpecBuilder entityMapping(Map<String, String> entityMapping) {
+        this.entityMapping = entityMapping != null ? entityMapping : Map.of();
+        return this;
+    }
+
+    /**
      * Builds the MapperSpec from the provided configuration.
      *
      * @return an immutable MapperSpec ready for code generation
@@ -232,6 +267,9 @@ public final class MapperSpecBuilder {
         // Issue-3: Detect reconstitution factory method for rich domain objects
         ReconstitutionSpec reconstitutionSpec = detectReconstitutionSpec(qualifiedName);
 
+        // Issue-14: Detect child entity conversions
+        List<MapperSpec.ChildEntityConversionSpec> childEntityConversions = detectChildEntityConversions();
+
         return new MapperSpec(
                 infrastructurePackage,
                 interfaceName,
@@ -243,7 +281,8 @@ public final class MapperSpecBuilder {
                 valueObjectMappings,
                 embeddableMappings,
                 usedMappers,
-                reconstitutionSpec);
+                reconstitutionSpec,
+                childEntityConversions);
     }
 
     /**
@@ -759,9 +798,25 @@ public final class MapperSpecBuilder {
      */
     private List<ReconstitutionParameterSpec> buildReconstitutionParameters(
             Method factoryMethod, String identityTypeFqn) {
+        return buildReconstitutionParameters(factoryMethod.parameters(), identityTypeFqn);
+    }
+
+    /**
+     * Builds the reconstitution parameter specifications from a list of parameters.
+     *
+     * <p>This overload accepts raw parameters, allowing both factory methods and
+     * constructors to share the same parameter resolution logic.
+     *
+     * @param parameters the ordered parameters to analyze
+     * @param identityTypeFqn the FQN of the domain's identity type (for identity parameter detection)
+     * @return the ordered list of parameter specifications
+     * @since 5.0.0
+     */
+    private List<ReconstitutionParameterSpec> buildReconstitutionParameters(
+            List<Parameter> parameters, String identityTypeFqn) {
         List<ReconstitutionParameterSpec> paramSpecs = new ArrayList<>();
 
-        for (Parameter param : factoryMethod.parameters()) {
+        for (Parameter param : parameters) {
             String paramTypeFqn = param.type().qualifiedName();
 
             // Determine entity field name: identity type maps to "id", others use param name
@@ -778,6 +833,9 @@ public final class MapperSpecBuilder {
                     && AUDIT_FIELD_NAMES.contains(param.name())
                     && LOCAL_DATE_TIME_FQN.equals(paramTypeFqn)) {
                 conversionKind = ConversionKind.AUDIT_TEMPORAL;
+            } else if (isCollectionOfChildEntity(param)) {
+                // Issue-14: Collection of child entities needs stream-map conversion
+                conversionKind = ConversionKind.CHILD_ENTITY_COLLECTION;
             } else {
                 conversionKind = resolveConversionKind(paramTypeFqn, identityTypeFqn);
             }
@@ -851,6 +909,311 @@ public final class MapperSpecBuilder {
         }
 
         return ConversionKind.DIRECT;
+    }
+
+    // =====================================================================
+    // Child entity detection (Issue-14)
+    // =====================================================================
+
+    /** Collection types whose element type may be a child entity. */
+    private static final Set<String> COLLECTION_TYPE_FQNS = Set.of("java.util.List", "java.util.Set");
+
+    /**
+     * Checks whether a reconstitution parameter is a collection type whose element
+     * type is a known child entity.
+     *
+     * @param param the reconstitution parameter to check
+     * @return true if the parameter is a collection of child entities
+     * @since 5.0.0
+     */
+    private boolean isCollectionOfChildEntity(Parameter param) {
+        if (childEntityFqns.isEmpty()) {
+            return false;
+        }
+        String paramTypeFqn = param.type().qualifiedName();
+        if (!COLLECTION_TYPE_FQNS.contains(paramTypeFqn)) {
+            return false;
+        }
+        var typeArgs = param.type().typeArguments();
+        if (typeArgs.isEmpty()) {
+            return false;
+        }
+        return childEntityFqns.contains(typeArgs.get(0).qualifiedName());
+    }
+
+    /**
+     * Detects child entity types used in collection fields and builds conversion specifications.
+     *
+     * <p>For each collection field whose element type is in {@code childEntityFqns}, this method
+     * builds a {@link ChildEntityConversionSpec} containing:
+     * <ul>
+     *   <li>The child domain type and JPA entity type names</li>
+     *   <li>A reconstitution spec if the child has a factory method</li>
+     *   <li>Value Object and embeddable mappings needed by the child</li>
+     *   <li>toEntity mappings (e.g., audit field ignores)</li>
+     * </ul>
+     *
+     * @return list of child entity conversion specifications
+     * @since 5.0.0
+     */
+    private List<ChildEntityConversionSpec> detectChildEntityConversions() {
+        if (childEntityFqns.isEmpty() || architecturalModel.domainIndex().isEmpty()) {
+            return List.of();
+        }
+
+        List<Field> fields = aggregateRoot != null
+                ? aggregateRoot.structure().fields()
+                : entity.structure().fields();
+
+        Set<String> processedChildFqns = new HashSet<>();
+        List<ChildEntityConversionSpec> result = new ArrayList<>();
+
+        for (Field field : fields) {
+            // Extract element type from collection fields
+            Optional<String> elementFqnOpt = field.elementType().map(t -> t.qualifiedName());
+            if (elementFqnOpt.isEmpty()) {
+                var typeArgs = field.type().typeArguments();
+                if (!typeArgs.isEmpty()
+                        && COLLECTION_TYPE_FQNS.contains(field.type().qualifiedName())) {
+                    elementFqnOpt = Optional.of(typeArgs.get(0).qualifiedName());
+                }
+            }
+            if (elementFqnOpt.isEmpty()) {
+                continue;
+            }
+
+            String elementFqn = elementFqnOpt.get();
+            if (!childEntityFqns.contains(elementFqn) || processedChildFqns.contains(elementFqn)) {
+                continue;
+            }
+            processedChildFqns.add(elementFqn);
+
+            // Resolve the child type from the registry
+            var childArchTypeOpt = architecturalModel.typeRegistry().flatMap(reg -> reg.get(TypeId.of(elementFqn)));
+            if (childArchTypeOpt.isEmpty()) {
+                continue;
+            }
+
+            var childArchType = childArchTypeOpt.get();
+            String childEntityFqn = entityMapping.getOrDefault(
+                    elementFqn,
+                    infrastructurePackage + "." + TypeId.of(elementFqn).simpleName() + config.entitySuffix());
+            String childDomainSimpleName = TypeId.of(elementFqn).simpleName();
+            String childEntitySimpleName = childEntityFqn.substring(childEntityFqn.lastIndexOf('.') + 1);
+
+            // Detect reconstitution spec for the child type
+            ReconstitutionSpec childReconstitution =
+                    detectChildReconstitutionSpec(childArchType.structure(), elementFqn);
+
+            // Build toEntity mappings for child (audit field ignores, version ignore)
+            List<MappingSpec> childToEntityMappings = buildChildToEntityMappings();
+
+            // Detect Value Object mappings needed by the child entity
+            List<ValueObjectMappingSpec> childVoMappings =
+                    detectChildValueObjectMappings(childArchType.structure().fields());
+
+            // Detect embeddable mappings needed by the child entity
+            List<MapperSpec.EmbeddableMappingSpec> childEmbeddableMappings =
+                    detectChildEmbeddableMappings(childArchType.structure().fields());
+
+            result.add(new ChildEntityConversionSpec(
+                    elementFqn,
+                    childEntityFqn,
+                    childDomainSimpleName,
+                    childEntitySimpleName,
+                    childReconstitution,
+                    childToEntityMappings,
+                    childVoMappings,
+                    childEmbeddableMappings));
+        }
+
+        return result;
+    }
+
+    /**
+     * Detects a reconstitution method on a child entity type.
+     *
+     * <p>Strategy:
+     * <ol>
+     *   <li>If the child is a record or has public no-arg ctor + setters → MapStruct handles natively</li>
+     *   <li>If a static factory method with {@link MethodRole#FACTORY} exists → use it</li>
+     *   <li>Otherwise, select the public constructor with the most parameters (constructor-based
+     *       reconstitution, indicated by {@code factoryMethodName == null} in the spec)</li>
+     * </ol>
+     *
+     * @param structure the child type's structure
+     * @param childFqn the child type's fully qualified name
+     * @return the reconstitution spec, or null if MapStruct can handle natively
+     * @since 5.0.0
+     */
+    private ReconstitutionSpec detectChildReconstitutionSpec(TypeStructure structure, String childFqn) {
+        if (structure.isRecord()) {
+            return null;
+        }
+
+        boolean hasPublicNoArgCtor = structure.constructors().stream()
+                .anyMatch(
+                        ctor -> ctor.parameters().isEmpty() && ctor.modifiers().contains(Modifier.PUBLIC));
+        boolean hasSetters = structure.methods().stream().anyMatch(m -> m.hasRole(MethodRole.SETTER));
+        if (hasPublicNoArgCtor && hasSetters) {
+            return null;
+        }
+
+        // Find the child's identity type
+        String childIdentityTypeFqn = structure.getFieldsWithRole(io.hexaglue.arch.model.FieldRole.IDENTITY).stream()
+                .findFirst()
+                .map(f -> f.type().qualifiedName())
+                .orElse(null);
+
+        Set<String> childFieldNames =
+                structure.fields().stream().map(Field::name).collect(Collectors.toSet());
+
+        // Strategy 1: Try static factory method first
+        Method factoryMethod = selectBestFactoryMethod(structure.methods());
+        if (factoryMethod != null) {
+            if (validateParametersAgainstFields(factoryMethod.parameters(), childIdentityTypeFqn, childFieldNames)) {
+                List<ReconstitutionParameterSpec> paramSpecs =
+                        buildReconstitutionParameters(factoryMethod, childIdentityTypeFqn);
+                return new ReconstitutionSpec(factoryMethod.name(), childFqn, paramSpecs);
+            }
+        }
+
+        // Strategy 2: Fall back to constructor-based reconstitution
+        Constructor bestCtor = selectBestReconstitutionConstructor(structure.constructors());
+        if (bestCtor == null) {
+            return null;
+        }
+
+        if (!validateParametersAgainstFields(bestCtor.parameters(), childIdentityTypeFqn, childFieldNames)) {
+            return null;
+        }
+
+        List<ReconstitutionParameterSpec> paramSpecs =
+                buildReconstitutionParameters(bestCtor.parameters(), childIdentityTypeFqn);
+        // null factoryMethodName indicates constructor-based reconstitution
+        return new ReconstitutionSpec(null, childFqn, paramSpecs);
+    }
+
+    /**
+     * Selects the best public constructor for reconstitution.
+     *
+     * <p>Selection strategy: choose the public constructor with the most parameters,
+     * excluding no-arg constructors (which MapStruct would use with setters).
+     *
+     * @param constructors the constructors to search
+     * @return the best reconstitution constructor, or {@code null} if none found
+     * @since 5.0.0
+     */
+    private Constructor selectBestReconstitutionConstructor(List<Constructor> constructors) {
+        return constructors.stream()
+                .filter(ctor -> ctor.modifiers().contains(Modifier.PUBLIC))
+                .filter(ctor -> !ctor.parameters().isEmpty())
+                .max(Comparator.comparingInt(ctor -> ctor.parameters().size()))
+                .orElse(null);
+    }
+
+    /**
+     * Validates that all parameters can be resolved to domain fields.
+     *
+     * @param parameters the parameters to validate
+     * @param identityTypeFqn the identity type FQN (maps to "id" field)
+     * @param fieldNames the set of valid field names
+     * @return true if all parameters are resolvable
+     * @since 5.0.0
+     */
+    private boolean validateParametersAgainstFields(
+            List<Parameter> parameters, String identityTypeFqn, Set<String> fieldNames) {
+        for (Parameter param : parameters) {
+            String paramTypeFqn = param.type().qualifiedName();
+            if (identityTypeFqn != null && paramTypeFqn.equals(identityTypeFqn)) {
+                continue;
+            }
+            if (!fieldNames.contains(param.name())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Builds the toEntity mappings for a child entity (audit field ignores, version ignore).
+     *
+     * @return list of mapping specs for the child's toEntity method
+     * @since 5.0.0
+     */
+    private List<MappingSpec> buildChildToEntityMappings() {
+        List<MappingSpec> mappings = new ArrayList<>();
+        if (config.enableOptimisticLocking()) {
+            mappings.add(MappingSpec.ignore("version"));
+        }
+        if (config.enableAuditing()) {
+            AUDIT_FIELD_NAMES.forEach(name -> mappings.add(MappingSpec.ignore(name)));
+        }
+        return mappings;
+    }
+
+    /**
+     * Detects Value Object mappings needed by a child entity's fields,
+     * excluding types already covered by the parent mapper.
+     *
+     * @param childFields the child entity's fields
+     * @return list of VO mapping specs specific to the child
+     * @since 5.0.0
+     */
+    private List<ValueObjectMappingSpec> detectChildValueObjectMappings(List<Field> childFields) {
+        if (architecturalModel.domainIndex().isEmpty()) {
+            return List.of();
+        }
+
+        // Collect parent VO types to avoid duplicates
+        Set<String> parentVoTypes = detectValueObjectMappings().stream()
+                .map(ValueObjectMappingSpec::valueObjectType)
+                .collect(Collectors.toSet());
+
+        // Also add the parent's wrapped identity type to skip it
+        String parentIdentityTypeFqn = null;
+        if (aggregateRoot != null) {
+            parentIdentityTypeFqn = aggregateRoot.identityField().type().qualifiedName();
+        } else if (entity != null) {
+            parentIdentityTypeFqn =
+                    entity.identityField().map(f -> f.type().qualifiedName()).orElse(null);
+        }
+
+        List<ValueObjectMappingSpec> childMappings =
+                detectValueObjectMappingsFromFields(childFields, parentIdentityTypeFqn);
+
+        // Filter out those already present in parent
+        return childMappings.stream()
+                .filter(vo -> !parentVoTypes.contains(vo.valueObjectType()))
+                .toList();
+    }
+
+    /**
+     * Detects embeddable mappings needed by a child entity's fields,
+     * excluding types already covered by the parent mapper.
+     *
+     * @param childFields the child entity's fields
+     * @return list of embeddable mapping specs specific to the child
+     * @since 5.0.0
+     */
+    private List<MapperSpec.EmbeddableMappingSpec> detectChildEmbeddableMappings(List<Field> childFields) {
+        // Collect parent embeddable types
+        Set<String> parentEmbeddableTypes = buildEmbeddableMappings().stream()
+                .map(MapperSpec.EmbeddableMappingSpec::domainTypeFqn)
+                .collect(Collectors.toSet());
+
+        List<MapperSpec.EmbeddableMappingSpec> childMappings = new ArrayList<>();
+        for (Field field : childFields) {
+            String fieldTypeFqn = field.type().qualifiedName();
+            if (embeddableMapping.containsKey(fieldTypeFqn) && !parentEmbeddableTypes.contains(fieldTypeFqn)) {
+                String embeddableFqn = embeddableMapping.get(fieldTypeFqn);
+                String domainSimpleName = fieldTypeFqn.substring(fieldTypeFqn.lastIndexOf('.') + 1);
+                String embeddableSimpleName = embeddableFqn.substring(embeddableFqn.lastIndexOf('.') + 1);
+                childMappings.add(new MapperSpec.EmbeddableMappingSpec(
+                        fieldTypeFqn, embeddableFqn, domainSimpleName, embeddableSimpleName));
+            }
+        }
+        return childMappings;
     }
 
     /**
