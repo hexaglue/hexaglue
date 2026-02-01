@@ -93,6 +93,22 @@ public record IdFieldSpec(
     }
 
     /**
+     * Creates a surrogate IdFieldSpec for entities without a detected identity field.
+     *
+     * <p>JPA requires every {@code @Entity} to have an {@code @Id} field. When the domain
+     * model's FieldRoleDetector does not detect an explicit identity field, this method
+     * generates a surrogate {@code Long id} with
+     * {@code @GeneratedValue(strategy = GenerationType.IDENTITY)}.
+     *
+     * @return an IdFieldSpec for a surrogate auto-generated Long identity
+     * @since 5.0.0
+     */
+    public static IdFieldSpec surrogateId() {
+        TypeName longType = JpaModelUtils.resolveTypeName("java.lang.Long");
+        return new IdFieldSpec("id", longType, longType, IdentityStrategy.IDENTITY, IdentityWrapperKind.NONE);
+    }
+
+    /**
      * Returns true if the identity is wrapped in a custom type.
      *
      * <p>Wrapped identities require AttributeConverter generation for JPA mapping.

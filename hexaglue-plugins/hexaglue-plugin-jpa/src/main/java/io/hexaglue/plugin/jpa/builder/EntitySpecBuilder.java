@@ -223,10 +223,11 @@ public final class EntitySpecBuilder {
      * Builds the EntitySpec from the provided configuration.
      *
      * <p>This method performs the complete transformation to the EntitySpec model.
+     * For entities without a detected identity field, a surrogate {@code Long id} with
+     * {@code @GeneratedValue(strategy = IDENTITY)} is automatically generated.
      *
      * @return an immutable EntitySpec ready for code generation
      * @throws IllegalStateException if required fields are missing
-     * @throws IllegalArgumentException if the entity has no identity
      */
     public EntitySpec build() {
         validateRequiredFields();
@@ -276,31 +277,38 @@ public final class EntitySpecBuilder {
     /**
      * Builds EntitySpec from v5 Entity.
      *
+     * <p>If the entity has no detected identity field (e.g., a child entity like OrderLine
+     * where FieldRoleDetector did not detect an identity), a surrogate {@code Long id} with
+     * {@code @GeneratedValue(strategy = IDENTITY)} is generated instead of throwing.
+     *
      * @since 5.0.0
      */
     private EntitySpec buildFromEntity() {
         Optional<Field> identityFieldOpt = entity.identityField();
-        if (identityFieldOpt.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "Entity " + entity.id().qualifiedName() + " has no identity field. Cannot generate JPA entity.");
+
+        IdFieldSpec idField;
+        String identityFieldName;
+
+        if (identityFieldOpt.isPresent()) {
+            Field identityField = identityFieldOpt.get();
+            identityFieldName = identityField.name();
+            TypeStructure identityTypeStructure =
+                    findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
+            idField = IdFieldSpec.from(identityField, identityTypeStructure);
+        } else {
+            // Entity without detected identity: generate surrogate Long ID
+            idField = IdFieldSpec.surrogateId();
+            identityFieldName = "";
         }
 
-        Field identityField = identityFieldOpt.get();
         TypeStructure structure = entity.structure();
-
         String simpleName = entity.id().simpleName();
         String className = simpleName + config.entitySuffix();
         String tableName = NamingConventions.toTableName(simpleName, config.tablePrefix());
 
-        // Build IdFieldSpec from v5 Field
-        TypeStructure identityTypeStructure =
-                findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
-        IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
-
-        // Build properties and relations from v5 structure
         String typeFqn = entity.id().qualifiedName();
-        List<PropertyFieldSpec> properties = buildPropertySpecsV5(structure, identityField.name());
-        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityField.name(), typeFqn);
+        List<PropertyFieldSpec> properties = buildPropertySpecsV5(structure, identityFieldName);
+        List<RelationFieldSpec> relations = buildRelationSpecsV5(structure, identityFieldName, typeFqn);
 
         return EntitySpec.builder()
                 .packageName(infrastructurePackage)
