@@ -176,6 +176,15 @@ public final class JpaMapperCodegen {
             }
         }
 
+        // Issue-11: Add audit temporal conversion helper if needed
+        if (spec.reconstitutionSpec() != null) {
+            boolean hasAuditTemporal = spec.reconstitutionSpec().parameters().stream()
+                    .anyMatch(p -> p.conversionKind() == ConversionKind.AUDIT_TEMPORAL);
+            if (hasAuditTemporal) {
+                builder.addMethod(createToLocalDateTimeHelper());
+            }
+        }
+
         return builder.build();
     }
 
@@ -459,6 +468,7 @@ public final class JpaMapperCodegen {
             }
             case EMBEDDED_VALUE_OBJECT -> "toDomain(" + getter + ")";
             case ENTITY_RELATION -> getter;
+            case AUDIT_TEMPORAL -> "toLocalDateTime(" + getter + ")";
         };
     }
 
@@ -614,6 +624,47 @@ public final class JpaMapperCodegen {
             case "char" -> ClassName.get(Character.class);
             default -> ClassName.bestGuess(typeName);
         };
+    }
+
+    // =====================================================================
+    // Audit temporal conversion helper (Issue-11)
+    // =====================================================================
+
+    /**
+     * Creates a {@code default toLocalDateTime(Instant)} helper method for audit field conversion.
+     *
+     * <p>When auditing is enabled, JPA entities store audit timestamps as {@code Instant}
+     * (via {@code @CreatedDate}/{@code @LastModifiedDate}), but domain reconstitution methods
+     * may expect {@code LocalDateTime}. This helper bridges the type gap.
+     *
+     * <p>Generated code:
+     * <pre>{@code
+     * default LocalDateTime toLocalDateTime(Instant instant) {
+     *     return instant != null ? LocalDateTime.ofInstant(instant, ZoneId.systemDefault()) : null;
+     * }
+     * }</pre>
+     *
+     * @return the helper method spec
+     * @since 5.0.0
+     */
+    private static MethodSpec createToLocalDateTimeHelper() {
+        ClassName instantClass = ClassName.get("java.time", "Instant");
+        ClassName localDateTimeClass = ClassName.get("java.time", "LocalDateTime");
+        ClassName zoneIdClass = ClassName.get("java.time", "ZoneId");
+
+        return MethodSpec.methodBuilder("toLocalDateTime")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(localDateTimeClass)
+                .addParameter(instantClass, "instant")
+                .addJavadoc(
+                        "Converts an {@link $T} audit timestamp to {@link $T}.\n\n", instantClass, localDateTimeClass)
+                .addJavadoc("@param instant the instant to convert\n")
+                .addJavadoc("@return the corresponding local date time, or null if instant is null\n")
+                .addStatement(
+                        "return instant != null ? $T.ofInstant(instant, $T.systemDefault()) : null",
+                        localDateTimeClass,
+                        zoneIdClass)
+                .build();
     }
 
     // =====================================================================

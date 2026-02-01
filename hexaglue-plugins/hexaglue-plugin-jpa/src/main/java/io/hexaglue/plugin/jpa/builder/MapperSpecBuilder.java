@@ -94,6 +94,12 @@ public final class MapperSpecBuilder {
     private String infrastructurePackage;
     private Map<String, String> embeddableMapping = Map.of();
 
+    /** Audit field names added by JPA entity codegen when auditing is enabled. */
+    private static final Set<String> AUDIT_FIELD_NAMES = Set.of("createdAt", "updatedAt");
+
+    /** Fully qualified name of {@code java.time.LocalDateTime}. */
+    private static final String LOCAL_DATE_TIME_FQN = "java.time.LocalDateTime";
+
     private MapperSpecBuilder() {
         // Use static factory method
     }
@@ -287,8 +293,7 @@ public final class MapperSpecBuilder {
 
         // Ignore audit fields if auditing is enabled (must match field names in JpaEntityCodegen)
         if (config.enableAuditing()) {
-            mappings.add(MappingSpec.ignore("createdAt"));
-            mappings.add(MappingSpec.ignore("updatedAt"));
+            AUDIT_FIELD_NAMES.forEach(name -> mappings.add(MappingSpec.ignore(name)));
         }
 
         return mappings;
@@ -767,7 +772,15 @@ public final class MapperSpecBuilder {
                 entityFieldName = param.name();
             }
 
-            ConversionKind conversionKind = resolveConversionKind(paramTypeFqn, identityTypeFqn);
+            // Issue-11: Detect audit temporal fields that need Instant → LocalDateTime conversion
+            ConversionKind conversionKind;
+            if (config.enableAuditing()
+                    && AUDIT_FIELD_NAMES.contains(param.name())
+                    && LOCAL_DATE_TIME_FQN.equals(paramTypeFqn)) {
+                conversionKind = ConversionKind.AUDIT_TEMPORAL;
+            } else {
+                conversionKind = resolveConversionKind(paramTypeFqn, identityTypeFqn);
+            }
 
             paramSpecs.add(
                     new ReconstitutionParameterSpec(param.name(), paramTypeFqn, entityFieldName, conversionKind));
