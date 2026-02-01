@@ -428,8 +428,11 @@ public final class JpaMapperCodegen {
     /**
      * Builds the getter expression for a reconstitution parameter based on its conversion kind.
      *
+     * <p>For primitive {@code boolean} fields, the JavaBean convention {@code isFieldName()} is used
+     * instead of {@code getFieldName()}. All other types use the standard {@code get} prefix.
+     *
      * <ul>
-     *   <li>{@link ConversionKind#DIRECT} → {@code entity.getFieldName()}</li>
+     *   <li>{@link ConversionKind#DIRECT} → {@code entity.getFieldName()} or {@code entity.isFieldName()}</li>
      *   <li>{@link ConversionKind#WRAPPED_IDENTITY} → {@code map(entity.getFieldName())}</li>
      *   <li>{@link ConversionKind#VALUE_OBJECT} → {@code mapToSimpleName(entity.getFieldName())}</li>
      *   <li>{@link ConversionKind#ENTITY_RELATION} → {@code entity.getFieldName()}</li>
@@ -441,7 +444,8 @@ public final class JpaMapperCodegen {
      */
     private static String buildGetterExpression(ReconstitutionParameterSpec param) {
         String capitalizedFieldName = NamingConventions.capitalize(param.entityFieldName());
-        String getter = "entity.get" + capitalizedFieldName + "()";
+        String prefix = "boolean".equals(param.parameterTypeQualifiedName()) ? "is" : "get";
+        String getter = "entity." + prefix + capitalizedFieldName + "()";
 
         return switch (param.conversionKind()) {
             case DIRECT -> getter;
