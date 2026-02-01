@@ -132,6 +132,13 @@ class JpaCodegenGoldenFileTest {
             EntitySpec spec = createEntityWithRelations();
             assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-relations.java.txt");
         }
+
+        @Test
+        @DisplayName("Issue 13: With unidirectional one-to-many child entities")
+        void withChildEntities() throws IOException {
+            EntitySpec spec = createEntityWithChildEntities();
+            assertGoldenFile(JpaEntityCodegen.generate(spec), INFRA_PACKAGE, "entity-with-child-entities.java.txt");
+        }
     }
 
     // =========================================================================
@@ -365,6 +372,57 @@ class JpaCodegenGoldenFileTest {
                 .idField(idField)
                 .addProperty(customerNameField)
                 .addRelation(itemsRelation)
+                .build();
+    }
+
+    /**
+     * Creates an entity spec with unidirectional one-to-many child entities (Issue 13).
+     *
+     * <p>This simulates an aggregate root with child entities that are discovered
+     * from AggregateRoot.entities() — unidirectional, owning side, with cascade=ALL
+     * and orphanRemoval=true defaults, plus @JoinColumn.
+     */
+    private EntitySpec createEntityWithChildEntities() {
+        IdFieldSpec idField = new IdFieldSpec(
+                "id",
+                TypeName.get(UUID.class),
+                TypeName.get(UUID.class),
+                IdentityStrategy.AUTO,
+                IdentityWrapperKind.NONE);
+
+        PropertyFieldSpec customerNameField = new PropertyFieldSpec(
+                "customerName",
+                TypeName.get(String.class),
+                Nullability.NON_NULL,
+                "customer_name",
+                false,
+                false,
+                false,
+                "java.lang.String",
+                false,
+                null,
+                null,
+                List.of());
+
+        // Unidirectional ONE_TO_MANY: owning side (no mappedBy), cascade=ALL, orphanRemoval=true
+        RelationFieldSpec linesRelation = new RelationFieldSpec(
+                "lines",
+                ParameterizedTypeName.get(ClassName.get(List.class), ClassName.get(INFRA_PACKAGE, "OrderLineEntity")),
+                RelationKind.ONE_TO_MANY,
+                ElementKind.ENTITY,
+                null, // owning side - unidirectional
+                CascadeType.ALL,
+                FetchType.LAZY,
+                true);
+
+        return EntitySpec.builder()
+                .packageName(INFRA_PACKAGE)
+                .className("OrderEntity")
+                .tableName("orders")
+                .domainQualifiedName(DOMAIN_PACKAGE + ".Order")
+                .idField(idField)
+                .addProperty(customerNameField)
+                .addRelation(linesRelation)
                 .build();
     }
 

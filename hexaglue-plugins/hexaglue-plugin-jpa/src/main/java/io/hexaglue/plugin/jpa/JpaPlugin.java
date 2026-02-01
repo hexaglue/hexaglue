@@ -17,7 +17,10 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ArchType;
 import io.hexaglue.arch.model.Entity;
+import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.index.DomainIndex;
@@ -44,11 +47,14 @@ import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
+import io.hexaglue.syntax.TypeRef;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -255,14 +261,33 @@ public final class JpaPlugin implements GeneratorPlugin {
             entityMapping.put(entity.id().qualifiedName(), entityFqn);
         });
 
+        // Collect all aggregate roots early — needed for child entity discovery and generation
+        List<AggregateRoot> allAggregates = domainIndex.aggregateRoots().toList();
+
+        // Issue 13 fix: discover child entity types from aggregate roots.
+        // These may be classified as VALUE_OBJECT or UNCLASSIFIED in domainIndex
+        // but the aggregate explicitly declares them as entities via entities().
+        Set<String> childEntityFqns = new LinkedHashSet<>();
+        for (AggregateRoot aggregate : allAggregates) {
+            for (TypeRef entityRef : aggregate.entities()) {
+                String fqn = entityRef.qualifiedName();
+                if (!entityMapping.containsKey(fqn)) {
+                    childEntityFqns.add(fqn);
+                    String simpleName = TypeId.of(fqn).simpleName();
+                    String entityClassName = simpleName + config.entitySuffix();
+                    entityMapping.put(fqn, infraPackage + "." + entityClassName);
+                }
+            }
+        }
+        if (!childEntityFqns.isEmpty()) {
+            diagnostics.info("Discovered " + childEntityFqns.size() + " child entity types from aggregate roots");
+        }
+
         diagnostics.info("Built entity mapping for " + entityMapping.size() + " domain types");
 
         // BUG-003 fix: Detect bidirectional relationships before generating entities
         Map<String, String> bidirectionalMappings = BidirectionalDetector.detectBidirectionalMappings(domainIndex);
         diagnostics.info("Detected " + bidirectionalMappings.size() + " bidirectional relationship mappings");
-
-        // Generate entities from v5 AggregateRoots
-        List<AggregateRoot> allAggregates = domainIndex.aggregateRoots().toList();
 
         for (AggregateRoot aggregate : allAggregates) {
             try {
@@ -274,6 +299,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                         .embeddableMapping(embeddableMapping)
                         .entityMapping(entityMapping) // BUG-008 fix: Map domain types to entity types
                         .bidirectionalMappings(bidirectionalMappings)
+                        .childEntityFqns(childEntityFqns) // Issue 13 fix: targeted smart defaults
                         .build();
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
@@ -341,6 +367,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                         .embeddableMapping(embeddableMapping)
                         .entityMapping(entityMapping) // BUG-008 fix: Map domain types to entity types
                         .bidirectionalMappings(bidirectionalMappings)
+                        .childEntityFqns(childEntityFqns) // Issue 13 fix: targeted smart defaults
                         .build();
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
@@ -392,6 +419,58 @@ public final class JpaPlugin implements GeneratorPlugin {
                         "Failed to generate JPA class for " + entity.id().simpleName(), e);
             } catch (IllegalArgumentException | IllegalStateException e) {
                 diagnostics.warn("Skipping " + entity.id().simpleName() + ": " + e.getMessage());
+            }
+        }
+
+        // Issue 13 fix: generate JPA entities for child entity types discovered from aggregates.
+        // These types are in AggregateRoot.entities() but not independently classified as ENTITY.
+        for (String childFqn : childEntityFqns) {
+            try {
+                Optional<ArchType> archTypeOpt =
+                        model.typeRegistry().flatMap(registry -> registry.get(TypeId.of(childFqn)));
+                if (archTypeOpt.isEmpty()) {
+                    diagnostics.warn("Child entity type not found in registry: " + childFqn);
+                    continue;
+                }
+
+                ArchType archType = archTypeOpt.get();
+
+                // Find identity field from structure
+                Optional<Field> identityField = archType.structure().getFieldsWithRole(FieldRole.IDENTITY).stream()
+                        .findFirst();
+                if (identityField.isEmpty()) {
+                    identityField = archType.structure().getField("id");
+                }
+
+                // Create Entity for child type generation
+                Entity childEntity = Entity.of(
+                        TypeId.of(childFqn),
+                        archType.structure(),
+                        archType.classification(),
+                        identityField,
+                        Optional.empty());
+
+                EntitySpec entitySpec = EntitySpecBuilder.builder()
+                        .entity(childEntity)
+                        .model(model)
+                        .config(config)
+                        .infrastructurePackage(infraPackage)
+                        .embeddableMapping(embeddableMapping)
+                        .entityMapping(entityMapping)
+                        .bidirectionalMappings(bidirectionalMappings)
+                        .childEntityFqns(childEntityFqns) // Issue 13 fix: targeted smart defaults
+                        .build();
+
+                TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
+                String entitySource = toJavaSource(infraPackage, entityTypeSpec);
+                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                entityCount++;
+                diagnostics.info("Generated child entity: " + entitySpec.className());
+
+            } catch (IOException e) {
+                diagnostics.error("Failed to generate child entity for " + childFqn, e);
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                diagnostics.warn("Skipping child entity " + childFqn + ": " + e.getMessage());
             }
         }
 

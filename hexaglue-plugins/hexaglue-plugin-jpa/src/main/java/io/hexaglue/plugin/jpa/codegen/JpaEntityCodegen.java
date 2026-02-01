@@ -340,6 +340,13 @@ public final class JpaEntityCodegen {
             fieldBuilder.addAnnotation(JpaAnnotations.joinColumn(joinColumnName));
         }
 
+        // Issue 13 fix: unidirectional @OneToMany needs @JoinColumn for FK on child table.
+        // Bidirectional relationships (with mappedBy) rely on the inverse side's @JoinColumn.
+        if (relation.kind() == io.hexaglue.arch.model.ir.RelationKind.ONE_TO_MANY && relation.isOwning()) {
+            String joinColumnName = NamingConventions.toForeignKeyColumnName(entitySpec.domainSimpleName());
+            fieldBuilder.addAnnotation(JpaAnnotations.joinColumn(joinColumnName));
+        }
+
         // Initialize collections to avoid NullPointerException
         if (relation.isCollection()) {
             // Use ArrayList for List-based collections, regardless of element type

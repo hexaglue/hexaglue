@@ -319,7 +319,7 @@ class RelationFieldSpecTest {
             ArchitecturalModel model = modelWithEntity("com.example.OrderLine");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of());
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
 
             // Then: Should correctly identify OrderLine as the target
             assertThat(spec.targetKind()).isEqualTo(ElementKind.ENTITY);
@@ -340,7 +340,7 @@ class RelationFieldSpecTest {
             ArchitecturalModel model = modelWithEntity("com.example.OrderLine");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of());
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
 
             // Then: Should fallback to typeArguments and find OrderLine as Entity
             assertThat(spec.targetKind()).isEqualTo(ElementKind.ENTITY);
@@ -361,7 +361,7 @@ class RelationFieldSpecTest {
             ArchitecturalModel model = modelWithEntity("com.example.OrderLine");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of());
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
 
             // Then
             assertThat(spec.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
@@ -382,7 +382,7 @@ class RelationFieldSpecTest {
             ArchitecturalModel model = modelWithValueObject("com.example.Money");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of());
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
 
             // Then
             assertThat(spec.kind()).isEqualTo(RelationKind.ELEMENT_COLLECTION);
@@ -405,11 +405,89 @@ class RelationFieldSpecTest {
                     Map.of("com.example.OrderLine", "com.example.infrastructure.jpa.OrderLineEntity");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), entityMapping);
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), entityMapping, Set.of());
 
             // Then: Target type should be the JPA entity, not the domain type
             assertThat(spec.targetType().toString())
                     .isEqualTo("java.util.List<com.example.infrastructure.jpa.OrderLineEntity>");
+        }
+
+        @Test
+        @DisplayName("Issue 13: should return ONE_TO_MANY when target is in entityMapping but not in domainIndex")
+        void fromV5_shouldReturnOneToMany_whenTargetIsInEntityMapping() {
+            // Given: A collection field where the target type is NOT in domainIndex (unknown type)
+            // but IS in the entityMapping (discovered from AggregateRoot.entities())
+            Field field = Field.builder(
+                            "lines",
+                            TypeRef.parameterized("java.util.List", List.of(TypeRef.of("com.example.OrderLine"))))
+                    .elementType(TypeRef.of("com.example.OrderLine"))
+                    .roles(Set.of(FieldRole.COLLECTION))
+                    .build();
+
+            // Model with NO OrderLine registered — simulates the case where OrderLine
+            // is not independently classified as ENTITY in domainIndex
+            ProjectContext project = ProjectContext.forTesting("test-project", "com.example");
+            ArchitecturalModel model = ArchitecturalModel.builder(project).build();
+
+            // entityMapping contains OrderLine because JpaPlugin discovered it from aggregate.entities()
+            Map<String, String> entityMapping =
+                    Map.of("com.example.OrderLine", "com.example.infrastructure.jpa.OrderLineEntity");
+
+            // When
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), entityMapping, Set.of());
+
+            // Then: Should be ONE_TO_MANY (not ELEMENT_COLLECTION) because entityMapping overrides
+            assertThat(spec.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
+            assertThat(spec.targetKind()).isEqualTo(ElementKind.ENTITY);
+            // Target type should be the JPA entity type from entityMapping
+            assertThat(spec.targetType().toString())
+                    .isEqualTo("java.util.List<com.example.infrastructure.jpa.OrderLineEntity>");
+        }
+
+        @Test
+        @DisplayName("Issue 13: should default cascade=ALL and orphanRemoval=true for child entity ONE_TO_MANY")
+        void fromV5_shouldDefaultCascadeAll_forChildEntityOneToMany() {
+            // Given: A collection of child entities WITHOUT explicit JPA annotations (pure domain code)
+            // The target type is a child entity within the aggregate (in childEntityFqns)
+            Field field = Field.builder(
+                            "lines",
+                            TypeRef.parameterized("java.util.List", List.of(TypeRef.of("com.example.OrderLine"))))
+                    .elementType(TypeRef.of("com.example.OrderLine"))
+                    .roles(Set.of(FieldRole.COLLECTION))
+                    .build();
+
+            ArchitecturalModel model = modelWithEntity("com.example.OrderLine");
+            Set<String> childEntityFqns = Set.of("com.example.OrderLine");
+
+            // When
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), childEntityFqns);
+
+            // Then: Smart defaults should be applied for aggregate child lifecycle
+            assertThat(spec.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
+            assertThat(spec.cascade()).isEqualTo(CascadeType.ALL);
+            assertThat(spec.orphanRemoval()).isTrue();
+        }
+
+        @Test
+        @DisplayName("Issue 13: should NOT default cascade=ALL for cross-aggregate ONE_TO_MANY")
+        void fromV5_shouldNotDefaultCascadeAll_forCrossAggregateOneToMany() {
+            // Given: A collection of entities that are NOT child entities (cross-aggregate reference)
+            // e.g., Course→Tag where Tag is an independent aggregate
+            Field field = Field.builder(
+                            "tags", TypeRef.parameterized("java.util.List", List.of(TypeRef.of("com.example.Tag"))))
+                    .elementType(TypeRef.of("com.example.Tag"))
+                    .roles(Set.of(FieldRole.COLLECTION))
+                    .build();
+
+            ArchitecturalModel model = modelWithEntity("com.example.Tag");
+
+            // When: childEntityFqns is empty — Tag is NOT a child entity
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
+
+            // Then: Should NOT apply smart defaults (cascade stays NONE, orphanRemoval stays false)
+            assertThat(spec.kind()).isEqualTo(RelationKind.ONE_TO_MANY);
+            assertThat(spec.cascade()).isEqualTo(CascadeType.NONE);
+            assertThat(spec.orphanRemoval()).isFalse();
         }
 
         @Test
@@ -427,7 +505,7 @@ class RelationFieldSpecTest {
             ArchitecturalModel model = modelWithEntity("com.example.OrderLine");
 
             // When
-            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of());
+            RelationFieldSpec spec = RelationFieldSpec.fromV5(field, model, Map.of(), Map.of(), Set.of());
 
             // Then: Should NOT be VALUE_OBJECT (which was the bug behavior)
             assertThat(spec.targetKind()).isNotEqualTo(ElementKind.VALUE_OBJECT);

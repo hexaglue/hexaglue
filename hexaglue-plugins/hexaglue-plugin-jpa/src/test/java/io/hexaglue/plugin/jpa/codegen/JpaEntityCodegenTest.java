@@ -660,6 +660,90 @@ class JpaEntityCodegenTest {
     }
 
     /**
+     * Issue 13 regression test: Unidirectional @OneToMany (owning side) should have @JoinColumn.
+     *
+     * <p>Without @JoinColumn on a unidirectional @OneToMany, JPA creates a join table
+     * instead of a foreign key column on the child table, which is unexpected for
+     * aggregate child entities.
+     */
+    @Test
+    void generate_shouldAddJoinColumnForUnidirectionalOneToMany_ISSUE13() {
+        // Given: OneToMany owning side (no mappedBy) - unidirectional
+        TypeName orderLineEntityType = ParameterizedTypeName.get(
+                ClassName.get(List.class), ClassName.bestGuess("com.example.OrderLineEntity"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "lines",
+                orderLineEntityType,
+                RelationKind.ONE_TO_MANY,
+                ElementKind.ENTITY,
+                null, // owning side - unidirectional
+                CascadeType.ALL,
+                FetchType.LAZY,
+                true);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("OrderEntity")
+                .tableName("orders")
+                .domainQualifiedName("com.example.domain.Order")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @OneToMany AND @JoinColumn
+        assertThat(code)
+                .contains("@jakarta.persistence.OneToMany")
+                .contains("cascade = jakarta.persistence.CascadeType.ALL")
+                .contains("orphanRemoval = true")
+                .contains("@jakarta.persistence.JoinColumn")
+                .contains("name = \"order_id\"");
+    }
+
+    /**
+     * Issue 13 negative test: Bidirectional @OneToMany (with mappedBy) should NOT have @JoinColumn.
+     *
+     * <p>When mappedBy is set, the inverse side manages the FK column via its @ManyToOne.
+     */
+    @Test
+    void generate_shouldNotAddJoinColumnForBidirectionalOneToMany_ISSUE13() {
+        // Given: OneToMany inverse side (mappedBy set) - bidirectional
+        TypeName orderLineEntityType = ParameterizedTypeName.get(
+                ClassName.get(List.class), ClassName.bestGuess("com.example.OrderLineEntity"));
+        RelationFieldSpec relation = new RelationFieldSpec(
+                "lines",
+                orderLineEntityType,
+                RelationKind.ONE_TO_MANY,
+                ElementKind.ENTITY,
+                "order", // inverse side - bidirectional
+                CascadeType.ALL,
+                FetchType.LAZY,
+                true);
+
+        EntitySpec spec = EntitySpec.builder()
+                .packageName(TEST_PACKAGE)
+                .className("OrderEntity")
+                .tableName("orders")
+                .domainQualifiedName("com.example.domain.Order")
+                .idField(createAutoIdField())
+                .addRelation(relation)
+                .build();
+
+        // When
+        TypeSpec typeSpec = JpaEntityCodegen.generate(spec);
+        String code = typeSpec.toString();
+
+        // Then: Should have @OneToMany with mappedBy but NOT @JoinColumn
+        assertThat(code)
+                .contains("@jakarta.persistence.OneToMany")
+                .contains("mappedBy = \"order\"")
+                .doesNotContain("@jakarta.persistence.JoinColumn");
+    }
+
+    /**
      * BUG-004 regression test: @ElementCollection of enums should have @Enumerated(STRING).
      *
      * <p>Without @Enumerated(EnumType.STRING), Hibernate uses ORDINAL by default,

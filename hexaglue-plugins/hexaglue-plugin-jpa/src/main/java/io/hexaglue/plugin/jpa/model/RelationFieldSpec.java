@@ -285,8 +285,8 @@ public record RelationFieldSpec(
      */
     public static RelationFieldSpec fromV5(
             Field field, ArchitecturalModel model, Map<String, String> embeddableMapping) {
-        // Delegate to the new method with empty entityMapping for backward compatibility
-        return fromV5(field, model, embeddableMapping, Map.of());
+        // Delegate to the new method with empty entityMapping and childEntityFqns for backward compatibility
+        return fromV5(field, model, embeddableMapping, Map.of(), Set.of());
     }
 
     /**
@@ -304,6 +304,7 @@ public record RelationFieldSpec(
      * @param model the architectural model for type resolution
      * @param embeddableMapping map from domain VALUE_OBJECT FQN to embeddable FQN
      * @param entityMapping map from domain AGGREGATE_ROOT/ENTITY FQN to entity FQN
+     * @param childEntityFqns FQNs of child entity types discovered from AggregateRoot.entities()
      * @return a RelationFieldSpec ready for code generation
      * @since 2.0.0
      */
@@ -311,7 +312,8 @@ public record RelationFieldSpec(
             Field field,
             ArchitecturalModel model,
             Map<String, String> embeddableMapping,
-            Map<String, String> entityMapping) {
+            Map<String, String> entityMapping,
+            Set<String> childEntityFqns) {
 
         String targetFqn = field.elementType()
                 .map(io.hexaglue.syntax.TypeRef::qualifiedName)
@@ -325,8 +327,18 @@ public record RelationFieldSpec(
                 })
                 .orElse(field.type().qualifiedName());
 
+        // Save original domain FQN before mapping transformations (needed for childEntityFqns check)
+        String originalTargetFqn = targetFqn;
+
         // Determine target kind first - needed to detect ELEMENT_COLLECTION vs ONE_TO_MANY
         ElementKind targetKind = findElementKindV5(model, targetFqn);
+
+        // Issue 13 fix: child entities listed in AggregateRoot.entities() may not be
+        // independently classified as ENTITY in domainIndex. If the type is in entityMapping
+        // (populated by JpaPlugin from aggregate.entities()), override to ENTITY.
+        if (targetKind == ElementKind.VALUE_OBJECT && entityMapping.containsKey(targetFqn)) {
+            targetKind = ElementKind.ENTITY;
+        }
 
         // Detect relation kind from field annotations, roles, and target kind
         RelationKind kind = detectRelationKindV5(field, targetKind);
@@ -356,6 +368,17 @@ public record RelationFieldSpec(
         boolean orphanRemoval = detectOrphanRemovalV5(field);
         String mappedBy = detectMappedByV5(field).orElse(null);
 
+        // Issue 13 fix: default cascade=ALL and orphanRemoval=true for ONE_TO_MANY
+        // ONLY when the target is a child entity within the aggregate (true composition).
+        // Cross-aggregate references (e.g., Course→Tag) must NOT get these defaults.
+        if (kind == RelationKind.ONE_TO_MANY
+                && cascade == CascadeType.NONE
+                && !hasExplicitJpaAnnotation(field)
+                && childEntityFqns.contains(originalTargetFqn)) {
+            cascade = CascadeType.ALL;
+            orphanRemoval = true;
+        }
+
         return new RelationFieldSpec(
                 field.name(),
                 targetType,
@@ -383,6 +406,30 @@ public record RelationFieldSpec(
                 || kind == RelationKind.MANY_TO_ONE
                 || kind == RelationKind.MANY_TO_MANY
                 || kind == RelationKind.ONE_TO_ONE;
+    }
+
+    /**
+     * Checks if the field has explicit JPA relationship annotations.
+     *
+     * <p>Used to determine if smart defaults (cascade=ALL, orphanRemoval=true) should
+     * be applied. When the domain code has no JPA annotations, the plugin provides
+     * sensible DDD-oriented defaults for aggregate child relationships.
+     *
+     * @param field the field to check
+     * @return true if the field has explicit JPA relationship annotations
+     * @since 5.0.0
+     */
+    private static boolean hasExplicitJpaAnnotation(Field field) {
+        return field.hasAnnotation("jakarta.persistence.OneToMany")
+                || field.hasAnnotation("javax.persistence.OneToMany")
+                || field.hasAnnotation("jakarta.persistence.ManyToMany")
+                || field.hasAnnotation("javax.persistence.ManyToMany")
+                || field.hasAnnotation("jakarta.persistence.OneToOne")
+                || field.hasAnnotation("javax.persistence.OneToOne")
+                || field.hasAnnotation("jakarta.persistence.ManyToOne")
+                || field.hasAnnotation("javax.persistence.ManyToOne")
+                || field.hasAnnotation("jakarta.persistence.ElementCollection")
+                || field.hasAnnotation("javax.persistence.ElementCollection");
     }
 
     /**
