@@ -818,6 +818,44 @@ class JpaMapperCodegenTest {
         }
 
         @Test
+        @DisplayName("should generate mapToXxx() calls for foreign key identity parameters")
+        void should_generateMapToXxxCalls_forForeignKeyIdentityParameters() {
+            // Given: Foreign key identity uses VALUE_OBJECT conversion
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Order",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "id", "com.example.domain.OrderId", "id", ConversionKind.WRAPPED_IDENTITY),
+                            new ReconstitutionParameterSpec(
+                                    "customerId",
+                                    "com.example.domain.CustomerId",
+                                    "customerId",
+                                    ConversionKind.VALUE_OBJECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Own identity uses map(), foreign key uses mapToCustomerId()
+            assertThat(generatedCode).contains("map(entity.getId())");
+            assertThat(generatedCode).contains("mapToCustomerId(entity.getCustomerId())");
+        }
+
+        @Test
         @DisplayName("should fallback to abstract method when no reconstitution spec")
         void should_fallbackToAbstractMethod_whenNoReconstitutionSpec() {
             // Given
