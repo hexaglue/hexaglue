@@ -346,6 +346,37 @@ class MapperSpecBuilderReconstitutionTest {
         }
 
         @Test
+        @DisplayName("should detect VALUE_OBJECT conversion for foreign key identity types")
+        void should_detectValueObjectConversion_forForeignKeyIdentityTypes() {
+            // Given: An Order aggregate with CustomerId foreign key
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            Identifier customerIdIdentifier = createIdentifier("CustomerId", "java.util.UUID");
+
+            AggregateRoot aggregate = createOrderAggregateWithForeignKey(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))));
+
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, customerIdIdentifier);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: Own identity → WRAPPED_IDENTITY, foreign key → VALUE_OBJECT
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters().get(0).conversionKind())
+                    .isEqualTo(ConversionKind.WRAPPED_IDENTITY);
+            assertThat(spec.reconstitutionSpec().parameters().get(1).conversionKind())
+                    .isEqualTo(ConversionKind.VALUE_OBJECT);
+        }
+
+        @Test
         @DisplayName("should detect DIRECT conversion for primitive types")
         void should_detectDirectConversion_forPrimitiveTypes() {
             // Given
@@ -459,6 +490,53 @@ class MapperSpecBuilderReconstitutionTest {
                 Set.of(MethodRole.FACTORY),
                 OptionalInt.empty(),
                 Optional.empty());
+    }
+
+    /**
+     * Creates an identifier with the given simple name wrapping the specified type.
+     */
+    private Identifier createIdentifier(String simpleName, String wrappedTypeFqn) {
+        Field valueField = Field.builder("value", TypeRef.of(wrappedTypeFqn))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.RECORD)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(valueField))
+                .build();
+
+        return Identifier.of(
+                TypeId.of(DOMAIN_PKG + "." + simpleName),
+                structure,
+                highConfidence(ElementKind.IDENTIFIER),
+                TypeRef.of(wrappedTypeFqn));
+    }
+
+    /**
+     * Creates an Order aggregate with an OrderId identity and a foreign key CustomerId field.
+     */
+    private AggregateRoot createOrderAggregateWithForeignKey(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod = createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Order"), params);
+
+        Field identityField = Field.builder("orderId", TypeRef.of(DOMAIN_PKG + ".OrderId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(identityField, Field.of("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))))
+                .methods(List.of(factoryMethod))
+                .constructors(List.of())
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Order"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
     }
 
     /**

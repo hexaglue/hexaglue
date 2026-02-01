@@ -74,8 +74,7 @@ class TypeRefTest {
         @Test
         @DisplayName("parameterized() should normalize $ in qualifiedName")
         void parameterizedNormalizesDollarSign() {
-            TypeRef typeRef = TypeRef.parameterized(
-                    "com.example.Outer$Inner", List.of(TypeRef.of("java.lang.String")));
+            TypeRef typeRef = TypeRef.parameterized("com.example.Outer$Inner", List.of(TypeRef.of("java.lang.String")));
 
             assertThat(typeRef.qualifiedName()).isEqualTo("com.example.Outer.Inner");
         }
@@ -152,8 +151,7 @@ class TypeRefTest {
         @Test
         @DisplayName("should return true for parameterized types")
         void returnsTrueForParameterizedTypes() {
-            TypeRef listType =
-                    TypeRef.parameterized("java.util.List", List.of(TypeRef.of("com.example.Order")));
+            TypeRef listType = TypeRef.parameterized("java.util.List", List.of(TypeRef.of("com.example.Order")));
 
             assertThat(listType.isParameterized()).isTrue();
         }
@@ -174,8 +172,7 @@ class TypeRefTest {
         @Test
         @DisplayName("should include type arguments for generic types")
         void includesTypeArguments() {
-            TypeRef listType =
-                    TypeRef.parameterized("java.util.List", List.of(TypeRef.of("java.lang.String")));
+            TypeRef listType = TypeRef.parameterized("java.util.List", List.of(TypeRef.of("java.lang.String")));
 
             assertThat(listType.toSourceString()).isEqualTo("List<String>");
         }

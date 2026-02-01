@@ -681,9 +681,8 @@ public final class MapperSpecBuilder {
         }
 
         // Validate that all factory parameters can be resolved to entity fields
-        Set<String> domainFieldNames = structure.fields().stream()
-                .map(Field::name)
-                .collect(Collectors.toSet());
+        Set<String> domainFieldNames =
+                structure.fields().stream().map(Field::name).collect(Collectors.toSet());
         for (Parameter param : factoryMethod.parameters()) {
             String paramTypeFqn = param.type().qualifiedName();
             // Identity type maps to "id" field, which always exists on the entity
@@ -768,7 +767,7 @@ public final class MapperSpecBuilder {
                 entityFieldName = param.name();
             }
 
-            ConversionKind conversionKind = resolveConversionKind(paramTypeFqn);
+            ConversionKind conversionKind = resolveConversionKind(paramTypeFqn, identityTypeFqn);
 
             paramSpecs.add(
                     new ReconstitutionParameterSpec(param.name(), paramTypeFqn, entityFieldName, conversionKind));
@@ -781,17 +780,20 @@ public final class MapperSpecBuilder {
      * Determines the conversion kind for a parameter type by consulting the {@link io.hexaglue.arch.model.index.DomainIndex}.
      *
      * <ul>
-     *   <li>Type is an {@code Identifier} → {@link ConversionKind#WRAPPED_IDENTITY}</li>
+     *   <li>Type is the aggregate's own {@code Identifier} → {@link ConversionKind#WRAPPED_IDENTITY}</li>
+     *   <li>Type is a foreign key {@code Identifier} → {@link ConversionKind#VALUE_OBJECT} (uses {@code mapToXxx()})</li>
      *   <li>Type is a single-value {@code ValueObject} → {@link ConversionKind#VALUE_OBJECT}</li>
      *   <li>Type is an {@code Entity} or {@code AggregateRoot} → {@link ConversionKind#ENTITY_RELATION}</li>
      *   <li>Otherwise → {@link ConversionKind#DIRECT}</li>
      * </ul>
      *
      * @param paramTypeFqn the fully qualified name of the parameter type
+     * @param identityTypeFqn the FQN of the aggregate's own identity type, used to distinguish
+     *                        the aggregate's identity from foreign key identifiers
      * @return the conversion kind
      * @since 5.0.0
      */
-    private ConversionKind resolveConversionKind(String paramTypeFqn) {
+    private ConversionKind resolveConversionKind(String paramTypeFqn, String identityTypeFqn) {
         if (architecturalModel.domainIndex().isEmpty()) {
             return ConversionKind.DIRECT;
         }
@@ -802,7 +804,12 @@ public final class MapperSpecBuilder {
         boolean isIdentifier =
                 domainIndex.identifiers().anyMatch(id -> id.id().qualifiedName().equals(paramTypeFqn));
         if (isIdentifier) {
-            return ConversionKind.WRAPPED_IDENTITY;
+            // Only use generic map() for the aggregate's own identity type.
+            // Foreign key identifiers use mapToXxx() (same as VALUE_OBJECT).
+            if (paramTypeFqn.equals(identityTypeFqn)) {
+                return ConversionKind.WRAPPED_IDENTITY;
+            }
+            return ConversionKind.VALUE_OBJECT;
         }
 
         // Check if it's a single-value ValueObject
