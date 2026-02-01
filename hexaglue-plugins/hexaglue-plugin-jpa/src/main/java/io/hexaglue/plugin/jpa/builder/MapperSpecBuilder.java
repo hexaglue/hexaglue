@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Builder for transforming domain entities to MapperSpec model.
@@ -658,7 +659,12 @@ public final class MapperSpecBuilder {
                     entity.identityField().map(f -> f.type().qualifiedName()).orElse(null);
         }
 
-        // Check if MapStruct can handle this type natively
+        // Records are handled natively by MapStruct via canonical constructor
+        if (structure.isRecord()) {
+            return null;
+        }
+
+        // Check if MapStruct can handle this type natively (no-arg ctor + setters)
         boolean hasPublicNoArgCtor = structure.constructors().stream()
                 .anyMatch(
                         ctor -> ctor.parameters().isEmpty() && ctor.modifiers().contains(Modifier.PUBLIC));
@@ -672,6 +678,22 @@ public final class MapperSpecBuilder {
         Method factoryMethod = selectBestFactoryMethod(structure.methods());
         if (factoryMethod == null) {
             return null;
+        }
+
+        // Validate that all factory parameters can be resolved to entity fields
+        Set<String> domainFieldNames = structure.fields().stream()
+                .map(Field::name)
+                .collect(Collectors.toSet());
+        for (Parameter param : factoryMethod.parameters()) {
+            String paramTypeFqn = param.type().qualifiedName();
+            // Identity type maps to "id" field, which always exists on the entity
+            if (identityTypeFqn != null && paramTypeFqn.equals(identityTypeFqn)) {
+                continue;
+            }
+            // Other parameters must match a domain field by name
+            if (!domainFieldNames.contains(param.name())) {
+                return null;
+            }
         }
 
         List<ReconstitutionParameterSpec> paramSpecs = buildReconstitutionParameters(factoryMethod, identityTypeFqn);

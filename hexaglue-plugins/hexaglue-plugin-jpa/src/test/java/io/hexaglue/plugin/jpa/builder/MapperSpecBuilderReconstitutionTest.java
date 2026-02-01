@@ -320,9 +320,9 @@ class MapperSpecBuilderReconstitutionTest {
         @Test
         @DisplayName("should detect VALUE_OBJECT conversion for single-value VOs")
         void should_detectValueObjectConversion() {
-            // Given
+            // Given: An aggregate with an email field and a reconstitute factory that includes it
             ValueObject emailVo = createSingleValueVO("Email", "java.lang.String");
-            AggregateRoot aggregate = createAggregateWithReconstitute(
+            AggregateRoot aggregate = createAggregateWithEmailField(
                     "reconstitute",
                     List.of(
                             Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
@@ -382,6 +382,38 @@ class MapperSpecBuilderReconstitutionTest {
         Method factoryMethod =
                 createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Customer"), params);
         return createAggregateWithMethods(List.of(factoryMethod), List.of());
+    }
+
+    /**
+     * Creates an aggregate with an email field and a reconstitute-style factory method.
+     */
+    private AggregateRoot createAggregateWithEmailField(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod =
+                createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Customer"), params);
+
+        Field identityField = Field.builder("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(
+                        identityField,
+                        Field.of("firstName", TypeRef.of("java.lang.String")),
+                        Field.of("lastName", TypeRef.of("java.lang.String")),
+                        Field.of("email", TypeRef.of(DOMAIN_PKG + ".Email"))))
+                .methods(List.of(factoryMethod))
+                .constructors(List.of())
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Customer"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
     }
 
     /**
