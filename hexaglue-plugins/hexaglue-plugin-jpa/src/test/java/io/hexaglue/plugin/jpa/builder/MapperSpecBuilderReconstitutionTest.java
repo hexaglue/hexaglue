@@ -21,6 +21,7 @@ import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.Constructor;
+import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
@@ -534,6 +535,153 @@ class MapperSpecBuilderReconstitutionTest {
         }
     }
 
+    @Nested
+    @DisplayName("Child Entity Detection")
+    class ChildEntityDetection {
+
+        @Test
+        @DisplayName("should detect child entity conversion for aggregate with collection field")
+        void should_detectChildEntityConversion_forAggregateWithCollectionField() {
+            // Given: An Order aggregate with a lines collection field of type List<OrderLine>
+            Entity orderLineEntity = createOrderLineEntity();
+            AggregateRoot aggregate = createOrderAggregateWithLines(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("orderNumber", TypeRef.of("java.lang.String")),
+                            Parameter.of(
+                                    "lines",
+                                    TypeRef.parameterized(
+                                            "java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))));
+
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, orderLineEntity);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .childEntityFqns(Set.of(DOMAIN_PKG + ".OrderLine"))
+                    .entityMapping(Map.of(DOMAIN_PKG + ".OrderLine", INFRA_PKG + ".OrderLineJpaEntity"))
+                    .build();
+
+            // Then
+            assertThat(spec.childEntityConversions()).hasSize(1);
+            assertThat(spec.childEntityConversions().get(0).childDomainSimpleName())
+                    .isEqualTo("OrderLine");
+        }
+
+        @Test
+        @DisplayName("should detect child entity collection conversion kind in reconstitution params")
+        void should_detectChildEntityCollectionConversionKind_inReconstitutionParams() {
+            // Given: Same aggregate setup with reconstitute() factory method
+            Entity orderLineEntity = createOrderLineEntity();
+            AggregateRoot aggregate = createOrderAggregateWithLines(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("orderNumber", TypeRef.of("java.lang.String")),
+                            Parameter.of(
+                                    "lines",
+                                    TypeRef.parameterized(
+                                            "java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))));
+
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, orderLineEntity);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .childEntityFqns(Set.of(DOMAIN_PKG + ".OrderLine"))
+                    .entityMapping(Map.of(DOMAIN_PKG + ".OrderLine", INFRA_PKG + ".OrderLineJpaEntity"))
+                    .build();
+
+            // Then: Verify that reconstitutionSpec parameters contain CHILD_ENTITY_COLLECTION for "lines"
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("lines");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.CHILD_ENTITY_COLLECTION);
+            });
+        }
+
+        @Test
+        @DisplayName("should not detect child entity conversion when no child entity fqns")
+        void should_notDetectChildEntityConversion_whenNoChildEntityFqns() {
+            // Given: Same aggregate but with empty childEntityFqns
+            Entity orderLineEntity = createOrderLineEntity();
+            AggregateRoot aggregate = createOrderAggregateWithLines(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("orderNumber", TypeRef.of("java.lang.String")),
+                            Parameter.of(
+                                    "lines",
+                                    TypeRef.parameterized(
+                                            "java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))));
+
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, orderLineEntity);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then
+            assertThat(spec.childEntityConversions()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should detect constructor-based reconstitution for child entity without factory method")
+        void should_detectConstructorBasedReconstitution_forChildEntity() {
+            // Given: An OrderLine entity with constructors but NO static factory method
+            Entity orderLineEntity = createOrderLineEntityWithConstructors();
+            AggregateRoot aggregate = createOrderAggregateWithLines(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("orderNumber", TypeRef.of("java.lang.String")),
+                            Parameter.of(
+                                    "lines",
+                                    TypeRef.parameterized(
+                                            "java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))));
+
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, orderLineEntity);
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .childEntityFqns(Set.of(DOMAIN_PKG + ".OrderLine"))
+                    .entityMapping(Map.of(DOMAIN_PKG + ".OrderLine", INFRA_PKG + ".OrderLineJpaEntity"))
+                    .build();
+
+            // Then: Child entity reconstitution should be detected
+            assertThat(spec.childEntityConversions()).hasSize(1);
+            var childConversion = spec.childEntityConversions().get(0);
+            assertThat(childConversion.reconstitutionSpec()).isNotNull();
+            // And: factoryMethodName should be null (constructor-based)
+            assertThat(childConversion.reconstitutionSpec().factoryMethodName()).isNull();
+            // And: Should have parameters from the longest public constructor
+            assertThat(childConversion.reconstitutionSpec().parameters()).hasSize(2);
+            assertThat(childConversion.reconstitutionSpec().parameters().get(0).parameterName())
+                    .isEqualTo("productName");
+            assertThat(childConversion.reconstitutionSpec().parameters().get(1).parameterName())
+                    .isEqualTo("quantity");
+        }
+    }
+
     // ===== Helper Methods =====
 
     /**
@@ -775,6 +923,89 @@ class MapperSpecBuilderReconstitutionTest {
                         identityField)
                 .effectiveIdentityType(TypeRef.of("java.util.UUID"))
                 .build();
+    }
+
+    /**
+     * Creates an Order aggregate with an OrderId identity field, an orderNumber String field,
+     * and a lines collection field of type List&lt;OrderLine&gt; with COLLECTION role.
+     */
+    private AggregateRoot createOrderAggregateWithLines(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod = createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Order"), params);
+
+        Field identityField = Field.builder("orderId", TypeRef.of(DOMAIN_PKG + ".OrderId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        Field linesField = Field.builder(
+                        "lines",
+                        TypeRef.parameterized("java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))
+                .roles(Set.of(FieldRole.COLLECTION))
+                .elementType(TypeRef.of(DOMAIN_PKG + ".OrderLine"))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(identityField, Field.of("orderNumber", TypeRef.of("java.lang.String")), linesField))
+                .methods(List.of(factoryMethod))
+                .constructors(List.of())
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Order"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
+    }
+
+    /**
+     * Creates an OrderLine entity with productName and quantity fields.
+     */
+    private Entity createOrderLineEntity() {
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(
+                        Field.of("productName", TypeRef.of("java.lang.String")),
+                        Field.of("quantity", TypeRef.of("int"))))
+                .build();
+
+        return Entity.of(TypeId.of(DOMAIN_PKG + ".OrderLine"), structure, highConfidence(ElementKind.ENTITY));
+    }
+
+    /**
+     * Creates an OrderLine entity with constructors but NO static factory methods.
+     *
+     * <p>Simulates a child entity like OrderLine that uses constructors for reconstitution:
+     * <ul>
+     *   <li>Private no-arg constructor (for JPA)</li>
+     *   <li>Public 2-arg constructor (productName, quantity)</li>
+     * </ul>
+     */
+    private Entity createOrderLineEntityWithConstructors() {
+        Constructor noArgCtor = new Constructor(
+                List.of(), Set.of(Modifier.PRIVATE), List.of(), Optional.empty(), List.of(), Optional.empty());
+
+        Constructor fullCtor = new Constructor(
+                List.of(
+                        Parameter.of("productName", TypeRef.of("java.lang.String")),
+                        Parameter.of("quantity", TypeRef.of("int"))),
+                Set.of(Modifier.PUBLIC),
+                List.of(),
+                Optional.empty(),
+                List.of(),
+                Optional.empty());
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(
+                        Field.of("productName", TypeRef.of("java.lang.String")),
+                        Field.of("quantity", TypeRef.of("int"))))
+                .constructors(List.of(noArgCtor, fullCtor))
+                .build();
+
+        return Entity.of(TypeId.of(DOMAIN_PKG + ".OrderLine"), structure, highConfidence(ElementKind.ENTITY));
     }
 
     /**

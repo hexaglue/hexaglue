@@ -21,10 +21,12 @@ import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeName;
 import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ChildEntityConversionSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
 import io.hexaglue.plugin.jpa.model.MapperSpec.MappingSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionParameterSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ReconstitutionSpec;
+import io.hexaglue.plugin.jpa.model.MapperSpec.ValueObjectMappingSpec;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -59,7 +61,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -84,7 +87,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -110,7 +114,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -134,7 +139,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -161,7 +167,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -191,7 +198,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -223,7 +231,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -254,7 +263,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -283,7 +293,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -310,7 +321,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -334,7 +346,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -370,7 +383,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -395,7 +409,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -419,7 +434,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -456,7 +472,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         JavaFile javaFile = JpaMapperCodegen.generateFile(spec);
@@ -497,7 +514,8 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -535,7 +553,8 @@ class JpaMapperCodegenTest {
                 List.of(emailVoSpec),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -571,7 +590,8 @@ class JpaMapperCodegenTest {
                 List.of(emailVoSpec, phoneVoSpec),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -602,7 +622,8 @@ class JpaMapperCodegenTest {
                 List.of(classVoSpec),
                 List.of(),
                 List.of(),
-                null);
+                null,
+                List.of());
 
         // When
         TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -646,7 +667,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -678,7 +700,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -710,7 +733,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -744,7 +768,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -776,7 +801,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -807,7 +833,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -844,7 +871,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -878,7 +906,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -920,7 +949,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -961,7 +991,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -999,7 +1030,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    reconstitutionSpec);
+                    reconstitutionSpec,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1027,7 +1059,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     List.of(),
-                    null);
+                    null,
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1038,6 +1071,344 @@ class JpaMapperCodegenTest {
             // No "default" keyword before toDomain, no null check, no reconstitute call
             assertThat(generatedCode).doesNotContain("default com.example.domain.Order toDomain");
             assertThat(generatedCode).doesNotContain("reconstitute");
+        }
+    }
+
+    // =====================================================================
+    // Child Entity Conversion tests
+    // =====================================================================
+
+    @Nested
+    @DisplayName("Child Entity Conversion")
+    class ChildEntityConversion {
+
+        @Test
+        @DisplayName("should generate toEntity method for child entity")
+        void should_generateToEntityMethod_forChildEntity() {
+            // Given: A mapper with a ChildEntityConversionSpec (no reconstitution, no VOs)
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should contain abstract toEntity method for OrderLine
+            assertThat(generatedCode)
+                    .contains("toEntity(com.example.domain.OrderLine")
+                    .contains("com.example.infrastructure.jpa.OrderLineJpaEntity toEntity");
+        }
+
+        @Test
+        @DisplayName("should generate abstract toDomain method for child entity when no reconstitution")
+        void should_generateToDomainMethod_forChildEntity_abstract() {
+            // Given: A mapper with a ChildEntityConversionSpec without reconstitution
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    null, // No reconstitution
+                    List.of(),
+                    List.of(),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should contain abstract toDomain method (no "default" keyword)
+            assertThat(generatedCode)
+                    .contains("toDomain(com.example.infrastructure.jpa.OrderLineJpaEntity")
+                    .contains("com.example.domain.OrderLine toDomain");
+            // And: Should NOT be a default method
+            assertThat(generatedCode).doesNotContain("default com.example.domain.OrderLine toDomain");
+        }
+
+        @Test
+        @DisplayName("should generate default toDomain method for child entity with reconstitution")
+        void should_generateToDomainDefaultMethod_forChildEntity() {
+            // Given: A ChildEntityConversionSpec WITH a ReconstitutionSpec
+            ReconstitutionSpec childReconstitution = new ReconstitutionSpec(
+                    "of",
+                    "com.example.domain.OrderLine",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "productId",
+                                    "com.example.domain.ProductId",
+                                    "productId",
+                                    ConversionKind.VALUE_OBJECT),
+                            new ReconstitutionParameterSpec(
+                                    "productName", "java.lang.String", "productName", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec("quantity", "int", "quantity", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "unitPrice",
+                                    "com.example.domain.Money",
+                                    "unitPrice",
+                                    ConversionKind.EMBEDDED_VALUE_OBJECT)));
+
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    childReconstitution,
+                    List.of(),
+                    List.of(),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should be a default method
+            assertThat(generatedCode).contains("default com.example.domain.OrderLine toDomain");
+            // And: Should have null check
+            assertThat(generatedCode).contains("if (entity == null)");
+            assertThat(generatedCode).contains("return null");
+            // And: Should call factory method
+            assertThat(generatedCode).contains("OrderLine.of(");
+            // And: Should include the parameter conversions
+            assertThat(generatedCode).contains("mapToProductId(entity.getProductId())");
+            assertThat(generatedCode).contains("entity.getProductName()");
+            assertThat(generatedCode).contains("entity.getQuantity()");
+            assertThat(generatedCode).contains("toDomain(entity.getUnitPrice())");
+        }
+
+        @Test
+        @DisplayName("should generate constructor-based toDomain for child entity without factory method")
+        void should_generateConstructorBasedToDomain_forChildEntity() {
+            // Given: A ChildEntityConversionSpec with constructor-based reconstitution (null factoryMethodName)
+            ReconstitutionSpec childReconstitution = new ReconstitutionSpec(
+                    null, // null = constructor-based reconstitution
+                    "com.example.domain.OrderLine",
+                    List.of(
+                            new ReconstitutionParameterSpec("id", "java.lang.Long", "id", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "productId",
+                                    "com.example.domain.ProductId",
+                                    "productId",
+                                    ConversionKind.VALUE_OBJECT),
+                            new ReconstitutionParameterSpec(
+                                    "productName", "java.lang.String", "productName", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec("quantity", "int", "quantity", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "unitPrice",
+                                    "com.example.domain.Money",
+                                    "unitPrice",
+                                    ConversionKind.EMBEDDED_VALUE_OBJECT)));
+
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    childReconstitution,
+                    List.of(),
+                    List.of(),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should be a default method
+            assertThat(generatedCode).contains("default com.example.domain.OrderLine toDomain");
+            // And: Should have null check
+            assertThat(generatedCode).contains("if (entity == null)");
+            assertThat(generatedCode).contains("return null");
+            // And: Should call constructor with 'new' (not a static factory)
+            assertThat(generatedCode).contains("new com.example.domain.OrderLine(");
+            // And: Should NOT contain a factory method call pattern
+            assertThat(generatedCode).doesNotContain("OrderLine.reconstitute(");
+            assertThat(generatedCode).doesNotContain("OrderLine.of(");
+            // And: Should include the parameter conversions
+            assertThat(generatedCode).contains("entity.getId()");
+            assertThat(generatedCode).contains("mapToProductId(entity.getProductId())");
+            assertThat(generatedCode).contains("entity.getProductName()");
+            assertThat(generatedCode).contains("entity.getQuantity()");
+            assertThat(generatedCode).contains("toDomain(entity.getUnitPrice())");
+        }
+
+        @Test
+        @DisplayName("should generate stream map conversion for child entity collection")
+        void should_generateStreamMapConversion_forChildEntityCollection() {
+            // Given: Parent reconstitution spec with a CHILD_ENTITY_COLLECTION parameter
+            ReconstitutionSpec parentReconstitution = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Order",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "id", "com.example.domain.OrderId", "id", ConversionKind.WRAPPED_IDENTITY),
+                            new ReconstitutionParameterSpec(
+                                    "lines", "java.util.List", "lines", ConversionKind.CHILD_ENTITY_COLLECTION)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    parentReconstitution,
+                    List.of());
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should generate stream map conversion
+            assertThat(generatedCode).contains(".stream().map(this::toDomain).collect(");
+            // And: Should call the parent factory method
+            assertThat(generatedCode).contains("Order.reconstitute(");
+        }
+
+        @Test
+        @DisplayName("should generate child-specific VO conversions")
+        void should_generateChildSpecificVoConversions() {
+            // Given: A ChildEntityConversionSpec with a ValueObjectMappingSpec
+            ValueObjectMappingSpec productIdVo = new ValueObjectMappingSpec(
+                    "com.example.domain.ProductId", "ProductId", "java.util.UUID", "value", true);
+
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    null,
+                    List.of(),
+                    List.of(productIdVo),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should generate mapToProductId method
+            assertThat(generatedCode)
+                    .contains("mapToProductId(java.util.UUID value)")
+                    .contains("com.example.domain.ProductId");
+        }
+
+        @Test
+        @DisplayName("should generate child toEntity mapping annotations")
+        void should_generateChildToEntityMappingAnnotations() {
+            // Given: A ChildEntityConversionSpec with toEntityMappings for audit ignores
+            ChildEntityConversionSpec childSpec = new ChildEntityConversionSpec(
+                    "com.example.domain.OrderLine",
+                    "com.example.infrastructure.jpa.OrderLineJpaEntity",
+                    "OrderLine",
+                    "OrderLineJpaEntity",
+                    null,
+                    List.of(MappingSpec.ignore("createdAt"), MappingSpec.ignore("updatedAt")),
+                    List.of(),
+                    List.of());
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(childSpec));
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Child toEntity method should have @Mapping annotations
+            assertThat(generatedCode)
+                    .contains("@org.mapstruct.Mapping")
+                    .contains("target = \"createdAt\"")
+                    .contains("ignore = true")
+                    .contains("target = \"updatedAt\"");
         }
     }
 }

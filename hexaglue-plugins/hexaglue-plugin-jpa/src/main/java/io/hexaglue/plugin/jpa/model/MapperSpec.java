@@ -57,6 +57,7 @@ import java.util.List;
  * @param usedMappers list of other mappers this mapper should delegate to for entity relationships
  * @param reconstitutionSpec specification for generating a default toDomain() method using a factory method,
  *        or null to fall back to MapStruct's abstract method generation
+ * @param childEntityConversions specifications for child entity collection conversions in the mapper
  * @since 2.0.0
  */
 public record MapperSpec(
@@ -70,7 +71,8 @@ public record MapperSpec(
         List<ValueObjectMappingSpec> valueObjectMappings,
         List<EmbeddableMappingSpec> embeddableMappings,
         List<ClassName> usedMappers,
-        ReconstitutionSpec reconstitutionSpec) {
+        ReconstitutionSpec reconstitutionSpec,
+        List<ChildEntityConversionSpec> childEntityConversions) {
 
     /**
      * Canonical constructor with defensive copies.
@@ -81,6 +83,7 @@ public record MapperSpec(
         valueObjectMappings = List.copyOf(valueObjectMappings);
         embeddableMappings = List.copyOf(embeddableMappings);
         usedMappers = usedMappers == null ? List.of() : List.copyOf(usedMappers);
+        childEntityConversions = childEntityConversions == null ? List.of() : List.copyOf(childEntityConversions);
     }
 
     /**
@@ -261,6 +264,43 @@ public record MapperSpec(
             ConversionKind conversionKind) {}
 
     /**
+     * Specification for a child entity type that needs conversion methods in the mapper.
+     *
+     * <p>When an aggregate root has a collection of child entities (e.g., {@code List<OrderLine>}),
+     * the mapper needs methods to convert between the domain child type and its JPA entity
+     * counterpart. This specification captures all the information needed to generate those methods.
+     *
+     * @param childDomainTypeFqn the fully qualified name of the child domain type
+     * @param childEntityTypeFqn the fully qualified name of the child JPA entity type
+     * @param childDomainSimpleName the simple name of the child domain type
+     * @param childEntitySimpleName the simple name of the child JPA entity type
+     * @param reconstitutionSpec the reconstitution spec for the child, or null if MapStruct can handle natively
+     * @param toEntityMappings the mappings for child domain → entity conversion (e.g., audit field ignores)
+     * @param valueObjectMappings the Value Object mappings needed by the child entity
+     * @param embeddableMappings the embeddable mappings needed by the child entity
+     * @since 5.0.0
+     */
+    public record ChildEntityConversionSpec(
+            String childDomainTypeFqn,
+            String childEntityTypeFqn,
+            String childDomainSimpleName,
+            String childEntitySimpleName,
+            ReconstitutionSpec reconstitutionSpec,
+            List<MappingSpec> toEntityMappings,
+            List<ValueObjectMappingSpec> valueObjectMappings,
+            List<EmbeddableMappingSpec> embeddableMappings) {
+
+        /**
+         * Canonical constructor with defensive copies.
+         */
+        public ChildEntityConversionSpec {
+            toEntityMappings = toEntityMappings == null ? List.of() : List.copyOf(toEntityMappings);
+            valueObjectMappings = valueObjectMappings == null ? List.of() : List.copyOf(valueObjectMappings);
+            embeddableMappings = embeddableMappings == null ? List.of() : List.copyOf(embeddableMappings);
+        }
+    }
+
+    /**
      * Describes how an entity field value is converted when passed to
      * the domain reconstitution factory method.
      *
@@ -282,6 +322,17 @@ public record MapperSpec(
 
         /** Entity relationship, delegated via {@code @Mapper(uses={})} (e.g., {@code entity.getItems()}). */
         ENTITY_RELATION,
+
+        /**
+         * Child entity collection conversion via stream-map.
+         *
+         * <p>Used when a reconstitution parameter is a collection ({@code List<X>} or {@code Set<X>})
+         * whose element type is a child entity. The generated code calls
+         * {@code entity.getItems().stream().map(this::toDomain).collect(Collectors.toList())}.
+         *
+         * @since 5.0.0
+         */
+        CHILD_ENTITY_COLLECTION,
 
         /**
          * Audit temporal conversion via {@code toLocalDateTime()} helper
