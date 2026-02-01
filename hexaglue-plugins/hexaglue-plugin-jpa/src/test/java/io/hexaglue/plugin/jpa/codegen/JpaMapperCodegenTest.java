@@ -856,6 +856,44 @@ class JpaMapperCodegenTest {
         }
 
         @Test
+        @DisplayName("should use isX() getter for primitive boolean fields")
+        void should_useIsGetter_forPrimitiveBooleanFields() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec("active", "boolean", "active", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "verified", "java.lang.Boolean", "verified", ConversionKind.DIRECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: primitive boolean should use isActive(), not getActive()
+            assertThat(generatedCode).contains("entity.isActive()");
+            assertThat(generatedCode).doesNotContain("entity.getActive()");
+
+            // And: wrapper Boolean should still use getVerified()
+            assertThat(generatedCode).contains("entity.getVerified()");
+            assertThat(generatedCode).doesNotContain("entity.isVerified()");
+        }
+
+        @Test
         @DisplayName("should fallback to abstract method when no reconstitution spec")
         void should_fallbackToAbstractMethod_whenNoReconstitutionSpec() {
             // Given
