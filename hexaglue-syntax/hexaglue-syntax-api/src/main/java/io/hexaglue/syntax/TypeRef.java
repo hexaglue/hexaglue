@@ -40,6 +40,8 @@ public record TypeRef(
     public TypeRef {
         Objects.requireNonNull(qualifiedName, "qualifiedName");
         Objects.requireNonNull(simpleName, "simpleName");
+        // Normalize JVM binary names: nested types use '$' in bytecode but '.' in source
+        qualifiedName = qualifiedName.replace('$', '.');
         typeArguments = typeArguments != null ? List.copyOf(typeArguments) : List.of();
     }
 
