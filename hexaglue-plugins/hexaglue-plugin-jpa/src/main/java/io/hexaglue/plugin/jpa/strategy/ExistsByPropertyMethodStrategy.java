@@ -86,10 +86,11 @@ public final class ExistsByPropertyMethodStrategy implements MethodBodyStrategy 
     }
 
     /**
-     * Converts an identifier parameter to the appropriate form for repository delegation.
+     * Converts a parameter to the appropriate form for repository delegation.
      *
      * <p>For the aggregate's own identity type, uses mapper.map(param).
      * For cross-aggregate identities, uses param.value() to extract the wrapped value.
+     * For single-value record VOs, uses mapper.map(param) to unwrap via the mapper.
      * For non-identity parameters, returns the parameter name as-is.
      *
      * @param param the parameter info
@@ -97,6 +98,11 @@ public final class ExistsByPropertyMethodStrategy implements MethodBodyStrategy 
      * @return the parameter expression for the repository call
      */
     private String convertIdentifierParam(AdapterMethodSpec.ParameterInfo param, AdapterContext context) {
+        // Issue 8 fix: Single-value record VOs need unwrapping via mapper
+        if (param.isSingleValueVO()) {
+            return context.mapperFieldName() + ".map(" + param.name() + ")";
+        }
+
         if (!param.isIdentity()) {
             return param.name();
         }

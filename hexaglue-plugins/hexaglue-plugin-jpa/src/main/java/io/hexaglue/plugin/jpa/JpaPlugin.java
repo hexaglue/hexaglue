@@ -414,6 +414,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                         AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
                                 .drivenPorts(List.of(port))
                                 .aggregateRoot(aggregateOpt.get())
+                                .model(model)
                                 .config(config)
                                 .infrastructurePackage(infraPackage)
                                 .build();
@@ -445,6 +446,7 @@ public final class JpaPlugin implements GeneratorPlugin {
                             AdapterSpec adapterSpec = AdapterSpecBuilder.builder()
                                     .drivenPorts(List.of(port))
                                     .entity(entityOpt.get())
+                                    .model(model)
                                     .config(config)
                                     .infrastructurePackage(infraPackage)
                                     .build();

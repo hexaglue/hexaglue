@@ -16,6 +16,7 @@ package io.hexaglue.plugin.jpa.model;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.ir.Cardinality;
 import io.hexaglue.arch.model.ir.MethodKind;
 import io.hexaglue.arch.model.ir.PortMethod;
@@ -71,8 +72,23 @@ public record AdapterMethodSpec(
      * @param name the parameter name
      * @param type the JavaPoet parameter type
      * @param isIdentity true if this parameter represents the aggregate's identity
+     * @param isSingleValueVO true if this parameter is a single-value record Value Object
+     *                        that needs unwrapping via mapper.map() before passing to the JPA repository
+     * @since 2.0.0
      */
-    public record ParameterInfo(String name, TypeName type, boolean isIdentity) {}
+    public record ParameterInfo(String name, TypeName type, boolean isIdentity, boolean isSingleValueVO) {
+
+        /**
+         * Backward-compatible constructor for parameters that are not single-value VOs.
+         *
+         * @param name the parameter name
+         * @param type the JavaPoet parameter type
+         * @param isIdentity true if this parameter represents the aggregate's identity
+         */
+        public ParameterInfo(String name, TypeName type, boolean isIdentity) {
+            this(name, type, isIdentity, false);
+        }
+    }
 
     /**
      * Creates an AdapterMethodSpec with inferred cardinality from the return type.
@@ -137,6 +153,38 @@ public record AdapterMethodSpec(
 
         // Extract cardinality from SPI TypeRef for accurate Optional/Collection detection
         Cardinality returnCardinality = method.returnType().cardinality();
+
+        return new AdapterMethodSpec(method.name(), returnType, parameters, kind, targetProperty, returnCardinality);
+    }
+
+    /**
+     * Creates an AdapterMethodSpec from a Method from the architectural model.
+     *
+     * <p>This factory method converts the model method to the
+     * JavaPoet-based generation model, inferring the method kind from
+     * the method name pattern.
+     *
+     * <p>Issue 8 fix: If a DomainIndex is provided, single-value record Value Object
+     * parameters are flagged so adapter strategies can unwrap them via mapper.map().
+     *
+     * @param method the method from the architectural model
+     * @param domainIndex optional domain index for single-value VO detection
+     * @return an AdapterMethodSpec ready for code generation
+     * @since 2.0.0
+     */
+    public static AdapterMethodSpec fromV5(io.hexaglue.arch.model.Method method, Optional<DomainIndex> domainIndex) {
+        TypeName returnType = resolveTypeNameFromSyntax(method.returnType());
+        List<ParameterInfo> parameters = method.parameters().stream()
+                .map(param -> new ParameterInfo(
+                        param.name(),
+                        resolveTypeNameFromSyntax(param.type()),
+                        isIdentityParameter(param.name()),
+                        isSingleValueVOParameter(param.type(), domainIndex)))
+                .collect(Collectors.toList());
+
+        MethodKind kind = inferMethodKind(method.name());
+        Optional<String> targetProperty = extractTargetProperty(method.name(), kind);
+        Cardinality returnCardinality = inferCardinalityFromTypeName(returnType);
 
         return new AdapterMethodSpec(method.name(), returnType, parameters, kind, targetProperty, returnCardinality);
     }
@@ -255,6 +303,31 @@ public record AdapterMethodSpec(
      */
     private static boolean isIdentityParameter(String name) {
         return "id".equals(name) || name.endsWith("Id");
+    }
+
+    /**
+     * Checks if a parameter type is a single-value record Value Object.
+     *
+     * <p>Issue 8 fix: Single-value record VOs (like {@code Email} wrapping {@code String})
+     * need unwrapping via mapper.map() in adapter strategies, because the JPA repository
+     * uses the unwrapped primitive type.
+     *
+     * @param typeRef the parameter type reference
+     * @param domainIndex optional domain index for VO lookup
+     * @return true if the type is a single-value record VO
+     * @since 2.0.0
+     */
+    private static boolean isSingleValueVOParameter(
+            io.hexaglue.syntax.TypeRef typeRef, Optional<DomainIndex> domainIndex) {
+        if (domainIndex.isEmpty()) {
+            return false;
+        }
+        String qualifiedName = typeRef.qualifiedName();
+        return domainIndex
+                .get()
+                .valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
+                .anyMatch(vo -> vo.isSingleValue() && vo.structure().isRecord());
     }
 
     /**

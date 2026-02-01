@@ -15,9 +15,11 @@ package io.hexaglue.plugin.jpa.builder;
 
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
@@ -45,6 +47,7 @@ public final class AdapterSpecBuilder {
     private AggregateRoot aggregateRoot;
     private Entity entity;
     private List<io.hexaglue.arch.model.DrivenPort> drivenPorts;
+    private ArchitecturalModel architecturalModel;
 
     private JpaConfig config;
     private String infrastructurePackage;
@@ -81,6 +84,21 @@ public final class AdapterSpecBuilder {
      */
     public AdapterSpecBuilder infrastructurePackage(String infrastructurePackage) {
         this.infrastructurePackage = infrastructurePackage;
+        return this;
+    }
+
+    /**
+     * Sets the architectural model for domain index lookups.
+     *
+     * <p>Issue 8 fix: The domain index is used to detect single-value record
+     * Value Object parameters that need unwrapping in adapter methods.
+     *
+     * @param model the architectural model
+     * @return this builder
+     * @since 2.0.0
+     */
+    public AdapterSpecBuilder model(ArchitecturalModel model) {
+        this.architecturalModel = model;
         return this;
     }
 
@@ -250,6 +268,8 @@ public final class AdapterSpecBuilder {
      */
     private List<AdapterMethodSpec> buildAdapterMethodSpecs() {
         Map<String, AdapterMethodSpec> methodsBySignature = new LinkedHashMap<>();
+        Optional<DomainIndex> domainIndexOpt =
+                architecturalModel != null ? architecturalModel.domainIndex() : Optional.empty();
 
         for (io.hexaglue.arch.model.DrivenPort port : drivenPorts) {
             for (var method : port.structure().methods()) {
@@ -257,7 +277,7 @@ public final class AdapterSpecBuilder {
                 if (method.isStatic()) {
                     continue;
                 }
-                AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method);
+                AdapterMethodSpec spec = AdapterMethodSpec.fromV5(method, domainIndexOpt);
                 String signature = computeSignature(spec);
                 methodsBySignature.putIfAbsent(signature, spec);
             }

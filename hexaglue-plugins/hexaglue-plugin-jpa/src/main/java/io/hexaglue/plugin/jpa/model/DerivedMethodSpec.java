@@ -17,6 +17,7 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.Identifier;
+import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.ir.MethodKind;
 import io.hexaglue.arch.model.ir.MethodParameter;
@@ -222,30 +223,44 @@ public record DerivedMethodSpec(
     }
 
     /**
-     * Resolves a TypeRef to a JavaPoet TypeName, unwrapping Identifier types.
+     * Resolves a TypeRef to a JavaPoet TypeName, unwrapping Identifier and single-value VO types.
      *
      * <p>C4 fix: If the type is an Identifier (e.g., CustomerId, OrderId), returns
      * the wrapped type (e.g., UUID) instead. This ensures JpaRepository methods
      * use primitive types compatible with Spring Data.
      *
+     * <p>Issue 8 fix: If the type is a single-value record Value Object (e.g., Email
+     * wrapping String), returns the wrapped type instead. This mirrors the entity field
+     * unwrapping done by {@link PropertyFieldSpec#fromV5}.
+     *
      * @param typeRef the type reference
-     * @param domainIndex optional domain index for Identifier lookup
-     * @return the resolved TypeName (unwrapped if Identifier)
+     * @param domainIndex optional domain index for Identifier and VO lookup
+     * @return the resolved TypeName (unwrapped if Identifier or single-value record VO)
      * @since 5.0.0
      */
     private static TypeName resolveTypeNameWithIdentifierUnwrap(
             io.hexaglue.syntax.TypeRef typeRef, Optional<DomainIndex> domainIndex) {
-        // C4 fix: Check if the type is an Identifier and unwrap it
         if (domainIndex.isPresent()) {
             String qualifiedName = typeRef.qualifiedName();
-            Optional<Identifier> identifierOpt = domainIndex
-                    .get()
-                    .identifiers()
+            DomainIndex index = domainIndex.get();
+
+            // C4 fix: Check if the type is an Identifier and unwrap it
+            Optional<Identifier> identifierOpt = index.identifiers()
                     .filter(id -> id.id().qualifiedName().equals(qualifiedName))
                     .findFirst();
             if (identifierOpt.isPresent()) {
-                // Use the wrapped type (e.g., UUID) instead of the Identifier type
                 io.hexaglue.syntax.TypeRef wrappedType = identifierOpt.get().wrappedType();
+                return resolveTypeName(wrappedType);
+            }
+
+            // Issue 8 fix: Check if the type is a single-value record VO and unwrap it
+            Optional<ValueObject> voOpt = index.valueObjects()
+                    .filter(vo -> vo.id().qualifiedName().equals(qualifiedName))
+                    .filter(vo -> vo.isSingleValue() && vo.structure().isRecord())
+                    .findFirst();
+            if (voOpt.isPresent()) {
+                io.hexaglue.syntax.TypeRef wrappedType =
+                        voOpt.get().wrappedField().get().type();
                 return resolveTypeName(wrappedType);
             }
         }

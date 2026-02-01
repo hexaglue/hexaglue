@@ -25,15 +25,20 @@ import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
+import io.hexaglue.plugin.jpa.model.RelationFieldSpec;
 import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -63,6 +68,11 @@ class EntitySpecBuilderTest {
     private static ArchitecturalModel minimalModel() {
         ProjectContext project = ProjectContext.forTesting("test-project", "com.example");
         return ArchitecturalModel.builder(project).build();
+    }
+
+    private static ArchitecturalModel modelWithDomainIndex(DomainIndex domainIndex) {
+        ProjectContext project = ProjectContext.forTesting("test-project", "com.example");
+        return ArchitecturalModel.builder(project).domainIndex(domainIndex).build();
     }
 
     private static JpaConfig configWithAuditing(boolean enableAuditing) {
@@ -330,6 +340,95 @@ class EntitySpecBuilderTest {
             assertThat(spec.domainQualifiedName()).isEqualTo(TEST_PKG + ".OrderLine");
             assertThat(spec.packageName()).isEqualTo(INFRA_PKG);
             assertThat(spec.idField()).isNotNull();
+        }
+    }
+
+    /**
+     * Tests for single-value record Value Object handling.
+     *
+     * <p>Single-value record Value Objects (like {@code Email} wrapping {@code String})
+     * should be routed to properties and unwrapped to their primitive type, not treated
+     * as embedded relations.
+     *
+     * @since 2.0.0
+     */
+    @Nested
+    @DisplayName("When field type is a single-value record Value Object")
+    class WhenFieldIsASingleValueRecordValueObject {
+
+        @Test
+        @DisplayName("should route single-value record VO to properties, not relations")
+        void shouldRouteSingleValueRecordVO_toProperties_notRelations() {
+            // Given: An aggregate with a field 'email' of type Email
+            // (a single-value record VO wrapping String, with EMBEDDED role)
+            Field emailField = new Field(
+                    "email",
+                    TypeRef.of(TEST_PKG + ".Email"),
+                    Set.of(Modifier.PRIVATE, Modifier.FINAL),
+                    List.of(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Set.of(FieldRole.EMBEDDED), // FieldRoleDetector assigns EMBEDDED to all VO-typed fields
+                    Optional.empty());
+
+            AggregateRoot aggregate = createAggregate(List.of(emailField));
+
+            // Create Email as a single-value record VALUE_OBJECT wrapping String
+            Field valueField = new Field(
+                    "value",
+                    TypeRef.of("java.lang.String"),
+                    Set.of(Modifier.PRIVATE, Modifier.FINAL),
+                    List.of(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Optional.empty(),
+                    Set.of(),
+                    Optional.empty());
+            TypeStructure emailStructure = TypeStructure.builder(TypeNature.RECORD)
+                    .modifiers(Set.of(Modifier.PUBLIC))
+                    .fields(List.of(valueField))
+                    .build();
+            ValueObject emailVo = ValueObject.of(
+                    TypeId.of(TEST_PKG + ".Email"), emailStructure, highConfidence(ElementKind.VALUE_OBJECT));
+
+            TypeRegistry registry = TypeRegistry.builder().add(emailVo).build();
+            DomainIndex domainIndex = DomainIndex.from(registry);
+            ArchitecturalModel model = modelWithDomainIndex(domainIndex);
+
+            // When: Building EntitySpec
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(configWithAuditing(false))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: 'email' should appear in properties, not in relations
+            List<String> propertyNames =
+                    spec.properties().stream().map(PropertyFieldSpec::fieldName).toList();
+            List<String> relationNames =
+                    spec.relations().stream().map(RelationFieldSpec::fieldName).toList();
+
+            assertThat(propertyNames)
+                    .as("Single-value record VO should be routed to properties")
+                    .contains("email");
+            assertThat(relationNames)
+                    .as("Single-value record VO should NOT appear in relations")
+                    .doesNotContain("email");
+
+            // And: The property should be unwrapped to String, not embedded
+            PropertyFieldSpec emailProp = spec.properties().stream()
+                    .filter(p -> p.fieldName().equals("email"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(emailProp.effectiveJpaType().toString())
+                    .as("Single-value record VO should be unwrapped to String")
+                    .isEqualTo("java.lang.String");
+            assertThat(emailProp.shouldBeEmbedded())
+                    .as("Single-value record VO should NOT be embedded")
+                    .isFalse();
         }
     }
 }
