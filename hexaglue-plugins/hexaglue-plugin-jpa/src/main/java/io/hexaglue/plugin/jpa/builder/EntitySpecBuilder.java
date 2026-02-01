@@ -91,6 +91,7 @@ public final class EntitySpecBuilder {
     private Map<String, String> embeddableMapping = Map.of();
     private Map<String, String> entityMapping = Map.of();
     private Map<String, String> bidirectionalMappings = Map.of();
+    private Set<String> childEntityFqns = Set.of();
 
     private EntitySpecBuilder() {
         // Use static factory method
@@ -216,6 +217,23 @@ public final class EntitySpecBuilder {
      */
     public EntitySpecBuilder bidirectionalMappings(Map<String, String> bidirectionalMappings) {
         this.bidirectionalMappings = bidirectionalMappings != null ? bidirectionalMappings : Map.of();
+        return this;
+    }
+
+    /**
+     * Sets the FQNs of child entity types discovered from aggregate roots.
+     *
+     * <p>These are types declared in {@code AggregateRoot.entities()} that may not be
+     * independently classified as ENTITY in the domain index. Used to apply DDD-appropriate
+     * defaults (cascade=ALL, orphanRemoval=true) only for true aggregate composition
+     * relationships, not cross-aggregate references.
+     *
+     * @param childEntityFqns set of child entity fully qualified names
+     * @return this builder
+     * @since 5.0.0
+     */
+    public EntitySpecBuilder childEntityFqns(Set<String> childEntityFqns) {
+        this.childEntityFqns = childEntityFqns != null ? childEntityFqns : Set.of();
         return this;
     }
 
@@ -548,8 +566,9 @@ public final class EntitySpecBuilder {
                 .filter(f -> isRelationField(f))
                 .map(f -> {
                     // BUG-008 fix: Pass entityMapping to replace domain types with entity types
-                    RelationFieldSpec spec =
-                            RelationFieldSpec.fromV5(f, architecturalModel, embeddableMapping, entityMapping);
+                    // Issue 13 fix: Pass childEntityFqns for targeted smart defaults
+                    RelationFieldSpec spec = RelationFieldSpec.fromV5(
+                            f, architecturalModel, embeddableMapping, entityMapping, childEntityFqns);
                     // BUG-003 fix: Apply bidirectional mappings if this is an inverse side
                     String key = typeFqn + "#" + f.name();
                     String mappedByValue = bidirectionalMappings.get(key);
