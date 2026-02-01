@@ -435,6 +435,7 @@ public final class JpaMapperCodegen {
      *   <li>{@link ConversionKind#DIRECT} → {@code entity.getFieldName()} or {@code entity.isFieldName()}</li>
      *   <li>{@link ConversionKind#WRAPPED_IDENTITY} → {@code map(entity.getFieldName())}</li>
      *   <li>{@link ConversionKind#VALUE_OBJECT} → {@code mapToSimpleName(entity.getFieldName())}</li>
+     *   <li>{@link ConversionKind#EMBEDDED_VALUE_OBJECT} → {@code toDomain(entity.getFieldName())}</li>
      *   <li>{@link ConversionKind#ENTITY_RELATION} → {@code entity.getFieldName()}</li>
      * </ul>
      *
@@ -456,6 +457,7 @@ public final class JpaMapperCodegen {
                 String simpleName = fqn.substring(fqn.lastIndexOf('.') + 1);
                 yield "mapTo" + simpleName + "(" + getter + ")";
             }
+            case EMBEDDED_VALUE_OBJECT -> "toDomain(" + getter + ")";
             case ENTITY_RELATION -> getter;
         };
     }

@@ -783,6 +783,7 @@ public final class MapperSpecBuilder {
      *   <li>Type is the aggregate's own {@code Identifier} → {@link ConversionKind#WRAPPED_IDENTITY}</li>
      *   <li>Type is a foreign key {@code Identifier} → {@link ConversionKind#VALUE_OBJECT} (uses {@code mapToXxx()})</li>
      *   <li>Type is a single-value {@code ValueObject} → {@link ConversionKind#VALUE_OBJECT}</li>
+     *   <li>Type is a multi-value {@code ValueObject} in the embeddable mapping → {@link ConversionKind#EMBEDDED_VALUE_OBJECT}</li>
      *   <li>Type is an {@code Entity} or {@code AggregateRoot} → {@link ConversionKind#ENTITY_RELATION}</li>
      *   <li>Otherwise → {@link ConversionKind#DIRECT}</li>
      * </ul>
@@ -819,6 +820,11 @@ public final class MapperSpecBuilder {
                 .anyMatch(io.hexaglue.arch.model.ValueObject::isSingleValue);
         if (isSingleValueVO) {
             return ConversionKind.VALUE_OBJECT;
+        }
+
+        // Check if it's a multi-value ValueObject mapped to a JPA embeddable
+        if (embeddableMapping.containsKey(paramTypeFqn)) {
+            return ConversionKind.EMBEDDED_VALUE_OBJECT;
         }
 
         // Check if it's an Entity or AggregateRoot
