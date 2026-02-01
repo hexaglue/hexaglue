@@ -277,6 +277,9 @@ public record MapperSpec(
         /** Single-value Value Object conversion via {@code mapToXxx()} helper (e.g., {@code mapToEmail(entity.getEmail())}). */
         VALUE_OBJECT,
 
+        /** Multi-value Value Object embedded conversion via overloaded {@code toDomain()} (e.g., {@code toDomain(entity.getAmount())}). */
+        EMBEDDED_VALUE_OBJECT,
+
         /** Entity relationship, delegated via {@code @Mapper(uses={})} (e.g., {@code entity.getItems()}). */
         ENTITY_RELATION
     }

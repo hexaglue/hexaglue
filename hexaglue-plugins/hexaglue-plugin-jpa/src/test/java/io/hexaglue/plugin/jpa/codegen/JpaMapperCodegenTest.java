@@ -894,6 +894,45 @@ class JpaMapperCodegenTest {
         }
 
         @Test
+        @DisplayName("should generate toDomain() calls for EMBEDDED_VALUE_OBJECT parameters")
+        void should_generateToDomainCalls_forEmbeddedValueObjectParameters() {
+            // Given: A reconstitution spec with an EMBEDDED_VALUE_OBJECT parameter (e.g., Money)
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "id", "com.example.domain.CustomerId", "id", ConversionKind.WRAPPED_IDENTITY),
+                            new ReconstitutionParameterSpec(
+                                    "amount",
+                                    "com.example.domain.Money",
+                                    "amount",
+                                    ConversionKind.EMBEDDED_VALUE_OBJECT)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should call toDomain(entity.getAmount()) for embedded VO
+            assertThat(generatedCode).contains("toDomain(entity.getAmount())");
+            // And: Should still use map() for wrapped identity
+            assertThat(generatedCode).contains("map(entity.getId())");
+        }
+
+        @Test
         @DisplayName("should fallback to abstract method when no reconstitution spec")
         void should_fallbackToAbstractMethod_whenNoReconstitutionSpec() {
             // Given

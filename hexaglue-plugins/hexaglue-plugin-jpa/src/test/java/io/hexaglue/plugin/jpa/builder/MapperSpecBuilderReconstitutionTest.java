@@ -41,6 +41,7 @@ import io.hexaglue.syntax.Modifier;
 import io.hexaglue.syntax.TypeRef;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -377,6 +378,41 @@ class MapperSpecBuilderReconstitutionTest {
         }
 
         @Test
+        @DisplayName("should detect EMBEDDED_VALUE_OBJECT conversion for multi-value VOs")
+        void should_detectEmbeddedValueObjectConversion_forMultiValueVOs() {
+            // Given: An aggregate with a Money field (multi-value VO: amount + currency)
+            ValueObject moneyVo = createMultiValueVO(
+                    "Money",
+                    List.of(
+                            Field.of("amount", TypeRef.of("java.math.BigDecimal")),
+                            Field.of("currency", TypeRef.of("java.lang.String"))));
+            AggregateRoot aggregate = createAggregateWithMoneyField(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("amount", TypeRef.of(DOMAIN_PKG + ".Money"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier(), moneyVo);
+
+            Map<String, String> embeddableMap = Map.of(DOMAIN_PKG + ".Money", INFRA_PKG + ".MoneyEmbeddable");
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .embeddableMapping(embeddableMap)
+                    .build();
+
+            // Then: Multi-value VO in embeddableMapping → EMBEDDED_VALUE_OBJECT
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("amount");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.EMBEDDED_VALUE_OBJECT);
+            });
+        }
+
+        @Test
         @DisplayName("should detect DIRECT conversion for primitive types")
         void should_detectDirectConversion_forPrimitiveTypes() {
             // Given
@@ -557,6 +593,47 @@ class MapperSpecBuilderReconstitutionTest {
                 structure,
                 highConfidence(ElementKind.IDENTIFIER),
                 TypeRef.of("java.util.UUID"));
+    }
+
+    /**
+     * Creates a multi-value ValueObject (e.g., Money with amount + currency).
+     */
+    private ValueObject createMultiValueVO(String simpleName, List<Field> fields) {
+        TypeStructure structure = TypeStructure.builder(TypeNature.RECORD)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(fields)
+                .build();
+
+        return ValueObject.of(
+                TypeId.of(DOMAIN_PKG + "." + simpleName), structure, highConfidence(ElementKind.VALUE_OBJECT));
+    }
+
+    /**
+     * Creates an aggregate with a Money field and a reconstitute-style factory method.
+     */
+    private AggregateRoot createAggregateWithMoneyField(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod =
+                createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Customer"), params);
+
+        Field identityField = Field.builder("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(identityField, Field.of("amount", TypeRef.of(DOMAIN_PKG + ".Money"))))
+                .methods(List.of(factoryMethod))
+                .constructors(List.of())
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Customer"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
     }
 
     /**
