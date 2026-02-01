@@ -18,10 +18,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.hexaglue.arch.model.Annotation;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
+import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -236,5 +240,56 @@ class IdFieldSpecTest {
         // Then: Only UUID strategy returns true
         assertThat(uuidSpec.isUuidGenerated()).isTrue();
         assertThat(dbSpec.isUuidGenerated()).isFalse();
+    }
+
+    /**
+     * Tests for {@link IdFieldSpec#surrogateId()} factory method.
+     *
+     * <p>Validates that surrogate IDs are correctly generated for entities without
+     * a detected identity field. JPA requires every {@code @Entity} to have an
+     * {@code @Id} field, so a surrogate {@code Long id} with
+     * {@code @GeneratedValue(strategy = IDENTITY)} is generated.
+     *
+     * @since 5.0.0
+     */
+    @Nested
+    @DisplayName("surrogateId factory")
+    class SurrogateIdTests {
+
+        @Test
+        @DisplayName("should create Long id with IDENTITY strategy")
+        void surrogateId_shouldCreateLongIdWithIdentityStrategy() {
+            // When
+            IdFieldSpec spec = IdFieldSpec.surrogateId();
+
+            // Then
+            assertThat(spec.fieldName()).isEqualTo("id");
+            assertThat(spec.javaType().toString()).isEqualTo("java.lang.Long");
+            assertThat(spec.unwrappedType().toString()).isEqualTo("java.lang.Long");
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should not be wrapped")
+        void surrogateId_shouldNotBeWrapped() {
+            // When
+            IdFieldSpec spec = IdFieldSpec.surrogateId();
+
+            // Then
+            assertThat(spec.isWrapped()).isFalse();
+            assertThat(spec.wrapperKind()).isEqualTo(IdentityWrapperKind.NONE);
+        }
+
+        @Test
+        @DisplayName("should require generated value")
+        void surrogateId_shouldRequireGeneratedValue() {
+            // When
+            IdFieldSpec spec = IdFieldSpec.surrogateId();
+
+            // Then
+            assertThat(spec.requiresGeneratedValue()).isTrue();
+            assertThat(spec.isDatabaseGenerated()).isTrue();
+            assertThat(spec.jpaGenerationType()).isEqualTo("IDENTITY");
+        }
     }
 }

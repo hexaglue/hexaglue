@@ -329,10 +329,7 @@ public final class JpaPlugin implements GeneratorPlugin {
         }
 
         // Generate entities from v5 Entities (non-aggregate-root entities)
-        List<Entity> allEntities = domainIndex
-                .entities()
-                .filter(e -> e.identityField().isPresent())
-                .toList();
+        List<Entity> allEntities = domainIndex.entities().toList();
 
         for (Entity entity : allEntities) {
             try {

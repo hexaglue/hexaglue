@@ -314,7 +314,15 @@ public record RelationFieldSpec(
             Map<String, String> entityMapping) {
 
         String targetFqn = field.elementType()
-                .map(t -> t.qualifiedName())
+                .map(io.hexaglue.syntax.TypeRef::qualifiedName)
+                .or(() -> {
+                    // Fallback: extract from type arguments (e.g., List<OrderLine> → OrderLine)
+                    var typeArgs = field.type().typeArguments();
+                    if (!typeArgs.isEmpty()) {
+                        return Optional.of(typeArgs.get(0).qualifiedName());
+                    }
+                    return Optional.empty();
+                })
                 .orElse(field.type().qualifiedName());
 
         // Determine target kind first - needed to detect ELEMENT_COLLECTION vs ONE_TO_MANY

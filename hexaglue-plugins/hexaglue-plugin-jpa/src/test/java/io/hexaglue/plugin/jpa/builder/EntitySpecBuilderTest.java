@@ -20,11 +20,14 @@ import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
+import io.hexaglue.arch.model.ir.IdentityWrapperKind;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.EntitySpec;
 import io.hexaglue.plugin.jpa.model.PropertyFieldSpec;
@@ -226,6 +229,107 @@ class EntitySpecBuilderTest {
             List<String> propertyNames =
                     spec.properties().stream().map(PropertyFieldSpec::fieldName).toList();
             assertThat(propertyNames).containsExactly("name", "createdAt", "updatedAt");
+        }
+    }
+
+    /**
+     * Tests for entities without a detected identity field.
+     *
+     * <p>When a child entity like {@code OrderLine} has no field detected as IDENTITY
+     * by the FieldRoleDetector, the builder should generate a surrogate {@code Long id}
+     * with {@code @GeneratedValue(strategy = IDENTITY)} instead of throwing.
+     *
+     * @since 5.0.0
+     */
+    @Nested
+    @DisplayName("When entity has no identity field")
+    class WhenEntityHasNoIdentityField {
+
+        /**
+         * Creates an Entity without an identity field, simulating a child entity
+         * like OrderLine where the FieldRoleDetector did not detect an identity.
+         */
+        private static Entity createEntityWithoutIdentity(List<Field> fields) {
+            TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                    .modifiers(Set.of(Modifier.PUBLIC))
+                    .fields(fields)
+                    .build();
+
+            return Entity.of(TypeId.of(TEST_PKG + ".OrderLine"), structure, highConfidence(ElementKind.ENTITY));
+        }
+
+        @Test
+        @DisplayName("should generate surrogate id when no identity field detected")
+        void shouldGenerateSurrogateId_whenNoIdentityFieldDetected() {
+            // Given: An entity without any identity field
+            Field lineNumber = Field.builder("lineNumber", TypeRef.of("int")).build();
+            Field quantity = Field.builder("quantity", TypeRef.of("int")).build();
+
+            Entity entity = createEntityWithoutIdentity(List.of(lineNumber, quantity));
+
+            // When: Building EntitySpec
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .entity(entity)
+                    .model(minimalModel())
+                    .config(configWithAuditing(false))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: Should have a surrogate Long id with IDENTITY strategy
+            assertThat(spec.idField().fieldName()).isEqualTo("id");
+            assertThat(spec.idField().javaType().toString()).isEqualTo("java.lang.Long");
+            assertThat(spec.idField().strategy()).isEqualTo(IdentityStrategy.IDENTITY);
+            assertThat(spec.idField().wrapperKind()).isEqualTo(IdentityWrapperKind.NONE);
+            assertThat(spec.idField().requiresGeneratedValue()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should keep all domain fields as properties when no identity field")
+        void shouldKeepAllDomainFieldsAsProperties_whenNoIdentityField() {
+            // Given: An entity with regular fields but no identity
+            Field lineNumber = Field.builder("lineNumber", TypeRef.of("int")).build();
+            Field quantity = Field.builder("quantity", TypeRef.of("int")).build();
+            Field description =
+                    Field.builder("description", TypeRef.of("java.lang.String")).build();
+
+            Entity entity = createEntityWithoutIdentity(List.of(lineNumber, quantity, description));
+
+            // When
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .entity(entity)
+                    .model(minimalModel())
+                    .config(configWithAuditing(false))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: All domain fields should be in properties (none excluded as identity)
+            List<String> propertyNames =
+                    spec.properties().stream().map(PropertyFieldSpec::fieldName).toList();
+            assertThat(propertyNames).containsExactly("lineNumber", "quantity", "description");
+        }
+
+        @Test
+        @DisplayName("should produce valid EntitySpec for identity-less entity")
+        void shouldProduceValidEntitySpec_forIdentityLessEntity() {
+            // Given: An entity without identity
+            Field lineNumber = Field.builder("lineNumber", TypeRef.of("int")).build();
+
+            Entity entity = createEntityWithoutIdentity(List.of(lineNumber));
+
+            // When
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .entity(entity)
+                    .model(minimalModel())
+                    .config(configWithAuditing(false))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: EntitySpec should be valid with correct naming
+            assertThat(spec.className()).isEqualTo("OrderLineEntity");
+            assertThat(spec.tableName()).isEqualTo("order_line");
+            assertThat(spec.domainQualifiedName()).isEqualTo(TEST_PKG + ".OrderLine");
+            assertThat(spec.packageName()).isEqualTo(INFRA_PKG);
+            assertThat(spec.idField()).isNotNull();
         }
     }
 }
