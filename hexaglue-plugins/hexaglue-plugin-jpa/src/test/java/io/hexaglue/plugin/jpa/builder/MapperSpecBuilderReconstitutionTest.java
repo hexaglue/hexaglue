@@ -413,6 +413,100 @@ class MapperSpecBuilderReconstitutionTest {
         }
 
         @Test
+        @DisplayName("should detect AUDIT_TEMPORAL conversion when auditing enabled and LocalDateTime params")
+        void should_detectAuditTemporalConversion_whenAuditingEnabled_andLocalDateTimeParams() {
+            // Given: An aggregate with createdAt/updatedAt LocalDateTime params and auditing enabled
+            JpaConfig auditConfig = new JpaConfig(
+                    "Entity",
+                    "Embeddable",
+                    "JpaRepository",
+                    "Adapter",
+                    "Mapper",
+                    "",
+                    true,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true);
+
+            AggregateRoot aggregate = createAggregateWithAuditFields(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String")),
+                            Parameter.of("createdAt", TypeRef.of("java.time.LocalDateTime")),
+                            Parameter.of("updatedAt", TypeRef.of("java.time.LocalDateTime"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(auditConfig)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: createdAt and updatedAt should be AUDIT_TEMPORAL
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("createdAt");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.AUDIT_TEMPORAL);
+            });
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("updatedAt");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.AUDIT_TEMPORAL);
+            });
+        }
+
+        @Test
+        @DisplayName("should detect DIRECT conversion when auditing disabled and LocalDateTime params")
+        void should_detectDirectConversion_whenAuditingDisabled_andLocalDateTimeParams() {
+            // Given: Same aggregate but auditing disabled
+            JpaConfig noAuditConfig = new JpaConfig(
+                    "Entity",
+                    "Embeddable",
+                    "JpaRepository",
+                    "Adapter",
+                    "Mapper",
+                    "",
+                    false,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true);
+
+            AggregateRoot aggregate = createAggregateWithAuditFields(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".CustomerId")),
+                            Parameter.of("firstName", TypeRef.of("java.lang.String")),
+                            Parameter.of("createdAt", TypeRef.of("java.time.LocalDateTime")),
+                            Parameter.of("updatedAt", TypeRef.of("java.time.LocalDateTime"))));
+            ArchitecturalModel model = buildModelWith(aggregate, createCustomerIdIdentifier());
+
+            // When
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(noAuditConfig)
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: createdAt and updatedAt should be DIRECT (no audit conversion needed)
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("createdAt");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.DIRECT);
+            });
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("updatedAt");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.DIRECT);
+            });
+        }
+
+        @Test
         @DisplayName("should detect DIRECT conversion for primitive types")
         void should_detectDirectConversion_forPrimitiveTypes() {
             // Given
@@ -649,6 +743,38 @@ class MapperSpecBuilderReconstitutionTest {
 
         return ValueObject.of(
                 TypeId.of(DOMAIN_PKG + "." + simpleName), structure, highConfidence(ElementKind.VALUE_OBJECT));
+    }
+
+    /**
+     * Creates an aggregate with audit fields (createdAt, updatedAt) and a reconstitute-style factory method.
+     */
+    private AggregateRoot createAggregateWithAuditFields(String factoryMethodName, List<Parameter> params) {
+        Method factoryMethod =
+                createStaticFactoryMethod(factoryMethodName, TypeRef.of(DOMAIN_PKG + ".Customer"), params);
+
+        Field identityField = Field.builder("customerId", TypeRef.of(DOMAIN_PKG + ".CustomerId"))
+                .wrappedType(TypeRef.of("java.util.UUID"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                .modifiers(Set.of(Modifier.PUBLIC))
+                .fields(List.of(
+                        identityField,
+                        Field.of("firstName", TypeRef.of("java.lang.String")),
+                        Field.of("createdAt", TypeRef.of("java.time.LocalDateTime")),
+                        Field.of("updatedAt", TypeRef.of("java.time.LocalDateTime"))))
+                .methods(List.of(factoryMethod))
+                .constructors(List.of())
+                .build();
+
+        return AggregateRoot.builder(
+                        TypeId.of(DOMAIN_PKG + ".Customer"),
+                        structure,
+                        highConfidence(ElementKind.AGGREGATE_ROOT),
+                        identityField)
+                .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                .build();
     }
 
     /**

@@ -933,6 +933,86 @@ class JpaMapperCodegenTest {
         }
 
         @Test
+        @DisplayName("should generate toLocalDateTime() calls for AUDIT_TEMPORAL parameters")
+        void should_generateToLocalDateTimeCalls_forAuditTemporalParameters() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "id", "com.example.domain.CustomerId", "id", ConversionKind.WRAPPED_IDENTITY),
+                            new ReconstitutionParameterSpec(
+                                    "createdAt", "java.time.LocalDateTime", "createdAt", ConversionKind.AUDIT_TEMPORAL),
+                            new ReconstitutionParameterSpec(
+                                    "updatedAt",
+                                    "java.time.LocalDateTime",
+                                    "updatedAt",
+                                    ConversionKind.AUDIT_TEMPORAL)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should call toLocalDateTime() for audit temporal parameters
+            assertThat(generatedCode).contains("toLocalDateTime(entity.getCreatedAt())");
+            assertThat(generatedCode).contains("toLocalDateTime(entity.getUpdatedAt())");
+        }
+
+        @Test
+        @DisplayName("should generate toLocalDateTime helper method when AUDIT_TEMPORAL used")
+        void should_generateToLocalDateTimeHelperMethod_whenAuditTemporalUsed() {
+            // Given
+            ReconstitutionSpec reconstitutionSpec = new ReconstitutionSpec(
+                    "reconstitute",
+                    "com.example.domain.Customer",
+                    List.of(
+                            new ReconstitutionParameterSpec(
+                                    "firstName", "java.lang.String", "firstName", ConversionKind.DIRECT),
+                            new ReconstitutionParameterSpec(
+                                    "createdAt",
+                                    "java.time.LocalDateTime",
+                                    "createdAt",
+                                    ConversionKind.AUDIT_TEMPORAL)));
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    reconstitutionSpec);
+
+            // When
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            // Then: Should contain the toLocalDateTime helper method
+            assertThat(generatedCode)
+                    .contains("default java.time.LocalDateTime toLocalDateTime(java.time.Instant instant)");
+            assertThat(generatedCode)
+                    .contains("java.time.LocalDateTime.ofInstant(instant, java.time.ZoneId.systemDefault())");
+        }
+
+        @Test
         @DisplayName("should fallback to abstract method when no reconstitution spec")
         void should_fallbackToAbstractMethod_whenNoReconstitutionSpec() {
             // Given

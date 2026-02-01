@@ -281,6 +281,17 @@ public record MapperSpec(
         EMBEDDED_VALUE_OBJECT,
 
         /** Entity relationship, delegated via {@code @Mapper(uses={})} (e.g., {@code entity.getItems()}). */
-        ENTITY_RELATION
+        ENTITY_RELATION,
+
+        /**
+         * Audit temporal conversion via {@code toLocalDateTime()} helper
+         * (e.g., {@code toLocalDateTime(entity.getCreatedAt())}).
+         *
+         * <p>Used when auditing is enabled and the domain reconstitution method expects
+         * {@code LocalDateTime} but the JPA entity stores audit timestamps as {@code Instant}.
+         *
+         * @since 5.0.0
+         */
+        AUDIT_TEMPORAL
     }
 }
