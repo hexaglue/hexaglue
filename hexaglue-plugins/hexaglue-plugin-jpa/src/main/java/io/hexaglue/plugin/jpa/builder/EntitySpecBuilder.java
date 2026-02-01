@@ -699,6 +699,12 @@ public final class EntitySpecBuilder {
             return false;
         }
 
+        // Single-value record VOs should NOT be treated as relations - they need to be
+        // unwrapped to their primitive type (e.g., Email → String)
+        if (isSingleValueRecordValueObject(field)) {
+            return false;
+        }
+
         // Check roles
         if (field.hasRole(FieldRole.COLLECTION)
                 || field.hasRole(FieldRole.AGGREGATE_REFERENCE)
@@ -763,6 +769,31 @@ public final class EntitySpecBuilder {
                 .filter(vo -> vo.id().qualifiedName().equals(typeFqn))
                 .anyMatch(vo ->
                         vo.structure() != null && vo.structure().nature() == io.hexaglue.arch.model.TypeNature.ENUM);
+    }
+
+    /**
+     * Checks if a field's type is a single-value record Value Object in the domain model.
+     *
+     * <p>Single-value record Value Objects (like {@code Email} wrapping {@code String})
+     * should be unwrapped to their primitive type for JPA persistence, not treated
+     * as embedded relations. They are handled by {@link PropertyFieldSpec#fromV5}
+     * which extracts the wrapped primitive type.
+     *
+     * @param field the field to check
+     * @return true if the field type is a single-value record VALUE_OBJECT
+     * @since 2.0.0
+     */
+    private boolean isSingleValueRecordValueObject(Field field) {
+        var domainIndexOpt = architecturalModel.domainIndex();
+        if (domainIndexOpt.isEmpty()) {
+            return false;
+        }
+        var domainIndex = domainIndexOpt.get();
+        String typeFqn = field.type().qualifiedName();
+        return domainIndex
+                .valueObjects()
+                .filter(vo -> vo.id().qualifiedName().equals(typeFqn))
+                .anyMatch(vo -> vo.isSingleValue() && vo.structure().isRecord());
     }
 
     /**
