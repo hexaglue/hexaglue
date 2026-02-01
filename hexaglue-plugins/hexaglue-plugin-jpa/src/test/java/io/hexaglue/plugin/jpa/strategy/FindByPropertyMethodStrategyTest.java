@@ -354,8 +354,8 @@ class FindByPropertyMethodStrategyTest {
     class GenerateEdgeCases {
 
         @Test
-        @DisplayName("should throw for method without parameters")
-        void shouldThrowForMethodWithoutParameters() {
+        @DisplayName("should throw for parameterless method without embedded condition suffix")
+        void shouldThrowForParameterlessMethodWithoutEmbeddedCondition() {
             // Given
             AdapterMethodSpec method = AdapterMethodSpec.of(
                     "findByEmail", OPTIONAL_USER, List.of(), MethodKind.FIND_BY_PROPERTY, Optional.of("email"));
@@ -451,6 +451,94 @@ class FindByPropertyMethodStrategyTest {
                     .contains("repository.findByEmail(email)")
                     .doesNotContain("repository.findById")
                     .doesNotContain("repository.existsById");
+        }
+    }
+
+    @Nested
+    @DisplayName("generate() with embedded condition suffixes (Issue 12)")
+    class GenerateWithEmbeddedConditions {
+
+        @Test
+        @DisplayName("should generate findByActiveTrue without parameters (List return)")
+        void shouldGenerateFindByActiveTrueWithListReturn() {
+            // Given: parameterless method with embedded True suffix
+            AdapterMethodSpec method = AdapterMethodSpec.of(
+                    "findByActiveTrue", LIST_USER, List.of(), MethodKind.FIND_BY_PROPERTY, Optional.of("active"));
+
+            // When
+            MethodSpec generatedMethod = strategy.generate(method, context);
+            String methodCode = generatedMethod.toString();
+
+            // Then: should delegate with no arguments
+            assertThat(methodCode)
+                    .contains("return repository.findByActiveTrue().stream().map(mapper::toDomain).toList()");
+        }
+
+        @Test
+        @DisplayName("should generate findByActiveFalse without parameters (List return)")
+        void shouldGenerateFindByActiveFalseWithListReturn() {
+            // Given
+            AdapterMethodSpec method = AdapterMethodSpec.of(
+                    "findByActiveFalse", LIST_USER, List.of(), MethodKind.FIND_BY_PROPERTY, Optional.of("active"));
+
+            // When
+            MethodSpec generatedMethod = strategy.generate(method, context);
+            String methodCode = generatedMethod.toString();
+
+            // Then
+            assertThat(methodCode)
+                    .contains("return repository.findByActiveFalse().stream().map(mapper::toDomain).toList()");
+        }
+
+        @Test
+        @DisplayName("should generate findByNameIsNull without parameters (Optional return)")
+        void shouldGenerateFindByNameIsNullWithOptionalReturn() {
+            // Given
+            AdapterMethodSpec method = AdapterMethodSpec.of(
+                    "findByNameIsNull", OPTIONAL_USER, List.of(), MethodKind.FIND_BY_PROPERTY, Optional.of("name"));
+
+            // When
+            MethodSpec generatedMethod = strategy.generate(method, context);
+            String methodCode = generatedMethod.toString();
+
+            // Then
+            assertThat(methodCode).contains("return repository.findByNameIsNull().map(mapper::toDomain)");
+        }
+
+        @Test
+        @DisplayName("should generate findByNameIsNotNull without parameters (List return)")
+        void shouldGenerateFindByNameIsNotNullWithListReturn() {
+            // Given
+            AdapterMethodSpec method = AdapterMethodSpec.of(
+                    "findByNameIsNotNull", LIST_USER, List.of(), MethodKind.FIND_BY_PROPERTY, Optional.of("name"));
+
+            // When
+            MethodSpec generatedMethod = strategy.generate(method, context);
+            String methodCode = generatedMethod.toString();
+
+            // Then
+            assertThat(methodCode)
+                    .contains("return repository.findByNameIsNotNull().stream().map(mapper::toDomain).toList()");
+        }
+
+        @Test
+        @DisplayName("should generate findAllByActiveTrue without parameters (List return)")
+        void shouldGenerateFindAllByActiveTrueWithListReturn() {
+            // Given: FIND_ALL_BY_PROPERTY kind, parameterless
+            AdapterMethodSpec method = AdapterMethodSpec.of(
+                    "findAllByActiveTrue",
+                    LIST_USER,
+                    List.of(),
+                    MethodKind.FIND_ALL_BY_PROPERTY,
+                    Optional.of("active"));
+
+            // When
+            MethodSpec generatedMethod = strategy.generate(method, context);
+            String methodCode = generatedMethod.toString();
+
+            // Then
+            assertThat(methodCode)
+                    .contains("return repository.findAllByActiveTrue().stream().map(mapper::toDomain).toList()");
         }
     }
 

@@ -17,6 +17,7 @@ import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.arch.model.ir.MethodKind;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
+import io.hexaglue.plugin.jpa.util.SpringDataQuerySupport;
 import javax.lang.model.element.Modifier;
 
 /**
@@ -61,7 +62,7 @@ public final class FindByPropertyMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public MethodSpec generate(AdapterMethodSpec method, AdapterContext context) {
-        if (!method.hasParameters()) {
+        if (!method.hasParameters() && !SpringDataQuerySupport.hasEmbeddedConditionSuffix(method.name())) {
             throw new IllegalArgumentException(
                     "FIND_BY_PROPERTY method must have at least one parameter: " + method.name());
         }
