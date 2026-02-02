@@ -100,7 +100,9 @@ public class IssueEnricher {
             case "ddd:aggregate-repository" -> "Aggregate without repository";
             case "ddd:domain-purity" -> "Domain purity violation";
             case "hexagonal:port-coverage" ->
-                constraintId.contains("driving") ? "Driving port without adapter" : "Driven port without adapter";
+                violation.message().startsWith("Driving")
+                        ? "Driving port without adapter"
+                        : "Driven port without adapter";
             case "hexagonal:port-direction" -> "Port direction violation";
             case "hexagonal:layer-isolation" -> "Layer isolation violation";
             case "hexagonal:dependency-inversion" -> "Dependency inversion violation";

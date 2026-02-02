@@ -45,7 +45,7 @@ class PortCoverageMetricCalculatorTest {
     @Test
     @DisplayName("Should have correct metric name")
     void shouldHaveCorrectMetricName() {
-        assertThat(calculator.metricName()).isEqualTo("port.coverage");
+        assertThat(calculator.metricName()).isEqualTo("aggregate.repository.coverage");
     }
 
     @Test

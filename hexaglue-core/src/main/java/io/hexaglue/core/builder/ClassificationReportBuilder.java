@@ -84,13 +84,17 @@ public final class ClassificationReportBuilder {
         int classifiedTypes = 0;
         int unclassifiedTypes = 0;
         int conflictCount = 0;
+        int outOfScopeTypes = 0;
 
         Map<ArchKind, Integer> countByKind = new EnumMap<>(ArchKind.class);
         Map<ConfidenceLevel, Integer> countByConfidence = new EnumMap<>(ConfidenceLevel.class);
 
         for (ArchType type : allTypes) {
-            if (type instanceof UnclassifiedType) {
+            if (type instanceof UnclassifiedType unclassified) {
                 unclassifiedTypes++;
+                if (unclassified.category() == UnclassifiedCategory.OUT_OF_SCOPE) {
+                    outOfScopeTypes++;
+                }
             } else {
                 classifiedTypes++;
             }
@@ -113,7 +117,13 @@ public final class ClassificationReportBuilder {
         }
 
         return ClassificationStats.of(
-                totalTypes, classifiedTypes, unclassifiedTypes, countByKind, countByConfidence, conflictCount);
+                totalTypes,
+                classifiedTypes,
+                unclassifiedTypes,
+                countByKind,
+                countByConfidence,
+                conflictCount,
+                outOfScopeTypes);
     }
 
     private Map<UnclassifiedCategory, List<UnclassifiedType>> groupByCategory(List<UnclassifiedType> unclassified) {

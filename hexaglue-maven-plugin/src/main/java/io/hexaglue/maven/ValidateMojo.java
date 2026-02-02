@@ -214,7 +214,8 @@ public class ValidateMojo extends AbstractMojo {
                 Map.of(),
                 Map.of(),
                 classificationConfig,
-                Set.of()); // No plugins
+                Set.of(), // No plugins
+                false); // Do not include @Generated types during validation
     }
 
     // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast

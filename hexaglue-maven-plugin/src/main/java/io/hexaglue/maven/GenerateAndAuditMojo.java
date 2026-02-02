@@ -242,10 +242,13 @@ public class GenerateAndAuditMojo extends AbstractMojo {
             javaVersion = 21;
         }
 
-        // Build classification config
-        ClassificationConfig classificationConfig = failOnUnclassified
-                ? ClassificationConfig.builder().failOnUnclassified().build()
-                : ClassificationConfig.defaults();
+        // Build classification config from hexaglue.yaml (exclusion patterns, explicit classifications)
+        ClassificationConfig classificationConfig =
+                MojoConfigLoader.loadClassificationConfig(project.getBasedir().toPath(), failOnUnclassified, getLog());
+
+        // Load plugin configs from hexaglue.yaml
+        Map<String, Map<String, Object>> pluginConfigs =
+                MojoConfigLoader.loadPluginConfigs(project.getBasedir().toPath(), getLog());
 
         return new EngineConfig(
                 sourceRoots,
@@ -255,10 +258,11 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 project.getName(),
                 project.getVersion(),
                 outputDirectory.toPath(),
-                Map.of(), // pluginConfigs loaded by ServiceLoader
+                pluginConfigs,
                 Map.of(),
                 classificationConfig,
-                Set.of(PluginCategory.GENERATOR)); // Only run generator plugins
+                Set.of(PluginCategory.GENERATOR), // Only run generator plugins
+                false); // Do not include @Generated types during generation
     }
 
     private EngineConfig buildAuditConfig() {
@@ -281,10 +285,9 @@ public class GenerateAndAuditMojo extends AbstractMojo {
         // Build plugin configs from audit config
         Map<String, Map<String, Object>> pluginConfigs = auditConfig != null ? auditConfig.toPluginConfigs() : Map.of();
 
-        // Build classification config
-        ClassificationConfig classificationConfig = failOnUnclassified
-                ? ClassificationConfig.builder().failOnUnclassified().build()
-                : ClassificationConfig.defaults();
+        // Build classification config from hexaglue.yaml (exclusion patterns, explicit classifications)
+        ClassificationConfig classificationConfig =
+                MojoConfigLoader.loadClassificationConfig(project.getBasedir().toPath(), failOnUnclassified, getLog());
 
         return new EngineConfig(
                 sourceRoots,
@@ -297,7 +300,8 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 pluginConfigs,
                 Map.of(),
                 classificationConfig,
-                Set.of(PluginCategory.AUDIT)); // Only run audit plugins
+                Set.of(PluginCategory.AUDIT), // Only run audit plugins
+                true); // Include @Generated types so audit can see generated adapters
     }
 
     /**

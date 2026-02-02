@@ -308,7 +308,7 @@ class PortCriteriaTest {
     }
 
     private ApplicationGraph buildGraph(String basePackage) {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, basePackage);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, basePackage, false);
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =

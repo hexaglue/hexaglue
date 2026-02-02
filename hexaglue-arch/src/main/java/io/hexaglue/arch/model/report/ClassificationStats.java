@@ -47,6 +47,7 @@ import java.util.Objects;
  * @param countByKind distribution of types by {@link ArchKind}
  * @param countByConfidence distribution of classified types by {@link ConfidenceLevel}
  * @param conflictCount the number of types that had conflicting classifications
+ * @param outOfScopeTypes the number of types classified as OUT_OF_SCOPE (e.g., @Generated types)
  * @since 4.1.0
  */
 public record ClassificationStats(
@@ -55,7 +56,8 @@ public record ClassificationStats(
         int unclassifiedTypes,
         Map<ArchKind, Integer> countByKind,
         Map<ConfidenceLevel, Integer> countByConfidence,
-        int conflictCount) {
+        int conflictCount,
+        int outOfScopeTypes) {
 
     /**
      * Creates a new ClassificationStats.
@@ -66,6 +68,7 @@ public record ClassificationStats(
      * @param countByKind distribution by kind, must not be null
      * @param countByConfidence distribution by confidence, must not be null
      * @param conflictCount the number of conflicts, must be >= 0
+     * @param outOfScopeTypes the number of out-of-scope types, must be >= 0
      * @throws NullPointerException if countByKind or countByConfidence is null
      * @throws IllegalArgumentException if any count is negative
      */
@@ -84,12 +87,15 @@ public record ClassificationStats(
         if (conflictCount < 0) {
             throw new IllegalArgumentException("conflictCount must not be negative");
         }
+        if (outOfScopeTypes < 0) {
+            throw new IllegalArgumentException("outOfScopeTypes must not be negative");
+        }
         countByKind = Map.copyOf(countByKind);
         countByConfidence = Map.copyOf(countByConfidence);
     }
 
     /**
-     * Creates a new ClassificationStats with all parameters.
+     * Creates a new ClassificationStats with all parameters (backward-compatible, defaults outOfScopeTypes to 0).
      *
      * @param totalTypes the total number of types analyzed
      * @param classifiedTypes the number of classified types
@@ -107,23 +113,56 @@ public record ClassificationStats(
             Map<ConfidenceLevel, Integer> countByConfidence,
             int conflictCount) {
         return new ClassificationStats(
-                totalTypes, classifiedTypes, unclassifiedTypes, countByKind, countByConfidence, conflictCount);
+                totalTypes, classifiedTypes, unclassifiedTypes, countByKind, countByConfidence, conflictCount, 0);
+    }
+
+    /**
+     * Creates a new ClassificationStats with all parameters including out-of-scope count.
+     *
+     * @param totalTypes the total number of types analyzed
+     * @param classifiedTypes the number of classified types
+     * @param unclassifiedTypes the number of unclassified types
+     * @param countByKind distribution by kind
+     * @param countByConfidence distribution by confidence level
+     * @param conflictCount the number of conflicts
+     * @param outOfScopeTypes the number of out-of-scope types (e.g., @Generated)
+     * @return a new ClassificationStats instance
+     * @since 5.0.0
+     */
+    public static ClassificationStats of(
+            int totalTypes,
+            int classifiedTypes,
+            int unclassifiedTypes,
+            Map<ArchKind, Integer> countByKind,
+            Map<ConfidenceLevel, Integer> countByConfidence,
+            int conflictCount,
+            int outOfScopeTypes) {
+        return new ClassificationStats(
+                totalTypes,
+                classifiedTypes,
+                unclassifiedTypes,
+                countByKind,
+                countByConfidence,
+                conflictCount,
+                outOfScopeTypes);
     }
 
     /**
      * Returns the classification rate as a value between 0.0 and 1.0.
      *
-     * <p>This represents the proportion of types that were successfully classified.
-     * A rate of 1.0 means all types were classified. A rate of 0.0 means no types
+     * <p>This represents the proportion of types that were successfully classified,
+     * excluding out-of-scope types (e.g., {@code @Generated} types) from the denominator.
+     * A rate of 1.0 means all in-scope types were classified. A rate of 0.0 means no types
      * were classified (or there were no types to classify).</p>
      *
      * @return the classification rate (0.0 to 1.0)
      */
     public double classificationRate() {
-        if (totalTypes == 0) {
+        int effectiveTotal = totalTypes - outOfScopeTypes;
+        if (effectiveTotal <= 0) {
             return 0.0;
         }
-        return (double) classifiedTypes / totalTypes;
+        return (double) classifiedTypes / effectiveTotal;
     }
 
     /**

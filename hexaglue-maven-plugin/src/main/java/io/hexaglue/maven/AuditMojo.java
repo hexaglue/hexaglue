@@ -205,10 +205,9 @@ public class AuditMojo extends AbstractMojo {
         // Build plugin configs from audit config
         Map<String, Map<String, Object>> pluginConfigs = auditConfig != null ? auditConfig.toPluginConfigs() : Map.of();
 
-        // Build classification config
-        ClassificationConfig classificationConfig = failOnUnclassified
-                ? ClassificationConfig.builder().failOnUnclassified().build()
-                : ClassificationConfig.defaults();
+        // Build classification config from hexaglue.yaml (exclusion patterns, explicit classifications)
+        ClassificationConfig classificationConfig =
+                MojoConfigLoader.loadClassificationConfig(project.getBasedir().toPath(), failOnUnclassified, getLog());
 
         return new EngineConfig(
                 sourceRoots,
@@ -221,7 +220,8 @@ public class AuditMojo extends AbstractMojo {
                 pluginConfigs,
                 Map.of(),
                 classificationConfig,
-                Set.of(PluginCategory.AUDIT)); // Only run audit plugins
+                Set.of(PluginCategory.AUDIT), // Only run audit plugins
+                true); // Include @Generated types so audit can see generated adapters
     }
 
     /**

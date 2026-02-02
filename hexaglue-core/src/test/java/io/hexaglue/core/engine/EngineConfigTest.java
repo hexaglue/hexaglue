@@ -118,7 +118,8 @@ class EngineConfigTest {
                 java.util.Map.of(),
                 java.util.Map.of(),
                 null,
-                mutableSet);
+                mutableSet,
+                false);
 
         // When: try to modify the original set
         mutableSet.add(PluginCategory.AUDIT);
@@ -144,7 +145,8 @@ class EngineConfigTest {
                 java.util.Map.of("plugin1", java.util.Map.of("key", "value")),
                 java.util.Map.of("option", "value"),
                 classificationConfig,
-                null);
+                null,
+                false);
 
         // When: apply category filter
         EngineConfig filtered = config.onlyGenerators();
@@ -161,5 +163,57 @@ class EngineConfigTest {
         assertThat(filtered.options()).isEqualTo(config.options());
         assertThat(filtered.classificationConfig()).isEqualTo(config.classificationConfig());
         assertThat(filtered.enabledCategories()).containsExactly(PluginCategory.GENERATOR);
+        assertThat(filtered.includeGenerated()).isEqualTo(config.includeGenerated());
+    }
+
+    @Test
+    void minimalConfig_hasIncludeGeneratedFalse() {
+        // Given
+        EngineConfig config = EngineConfig.minimal(tempDir, "com.example");
+
+        // Then
+        assertThat(config.includeGenerated()).isFalse();
+    }
+
+    @Test
+    void withGeneratedTypes_returnsConfigWithIncludeGeneratedTrue() {
+        // Given
+        EngineConfig baseConfig = EngineConfig.minimal(tempDir, "com.example");
+        assertThat(baseConfig.includeGenerated()).isFalse();
+
+        // When
+        EngineConfig withGenerated = baseConfig.withGeneratedTypes();
+
+        // Then
+        assertThat(withGenerated.includeGenerated()).isTrue();
+        assertThat(withGenerated.basePackage()).isEqualTo("com.example");
+        assertThat(withGenerated.sourceRoots()).isEqualTo(baseConfig.sourceRoots());
+    }
+
+    @Test
+    void onlyGenerators_preservesIncludeGenerated() {
+        // Given: config with includeGenerated=true
+        EngineConfig baseConfig = EngineConfig.minimal(tempDir, "com.example").withGeneratedTypes();
+        assertThat(baseConfig.includeGenerated()).isTrue();
+
+        // When
+        EngineConfig filtered = baseConfig.onlyGenerators();
+
+        // Then: includeGenerated is preserved
+        assertThat(filtered.includeGenerated()).isTrue();
+        assertThat(filtered.enabledCategories()).containsExactly(PluginCategory.GENERATOR);
+    }
+
+    @Test
+    void onlyAuditors_preservesIncludeGenerated() {
+        // Given: config with includeGenerated=true
+        EngineConfig baseConfig = EngineConfig.minimal(tempDir, "com.example").withGeneratedTypes();
+
+        // When
+        EngineConfig filtered = baseConfig.onlyAuditors();
+
+        // Then
+        assertThat(filtered.includeGenerated()).isTrue();
+        assertThat(filtered.enabledCategories()).containsExactly(PluginCategory.AUDIT);
     }
 }

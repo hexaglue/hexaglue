@@ -419,7 +419,7 @@ class ConflictDetectionTest {
     }
 
     private ApplicationGraph buildGraph() {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =

@@ -118,6 +118,12 @@ public final class InterfaceFactsIndex {
                         .filter(impl -> !isTestCode(impl))
                         .allMatch(impl -> anchors.isDomainAnchor(impl.id()));
 
+        // Check if all implementations are infrastructure anchors (adapters)
+        boolean infraImplOnly = implsProdCount > 0
+                && query.implementorsOf(iface).stream()
+                        .filter(impl -> !isTestCode(impl))
+                        .allMatch(impl -> anchors.isInfraAnchor(impl.id()));
+
         // Check CoreAppClass relationships
         boolean usedByCore = coreIndex.isUsedByCore(interfaceId);
         boolean implementedByCore = coreIndex.isImplementedByCore(interfaceId);
@@ -130,6 +136,7 @@ public final class InterfaceFactsIndex {
                 (int) implsProdCount,
                 implsProdCount == 0,
                 internalImplOnly,
+                infraImplOnly,
                 usedByCore,
                 implementedByCore,
                 hasPortAnnotation);

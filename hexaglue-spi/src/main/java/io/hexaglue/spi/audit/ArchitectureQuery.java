@@ -345,4 +345,23 @@ public interface ArchitectureQuery {
      * @since 3.0.0
      */
     Optional<String> findRepositoryForAggregate(String aggregateRootType);
+
+    // === Port implementation analysis ===
+
+    /**
+     * Finds types that implement a given interface in the full application graph.
+     *
+     * <p>Unlike {@code CompositionIndex} or {@code Codebase.dependencies()} which
+     * only contain classified types, this method searches the complete application
+     * graph including types in excluded packages (infrastructure, application).
+     *
+     * <p>This is essential for detecting adapter implementations that are in
+     * packages excluded from classification but are still valid implementations
+     * of port interfaces.
+     *
+     * @param interfaceQualifiedName the fully-qualified name of the interface
+     * @return list of implementor qualified names, or empty list if none found
+     * @since 5.0.0
+     */
+    List<String> findImplementors(String interfaceQualifiedName);
 }

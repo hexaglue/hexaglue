@@ -22,13 +22,7 @@ package io.hexaglue.core.engine;
  * <p>Usage:
  * <pre>{@code
  * HexaGlueEngine engine = HexaGlueEngine.create();
- * EngineConfig config = new EngineConfig(
- *     List.of(Path.of("src/main/java")),
- *     List.of(Path.of("target/classes")),
- *     21,
- *     "com.example",
- *     Map.of()
- * );
+ * EngineConfig config = EngineConfig.minimal(Path.of("src/main/java"), "com.example");
  * EngineResult result = engine.analyze(config);
  * }</pre>
  */

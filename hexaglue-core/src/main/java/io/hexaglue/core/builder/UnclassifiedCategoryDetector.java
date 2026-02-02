@@ -61,6 +61,9 @@ public final class UnclassifiedCategoryDetector {
             ".fake.",
             ".fakes.");
 
+    private static final Set<String> GENERATED_ANNOTATIONS = Set.of(
+            "javax.annotation.Generated", "javax.annotation.processing.Generated", "jakarta.annotation.Generated");
+
     private static final Set<String> TECHNICAL_ANNOTATIONS = Set.of(
             "org.springframework.context.annotation.Configuration",
             "org.springframework.stereotype.Component",
@@ -119,7 +122,13 @@ public final class UnclassifiedCategoryDetector {
 
     private boolean isOutOfScope(TypeNode typeNode) {
         String qualifiedName = typeNode.qualifiedName().toLowerCase();
-        return OUT_OF_SCOPE_PACKAGE_MARKERS.stream().anyMatch(qualifiedName::contains);
+        if (OUT_OF_SCOPE_PACKAGE_MARKERS.stream().anyMatch(qualifiedName::contains)) {
+            return true;
+        }
+        // @Generated types are out of scope (generated adapters visible in audit mode)
+        return typeNode.annotations().stream()
+                .map(AnnotationRef::qualifiedName)
+                .anyMatch(GENERATED_ANNOTATIONS::contains);
     }
 
     private boolean isUtilityClass(TypeNode typeNode) {

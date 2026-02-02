@@ -56,7 +56,8 @@ class ClassificationStatsTest {
                     2, // unclassifiedTypes
                     countByKind,
                     countByConfidence,
-                    1 // conflictCount
+                    1, // conflictCount
+                    0 // outOfScopeTypes
                     );
 
             // then
@@ -71,7 +72,7 @@ class ClassificationStatsTest {
         @Test
         @DisplayName("should reject null countByKind")
         void shouldRejectNullCountByKind() {
-            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, null, Map.of(ConfidenceLevel.HIGH, 8), 0))
+            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, null, Map.of(ConfidenceLevel.HIGH, 8), 0, 0))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("countByKind");
         }
@@ -79,7 +80,7 @@ class ClassificationStatsTest {
         @Test
         @DisplayName("should reject null countByConfidence")
         void shouldRejectNullCountByConfidence() {
-            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, Map.of(ArchKind.ENTITY, 8), null, 0))
+            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, Map.of(ArchKind.ENTITY, 8), null, 0, 0))
                     .isInstanceOf(NullPointerException.class)
                     .hasMessageContaining("countByConfidence");
         }
@@ -87,7 +88,7 @@ class ClassificationStatsTest {
         @Test
         @DisplayName("should reject negative totalTypes")
         void shouldRejectNegativeTotalTypes() {
-            assertThatThrownBy(() -> new ClassificationStats(-1, 0, 0, Map.of(), Map.of(), 0))
+            assertThatThrownBy(() -> new ClassificationStats(-1, 0, 0, Map.of(), Map.of(), 0, 0))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("totalTypes");
         }
@@ -95,7 +96,7 @@ class ClassificationStatsTest {
         @Test
         @DisplayName("should reject negative conflictCount")
         void shouldRejectNegativeConflictCount() {
-            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, Map.of(), Map.of(), -1))
+            assertThatThrownBy(() -> new ClassificationStats(10, 8, 2, Map.of(), Map.of(), -1, 0))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("conflictCount");
         }
@@ -108,7 +109,7 @@ class ClassificationStatsTest {
             mutableMap.put(ArchKind.ENTITY, 5);
 
             // when
-            ClassificationStats stats = new ClassificationStats(5, 5, 0, mutableMap, Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(5, 5, 0, mutableMap, Map.of(), 0, 0);
             mutableMap.put(ArchKind.AGGREGATE_ROOT, 3);
 
             // then
@@ -124,7 +125,7 @@ class ClassificationStatsTest {
             mutableMap.put(ConfidenceLevel.HIGH, 5);
 
             // when
-            ClassificationStats stats = new ClassificationStats(5, 5, 0, Map.of(), mutableMap, 0);
+            ClassificationStats stats = new ClassificationStats(5, 5, 0, Map.of(), mutableMap, 0, 0);
             mutableMap.put(ConfidenceLevel.LOW, 2);
 
             // then
@@ -141,7 +142,7 @@ class ClassificationStatsTest {
         @DisplayName("should return 1.0 when all types are classified")
         void shouldReturnOneWhenAllClassified() {
             // given
-            ClassificationStats stats = new ClassificationStats(10, 10, 0, Map.of(), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(10, 10, 0, Map.of(), Map.of(), 0, 0);
 
             // when
             double rate = stats.classificationRate();
@@ -154,7 +155,7 @@ class ClassificationStatsTest {
         @DisplayName("should return 0.0 when no types are classified")
         void shouldReturnZeroWhenNoneClassified() {
             // given
-            ClassificationStats stats = new ClassificationStats(10, 0, 10, Map.of(), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(10, 0, 10, Map.of(), Map.of(), 0, 0);
 
             // when
             double rate = stats.classificationRate();
@@ -167,7 +168,7 @@ class ClassificationStatsTest {
         @DisplayName("should return correct rate for partial classification")
         void shouldReturnCorrectRateForPartial() {
             // given
-            ClassificationStats stats = new ClassificationStats(20, 15, 5, Map.of(), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(20, 15, 5, Map.of(), Map.of(), 0, 0);
 
             // when
             double rate = stats.classificationRate();
@@ -180,7 +181,7 @@ class ClassificationStatsTest {
         @DisplayName("should return 0.0 when there are no types")
         void shouldReturnZeroWhenNoTypes() {
             // given
-            ClassificationStats stats = new ClassificationStats(0, 0, 0, Map.of(), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(0, 0, 0, Map.of(), Map.of(), 0, 0);
 
             // when
             double rate = stats.classificationRate();
@@ -199,7 +200,7 @@ class ClassificationStatsTest {
         void shouldReturnOneWhenAllHighConfidence() {
             // given
             ClassificationStats stats =
-                    new ClassificationStats(10, 10, 0, Map.of(), Map.of(ConfidenceLevel.HIGH, 10), 0);
+                    new ClassificationStats(10, 10, 0, Map.of(), Map.of(ConfidenceLevel.HIGH, 10), 0, 0);
 
             // when
             double rate = stats.highConfidenceRate();
@@ -213,7 +214,7 @@ class ClassificationStatsTest {
         void shouldReturnZeroWhenNoHighConfidence() {
             // given
             ClassificationStats stats = new ClassificationStats(
-                    10, 8, 2, Map.of(), Map.of(ConfidenceLevel.MEDIUM, 5, ConfidenceLevel.LOW, 3), 0);
+                    10, 8, 2, Map.of(), Map.of(ConfidenceLevel.MEDIUM, 5, ConfidenceLevel.LOW, 3), 0, 0);
 
             // when
             double rate = stats.highConfidenceRate();
@@ -232,6 +233,7 @@ class ClassificationStatsTest {
                     2,
                     Map.of(),
                     Map.of(ConfidenceLevel.HIGH, 12, ConfidenceLevel.MEDIUM, 4, ConfidenceLevel.LOW, 2),
+                    0,
                     0);
 
             // when
@@ -246,7 +248,7 @@ class ClassificationStatsTest {
         @DisplayName("should return 0.0 when no classified types")
         void shouldReturnZeroWhenNoClassifiedTypes() {
             // given
-            ClassificationStats stats = new ClassificationStats(10, 0, 10, Map.of(), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(10, 0, 10, Map.of(), Map.of(), 0, 0);
 
             // when
             double rate = stats.highConfidenceRate();
@@ -264,7 +266,7 @@ class ClassificationStatsTest {
         @DisplayName("should return immutable countByKind")
         void shouldReturnImmutableCountByKind() {
             // given
-            ClassificationStats stats = new ClassificationStats(10, 10, 0, Map.of(ArchKind.ENTITY, 10), Map.of(), 0);
+            ClassificationStats stats = new ClassificationStats(10, 10, 0, Map.of(ArchKind.ENTITY, 10), Map.of(), 0, 0);
 
             // then
             assertThatThrownBy(() -> stats.countByKind().put(ArchKind.AGGREGATE_ROOT, 5))
@@ -276,7 +278,7 @@ class ClassificationStatsTest {
         void shouldReturnImmutableCountByConfidence() {
             // given
             ClassificationStats stats =
-                    new ClassificationStats(10, 10, 0, Map.of(), Map.of(ConfidenceLevel.HIGH, 10), 0);
+                    new ClassificationStats(10, 10, 0, Map.of(), Map.of(ConfidenceLevel.HIGH, 10), 0, 0);
 
             // then
             assertThatThrownBy(() -> stats.countByConfidence().put(ConfidenceLevel.LOW, 5))

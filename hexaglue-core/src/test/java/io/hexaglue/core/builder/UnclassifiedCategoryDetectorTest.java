@@ -108,6 +108,42 @@ class UnclassifiedCategoryDetectorTest {
 
             assertThat(category).isEqualTo(UnclassifiedCategory.OUT_OF_SCOPE);
         }
+
+        @Test
+        @DisplayName("should detect OUT_OF_SCOPE for @javax.annotation.Generated")
+        void shouldDetectOutOfScopeForJavaxGenerated() {
+            TypeNode typeNode =
+                    createTypeNodeWithAnnotation("com.example.infra.OrderJpaEntity", "javax.annotation.Generated");
+            ClassificationResult result = createUnclassifiedResult(typeNode);
+
+            UnclassifiedCategory category = detector.detect(typeNode, result);
+
+            assertThat(category).isEqualTo(UnclassifiedCategory.OUT_OF_SCOPE);
+        }
+
+        @Test
+        @DisplayName("should detect OUT_OF_SCOPE for @javax.annotation.processing.Generated")
+        void shouldDetectOutOfScopeForJavaxProcessingGenerated() {
+            TypeNode typeNode = createTypeNodeWithAnnotation(
+                    "com.example.infra.OrderJpaEntity", "javax.annotation.processing.Generated");
+            ClassificationResult result = createUnclassifiedResult(typeNode);
+
+            UnclassifiedCategory category = detector.detect(typeNode, result);
+
+            assertThat(category).isEqualTo(UnclassifiedCategory.OUT_OF_SCOPE);
+        }
+
+        @Test
+        @DisplayName("should detect OUT_OF_SCOPE for @jakarta.annotation.Generated")
+        void shouldDetectOutOfScopeForJakartaGenerated() {
+            TypeNode typeNode =
+                    createTypeNodeWithAnnotation("com.example.infra.OrderJpaEntity", "jakarta.annotation.Generated");
+            ClassificationResult result = createUnclassifiedResult(typeNode);
+
+            UnclassifiedCategory category = detector.detect(typeNode, result);
+
+            assertThat(category).isEqualTo(UnclassifiedCategory.OUT_OF_SCOPE);
+        }
     }
 
     @Nested
@@ -229,6 +265,19 @@ class UnclassifiedCategoryDetectorTest {
         void shouldPrioritizeConflicting() {
             // A utility class with conflicts
             TypeNode typeNode = createTypeNode("com.example.StringUtils");
+            ClassificationResult result = createConflictResult(typeNode);
+
+            UnclassifiedCategory category = detector.detect(typeNode, result);
+
+            assertThat(category).isEqualTo(UnclassifiedCategory.CONFLICTING);
+        }
+
+        @Test
+        @DisplayName("should prioritize CONFLICTING over @Generated OUT_OF_SCOPE")
+        void shouldPrioritizeConflictingOverGenerated() {
+            // A @Generated type with conflicts
+            TypeNode typeNode =
+                    createTypeNodeWithAnnotation("com.example.infra.OrderJpaEntity", "jakarta.annotation.Generated");
             ClassificationResult result = createConflictResult(typeNode);
 
             UnclassifiedCategory category = detector.detect(typeNode, result);

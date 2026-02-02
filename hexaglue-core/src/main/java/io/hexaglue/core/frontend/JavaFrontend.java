@@ -36,14 +36,21 @@ public interface JavaFrontend {
      * @param classpathEntries classpath entries for type resolution
      * @param javaVersion the Java version (e.g., 17)
      * @param basePackage the base package to filter types (null for no filter)
+     * @param includeGenerated whether to include {@code @Generated}-annotated types in the model
+     * @since 5.0.0
      */
-    record JavaAnalysisInput(List<Path> sourceRoots, List<Path> classpathEntries, int javaVersion, String basePackage) {
+    record JavaAnalysisInput(
+            List<Path> sourceRoots,
+            List<Path> classpathEntries,
+            int javaVersion,
+            String basePackage,
+            boolean includeGenerated) {
 
         /**
          * Creates a minimal input for testing.
          */
         public static JavaAnalysisInput minimal(Path sourceRoot, String basePackage) {
-            return new JavaAnalysisInput(List.of(sourceRoot), List.of(), 17, basePackage);
+            return new JavaAnalysisInput(List.of(sourceRoot), List.of(), 17, basePackage, false);
         }
     }
 }

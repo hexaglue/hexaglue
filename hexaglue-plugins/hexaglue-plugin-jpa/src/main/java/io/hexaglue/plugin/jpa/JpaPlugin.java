@@ -329,6 +329,43 @@ public final class JpaPlugin implements GeneratorPlugin {
             }
         }
 
+        // Ensure heuristically-classified entities that are contained within aggregates
+        // are also tracked as child entities. When ContainedEntityCriteria classifies
+        // a type as ENTITY, it appears in domainIndex.entities() AND in entityMapping,
+        // which prevents the discovery mechanisms above from detecting it as a child.
+        // We fix this by checking aggregate composition directly.
+        //
+        // Only heuristic entities ("contained-entity" criteria) are treated as child entities.
+        // Explicitly annotated entities (@Entity from jMolecules) retain standalone generation
+        // with their own mapper and repository.
+        for (Entity entity : domainIndex.entities().toList()) {
+            String entityFqn = entity.id().qualifiedName();
+            if (childEntityFqns.contains(entityFqn)) {
+                continue; // Already discovered
+            }
+            // Only mark as child entity if classified by ContainedEntityCriteria (heuristic)
+            String criterionName = entity.classification().winningCriterion().name();
+            if (!"contained-entity".equals(criterionName)) {
+                continue; // Explicitly classified entities keep standalone generation
+            }
+            boolean isContainedInAggregate = allAggregates.stream().anyMatch(agg -> {
+                // Check explicit entity references from AggregateRoot.entities()
+                boolean inEntities = agg.entities().stream()
+                        .anyMatch(ref -> ref.qualifiedName().equals(entityFqn));
+                // Check collection fields (List<X>/Set<X> where X is this entity)
+                boolean inCollections = agg.structure().fields().stream()
+                        .filter(f -> f.hasRole(FieldRole.COLLECTION))
+                        .anyMatch(f -> f.elementType()
+                                .map(TypeRef::qualifiedName)
+                                .map(entityFqn::equals)
+                                .orElse(false));
+                return inEntities || inCollections;
+            });
+            if (isContainedInAggregate) {
+                childEntityFqns.add(entityFqn);
+            }
+        }
+
         if (!childEntityFqns.isEmpty()) {
             diagnostics.info("Discovered " + childEntityFqns.size() + " child entity types from aggregate roots");
         }
@@ -410,6 +447,13 @@ public final class JpaPlugin implements GeneratorPlugin {
         List<Entity> allEntities = domainIndex.entities().toList();
 
         for (Entity entity : allEntities) {
+            // Skip entities contained within aggregates — they are generated
+            // as child entities in Phase 3 (JPA entity only, no standalone mapper/repo)
+            if (childEntityFqns.contains(entity.id().qualifiedName())) {
+                diagnostics.info("Skipping standalone generation for aggregate child entity: "
+                        + entity.id().simpleName());
+                continue;
+            }
             try {
                 EntitySpec entitySpec = EntitySpecBuilder.builder()
                         .entity(entity)
@@ -477,7 +521,8 @@ public final class JpaPlugin implements GeneratorPlugin {
         }
 
         // Issue 13 fix: generate JPA entities for child entity types discovered from aggregates.
-        // These types are in AggregateRoot.entities() but not independently classified as ENTITY.
+        // These types may be independently classified as ENTITY (via ContainedEntityCriteria)
+        // or unclassified types discovered through aggregate composition analysis.
         for (String childFqn : childEntityFqns) {
             try {
                 Optional<ArchType> archTypeOpt =

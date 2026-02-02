@@ -61,6 +61,12 @@ public final class AnchorDetector {
             "javax.ws.rs.Path");
 
     // === Infrastructure annotations (persistence, messaging, etc.) ===
+    // Note: @Service and @Component are intentionally NOT included here.
+    // These are Spring stereotype annotations commonly used on application services
+    // (hexagonal core). Including them would prevent CoreAppClassDetector from
+    // analyzing application services, breaking semantic port detection.
+    // Infrastructure services with @Service/@Component are still detected via
+    // field dependencies on infrastructure types (JdbcTemplate, EntityManager, etc.).
     private static final Set<String> INFRA_ANNOTATIONS = Set.of(
             // Spring Data
             "org.springframework.stereotype.Repository",
@@ -71,9 +77,6 @@ public final class AnchorDetector {
             "jakarta.persistence.Embeddable",
             "javax.persistence.Entity",
             "javax.persistence.Table",
-            // Spring Components in infra
-            "org.springframework.stereotype.Component",
-            "org.springframework.stereotype.Service",
             // MongoDB
             "org.springframework.data.mongodb.core.mapping.Document",
             // Cassandra
@@ -156,7 +159,17 @@ public final class AnchorDetector {
             }
         }
 
-        // Priority 3: Check for infrastructure field dependencies
+        // Priority 3: Check for infrastructure package patterns
+        if (isInfraPackage(type.packageName())) {
+            return AnchorResult.infraAnchor(
+                    type.id(),
+                    new Evidence(
+                            EvidenceType.RELATIONSHIP,
+                            "Package '%s' matches infrastructure pattern".formatted(type.packageName()),
+                            List.of()));
+        }
+
+        // Priority 4: Check for infrastructure field dependencies
         List<FieldNode> fields = query.fieldsOf(type);
         for (FieldNode field : fields) {
             String fieldTypeName = field.type().rawQualifiedName();

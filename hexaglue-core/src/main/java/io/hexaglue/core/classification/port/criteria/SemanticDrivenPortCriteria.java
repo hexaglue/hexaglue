@@ -76,7 +76,7 @@ public final class SemanticDrivenPortCriteria implements PortClassificationCrite
 
     @Override
     public PortKind targetKind() {
-        return PortKind.REPOSITORY;
+        return PortKind.GENERIC;
     }
 
     @Override

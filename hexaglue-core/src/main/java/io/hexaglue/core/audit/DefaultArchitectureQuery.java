@@ -857,6 +857,28 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
                 .findFirst();
     }
 
+    @Override
+    public List<String> findImplementors(String interfaceQualifiedName) {
+        if (interfaceQualifiedName == null) {
+            return List.of();
+        }
+
+        // Find the interface TypeNode in the full application graph
+        Optional<TypeNode> interfaceNode = graph.typeNode(interfaceQualifiedName);
+        if (interfaceNode.isEmpty()) {
+            return List.of();
+        }
+
+        // Find all types that implement this interface via IMPLEMENTS edges
+        return graph.edgesTo(interfaceNode.get().id()).stream()
+                .filter(e -> e.kind() == EdgeKind.IMPLEMENTS)
+                .map(Edge::from)
+                .map(nodeId -> graph.typeNode(nodeId))
+                .flatMap(Optional::stream)
+                .map(TypeNode::qualifiedName)
+                .toList();
+    }
+
     private String extractSimpleName(String qualifiedName) {
         int lastDot = qualifiedName.lastIndexOf('.');
         return lastDot >= 0 ? qualifiedName.substring(lastDot + 1) : qualifiedName;

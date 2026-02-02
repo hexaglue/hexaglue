@@ -36,6 +36,8 @@ import java.util.Set;
  * @param options additional options (key-value pairs)
  * @param classificationConfig configuration for classification (exclusions, explicit mappings, validation)
  * @param enabledCategories plugin categories to execute (null or empty for all categories)
+ * @param includeGenerated whether to include {@code @Generated}-annotated types in the semantic model
+ * @since 5.0.0 added includeGenerated parameter
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -48,7 +50,8 @@ public record EngineConfig(
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options,
         ClassificationConfig classificationConfig,
-        Set<PluginCategory> enabledCategories) {
+        Set<PluginCategory> enabledCategories,
+        boolean includeGenerated) {
 
     /**
      * Compact constructor with validation.
@@ -97,7 +100,18 @@ public record EngineConfig(
      */
     public static EngineConfig minimal(Path sourceRoot, String basePackage) {
         return new EngineConfig(
-                List.of(sourceRoot), List.of(), 21, basePackage, null, null, null, Map.of(), Map.of(), null, null);
+                List.of(sourceRoot),
+                List.of(),
+                21,
+                basePackage,
+                null,
+                null,
+                null,
+                Map.of(),
+                Map.of(),
+                null,
+                null,
+                false);
     }
 
     /**
@@ -116,7 +130,8 @@ public record EngineConfig(
                 pluginConfigs,
                 Map.of(),
                 null,
-                null);
+                null,
+                false);
     }
 
     /**
@@ -141,7 +156,8 @@ public record EngineConfig(
                 Map.of(),
                 Map.of(),
                 classificationConfig,
-                null);
+                null,
+                false);
     }
 
     /**
@@ -161,7 +177,8 @@ public record EngineConfig(
                 pluginConfigs,
                 options,
                 classificationConfig,
-                Set.of(PluginCategory.GENERATOR));
+                Set.of(PluginCategory.GENERATOR),
+                includeGenerated);
     }
 
     /**
@@ -181,7 +198,8 @@ public record EngineConfig(
                 pluginConfigs,
                 options,
                 classificationConfig,
-                Set.of(PluginCategory.AUDIT));
+                Set.of(PluginCategory.AUDIT),
+                includeGenerated);
     }
 
     /**
@@ -201,7 +219,33 @@ public record EngineConfig(
                 pluginConfigs,
                 options,
                 classificationConfig,
-                null);
+                null,
+                includeGenerated);
+    }
+
+    /**
+     * Returns a new config with {@code @Generated}-annotated types included in the semantic model.
+     *
+     * <p>This is used in audit mode so that generated adapters (JPA, MapStruct, etc.)
+     * are visible for port coverage validation.
+     *
+     * @return a config with includeGenerated set to true
+     * @since 5.0.0
+     */
+    public EngineConfig withGeneratedTypes() {
+        return new EngineConfig(
+                sourceRoots,
+                classpathEntries,
+                javaVersion,
+                basePackage,
+                projectName,
+                projectVersion,
+                outputDirectory,
+                pluginConfigs,
+                options,
+                classificationConfig,
+                enabledCategories,
+                true);
     }
 
     /**

@@ -65,7 +65,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         // When
         JavaSemanticModel model = frontend.build(input);
@@ -100,7 +100,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType order = model.types().stream().findFirst().orElseThrow();
@@ -142,7 +142,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType calculator = model.types().stream().findFirst().orElseThrow();
@@ -187,7 +187,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType product = model.types().stream().findFirst().orElseThrow();
@@ -215,7 +215,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType repo = model.types().stream().findFirst().orElseThrow();
@@ -239,7 +239,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType customerId = model.types().stream().findFirst().orElseThrow();
@@ -267,7 +267,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType status = model.types().stream().findFirst().orElseThrow();
@@ -290,7 +290,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType marker = model.types().stream().findFirst().orElseThrow();
@@ -309,7 +309,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType type = model.types().stream().findFirst().orElseThrow();
@@ -338,7 +338,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType container = model.types().stream().findFirst().orElseThrow();
@@ -371,7 +371,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType holder = model.types().stream().findFirst().orElseThrow();
@@ -418,7 +418,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType user = model.types().stream()
@@ -450,7 +450,7 @@ class SpoonFrontendTest {
                 public class OutOfPackage {}
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         List<String> typeNames =
@@ -470,7 +470,7 @@ class SpoonFrontendTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         JavaType located = model.types().stream().findFirst().orElseThrow();
@@ -479,6 +479,51 @@ class SpoonFrontendTest {
         assertThat(sourceRef).isPresent();
         assertThat(sourceRef.get().filePath()).endsWith("Located.java");
         assertThat(sourceRef.get().lineStart()).isGreaterThan(0);
+    }
+
+    @Test
+    void shouldExcludeGeneratedTypesWhenIncludeGeneratedIsFalse() throws IOException {
+        writeSource("com/example/domain/Order.java", """
+                package com.example.domain;
+                public class Order {}
+                """);
+
+        writeSource("com/example/infra/OrderJpaEntity.java", """
+                package com.example.infra;
+                @javax.annotation.processing.Generated("hexaglue")
+                public class OrderJpaEntity {}
+                """);
+
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
+
+        JavaSemanticModel model = frontend.build(input);
+        List<String> typeNames =
+                model.types().stream().map(JavaType::qualifiedName).toList();
+
+        assertThat(typeNames).containsExactly("com.example.domain.Order");
+        assertThat(typeNames).doesNotContain("com.example.infra.OrderJpaEntity");
+    }
+
+    @Test
+    void shouldIncludeGeneratedTypesWhenIncludeGeneratedIsTrue() throws IOException {
+        writeSource("com/example/domain/Order.java", """
+                package com.example.domain;
+                public class Order {}
+                """);
+
+        writeSource("com/example/infra/OrderJpaEntity.java", """
+                package com.example.infra;
+                @javax.annotation.processing.Generated("hexaglue")
+                public class OrderJpaEntity {}
+                """);
+
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", true);
+
+        JavaSemanticModel model = frontend.build(input);
+        List<String> typeNames =
+                model.types().stream().map(JavaType::qualifiedName).toList();
+
+        assertThat(typeNames).containsExactlyInAnyOrder("com.example.domain.Order", "com.example.infra.OrderJpaEntity");
     }
 
     private void writeSource(String relativePath, String content) throws IOException {

@@ -21,6 +21,7 @@ import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 /**
  * Calculates the overall health score of the codebase.
@@ -67,12 +68,31 @@ public class HealthScoreCalculator {
      * @return the computed health score
      */
     public HealthScore calculate(List<Violation> violations, ArchitectureQuery architectureQuery) {
+        return calculate(violations, architectureQuery, Set.of());
+    }
+
+    /**
+     * Calculates the health score for the codebase, filtering metrics to classified packages only.
+     *
+     * <p>When {@code classifiedPackages} is non-empty, coupling and dependency metrics
+     * are computed only for packages containing classified types. This prevents
+     * infrastructure or excluded packages from dragging down the scores.
+     *
+     * @param violations          the list of violations found
+     * @param architectureQuery   the architecture query interface (may be null)
+     * @param classifiedPackages  packages containing classified types (empty = use all)
+     * @return the computed health score
+     * @since 5.0.0
+     */
+    public HealthScore calculate(
+            List<Violation> violations, ArchitectureQuery architectureQuery, Set<String> classifiedPackages) {
         Objects.requireNonNull(violations, "violations required");
+        Objects.requireNonNull(classifiedPackages, "classifiedPackages required");
 
         int dddCompliance = complianceCalculator.calculateDddCompliance(violations);
         int hexCompliance = complianceCalculator.calculateHexCompliance(violations);
-        int dependencyQuality = calculateDependencyQuality(architectureQuery);
-        int coupling = calculateCouplingScore(architectureQuery);
+        int dependencyQuality = calculateDependencyQuality(architectureQuery, classifiedPackages);
+        int coupling = calculateCouplingScore(architectureQuery, classifiedPackages);
         int cohesion = calculateCohesionScore(architectureQuery);
 
         return HealthScore.compute(dddCompliance, hexCompliance, dependencyQuality, coupling, cohesion);
@@ -82,24 +102,40 @@ public class HealthScoreCalculator {
      * Calculates the dependency quality score (0-100).
      *
      * <p>Deducts points for dependency cycles and stability violations.
+     * When classified packages are provided, only counts cycles and violations
+     * involving those packages.
      *
-     * @param architectureQuery the architecture query interface
+     * @param architectureQuery  the architecture query interface
+     * @param classifiedPackages packages containing classified types (empty = use all)
      * @return dependency quality score
      */
-    private int calculateDependencyQuality(ArchitectureQuery architectureQuery) {
+    private int calculateDependencyQuality(ArchitectureQuery architectureQuery, Set<String> classifiedPackages) {
         if (architectureQuery == null) {
             return 100; // No data available, assume perfect
         }
 
         int score = 100;
 
-        // Penalize for dependency cycles
+        // Penalize for dependency cycles (filter to classified packages if provided)
         List<DependencyCycle> cycles = architectureQuery.findDependencyCycles();
+        if (!classifiedPackages.isEmpty()) {
+            cycles = cycles.stream()
+                    .filter(cycle -> cycle.path().stream()
+                            .anyMatch(type -> classifiedPackages.stream().anyMatch(type::startsWith)))
+                    .toList();
+        }
         score -= cycles.size() * CYCLE_PENALTY;
 
-        // Penalize for stability violations
-        int stabilityViolations = architectureQuery.findStabilityViolations().size();
-        score -= stabilityViolations * STABILITY_VIOLATION_PENALTY;
+        // Penalize for stability violations (filter to classified packages if provided)
+        var stabilityViolations = architectureQuery.findStabilityViolations();
+        if (!classifiedPackages.isEmpty()) {
+            stabilityViolations = stabilityViolations.stream()
+                    .filter(sv -> classifiedPackages.stream()
+                            .anyMatch(pkg ->
+                                    sv.fromType().startsWith(pkg) || sv.toType().startsWith(pkg)))
+                    .toList();
+        }
+        score -= stabilityViolations.size() * STABILITY_VIOLATION_PENALTY;
 
         return Math.max(0, Math.min(100, score));
     }
@@ -108,12 +144,14 @@ public class HealthScoreCalculator {
      * Calculates the coupling score (0-100, higher is better = lower coupling).
      *
      * <p>Uses the average instability metric from package coupling analysis.
-     * Lower instability in core packages indicates better design.
+     * When classified packages are provided, only considers those packages
+     * for the average calculation.
      *
-     * @param architectureQuery the architecture query interface
+     * @param architectureQuery  the architecture query interface
+     * @param classifiedPackages packages containing classified types (empty = use all)
      * @return coupling quality score
      */
-    private int calculateCouplingScore(ArchitectureQuery architectureQuery) {
+    private int calculateCouplingScore(ArchitectureQuery architectureQuery, Set<String> classifiedPackages) {
         if (architectureQuery == null) {
             return 100; // No data available, assume perfect
         }
@@ -123,8 +161,20 @@ public class HealthScoreCalculator {
             return 100;
         }
 
+        // Filter to classified packages if provided
+        List<CouplingMetrics> relevantCoupling = allCoupling;
+        if (!classifiedPackages.isEmpty()) {
+            relevantCoupling = allCoupling.stream()
+                    .filter(cm -> classifiedPackages.contains(cm.packageName()))
+                    .toList();
+        }
+
+        if (relevantCoupling.isEmpty()) {
+            return 100;
+        }
+
         // Calculate average distance from main sequence
-        double avgDistance = allCoupling.stream()
+        double avgDistance = relevantCoupling.stream()
                 .mapToDouble(CouplingMetrics::distanceFromMainSequence)
                 .average()
                 .orElse(0.0);

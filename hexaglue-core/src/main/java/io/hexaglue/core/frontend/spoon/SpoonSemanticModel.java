@@ -43,18 +43,21 @@ final class SpoonSemanticModel implements JavaSemanticModel {
 
     private final CtModel model;
     private final String basePackage;
+    private final boolean includeGenerated;
 
-    SpoonSemanticModel(CtModel model, String basePackage) {
+    SpoonSemanticModel(CtModel model, String basePackage, boolean includeGenerated) {
         this.model = model;
         this.basePackage = basePackage;
+        this.includeGenerated = includeGenerated;
     }
 
     @Override
     public List<JavaType> types() {
-        return model.getAllTypes().stream()
-                .filter(this::isInScope)
-                .filter(this::isNotGenerated)
-                .sorted(Comparator.comparing(CtType::getQualifiedName))
+        var stream = model.getAllTypes().stream().filter(this::isInScope);
+        if (!includeGenerated) {
+            stream = stream.filter(this::isNotGenerated);
+        }
+        return stream.sorted(Comparator.comparing(CtType::getQualifiedName))
                 .map(SpoonTypeAdapter::adapt)
                 .toList();
     }

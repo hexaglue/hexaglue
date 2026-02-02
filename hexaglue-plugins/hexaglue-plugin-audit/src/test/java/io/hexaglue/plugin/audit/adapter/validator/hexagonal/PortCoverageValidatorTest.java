@@ -25,6 +25,7 @@ import io.hexaglue.plugin.audit.util.TestModelBuilder;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -82,7 +83,10 @@ class PortCoverageValidatorTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).constraintId().value()).isEqualTo("hexagonal:port-coverage");
         assertThat(violations.get(0).severity()).isEqualTo(Severity.MAJOR);
-        assertThat(violations.get(0).message()).contains("OrderService").contains("no adapter implementation");
+        assertThat(violations.get(0).message())
+                .contains("OrderService")
+                .contains("no adapter implementation")
+                .startsWith("Driving");
         assertThat(violations.get(0).affectedTypes()).containsExactly(PORT_PACKAGE + ".OrderService");
     }
 
@@ -122,7 +126,10 @@ class PortCoverageValidatorTest {
 
         // Then
         assertThat(violations).hasSize(1);
-        assertThat(violations.get(0).message()).contains("OrderRepository").contains("no adapter implementation");
+        assertThat(violations.get(0).message())
+                .contains("OrderRepository")
+                .contains("no adapter implementation")
+                .startsWith("Driven");
     }
 
     @Test
@@ -175,6 +182,27 @@ class PortCoverageValidatorTest {
         // Then - Both ports should have violations
         assertThat(violations).hasSize(2);
         assertThat(violations).extracting(v -> v.message()).allMatch(msg -> msg.contains("no adapter implementation"));
+    }
+
+    @Test
+    @DisplayName("Should differentiate driving and driven port violation messages")
+    void shouldDifferentiateDrivingAndDrivenPortViolationMessages() {
+        // Given - One driving port and one driven port, both without adapters
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then - Messages should clearly indicate port direction
+        assertThat(violations).hasSize(2);
+        assertThat(violations)
+                .extracting(Violation::message)
+                .anySatisfy(msg -> assertThat(msg).startsWith("Driving port"))
+                .anySatisfy(msg -> assertThat(msg).startsWith("Driven port"));
     }
 
     @Test
@@ -241,5 +269,65 @@ class PortCoverageValidatorTest {
 
         // Then
         assertThat(violations).isEmpty();
+    }
+
+    @Nested
+    @DisplayName("Adapter detection via CompositionIndex")
+    class AdapterDetectionViaCompositionIndex {
+
+        @Test
+        @DisplayName("Should pass when port has adapter via IMPLEMENTS relationship in graph")
+        void shouldPass_whenPortHasAdapterViaImplementsRelationship() {
+            // Given - Port with IMPLEMENTS relationship in CompositionIndex, empty Codebase
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                    .addImplements(INFRA_PACKAGE + ".JpaOrderRepository", PORT_PACKAGE + ".OrderRepository")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, null);
+
+            // Then
+            assertThat(violations).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should pass when port has adapter via both Codebase and graph")
+        void shouldPass_whenPortHasAdapterViaBothCodebaseAndGraph() {
+            // Given - Both strategies find adapter
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                    .addImplements(INFRA_PACKAGE + ".OrderRestController", PORT_PACKAGE + ".OrderService")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder()
+                    .addDependency(INFRA_PACKAGE + ".OrderRestController", PORT_PACKAGE + ".OrderService")
+                    .build();
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, null);
+
+            // Then
+            assertThat(violations).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should fail when graph has no IMPLEMENTS for port")
+        void shouldFail_whenGraphHasNoImplementsForPort() {
+            // Given - CompositionIndex exists but no IMPLEMENTS for this port
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                    .addDrivenPort(PORT_PACKAGE + ".PaymentGateway", DrivenPortType.GATEWAY)
+                    .addImplements(INFRA_PACKAGE + ".OrderRestController", PORT_PACKAGE + ".OrderService")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, null);
+
+            // Then - Only PaymentGateway should have violation (OrderService is covered via graph)
+            assertThat(violations).hasSize(1);
+            assertThat(violations.get(0).message()).contains("PaymentGateway");
+        }
     }
 }

@@ -90,6 +90,12 @@ public class PortDirectionValidator implements ConstraintValidator {
                 .map(t -> t.id().qualifiedName())
                 .collect(Collectors.toSet());
 
+        // When no application services are in the registry (e.g., excluded by config),
+        // port direction validation cannot produce meaningful results — skip it
+        if (applicationServiceQNames.isEmpty()) {
+            return violations;
+        }
+
         // Validate driven ports (should be used by application services)
         portIndex.drivenPorts().forEach(drivenPort -> {
             violations.addAll(validateDrivenPort(drivenPort, applicationServiceQNames, codebase));

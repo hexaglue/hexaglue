@@ -83,7 +83,7 @@ public class ClassificationBenchmark {
         // Load and build small corpus graph
         Path smallSourceRoot = benchmarksDir.resolve("test-corpus/small/src/main/java");
         JavaAnalysisInput smallInput =
-                new JavaAnalysisInput(List.of(smallSourceRoot), List.of(), 17, "com.example.ecommerce");
+                new JavaAnalysisInput(List.of(smallSourceRoot), List.of(), 17, "com.example.ecommerce", false);
         JavaSemanticModel smallModel = frontend.build(smallInput);
         GraphMetadata smallMetadata =
                 GraphMetadata.of("com.example.ecommerce", 17, smallModel.types().size());
@@ -92,7 +92,7 @@ public class ClassificationBenchmark {
         // Load and build medium corpus graph
         Path mediumSourceRoot = benchmarksDir.resolve("test-corpus/medium/src/main/java");
         JavaAnalysisInput mediumInput =
-                new JavaAnalysisInput(List.of(mediumSourceRoot), List.of(), 17, "com.example.ecommerce");
+                new JavaAnalysisInput(List.of(mediumSourceRoot), List.of(), 17, "com.example.ecommerce", false);
         JavaSemanticModel mediumModel = frontend.build(mediumInput);
         GraphMetadata mediumMetadata = GraphMetadata.of(
                 "com.example.ecommerce", 17, mediumModel.types().size());
@@ -101,7 +101,7 @@ public class ClassificationBenchmark {
         // Load and build large corpus graph
         Path largeSourceRoot = benchmarksDir.resolve("test-corpus/large/src/main/java");
         JavaAnalysisInput largeInput =
-                new JavaAnalysisInput(List.of(largeSourceRoot), List.of(), 17, "com.example.enterprise");
+                new JavaAnalysisInput(List.of(largeSourceRoot), List.of(), 17, "com.example.enterprise", false);
         JavaSemanticModel largeModel = frontend.build(largeInput);
         GraphMetadata largeMetadata = GraphMetadata.of(
                 "com.example.enterprise", 17, largeModel.types().size());

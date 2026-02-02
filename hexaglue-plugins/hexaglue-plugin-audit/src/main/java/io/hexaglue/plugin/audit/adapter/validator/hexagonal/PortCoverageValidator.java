@@ -16,8 +16,10 @@ package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.arch.model.audit.SourceLocation;
+import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.plugin.audit.domain.model.ConstraintId;
 import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.StructuralEvidence;
@@ -94,14 +96,14 @@ public class PortCoverageValidator implements ConstraintValidator {
 
         // Check driving ports for coverage
         portIndex.drivingPorts().forEach(port -> {
-            if (!hasAdapterImplementation(port, codebase)) {
+            if (!hasAdapterImplementation(port.id(), model, codebase, query)) {
                 violations.add(createViolation(port));
             }
         });
 
         // Check driven ports for coverage
         portIndex.drivenPorts().forEach(port -> {
-            if (!hasAdapterImplementation(port, codebase)) {
+            if (!hasAdapterImplementation(port.id(), model, codebase, query)) {
                 violations.add(createViolation(port));
             }
         });
@@ -110,41 +112,52 @@ public class PortCoverageValidator implements ConstraintValidator {
     }
 
     /**
-     * Checks if a driving port has at least one adapter implementation.
+     * Checks if a port has at least one adapter implementation.
      *
-     * <p>An adapter is considered to implement a port if the adapter depends on
-     * the port (indicating it implements or uses the port interface).</p>
+     * <p>Uses three strategies in order:
+     * <ol>
+     *   <li><strong>Codebase dependencies</strong>: checks if any type depends on the port
+     *       (reverse lookup in the dependency map)</li>
+     *   <li><strong>CompositionIndex graph</strong>: checks for IMPLEMENTS relationships
+     *       targeting the port (covers generated adapters classified as OUT_OF_SCOPE)</li>
+     *   <li><strong>ApplicationGraph via ArchitectureQuery</strong>: checks the full graph
+     *       for implementations (covers adapters in excluded packages)</li>
+     * </ol>
      *
-     * @param port the driving port to check
+     * <p>Either strategy finding an adapter is sufficient.
+     *
+     * @param portId the port's type identifier
+     * @param model the architectural model (for CompositionIndex access)
      * @param codebase the codebase containing dependency information
+     * @param query the architecture query for full graph access (may be null)
      * @return true if the port has at least one adapter implementation
+     * @since 5.0.0
      */
-    private boolean hasAdapterImplementation(DrivingPort port, Codebase codebase) {
-        String portQualifiedName = port.id().qualifiedName();
+    private boolean hasAdapterImplementation(
+            TypeId portId, ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
+        String portQualifiedName = portId.qualifiedName();
 
-        // Check if any type depends on this port (reverse lookup)
-        // In practice, adapters will depend on the port interface they implement
-        return codebase.dependencies().entrySet().stream()
+        // Strategy 1: Check codebase dependencies (reverse lookup)
+        boolean foundViaDependencies = codebase.dependencies().entrySet().stream()
                 .anyMatch(entry -> entry.getValue().contains(portQualifiedName));
-    }
+        if (foundViaDependencies) {
+            return true;
+        }
 
-    /**
-     * Checks if a driven port has at least one adapter implementation.
-     *
-     * <p>An adapter is considered to implement a port if the adapter depends on
-     * the port (indicating it implements or uses the port interface).</p>
-     *
-     * @param port the driven port to check
-     * @param codebase the codebase containing dependency information
-     * @return true if the port has at least one adapter implementation
-     */
-    private boolean hasAdapterImplementation(DrivenPort port, Codebase codebase) {
-        String portQualifiedName = port.id().qualifiedName();
+        // Strategy 2: Check CompositionIndex for IMPLEMENTS relationships
+        boolean foundViaCompositionIndex = model.compositionIndex()
+                .map(ci -> ci.graph().to(portId).anyMatch(r -> r.type() == RelationType.IMPLEMENTS))
+                .orElse(false);
+        if (foundViaCompositionIndex) {
+            return true;
+        }
 
-        // Check if any type depends on this port (reverse lookup)
-        // In practice, adapters will depend on the port interface they implement
-        return codebase.dependencies().entrySet().stream()
-                .anyMatch(entry -> entry.getValue().contains(portQualifiedName));
+        // Strategy 3: Check full ApplicationGraph via ArchitectureQuery (handles excluded packages)
+        if (query != null) {
+            return !query.findImplementors(portQualifiedName).isEmpty();
+        }
+
+        return false;
     }
 
     /**
@@ -156,7 +169,7 @@ public class PortCoverageValidator implements ConstraintValidator {
     private Violation createViolation(DrivingPort port) {
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)
-                .message("Port '%s' has no adapter implementation"
+                .message("Driving port '%s' has no adapter implementation"
                         .formatted(port.id().simpleName()))
                 .affectedType(port.id().qualifiedName())
                 .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))
@@ -175,7 +188,7 @@ public class PortCoverageValidator implements ConstraintValidator {
     private Violation createViolation(DrivenPort port) {
         return Violation.builder(CONSTRAINT_ID)
                 .severity(Severity.MAJOR)
-                .message("Port '%s' has no adapter implementation"
+                .message("Driven port '%s' has no adapter implementation"
                         .formatted(port.id().simpleName()))
                 .affectedType(port.id().qualifiedName())
                 .location(SourceLocation.of(port.id().qualifiedName(), 1, 1))

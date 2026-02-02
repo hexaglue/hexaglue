@@ -129,11 +129,18 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             // Step 1: Build semantic model from source
             log.info("Building semantic model for base package: {}", config.basePackage());
             JavaAnalysisInput input = new JavaAnalysisInput(
-                    config.sourceRoots(), config.classpathEntries(), config.javaVersion(), config.basePackage());
+                    config.sourceRoots(),
+                    config.classpathEntries(),
+                    config.javaVersion(),
+                    config.basePackage(),
+                    config.includeGenerated());
 
             JavaSemanticModel model = frontend.build(input);
             int typeCount = model.types().size();
-            log.info("Semantic model built: {} types", typeCount);
+            log.info(
+                    "Semantic model built: {} types{}",
+                    typeCount,
+                    config.includeGenerated() ? " (including generated)" : "");
 
             if (typeCount == 0) {
                 diagnostics.add(

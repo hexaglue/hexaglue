@@ -33,6 +33,7 @@ import io.hexaglue.core.classification.semantic.InterfaceFacts;
 import io.hexaglue.core.classification.semantic.InterfaceFactsIndex;
 import io.hexaglue.core.frontend.JavaForm;
 import io.hexaglue.core.graph.ApplicationGraph;
+import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -83,6 +84,19 @@ import java.util.Set;
  * }</pre>
  */
 public final class SinglePassClassifier {
+
+    /**
+     * Annotations marking generated types that should not be classified.
+     *
+     * <p>Types annotated with {@code @Generated} are infrastructure code produced by
+     * plugins (JPA entities, mappers, etc.) and must not enter the classification pipeline.
+     * They will naturally become {@code UnclassifiedType} with {@code OUT_OF_SCOPE} category
+     * via {@link io.hexaglue.core.builder.UnclassifiedCategoryDetector}.
+     *
+     * @since 5.0.0
+     */
+    private static final Set<String> GENERATED_ANNOTATIONS = Set.of(
+            "javax.annotation.Generated", "javax.annotation.processing.Generated", "jakarta.annotation.Generated");
 
     private DomainClassifier domainClassifier;
     private PortClassifier portClassifier;
@@ -256,6 +270,11 @@ public final class SinglePassClassifier {
                 continue;
             }
 
+            // Skip @Generated types - they should not be classified as ports
+            if (isGenerated(type)) {
+                continue;
+            }
+
             // Check for explicit classification
             Optional<String> explicitKind = config.getExplicitKind(qualifiedName);
             if (explicitKind.isPresent()) {
@@ -290,6 +309,23 @@ public final class SinglePassClassifier {
 
                 // Fallback: Use without annotation check for broader detection
                 if (f.isDrivenPortCandidateWithoutAnnotationCheck()) {
+                    results.put(type.id(), classifyDrivenPort(type, query, f, false));
+                    continue;
+                }
+
+                // Driven port used by core but with existing infrastructure implementation.
+                // The previous conditions (missingImpl/internalImplOnly) target code generation;
+                // this condition handles the audit case where an adapter already exists.
+                if (f.isDrivenPortWithExternalImpl()) {
+                    results.put(type.id(), classifyDrivenPort(type, query, f, false));
+                    continue;
+                }
+
+                // Driven port identified by infrastructure-only implementations.
+                // In hexagonal architecture, an interface implemented exclusively by
+                // infrastructure adapters is a driven port by definition. This handles
+                // event-driven ports not directly injected by application services.
+                if (f.isDrivenPortByInfrastructureImpl()) {
                     results.put(type.id(), classifyDrivenPort(type, query, f, false));
                     continue;
                 }
@@ -422,6 +458,11 @@ public final class SinglePassClassifier {
                 continue;
             }
 
+            // Skip @Generated types - they should not be classified as domain types
+            if (isGenerated(type)) {
+                continue;
+            }
+
             // Check for explicit classification
             Optional<String> explicitKind = config.getExplicitKind(qualifiedName);
             if (explicitKind.isPresent()) {
@@ -523,5 +564,20 @@ public final class SinglePassClassifier {
      */
     private boolean isDomainPackage(String packageName) {
         return packageName.contains(".domain.") || packageName.endsWith(".domain");
+    }
+
+    /**
+     * Returns true if the type is annotated with a {@code @Generated} annotation.
+     *
+     * <p>Generated types (JPA entities, mappers, adapters produced by plugins) must not
+     * be classified as domain types or ports. Skipping them here ensures they become
+     * {@code UnclassifiedType} with {@code OUT_OF_SCOPE} category.
+     *
+     * @param type the type node to check
+     * @return true if the type has a {@code @Generated} annotation
+     * @since 5.0.0
+     */
+    private boolean isGenerated(TypeNode type) {
+        return type.annotations().stream().map(AnnotationRef::qualifiedName).anyMatch(GENERATED_ANNOTATIONS::contains);
     }
 }

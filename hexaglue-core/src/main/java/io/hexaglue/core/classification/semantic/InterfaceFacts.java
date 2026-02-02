@@ -24,12 +24,17 @@ import java.util.Objects;
  *   <li><b>DRIVING port</b>: {@code implementedByCore} is true</li>
  *   <li><b>DRIVEN port</b>: {@code usedByCore} is true AND ({@code missingImpl} OR {@code internalImplOnly})
  *       AND {@code hasPortAnnotation} is true (safety check)</li>
+ *   <li><b>DRIVEN port (audit)</b>: {@code usedByCore} is true AND has external impl
+ *       (interface used by core with infrastructure implementation)</li>
+ *   <li><b>DRIVEN port (infra impl)</b>: {@code infraImplOnly} is true
+ *       (all implementations are infrastructure — architectural signal)</li>
  * </ul>
  *
  * @param interfaceId the node id of the interface
  * @param implsProdCount number of implementations in production code
  * @param missingImpl true if there are no implementations in production code
  * @param internalImplOnly true if all implementations are domain anchors (internal/dev impls)
+ * @param infraImplOnly true if all implementations are infrastructure anchors (adapters)
  * @param usedByCore true if at least one CoreAppClass depends on this interface
  * @param implementedByCore true if at least one CoreAppClass implements this interface
  * @param hasPortAnnotation true if the interface has a port-related annotation (jMolecules @Port, @Repository, etc.)
@@ -39,6 +44,7 @@ public record InterfaceFacts(
         int implsProdCount,
         boolean missingImpl,
         boolean internalImplOnly,
+        boolean infraImplOnly,
         boolean usedByCore,
         boolean implementedByCore,
         boolean hasPortAnnotation) {
@@ -59,6 +65,7 @@ public record InterfaceFacts(
                 implsProdCount,
                 implsProdCount == 0,
                 false,
+                false, // infraImplOnly
                 false,
                 true, // implementedByCore
                 hasPortAnnotation);
@@ -73,6 +80,7 @@ public record InterfaceFacts(
                 0,
                 true, // missingImpl
                 false,
+                false, // infraImplOnly
                 true, // usedByCore
                 false,
                 hasPortAnnotation);
@@ -88,7 +96,30 @@ public record InterfaceFacts(
                 implsProdCount,
                 false,
                 true, // internalImplOnly
+                false, // infraImplOnly
                 true, // usedByCore
+                false,
+                hasPortAnnotation);
+    }
+
+    /**
+     * Creates InterfaceFacts indicating a DRIVEN port with infrastructure-only implementations.
+     *
+     * <p>This covers ports whose only implementations are infrastructure adapters
+     * (INFRA_ANCHOR), indicating they are driven ports by architectural definition.
+     * This handles cases like event-driven ports not directly injected by application services.
+     *
+     * @since 5.0.0
+     */
+    public static InterfaceFacts drivenPortInfraImpl(
+            NodeId interfaceId, int implsProdCount, boolean hasPortAnnotation) {
+        return new InterfaceFacts(
+                interfaceId,
+                implsProdCount,
+                false,
+                false,
+                true, // infraImplOnly
+                false, // usedByCore (may or may not be)
                 false,
                 hasPortAnnotation);
     }
@@ -132,6 +163,35 @@ public record InterfaceFacts(
     }
 
     /**
+     * Returns true if this interface is a DRIVEN port used by core with an external implementation.
+     *
+     * <p>This covers the audit use case where an interface is used by application services
+     * and has an infrastructure implementation (adapter exists). The existing conditions
+     * ({@code missingImpl} / {@code internalImplOnly}) are for code generation;
+     * this condition recognizes that having an infrastructure adapter is itself
+     * evidence of a driven port.
+     *
+     * @since 5.0.0
+     */
+    public boolean isDrivenPortWithExternalImpl() {
+        return usedByCore && !implementedByCore && !missingImpl && !internalImplOnly;
+    }
+
+    /**
+     * Returns true if this interface is a DRIVEN port identified by infrastructure implementations.
+     *
+     * <p>In hexagonal architecture, an interface whose ONLY implementations are
+     * infrastructure adapters (INFRA_ANCHOR) is by definition a driven port:
+     * the infrastructure implements the domain contract. This handles ports
+     * not directly injected by application services (e.g., event-driven ports).
+     *
+     * @since 5.0.0
+     */
+    public boolean isDrivenPortByInfrastructureImpl() {
+        return infraImplOnly && !implementedByCore;
+    }
+
+    /**
      * Returns true if this interface has production implementations.
      */
     public boolean hasProdImpl() {
@@ -149,6 +209,10 @@ public record InterfaceFacts(
      * Returns true if this interface is not clearly classified as a port.
      */
     public boolean isUndecided() {
-        return !isDrivingPortCandidate() && !isDrivenPortCandidate() && !isInternalInterface();
+        return !isDrivingPortCandidate()
+                && !isDrivenPortCandidate()
+                && !isDrivenPortWithExternalImpl()
+                && !isDrivenPortByInfrastructureImpl()
+                && !isInternalInterface();
     }
 }

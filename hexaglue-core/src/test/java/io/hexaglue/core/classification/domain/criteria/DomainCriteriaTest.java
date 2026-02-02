@@ -365,6 +365,460 @@ class DomainCriteriaTest {
     }
 
     // =========================================================================
+    // Medium Heuristic Criteria
+    // =========================================================================
+
+    @Nested
+    class ContainedEntityCriteriaTest {
+
+        @Test
+        void shouldMatchClassWithIdFieldContainedInAggregateViaCollection() throws IOException {
+            writeSource("com/example/OrderLine.java", """
+                    package com.example;
+                    public class OrderLine {
+                        private Long id;
+                        private String productName;
+                        private int quantity;
+                    }
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    import java.util.List;
+                    public class Order {
+                        private Long id;
+                        private List<OrderLine> lines;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode orderLine = graph.typeNode("com.example.OrderLine").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(orderLine, query);
+
+            assertThat(result.matched()).isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+            assertThat(result.justification()).contains("Order");
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.ENTITY);
+            assertThat(criteria.priority()).isEqualTo(70);
+        }
+
+        @Test
+        void shouldMatchClassWithTypedIdFieldContainedInAggregate() throws IOException {
+            writeSource("com/example/StockMovement.java", """
+                    package com.example;
+                    public class StockMovement {
+                        private Long stockMovementId;
+                        private String type;
+                    }
+                    """);
+            writeSource("com/example/Inventory.java", """
+                    package com.example;
+                    import java.util.List;
+                    public class Inventory {
+                        private Long id;
+                        private List<StockMovement> movements;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode movement = graph.typeNode("com.example.StockMovement").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(movement, query);
+
+            assertThat(result.matched()).isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.HIGH);
+            assertThat(result.justification()).contains("Inventory");
+        }
+
+        @Test
+        void shouldNotMatchClassWithoutIdField() throws IOException {
+            writeSource("com/example/LineItem.java", """
+                    package com.example;
+                    public class LineItem {
+                        private String productName;
+                        private int quantity;
+                    }
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    import java.util.List;
+                    public class Order {
+                        private Long id;
+                        private List<LineItem> items;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode lineItem = graph.typeNode("com.example.LineItem").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(lineItem, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchInterface() throws IOException {
+            writeSource("com/example/Identifiable.java", """
+                    package com.example;
+                    public interface Identifiable {
+                        Long getId();
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode iface = graph.typeNode("com.example.Identifiable").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(iface, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchClassNotContainedInAnyAggregate() throws IOException {
+            writeSource("com/example/StandaloneEntity.java", """
+                    package com.example;
+                    public class StandaloneEntity {
+                        private Long id;
+                        private String name;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode entity = graph.typeNode("com.example.StandaloneEntity").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(entity, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchWhenContainerHasNoIdentity() throws IOException {
+            writeSource("com/example/Item.java", """
+                    package com.example;
+                    public class Item {
+                        private Long id;
+                        private String name;
+                    }
+                    """);
+            writeSource("com/example/Bag.java", """
+                    package com.example;
+                    import java.util.List;
+                    public class Bag {
+                        private String label;
+                        private List<Item> items;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode item = graph.typeNode("com.example.Item").orElseThrow();
+            GraphQuery query = graph.query();
+
+            ContainedEntityCriteria criteria = new ContainedEntityCriteria();
+            MatchResult result = criteria.evaluate(item, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+    }
+
+    // =========================================================================
+    // Naming Heuristic Criteria
+    // =========================================================================
+
+    @Nested
+    class DomainEventNamingCriteriaTest {
+
+        @Test
+        void shouldMatchClassEndingWithEvent() throws IOException {
+            writeSource("com/example/OrderCreatedEvent.java", """
+                    package com.example;
+                    public class OrderCreatedEvent {
+                        private String orderId;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode event = graph.typeNode("com.example.OrderCreatedEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(event, query);
+
+            assertThat(result.matched()).isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
+            assertThat(result.justification()).contains("OrderCreatedEvent");
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.DOMAIN_EVENT);
+            assertThat(criteria.priority()).isEqualTo(68);
+        }
+
+        @Test
+        void shouldMatchRecordEndingWithEvent() throws IOException {
+            writeSource("com/example/PaymentReceivedEvent.java", """
+                    package com.example;
+                    public record PaymentReceivedEvent(String paymentId, double amount) {}
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode event = graph.typeNode("com.example.PaymentReceivedEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(event, query);
+
+            assertThat(result.matched()).isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
+        }
+
+        @Test
+        void shouldNotMatchInterfaceEndingWithEvent() throws IOException {
+            writeSource("com/example/ApplicationEvent.java", """
+                    package com.example;
+                    public interface ApplicationEvent {}
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode iface = graph.typeNode("com.example.ApplicationEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(iface, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchEnumEndingWithEvent() throws IOException {
+            writeSource("com/example/SystemEvent.java", """
+                    package com.example;
+                    public enum SystemEvent { STARTED, STOPPED }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode enumType = graph.typeNode("com.example.SystemEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(enumType, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchClassNamedExactlyEvent() throws IOException {
+            writeSource("com/example/Event.java", """
+                    package com.example;
+                    public class Event {}
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode event = graph.typeNode("com.example.Event").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(event, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchClassNamedDomainEvent() throws IOException {
+            writeSource("com/example/DomainEvent.java", """
+                    package com.example;
+                    public class DomainEvent {}
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode event = graph.typeNode("com.example.DomainEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(event, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchClassNotEndingWithEvent() throws IOException {
+            writeSource("com/example/OrderCreated.java", """
+                    package com.example;
+                    public class OrderCreated {
+                        private String orderId;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode type = graph.typeNode("com.example.OrderCreated").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainEventNamingCriteria criteria = new DomainEventNamingCriteria();
+            MatchResult result = criteria.evaluate(type, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+    }
+
+    // =========================================================================
+    // Domain Record Value Object Criteria
+    // =========================================================================
+
+    @Nested
+    class DomainRecordValueObjectCriteriaTest {
+
+        @Test
+        void shouldMatchRecordWithoutIdentityReferencedByOtherType() throws IOException {
+            writeSource("com/example/ShippingRate.java", """
+                    package com.example;
+                    public record ShippingRate(double amount, String currency) {}
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    public class Order {
+                        private ShippingRate shippingRate;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode shippingRate = graph.typeNode("com.example.ShippingRate").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(shippingRate, query);
+
+            assertThat(result.matched()).isTrue();
+            assertThat(result.confidence()).isEqualTo(ConfidenceLevel.MEDIUM);
+            assertThat(result.justification()).contains("ShippingRate");
+            assertThat(criteria.targetKind()).isEqualTo(ElementKind.VALUE_OBJECT);
+            assertThat(criteria.priority()).isEqualTo(65);
+        }
+
+        @Test
+        void shouldNotMatchRecordEndingWithId() throws IOException {
+            writeSource("com/example/OrderId.java", """
+                    package com.example;
+                    public record OrderId(String value) {}
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    public class Order {
+                        private OrderId orderId;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode orderId = graph.typeNode("com.example.OrderId").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(orderId, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchRecordEndingWithEvent() throws IOException {
+            writeSource("com/example/OrderCreatedEvent.java", """
+                    package com.example;
+                    public record OrderCreatedEvent(String orderId) {}
+                    """);
+            writeSource("com/example/EventHandler.java", """
+                    package com.example;
+                    public class EventHandler {
+                        public void handle(OrderCreatedEvent event) {}
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode event = graph.typeNode("com.example.OrderCreatedEvent").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(event, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchRecordWithIdentityField() throws IOException {
+            writeSource("com/example/OrderLine.java", """
+                    package com.example;
+                    public record OrderLine(Long id, String product, int quantity) {}
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    import java.util.List;
+                    public class Order {
+                        private List<OrderLine> lines;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode orderLine = graph.typeNode("com.example.OrderLine").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(orderLine, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchClass() throws IOException {
+            writeSource("com/example/Money.java", """
+                    package com.example;
+                    public class Money {
+                        private final double amount;
+                        private final String currency;
+                        public Money(double amount, String currency) {
+                            this.amount = amount;
+                            this.currency = currency;
+                        }
+                    }
+                    """);
+            writeSource("com/example/Order.java", """
+                    package com.example;
+                    public class Order {
+                        private Money total;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode money = graph.typeNode("com.example.Money").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(money, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+
+        @Test
+        void shouldNotMatchOrphanedRecord() throws IOException {
+            writeSource("com/example/Orphan.java", """
+                    package com.example;
+                    public record Orphan(String value) {}
+                    """);
+
+            ApplicationGraph graph = buildGraph();
+            TypeNode orphan = graph.typeNode("com.example.Orphan").orElseThrow();
+            GraphQuery query = graph.query();
+
+            DomainRecordValueObjectCriteria criteria = new DomainRecordValueObjectCriteria();
+            MatchResult result = criteria.evaluate(orphan, query);
+
+            assertThat(result.matched()).isFalse();
+        }
+    }
+
+    // =========================================================================
     // Helper methods
     // =========================================================================
 
@@ -375,7 +829,7 @@ class DomainCriteriaTest {
     }
 
     private ApplicationGraph buildGraph() {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example");
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =

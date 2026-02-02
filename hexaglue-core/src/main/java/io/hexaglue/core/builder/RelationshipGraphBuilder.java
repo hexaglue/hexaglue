@@ -23,6 +23,7 @@ import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
+import io.hexaglue.arch.model.UnclassifiedType;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.arch.model.graph.RelationshipGraph;
@@ -88,6 +89,17 @@ public final class RelationshipGraphBuilder {
     }
 
     private void processType(ArchType type, TypeRegistry registry, RelationshipGraph.Builder graphBuilder) {
+        boolean isOutOfScope = type instanceof UnclassifiedType u
+                && u.category() == UnclassifiedType.UnclassifiedCategory.OUT_OF_SCOPE;
+
+        if (isOutOfScope) {
+            // OUT_OF_SCOPE types (generated JPA entities, mappers, adapters) only contribute
+            // inheritance relationships (IMPLEMENTS, EXTENDS) for adapter detection.
+            // Their field compositions are excluded to avoid polluting the relationship graph.
+            processInheritance(type, registry, graphBuilder);
+            return;
+        }
+
         if (type instanceof AggregateRoot aggregate) {
             processAggregateRoot(aggregate, graphBuilder);
         }

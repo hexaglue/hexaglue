@@ -29,6 +29,7 @@ import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.UnclassifiedType;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.arch.model.graph.RelationshipGraph;
@@ -346,6 +347,92 @@ class RelationshipGraphBuilderTest {
 
             // then
             assertThat(graph.hasRelation(ORDER_SERVICE_ID, ORDER_REPOSITORY_ID, RelationType.IMPLEMENTS))
+                    .isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("OUT_OF_SCOPE Filtering")
+    class OutOfScopeFiltering {
+
+        @Test
+        @DisplayName("should keep IMPLEMENTS for OUT_OF_SCOPE types (adapter detection)")
+        void shouldKeepImplementsForOutOfScopeTypes() {
+            // given - a generated adapter (OUT_OF_SCOPE) that implements a port interface
+            DrivenPort repository =
+                    DrivenPort.of(ORDER_REPOSITORY_ID, interfaceStructure, repoTrace, DrivenPortType.REPOSITORY);
+
+            TypeId adapterId = TypeId.of("com.example.adapter.persistence.OrderRepositoryAdapter");
+            ClassificationTrace unclTrace =
+                    ClassificationTrace.highConfidence(ElementKind.UNCLASSIFIED, "test", "Generated adapter");
+            TypeStructure adapterStructure = TypeStructure.builder(TypeNature.CLASS)
+                    .interfaces(List.of(TypeRef.of(ORDER_REPOSITORY_ID.qualifiedName())))
+                    .build();
+            UnclassifiedType adapter = UnclassifiedType.of(
+                    adapterId, adapterStructure, unclTrace, UnclassifiedType.UnclassifiedCategory.OUT_OF_SCOPE);
+
+            TypeRegistry registry =
+                    TypeRegistry.builder().add(repository).add(adapter).build();
+
+            // when
+            RelationshipGraph graph = builder.build(registry);
+
+            // then - OUT_OF_SCOPE type should produce IMPLEMENTS relationship for adapter detection
+            assertThat(graph.hasRelation(adapterId, ORDER_REPOSITORY_ID, RelationType.IMPLEMENTS))
+                    .isTrue();
+        }
+
+        @Test
+        @DisplayName("should skip field compositions for OUT_OF_SCOPE types")
+        void shouldSkipFieldCompositionsForOutOfScopeTypes() {
+            // given - a generated JPA entity (OUT_OF_SCOPE) with fields referencing domain types
+            ValueObject money = ValueObject.of(MONEY_ID, classStructure, voTrace);
+
+            TypeId jpaEntityId = TypeId.of("com.example.adapter.persistence.OrderJpaEntity");
+            ClassificationTrace unclTrace =
+                    ClassificationTrace.highConfidence(ElementKind.UNCLASSIFIED, "test", "Generated entity");
+            Field moneyField = Field.builder("totalAmount", TypeRef.of(MONEY_ID.qualifiedName()))
+                    .build();
+            TypeStructure jpaStructure = TypeStructure.builder(TypeNature.CLASS)
+                    .fields(List.of(moneyField))
+                    .build();
+            UnclassifiedType jpaEntity = UnclassifiedType.of(
+                    jpaEntityId, jpaStructure, unclTrace, UnclassifiedType.UnclassifiedCategory.OUT_OF_SCOPE);
+
+            TypeRegistry registry =
+                    TypeRegistry.builder().add(money).add(jpaEntity).build();
+
+            // when
+            RelationshipGraph graph = builder.build(registry);
+
+            // then - OUT_OF_SCOPE type should NOT produce field composition relationships
+            assertThat(graph.from(jpaEntityId).count()).isEqualTo(0);
+        }
+
+        @Test
+        @DisplayName("should still include non-OUT_OF_SCOPE unclassified types")
+        void shouldIncludeNonOutOfScopeUnclassified() {
+            // given - an AMBIGUOUS unclassified type that has a field referencing a known type
+            ValueObject money = ValueObject.of(MONEY_ID, classStructure, voTrace);
+
+            TypeId utilId = TypeId.of("com.example.order.PriceCalculator");
+            ClassificationTrace unclTrace =
+                    ClassificationTrace.highConfidence(ElementKind.UNCLASSIFIED, "test", "Ambiguous type");
+            Field moneyField = Field.builder("amount", TypeRef.of(MONEY_ID.qualifiedName()))
+                    .build();
+            TypeStructure utilStructure = TypeStructure.builder(TypeNature.CLASS)
+                    .fields(List.of(moneyField))
+                    .build();
+            UnclassifiedType util = UnclassifiedType.of(
+                    utilId, utilStructure, unclTrace, UnclassifiedType.UnclassifiedCategory.AMBIGUOUS);
+
+            TypeRegistry registry = TypeRegistry.builder().add(money).add(util).build();
+
+            // when
+            RelationshipGraph graph = builder.build(registry);
+
+            // then - AMBIGUOUS type should still produce relationships
+            assertThat(graph.hasRelation(utilId, MONEY_ID, RelationType.DEPENDS_ON))
                     .isTrue();
         }
     }

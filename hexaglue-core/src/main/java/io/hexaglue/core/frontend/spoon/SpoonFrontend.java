@@ -59,7 +59,7 @@ public final class SpoonFrontend implements JavaFrontend {
         CtModel ctModel = launcher.buildModel();
         LOG.info("Spoon model built: {} types", ctModel.getAllTypes().size());
 
-        return new SpoonSemanticModel(ctModel, input.basePackage());
+        return new SpoonSemanticModel(ctModel, input.basePackage(), input.includeGenerated());
     }
 
     private void configureEnvironment(Environment env, int javaVersion) {

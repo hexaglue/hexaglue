@@ -27,6 +27,7 @@ import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Method;
 import io.hexaglue.arch.model.MethodRole;
 import io.hexaglue.arch.model.QueryHandler;
+import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
@@ -113,8 +114,12 @@ public class ReportDataBuilder {
         ReportMetadata metadata = new ReportMetadata(
                 projectName, projectVersion, Instant.now(), formatDuration(duration), hexaglueVersion, pluginVersion);
 
-        // Calculate health score
-        HealthScore healthScore = healthScoreCalculator.calculate(auditResult.violations(), architectureQuery);
+        // Extract classified packages for health score filtering
+        Set<String> classifiedPackages = extractClassifiedPackages(model);
+
+        // Calculate health score (filtered to classified packages only)
+        HealthScore healthScore =
+                healthScoreCalculator.calculate(auditResult.violations(), architectureQuery, classifiedPackages);
 
         // Build sections
         Verdict verdict = buildVerdict(auditResult, healthScore);
@@ -221,16 +226,25 @@ public class ReportDataBuilder {
         List<BoundedContextInventory> bcInventories = new ArrayList<>();
         if (architectureQuery != null && domainIndex != null) {
             for (BoundedContextInfo bc : architectureQuery.findBoundedContexts()) {
-                // Count aggregates and value objects by filtering domain types belonging to this bounded context
+                // Count domain types by filtering those belonging to this bounded context
                 int aggregateCount = (int) domainIndex
                         .aggregateRoots()
                         .filter(ar -> bc.containsType(ar.id().qualifiedName()))
+                        .count();
+                int entityCount = (int) domainIndex
+                        .entities()
+                        .filter(e -> bc.containsType(e.id().qualifiedName()))
                         .count();
                 int voCount = (int) domainIndex
                         .valueObjects()
                         .filter(vo -> bc.containsType(vo.id().qualifiedName()))
                         .count();
-                bcInventories.add(new BoundedContextInventory(bc.name(), aggregateCount, 0, voCount, 0));
+                int eventCount = (int) domainIndex
+                        .domainEvents()
+                        .filter(de -> bc.containsType(de.id().qualifiedName()))
+                        .count();
+                bcInventories.add(
+                        new BoundedContextInventory(bc.name(), aggregateCount, entityCount, voCount, eventCount));
             }
         }
 
@@ -238,7 +252,8 @@ public class ReportDataBuilder {
         Inventory inventory = new Inventory(bcInventories, totals);
 
         // Build component details (including application layer from registry)
-        ComponentDetails components = buildComponentDetails(domainIndex, portIndex, registry);
+        ComponentDetails components =
+                buildComponentDetails(domainIndex, portIndex, registry, compositionIndex, architectureQuery);
 
         // Build relationships (cycles from violations + compositions from CompositionIndex)
         List<Relationship> relationships = buildRelationships(violations, compositionIndex);
@@ -271,7 +286,11 @@ public class ReportDataBuilder {
     }
 
     private ComponentDetails buildComponentDetails(
-            DomainIndex domainIndex, PortIndex portIndex, TypeRegistry registry) {
+            DomainIndex domainIndex,
+            PortIndex portIndex,
+            TypeRegistry registry,
+            CompositionIndex compositionIndex,
+            ArchitectureQuery architectureQuery) {
 
         // Domain Layer components
         List<AggregateComponent> aggregates = new ArrayList<>();
@@ -395,26 +414,46 @@ public class ReportDataBuilder {
         if (portIndex != null) {
             for (DrivingPort port : portIndex.drivingPorts().toList()) {
                 List<MethodDetail> methodDetails = extractMethodDetails(port.structure());
+                Optional<TypeId> adapterId = findAdapterForPort(port.id(), compositionIndex, architectureQuery);
+                boolean hasAdapter = adapterId.isPresent();
+                String adapterName = adapterId.map(id -> id.simpleName()).orElse(null);
+
                 drivingPorts.add(PortComponent.driving(
                         port.id().simpleName(),
                         extractPackage(port.id().qualifiedName()),
                         port.structure().methods().size(),
-                        false,
-                        null,
+                        hasAdapter,
+                        adapterName,
                         List.of(),
                         methodDetails));
+
+                adapterId.ifPresent(id -> adapters.add(new AdapterComponent(
+                        id.simpleName(),
+                        extractPackage(id.qualifiedName()),
+                        port.id().simpleName(),
+                        AdapterComponent.AdapterType.DRIVING)));
             }
 
             for (DrivenPort port : portIndex.drivenPorts().toList()) {
                 List<MethodDetail> methodDetails = extractMethodDetails(port.structure());
+                Optional<TypeId> adapterId = findAdapterForPort(port.id(), compositionIndex, architectureQuery);
+                boolean hasAdapter = adapterId.isPresent();
+                String adapterName = adapterId.map(id -> id.simpleName()).orElse(null);
+
                 drivenPorts.add(PortComponent.driven(
                         port.id().simpleName(),
                         extractPackage(port.id().qualifiedName()),
                         port.portType().name(),
                         port.structure().methods().size(),
-                        false,
-                        null,
+                        hasAdapter,
+                        adapterName,
                         methodDetails));
+
+                adapterId.ifPresent(id -> adapters.add(new AdapterComponent(
+                        id.simpleName(),
+                        extractPackage(id.qualifiedName()),
+                        port.id().simpleName(),
+                        AdapterComponent.AdapterType.DRIVEN)));
             }
         }
 
@@ -431,6 +470,49 @@ public class ReportDataBuilder {
                 drivingPorts,
                 drivenPorts,
                 adapters);
+    }
+
+    /**
+     * Finds the first adapter implementing a given port.
+     *
+     * <p>Uses two strategies:
+     * <ol>
+     *   <li><strong>CompositionIndex</strong>: queries the relationship graph for
+     *       IMPLEMENTS relationships targeting the port</li>
+     *   <li><strong>ApplicationGraph via ArchitectureQuery</strong>: searches the full
+     *       graph for implementors (covers adapters in excluded packages)</li>
+     * </ol>
+     *
+     * @param portId the port's type identifier
+     * @param compositionIndex the composition index (may be null)
+     * @param architectureQuery the architecture query for full graph access (may be null)
+     * @return the adapter TypeId if found
+     * @since 5.0.0
+     */
+    private Optional<TypeId> findAdapterForPort(
+            TypeId portId, CompositionIndex compositionIndex, ArchitectureQuery architectureQuery) {
+        // Strategy 1: Check CompositionIndex (classified types only)
+        if (compositionIndex != null) {
+            Optional<TypeId> found = compositionIndex
+                    .graph()
+                    .to(portId)
+                    .filter(r -> r.type() == RelationType.IMPLEMENTS)
+                    .map(r -> r.source())
+                    .findFirst();
+            if (found.isPresent()) {
+                return found;
+            }
+        }
+
+        // Strategy 2: Check full ApplicationGraph via ArchitectureQuery (handles excluded packages)
+        if (architectureQuery != null) {
+            List<String> implementors = architectureQuery.findImplementors(portId.qualifiedName());
+            if (!implementors.isEmpty()) {
+                return Optional.of(TypeId.of(implementors.get(0)));
+            }
+        }
+
+        return Optional.empty();
     }
 
     /**
@@ -479,6 +561,18 @@ public class ReportDataBuilder {
             compositionIndex.graph().all().forEach(rel -> {
                 String from = rel.source().simpleName();
                 String to = rel.target().simpleName();
+
+                // Skip self-referencing relationships (e.g., Order emits Order)
+                if (from.equals(to)) {
+                    return;
+                }
+
+                // Skip MapStruct-generated implementations (noise in architectural view)
+                if (rel.type() == RelationType.IMPLEMENTS
+                        && rel.source().simpleName().endsWith("MapperImpl")) {
+                    return;
+                }
+
                 String key = from + "->" + to;
 
                 // Skip if already added (cycles take priority)
@@ -848,6 +942,31 @@ public class ReportDataBuilder {
     private String extractPackage(String qualifiedName) {
         int lastDot = qualifiedName.lastIndexOf('.');
         return lastDot > 0 ? qualifiedName.substring(0, lastDot) : "";
+    }
+
+    /**
+     * Extracts the set of packages containing classified types from the model.
+     *
+     * <p>Used to filter coupling and dependency metrics to only consider
+     * packages in the architectural scope (domain, ports, application services).
+     *
+     * @param model the architectural model
+     * @return set of package names containing at least one classified type
+     * @since 5.0.0
+     */
+    private Set<String> extractClassifiedPackages(ArchitecturalModel model) {
+        return model.typeRegistry()
+                .map(registry -> {
+                    Set<String> packages = new HashSet<>();
+                    registry.all().forEach(type -> {
+                        String pkg = extractPackage(type.id().qualifiedName());
+                        if (!pkg.isEmpty()) {
+                            packages.add(pkg);
+                        }
+                    });
+                    return packages;
+                })
+                .orElse(Set.of());
     }
 
     /**

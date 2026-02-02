@@ -23,6 +23,7 @@ import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
+import io.hexaglue.core.graph.model.AnnotationRef;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.model.TypeNode;
 import io.hexaglue.core.graph.query.GraphQuery;
@@ -31,6 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Builds the new architectural model from classification results.
@@ -95,6 +97,19 @@ public final class NewArchitecturalModelBuilder {
     private final RelationshipGraphBuilder relationshipGraphBuilder;
 
     /**
+     * Annotations marking generated types that should be kept as OUT_OF_SCOPE
+     * in the TypeRegistry even when not present in ClassificationResults.
+     *
+     * <p>Generated types (adapters, JPA entities, mappers) are skipped by the classifier
+     * but need to remain in the TypeRegistry so that the RelationshipGraphBuilder can
+     * create IMPLEMENTS relationships for adapter detection.</p>
+     *
+     * @since 5.0.0
+     */
+    private static final Set<String> GENERATED_ANNOTATIONS = Set.of(
+            "javax.annotation.Generated", "javax.annotation.processing.Generated", "jakarta.annotation.Generated");
+
+    /**
      * Creates a new NewArchitecturalModelBuilder with default component builders.
      */
     public NewArchitecturalModelBuilder() {
@@ -140,9 +155,17 @@ public final class NewArchitecturalModelBuilder {
         graphQuery.types().forEach(typeNode -> {
             Optional<ClassificationResult> classificationOpt = getClassification(typeNode, results);
 
-            // Get or create classification result
-            ClassificationResult classification =
-                    classificationOpt.orElseGet(() -> ClassificationResult.unclassifiedDomain(typeNode.id(), null));
+            ClassificationResult classification;
+            if (classificationOpt.isPresent()) {
+                classification = classificationOpt.get();
+            } else if (isGenerated(typeNode)) {
+                // @Generated types (adapters, JPA entities, mappers) are not classified but need
+                // to be in the TypeRegistry as OUT_OF_SCOPE for relationship building (IMPLEMENTS)
+                classification = ClassificationResult.unclassifiedDomain(typeNode.id(), null);
+            } else {
+                // Skip non-generated types not in classification results (excluded by config)
+                return;
+            }
 
             ArchType archType = buildArchType(typeNode, classification, context);
             archTypes.add(archType);
@@ -189,7 +212,8 @@ public final class NewArchitecturalModelBuilder {
             case "DOMAIN_EVENT", "EXTERNALIZED_EVENT" -> domainEventBuilder.build(typeNode, classification, context);
             case "DOMAIN_SERVICE" -> domainServiceBuilder.build(typeNode, classification, context);
             case "DRIVING_PORT" -> drivingPortBuilder.build(typeNode, classification, context);
-            case "DRIVEN_PORT", "REPOSITORY", "GATEWAY" -> drivenPortBuilder.build(typeNode, classification, context);
+            case "DRIVEN_PORT", "REPOSITORY", "GATEWAY", "EVENT_PUBLISHER", "NOTIFICATION", "GENERIC" ->
+                drivenPortBuilder.build(typeNode, classification, context);
             case "APPLICATION_SERVICE", "INBOUND_ONLY", "OUTBOUND_ONLY", "SAGA" ->
                 applicationTypeBuilder.build(typeNode, classification, context);
             default -> unclassifiedTypeBuilder.build(typeNode, classification, context);
@@ -205,6 +229,21 @@ public final class NewArchitecturalModelBuilder {
             // fall back to unclassified with a note
             return unclassifiedTypeBuilder.build(typeNode, classification, context);
         }
+    }
+
+    /**
+     * Returns true if the type is annotated with a {@code @Generated} annotation.
+     *
+     * <p>Generated types (adapters, JPA entities, mappers) produced by plugins need to
+     * remain in the TypeRegistry as OUT_OF_SCOPE so the RelationshipGraphBuilder can
+     * create IMPLEMENTS relationships for adapter detection.
+     *
+     * @param type the type node to check
+     * @return true if the type has a {@code @Generated} annotation
+     * @since 5.0.0
+     */
+    private boolean isGenerated(TypeNode type) {
+        return type.annotations().stream().map(AnnotationRef::qualifiedName).anyMatch(GENERATED_ANNOTATIONS::contains);
     }
 
     /**

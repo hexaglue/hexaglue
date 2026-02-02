@@ -38,6 +38,9 @@ import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.UnclassifiedType;
 import io.hexaglue.arch.model.UnclassifiedType.UnclassifiedCategory;
 import io.hexaglue.arch.model.ValueObject;
+import io.hexaglue.arch.model.graph.RelationType;
+import io.hexaglue.arch.model.graph.RelationshipGraph;
+import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.syntax.Modifier;
@@ -83,6 +86,8 @@ public class TestModelBuilder {
     private final List<DomainService> domainServices = new ArrayList<>();
     private final List<Identifier> identifiers = new ArrayList<>();
     private final List<UnclassifiedType> unclassifiedTypes = new ArrayList<>();
+    private final RelationshipGraph.Builder graphBuilder = RelationshipGraph.builder();
+    private boolean hasGraphRelationships = false;
 
     private String projectName = "test-project";
     private String basePackage = "com.example";
@@ -373,6 +378,23 @@ public class TestModelBuilder {
 
         DomainService service = DomainService.of(id, structure, trace);
         domainServices.add(service);
+        return this;
+    }
+
+    /**
+     * Adds an IMPLEMENTS relationship from an adapter to a port in the composition graph.
+     *
+     * <p>This simulates a generated adapter implementing a port interface,
+     * making the adapter discoverable via {@code compositionIndex.graph().to(portId)}.
+     *
+     * @param adapterQualifiedName the adapter's fully qualified name
+     * @param portQualifiedName the port's fully qualified name
+     * @return this builder
+     * @since 5.0.0
+     */
+    public TestModelBuilder addImplements(String adapterQualifiedName, String portQualifiedName) {
+        graphBuilder.add(TypeId.of(adapterQualifiedName), TypeId.of(portQualifiedName), RelationType.IMPLEMENTS);
+        hasGraphRelationships = true;
         return this;
     }
 
@@ -839,11 +861,19 @@ public class TestModelBuilder {
         // Build model using the builder API
         ProjectContext project = ProjectContext.of(projectName, basePackage, java.nio.file.Path.of("."));
 
-        return ArchitecturalModel.builder(project)
+        var modelBuilder = ArchitecturalModel.builder(project)
                 .typeRegistry(typeRegistry)
                 .domainIndex(domainIndex)
-                .portIndex(portIndex)
-                .build();
+                .portIndex(portIndex);
+
+        // Only create CompositionIndex if graph has relationships (backward compat)
+        if (hasGraphRelationships) {
+            RelationshipGraph graph = graphBuilder.build();
+            CompositionIndex compositionIndex = CompositionIndex.from(graph, typeRegistry);
+            modelBuilder.compositionIndex(compositionIndex);
+        }
+
+        return modelBuilder.build();
     }
 
     // === Static Factory Methods for common scenarios ===

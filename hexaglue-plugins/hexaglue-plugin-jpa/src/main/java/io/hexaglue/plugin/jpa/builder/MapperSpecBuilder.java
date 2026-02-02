@@ -657,11 +657,13 @@ public final class MapperSpecBuilder {
                     .aggregateRoots()
                     .anyMatch(agg -> agg.id().qualifiedName().equals(fieldTypeFqn));
 
-            // Check if the field type is an entity
+            // Check if the field type is an entity (but not a child entity —
+            // child entities have their mapping inlined in the aggregate mapper)
             boolean isEntity =
                     domainIndex.entities().anyMatch(e -> e.id().qualifiedName().equals(fieldTypeFqn));
+            boolean isChildEntity = childEntityFqns.contains(fieldTypeFqn);
 
-            if (isAggregateRoot || isEntity) {
+            if (isAggregateRoot || (isEntity && !isChildEntity)) {
                 // Extract simple name and create mapper class name
                 String simpleName = fieldTypeFqn.substring(fieldTypeFqn.lastIndexOf('.') + 1);
                 String mapperClassName = simpleName + config.mapperSuffix();

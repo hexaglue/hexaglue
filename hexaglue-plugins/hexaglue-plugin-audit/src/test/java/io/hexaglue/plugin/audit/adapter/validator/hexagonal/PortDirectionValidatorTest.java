@@ -112,9 +112,10 @@ class PortDirectionValidatorTest {
     @Test
     @DisplayName("Should fail when DRIVING port is not implemented by any application service")
     void shouldFail_whenDrivingPortIsNotImplemented() {
-        // Given: A service port (DRIVING) with no application service implementing it
+        // Given: A service port (DRIVING) with an application service that doesn't implement it
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                .addApplicationService(APP_PACKAGE + ".ProductManager") // Exists but doesn't implement OrderService
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -134,12 +135,13 @@ class PortDirectionValidatorTest {
     @Test
     @DisplayName("Should validate multiple DRIVEN ports correctly")
     void shouldValidateMultipleDrivenPorts() {
-        // Given: Various DRIVEN port types without application service usage
+        // Given: Various DRIVEN port types with an app service that doesn't use any of them
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivenPort(PORT_PACKAGE + ".PaymentGateway", DrivenPortType.GATEWAY)
                 .addDrivenPort(PORT_PACKAGE + ".EmailClient", DrivenPortType.OTHER)
                 .addDrivenPort(PORT_PACKAGE + ".EventPublisher", DrivenPortType.EVENT_PUBLISHER)
                 .addDrivenPort(PORT_PACKAGE + ".ProductStore", DrivenPortType.REPOSITORY)
+                .addApplicationService(APP_PACKAGE + ".SomeService") // Present but doesn't use any port
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -156,11 +158,12 @@ class PortDirectionValidatorTest {
     @Test
     @DisplayName("Should validate multiple DRIVING ports correctly")
     void shouldValidateMultipleDrivingPorts() {
-        // Given: Various DRIVING port types without application service implementation
+        // Given: Various DRIVING port types with an app service that doesn't implement any of them
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivingPort(PORT_PACKAGE + ".PlaceOrderUseCase")
                 .addDrivingPort(PORT_PACKAGE + ".OrderFacade")
                 .addDrivingPort(PORT_PACKAGE + ".PaymentHandler")
+                .addApplicationService(APP_PACKAGE + ".SomeService") // Present but doesn't implement any port
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -203,9 +206,10 @@ class PortDirectionValidatorTest {
     @Test
     @DisplayName("Should provide dependency evidence")
     void shouldProvideDependencyEvidence() {
-        // Given
+        // Given: A driven port with an app service that doesn't use it
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addApplicationService(APP_PACKAGE + ".SomeService") // Present but doesn't use the port
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
@@ -247,6 +251,24 @@ class PortDirectionValidatorTest {
         List<Violation> violations = validator.validate(model, codebase, null);
 
         // Then
+        assertThat(violations).isEmpty();
+    }
+
+    @Test
+    @DisplayName("Should skip validation when no application services are in the registry")
+    void shouldSkipValidation_whenNoApplicationServices() {
+        // Given: Ports exist but no application services (e.g., excluded by config)
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addDrivenPort(PORT_PACKAGE + ".PaymentGateway", DrivenPortType.GATEWAY)
+                .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then: No violations — cannot validate without application services
         assertThat(violations).isEmpty();
     }
 

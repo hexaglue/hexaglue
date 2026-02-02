@@ -259,6 +259,149 @@ class ClassificationConfigIntegrationTest {
         }
     }
 
+    @Nested
+    @DisplayName("Generated Types Skipping")
+    class GeneratedTypesSkippingTest {
+
+        @Test
+        @DisplayName("Types annotated with @jakarta.annotation.Generated should be skipped")
+        void jakartaGeneratedTypesShouldBeSkipped() throws IOException {
+            // Given: A domain type and a generated JPA entity
+            writeGeneratedAnnotationStub("jakarta/annotation/Generated.java", "jakarta.annotation");
+
+            writeSource("com/example/Order.java", """
+                    package com.example;
+
+                    public class Order {
+                        private String id;
+                    }
+                    """);
+
+            writeSource("com/example/OrderEntity.java", """
+                    package com.example;
+
+                    import jakarta.annotation.Generated;
+
+                    @Generated("hexaglue")
+                    public class OrderEntity {
+                        private String id;
+                        private String name;
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraphIncludingGenerated("com.example");
+
+            // When: Classify with default config
+            SinglePassClassifier classifier = new SinglePassClassifier();
+            ClassificationResults results = classifier.classify(graph);
+
+            // Then: Order should be classified but OrderEntity should be skipped
+            assertThat(results.get(NodeId.type("com.example.Order"))).isPresent();
+            assertThat(results.get(NodeId.type("com.example.OrderEntity"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Types annotated with @javax.annotation.Generated should be skipped")
+        void javaxGeneratedTypesShouldBeSkipped() throws IOException {
+            // Given: A domain type and a generated type
+            writeGeneratedAnnotationStub("javax/annotation/Generated.java", "javax.annotation");
+
+            writeSource("com/example/Order.java", """
+                    package com.example;
+
+                    public class Order {
+                        private String id;
+                    }
+                    """);
+
+            writeSource("com/example/OrderMapper.java", """
+                    package com.example;
+
+                    import javax.annotation.Generated;
+
+                    @Generated("hexaglue")
+                    public class OrderMapper {
+                        public Order toDomain() { return null; }
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraphIncludingGenerated("com.example");
+
+            // When: Classify with default config
+            SinglePassClassifier classifier = new SinglePassClassifier();
+            ClassificationResults results = classifier.classify(graph);
+
+            // Then: Order should be classified but OrderMapper should be skipped
+            assertThat(results.get(NodeId.type("com.example.Order"))).isPresent();
+            assertThat(results.get(NodeId.type("com.example.OrderMapper"))).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Generated interfaces should also be skipped from port classification")
+        void generatedInterfacesShouldBeSkippedFromPortClassification() throws IOException {
+            // Given: A regular interface and a generated interface
+            writeGeneratedAnnotationStub("jakarta/annotation/Generated.java", "jakarta.annotation");
+
+            writeSource("com/example/OrderRepository.java", """
+                    package com.example;
+
+                    public interface OrderRepository {
+                        void save(String id);
+                    }
+                    """);
+
+            writeSource("com/example/OrderJpaRepository.java", """
+                    package com.example;
+
+                    import jakarta.annotation.Generated;
+
+                    @Generated("hexaglue")
+                    public interface OrderJpaRepository {
+                        void save(String id);
+                    }
+                    """);
+
+            ApplicationGraph graph = buildGraphIncludingGenerated("com.example");
+
+            // When: Classify with default config
+            SinglePassClassifier classifier = new SinglePassClassifier();
+            ClassificationResults results = classifier.classify(graph);
+
+            // Then: Generated interface should be skipped
+            assertThat(results.get(NodeId.type("com.example.OrderJpaRepository")))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("Non-generated types should still be classified normally")
+        void nonGeneratedTypesShouldBeClassifiedNormally() throws IOException {
+            // Given: Only non-generated types
+            writeSource("com/example/Order.java", """
+                    package com.example;
+
+                    public class Order {
+                        private String id;
+                    }
+                    """);
+
+            writeSource("com/example/OrderId.java", """
+                    package com.example;
+
+                    public record OrderId(String value) {}
+                    """);
+
+            ApplicationGraph graph = buildGraphIncludingGenerated("com.example");
+
+            // When: Classify
+            SinglePassClassifier classifier = new SinglePassClassifier();
+            ClassificationResults results = classifier.classify(graph);
+
+            // Then: Both types should be classified
+            assertThat(results.get(NodeId.type("com.example.Order"))).isPresent();
+            assertThat(results.get(NodeId.type("com.example.OrderId"))).isPresent();
+        }
+    }
+
     // =========================================================================
     // Helper Methods
     // =========================================================================
@@ -270,9 +413,33 @@ class ClassificationConfigIntegrationTest {
     }
 
     private ApplicationGraph buildGraph(String basePackage) {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, false);
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata = GraphMetadata.of(basePackage, 21, model.types().size());
         return builder.build(model, metadata);
+    }
+
+    private ApplicationGraph buildGraphIncludingGenerated(String basePackage) {
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, true);
+        JavaSemanticModel model = frontend.build(input);
+        GraphMetadata metadata = GraphMetadata.of(basePackage, 21, model.types().size());
+        return builder.build(model, metadata);
+    }
+
+    /**
+     * Writes a stub @Generated annotation source so Spoon can resolve it.
+     */
+    private void writeGeneratedAnnotationStub(String relativePath, String packageName) throws IOException {
+        writeSource(relativePath, """
+                package %s;
+
+                import java.lang.annotation.Retention;
+                import java.lang.annotation.RetentionPolicy;
+
+                @Retention(RetentionPolicy.SOURCE)
+                public @interface Generated {
+                    String[] value();
+                }
+                """.formatted(packageName));
     }
 }

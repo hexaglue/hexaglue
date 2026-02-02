@@ -30,7 +30,7 @@ import java.util.List;
  * repository ports. In DDD, aggregates are the unit of retrieval and should have
  * dedicated repository interfaces for persistence operations.
  *
- * <p><strong>Metric:</strong> port.coverage<br>
+ * <p><strong>Metric:</strong> aggregate.repository.coverage<br>
  * <strong>Unit:</strong> %<br>
  * <strong>Threshold:</strong> Warning if < 100%<br>
  * <strong>Interpretation:</strong> Should be 100%. Every aggregate root should have
@@ -42,7 +42,7 @@ import java.util.List;
  */
 public class PortCoverageMetricCalculator implements MetricCalculator {
 
-    private static final String METRIC_NAME = "port.coverage";
+    private static final String METRIC_NAME = "aggregate.repository.coverage";
     private static final double EXPECTED_COVERAGE = 100.0;
 
     @Override

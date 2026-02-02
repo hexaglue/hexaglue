@@ -16,10 +16,12 @@ package io.hexaglue.core.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
 import io.hexaglue.core.classification.ClassificationTarget;
 import io.hexaglue.core.classification.ConfidenceLevel;
+import io.hexaglue.core.classification.port.PortDirection;
 import io.hexaglue.core.graph.model.NodeId;
 import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.graph.testing.TestGraphBuilder;
@@ -73,6 +75,19 @@ class NewArchitecturalModelBuilderTest {
 
     private ClassificationResult createUnclassifiedResult(String qualifiedName) {
         return ClassificationResult.unclassifiedDomain(NodeId.type(qualifiedName), null);
+    }
+
+    private ClassificationResult createDrivenPortResult(String qualifiedName, String portKind) {
+        return ClassificationResult.classifiedPort(
+                NodeId.type(qualifiedName),
+                portKind,
+                ConfidenceLevel.HIGH,
+                "test-criterion",
+                100,
+                "Test driven port classification",
+                List.of(),
+                List.of(),
+                PortDirection.DRIVEN);
     }
 
     @Nested
@@ -234,6 +249,171 @@ class NewArchitecturalModelBuilderTest {
 
             // then
             assertThat(result.size()).isEqualTo(2);
+        }
+    }
+
+    @Nested
+    @DisplayName("excluded type handling")
+    class ExcludedTypeHandling {
+
+        @Test
+        @DisplayName("should skip types not present in classification results")
+        void shouldSkipTypesNotInClassificationResults() {
+            // given - graph has 3 types, but only 2 are classified
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withClass("com.example.Order")
+                    .withClass("com.example.OrderItem")
+                    .withClass("com.acme.shop.application.InventoryService")
+                    .build()
+                    .query();
+
+            // Only Order and OrderItem are classified; InventoryService is excluded
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.Order"), createAggregateResult("com.example.Order"),
+                    NodeId.type("com.example.OrderItem"), createEntityResult("com.example.OrderItem")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then - only 2 types should be in the registry, not 3
+            assertThat(result.typeRegistry().size()).isEqualTo(2);
+        }
+
+        @Test
+        @DisplayName("should not create fallback unclassified for excluded types")
+        void shouldNotCreateFallbackForExcludedTypes() {
+            // given - graph has a type that is not classified
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withClass("com.acme.shop.application.InventoryService")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of());
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then - no types should appear in the registry
+            assertThat(result.typeRegistry().size()).isEqualTo(0);
+        }
+    }
+
+    @Nested
+    @DisplayName("driven port kind routing")
+    class DrivenPortKindRouting {
+
+        @Test
+        @DisplayName("should route EVENT_PUBLISHER kind to driven port builder")
+        void shouldRouteEventPublisherToDrivenPort() {
+            // given
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withInterface("com.example.EventPublisher")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.EventPublisher"),
+                    createDrivenPortResult("com.example.EventPublisher", "EVENT_PUBLISHER")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then
+            assertThat(result.typeRegistry().size()).isEqualTo(1);
+            List<DrivenPort> drivenPorts = result.portIndex().drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).id().simpleName()).isEqualTo("EventPublisher");
+        }
+
+        @Test
+        @DisplayName("should route NOTIFICATION kind to driven port builder")
+        void shouldRouteNotificationToDrivenPort() {
+            // given
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withInterface("com.example.NotificationSender")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.NotificationSender"),
+                    createDrivenPortResult("com.example.NotificationSender", "NOTIFICATION")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then
+            assertThat(result.typeRegistry().size()).isEqualTo(1);
+            List<DrivenPort> drivenPorts = result.portIndex().drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).id().simpleName()).isEqualTo("NotificationSender");
+        }
+
+        @Test
+        @DisplayName("should route GENERIC kind to driven port builder")
+        void shouldRouteGenericToDrivenPort() {
+            // given
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withInterface("com.example.GenericPort")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.GenericPort"),
+                    createDrivenPortResult("com.example.GenericPort", "GENERIC")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then
+            assertThat(result.typeRegistry().size()).isEqualTo(1);
+            List<DrivenPort> drivenPorts = result.portIndex().drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).id().simpleName()).isEqualTo("GenericPort");
+        }
+
+        @Test
+        @DisplayName("should route REPOSITORY kind to driven port builder")
+        void shouldRouteRepositoryToDrivenPort() {
+            // given
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withInterface("com.example.OrderRepository")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.OrderRepository"),
+                    createDrivenPortResult("com.example.OrderRepository", "REPOSITORY")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then
+            assertThat(result.typeRegistry().size()).isEqualTo(1);
+            List<DrivenPort> drivenPorts = result.portIndex().drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should route GATEWAY kind to driven port builder")
+        void shouldRouteGatewayToDrivenPort() {
+            // given
+            GraphQuery graphQuery = TestGraphBuilder.create()
+                    .withInterface("com.example.PaymentGateway")
+                    .build()
+                    .query();
+
+            ClassificationResults results = new ClassificationResults(Map.of(
+                    NodeId.type("com.example.PaymentGateway"),
+                    createDrivenPortResult("com.example.PaymentGateway", "GATEWAY")));
+
+            // when
+            NewArchitecturalModelBuilder.Result result = builder.build(graphQuery, results);
+
+            // then
+            assertThat(result.typeRegistry().size()).isEqualTo(1);
+            List<DrivenPort> drivenPorts = result.portIndex().drivenPorts().toList();
+            assertThat(drivenPorts).hasSize(1);
+            assertThat(drivenPorts.get(0).id().simpleName()).isEqualTo("PaymentGateway");
         }
     }
 }
