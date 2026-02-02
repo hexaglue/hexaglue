@@ -27,17 +27,23 @@ body:
       required: true
 
   - type: dropdown
-    id: module
+    id: modules
     attributes:
-      label: Affected Module
-      description: Which module is affected?
+      label: Affected Module(s)
+      description: Which module(s) are affected? You can select multiple.
+      multiple: true
       options:
-        - hexaglue-core (Analysis engine)
+        - hexaglue-syntax-api (Parser abstraction)
+        - hexaglue-syntax-spoon (Spoon implementation)
+        - hexaglue-arch (Architectural model)
         - hexaglue-spi (Service Provider Interface)
+        - hexaglue-core (Analysis engine)
         - hexaglue-maven-plugin (Maven integration)
         - hexaglue-plugin-jpa (JPA generator)
         - hexaglue-plugin-living-doc (Documentation generator)
+        - hexaglue-plugin-audit (Architecture audit)
         - hexaglue-testing (Testing harness)
+        - hexaglue-benchmarks (Benchmarks)
         - Other / Unknown
     validations:
       required: true

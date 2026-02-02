@@ -9,17 +9,23 @@ body:
         Thanks for suggesting a feature! Please fill out the form below.
 
   - type: dropdown
-    id: module
+    id: modules
     attributes:
-      label: Target Module
-      description: Which module would this feature affect?
+      label: Target Module(s)
+      description: Which module(s) would this feature affect? You can select multiple.
+      multiple: true
       options:
-        - hexaglue-core (Analysis engine)
+        - hexaglue-syntax-api (Parser abstraction)
+        - hexaglue-syntax-spoon (Spoon implementation)
+        - hexaglue-arch (Architectural model)
         - hexaglue-spi (Service Provider Interface)
+        - hexaglue-core (Analysis engine)
         - hexaglue-maven-plugin (Maven integration)
         - hexaglue-plugin-jpa (JPA generator)
         - hexaglue-plugin-living-doc (Documentation generator)
+        - hexaglue-plugin-audit (Architecture audit)
         - hexaglue-testing (Testing harness)
+        - hexaglue-benchmarks (Benchmarks)
         - New plugin
         - Other
     validations:
