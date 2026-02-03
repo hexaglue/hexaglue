@@ -372,6 +372,132 @@ class ClassificationGoldenFilesTest {
     }
 
     // =========================================================================
+    // Application Service (Pivot) Example Golden File
+    // =========================================================================
+
+    @Nested
+    @DisplayName("Application Service Example - Pivot Classification")
+    class ApplicationServiceExampleTest {
+
+        /**
+         * Golden file test for APPLICATION_SERVICE classification via pivot detection.
+         *
+         * <p>Expected classifications:
+         * <ul>
+         *   <li>OrderId.java → IDENTIFIER (record-single-id)</li>
+         *   <li>Order.java → AGGREGATE_ROOT (repository-dominant)</li>
+         *   <li>OrderUseCases.java → DRIVING_PORT (semantic-driving)</li>
+         *   <li>OrderRepository.java → DRIVEN port (semantic-driven)</li>
+         *   <li>OrderService.java → APPLICATION_SERVICE (flexible-application-service)</li>
+         * </ul>
+         */
+        @Test
+        @DisplayName("Should classify pivot class as APPLICATION_SERVICE")
+        void shouldClassifyPivotClassAsApplicationService() throws IOException {
+            createApplicationServiceExample();
+
+            ApplicationGraph graph = buildGraph("com.example.order");
+            ClassificationResults results = classifier.classify(graph);
+
+            Map<String, ClassificationResult> resultsByType = results.allClassifications().values().stream()
+                    .collect(Collectors.toMap(r -> extractFqn(r.subjectId()), r -> r, (a, b) -> a, LinkedHashMap::new));
+
+            // Golden file assertions - Domain types
+            assertClassification(resultsByType, "com.example.order.domain.OrderId", "IDENTIFIER", 80);
+            assertClassification(resultsByType, "com.example.order.domain.Order", "AGGREGATE_ROOT", 80);
+
+            // Golden file assertions - Ports
+            // OrderUseCases is classified as DRIVING_PORT via semantic analysis (priority 85)
+            // because OrderService (a CoreAppClass) implements it
+            assertPortClassification(
+                    resultsByType, "com.example.order.ports.in.OrderUseCases", "DRIVING_PORT", "DRIVING");
+            assertPortClassification(
+                    resultsByType, "com.example.order.ports.out.OrderRepository", "REPOSITORY", "DRIVEN");
+
+            // Golden file assertion - Application Service (pivot)
+            assertClassification(
+                    resultsByType, "com.example.order.application.OrderService", "APPLICATION_SERVICE", 74);
+        }
+
+        private void createApplicationServiceExample() throws IOException {
+            writeSource("com/example/order/domain/OrderId.java", """
+                    package com.example.order.domain;
+                    import java.util.UUID;
+                    public record OrderId(UUID value) {
+                        public static OrderId generate() {
+                            return new OrderId(UUID.randomUUID());
+                        }
+                    }
+                    """);
+
+            writeSource("com/example/order/domain/Order.java", """
+                    package com.example.order.domain;
+                    public class Order {
+                        private final OrderId id;
+                        private String product;
+
+                        public Order(OrderId id, String product) {
+                            this.id = id;
+                            this.product = product;
+                        }
+
+                        public OrderId getId() { return id; }
+                        public String getProduct() { return product; }
+                    }
+                    """);
+
+            writeSource("com/example/order/ports/in/OrderUseCases.java", """
+                    package com.example.order.ports.in;
+                    import com.example.order.domain.Order;
+                    import com.example.order.domain.OrderId;
+                    import java.util.Optional;
+                    public interface OrderUseCases {
+                        Order createOrder(String product);
+                        Optional<Order> findOrder(OrderId id);
+                    }
+                    """);
+
+            writeSource("com/example/order/ports/out/OrderRepository.java", """
+                    package com.example.order.ports.out;
+                    import com.example.order.domain.Order;
+                    import com.example.order.domain.OrderId;
+                    import java.util.Optional;
+                    public interface OrderRepository {
+                        Order save(Order order);
+                        Optional<Order> findById(OrderId id);
+                    }
+                    """);
+
+            writeSource("com/example/order/application/OrderService.java", """
+                    package com.example.order.application;
+                    import com.example.order.domain.Order;
+                    import com.example.order.domain.OrderId;
+                    import com.example.order.ports.in.OrderUseCases;
+                    import com.example.order.ports.out.OrderRepository;
+                    import java.util.Optional;
+                    public class OrderService implements OrderUseCases {
+                        private final OrderRepository repository;
+
+                        public OrderService(OrderRepository repository) {
+                            this.repository = repository;
+                        }
+
+                        @Override
+                        public Order createOrder(String product) {
+                            Order order = new Order(OrderId.generate(), product);
+                            return repository.save(order);
+                        }
+
+                        @Override
+                        public Optional<Order> findOrder(OrderId id) {
+                            return repository.findById(id);
+                        }
+                    }
+                    """);
+        }
+    }
+
+    // =========================================================================
     // Helper Methods
     // =========================================================================
 

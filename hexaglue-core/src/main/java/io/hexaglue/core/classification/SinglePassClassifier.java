@@ -17,6 +17,7 @@ import io.hexaglue.arch.ElementKind;
 import io.hexaglue.core.classification.anchor.AnchorContext;
 import io.hexaglue.core.classification.anchor.AnchorDetector;
 import io.hexaglue.core.classification.domain.DomainClassifier;
+import io.hexaglue.core.classification.domain.criteria.FlexibleApplicationServiceCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleInboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleOutboundOnlyCriteria;
 import io.hexaglue.core.classification.domain.criteria.FlexibleSagaCriteria;
@@ -211,7 +212,8 @@ public final class SinglePassClassifier {
     private DomainClassifier createDomainClassifierWithSemanticCriteria(SemanticIndexes indexes) {
         List<ClassificationCriteria<ElementKind>> criteria = new ArrayList<>(DomainClassifier.defaultCriteria());
 
-        // Add flexible actor criteria (priority 68-72)
+        // Add flexible actor criteria (priority 68-74)
+        criteria.add(new FlexibleApplicationServiceCriteria(indexes.coreAppClassIndex()));
         criteria.add(new FlexibleSagaCriteria(indexes.coreAppClassIndex()));
         criteria.add(new FlexibleInboundOnlyCriteria(indexes.coreAppClassIndex()));
         criteria.add(new FlexibleOutboundOnlyCriteria(indexes.coreAppClassIndex()));

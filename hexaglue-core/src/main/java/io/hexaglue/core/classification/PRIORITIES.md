@@ -20,7 +20,8 @@ When multiple criteria match for a type, the winner is determined by:
 | `explicit-value-object` | VALUE_OBJECT | Type annotated with `@ValueObject` (jMolecules) |
 | `explicit-identifier` | IDENTIFIER | Type annotated with `@Identity` (jMolecules) |
 | `explicit-domain-event` | DOMAIN_EVENT | Type annotated with `@DomainEvent` (jMolecules) |
-| `implements-jmolecules-interface` | varies | Type implementing jMolecules interfaces |
+| `explicit-externalized-event` | EXTERNALIZED_EVENT | Type annotated with `@Externalized` (jMolecules) |
+| `implements-jmolecules-interface` | varies | Type implementing jMolecules DDD type interfaces |
 
 **Rationale**: Explicit annotations represent developer intent and should always take precedence.
 
@@ -41,57 +42,47 @@ When multiple criteria match for a type, the winner is determined by:
 
 **Rationale**: Classification inheritance follows OOP principles.
 
-### Priority 72 - Semantic Actors (HIGH confidence)
+### Priority 74 - Semantic Actors (HIGH confidence)
 
 | Criteria | Target Kind | Dependency | Description |
 |----------|-------------|------------|-------------|
+| `flexible-application-service` | APPLICATION_SERVICE | CoreAppClassIndex | Pivot class implementing driving ports and depending on driven ports |
+
+**Rationale**: APPLICATION_SERVICE (pivot) is the most specific actor classification; higher priority ensures it takes precedence over SAGA, INBOUND_ONLY, and OUTBOUND_ONLY.
+
+### Priority 72 - Structural / Semantic Heuristics (HIGH confidence)
+
+| Criteria | Target Kind | Dependency | Description |
+|----------|-------------|------------|-------------|
+| `domain-enum` | VALUE_OBJECT | - | Enum types (immutable, identity-less domain concepts) |
 | `flexible-saga` | SAGA | CoreAppClassIndex | Outbound-only class with 2+ driven dependencies and state fields |
 
-**Rationale**: Saga detection requires CoreAppClass context; higher than OUTBOUND_ONLY to take precedence.
+**Rationale**: Enum types are natural value objects. Saga detection requires CoreAppClass context; higher than OUTBOUND_ONLY to take precedence.
 
-### Priority 70 - Medium Heuristics (MEDIUM confidence)
-
-| Criteria | Target Kind | Dependency | Description |
-|----------|-------------|------------|-------------|
-| `embedded-value-object` | VALUE_OBJECT | - | Type embedded in another type without identity |
-| `flexible-outbound-only` | OUTBOUND_ONLY | CoreAppClassIndex | CoreAppClass depending on driven ports without driving implementation |
-
-### Priority 68 - Semantic Actors (MEDIUM confidence)
+### Priority 70 - Medium Heuristics (HIGH confidence)
 
 | Criteria | Target Kind | Dependency | Description |
 |----------|-------------|------------|-------------|
+| `contained-entity` | ENTITY | - | Type with identity contained in aggregate-like containers |
+| `embedded-value-object` | VALUE_OBJECT | - | Immutable type without identity embedded in aggregates |
 | `flexible-inbound-only` | INBOUND_ONLY | CoreAppClassIndex | CoreAppClass implementing driving ports without driven dependencies |
 
-### Priority 65 - Relationship Heuristics (MEDIUM confidence)
+**Rationale**: Structural patterns within aggregates and semantic actor detection provide reliable classification signals.
+
+### Priority 68 - Naming / Semantic Heuristics (HIGH / MEDIUM confidence)
+
+| Criteria | Target Kind | Confidence | Dependency | Description |
+|----------|-------------|------------|------------|-------------|
+| `domain-event-naming` | DOMAIN_EVENT | MEDIUM | - | Class named `*Event` (excluding base names like `Event`, `DomainEvent`) |
+| `flexible-outbound-only` | OUTBOUND_ONLY | HIGH | CoreAppClassIndex | CoreAppClass depending on driven ports without implementing driving ports |
+
+### Priority 65 - Record Heuristics (MEDIUM confidence)
 
 | Criteria | Target Kind | Description |
 |----------|-------------|-------------|
-| `has-port-dependencies` | APPLICATION_SERVICE | Type with dependencies on port interfaces |
+| `domain-record-value-object` | VALUE_OBJECT | Record without identity that is referenced by other types |
 
-### Priority 60 - Structural Heuristics (MEDIUM confidence)
-
-| Criteria | Target Kind | Description |
-|----------|-------------|-------------|
-| `has-identity` | ENTITY | Type with `id` field or field ending with `Id` |
-| `collection-element-entity` | ENTITY | Type used as collection element in an aggregate |
-| `immutable-no-id` | VALUE_OBJECT | Immutable type (record or final fields) without identity |
-
-**Rationale**: Structural patterns are reasonable indicators but may have false positives.
-
-### Priority 55 - Naming Heuristics (MEDIUM confidence)
-
-| Criteria | Target Kind | Description |
-|----------|-------------|-------------|
-| `naming-domain-event` | DOMAIN_EVENT | Class named `*Event` or `*EventV*` |
-| `stateless-no-dependencies` | DOMAIN_SERVICE | Stateless class with no port dependencies |
-
-### Priority 50 - Lower Heuristics (LOW confidence)
-
-| Criteria | Target Kind | Description |
-|----------|-------------|-------------|
-| `unreferenced-in-ports` | VALUE_OBJECT | Type not referenced in any port signature |
-
-**Rationale**: This is a weak signal that requires other evidence.
+**Rationale**: Records referenced in the domain graph that lack identity fields are likely value objects.
 
 ---
 
@@ -102,8 +93,8 @@ When multiple criteria match for a type, the winner is determined by:
 | Criteria | Target Kind | Direction | Description |
 |----------|-------------|-----------|-------------|
 | `explicit-repository` | REPOSITORY | DRIVEN | Interface annotated with `@Repository` (jMolecules) |
-| `explicit-primary-port` | USE_CASE | DRIVING | Interface annotated with `@PrimaryPort` |
-| `explicit-secondary-port` | GENERIC_PORT | DRIVEN | Interface annotated with `@SecondaryPort` |
+| `explicit-primary-port` | USE_CASE | DRIVING | Interface annotated with `@PrimaryPort` or implementing `PrimaryPort` |
+| `explicit-secondary-port` | GATEWAY | DRIVEN | Interface annotated with `@SecondaryPort` or implementing `SecondaryPort` |
 
 **Rationale**: Explicit annotations represent developer intent.
 
@@ -112,42 +103,29 @@ When multiple criteria match for a type, the winner is determined by:
 | Criteria | Target Kind | Direction | Dependency | Description |
 |----------|-------------|-----------|------------|-------------|
 | `semantic-driving` | USE_CASE | DRIVING | InterfaceFactsIndex | Interface implemented by CoreAppClass |
-| `semantic-driven` | varies | DRIVEN | InterfaceFactsIndex | Interface used by CoreAppClass with missing/internal impl |
+| `semantic-driven` | GENERIC | DRIVEN | InterfaceFactsIndex | Interface used by CoreAppClass with missing/internal impl |
 
 **Rationale**: Semantic analysis based on CoreAppClass relationships is highly reliable.
-
-### Priority 80 - Naming Heuristics (HIGH confidence)
-
-| Criteria | Target Kind | Direction | Description |
-|----------|-------------|-----------|-------------|
-| `naming-repository` | REPOSITORY | DRIVEN | Interface named `*Repository` |
-| `naming-use-case` | USE_CASE | DRIVING | Interface named `*UseCase` or `*UseCases` |
-| `naming-gateway` | GATEWAY | DRIVEN | Interface named `*Gateway` |
-
-**Rationale**: Common naming conventions in hexagonal architecture.
 
 ### Priority 75 - Pattern Heuristics (HIGH confidence)
 
 | Criteria | Target Kind | Direction | Description |
 |----------|-------------|-----------|-------------|
-| `command-pattern` | USE_CASE | DRIVING | Interface with `execute(Command)` or `handle(Command)` methods |
-| `query-pattern` | USE_CASE | DRIVING | Interface with `query(Query)` or `get*()` methods |
-| `injected-as-dependency` | GENERIC_PORT | DRIVEN | Interface injected as constructor/field dependency |
+| `command-pattern` | COMMAND | DRIVING | Interface with `execute(Command)` or `handle(Command)` methods |
+| `query-pattern` | QUERY | DRIVING | Interface with `query(Query)` or `get*()` methods |
+| `injected-as-dependency` | REPOSITORY | DRIVEN | Interface injected as constructor/field dependency |
 
-### Priority 70 - Signature Analysis (MEDIUM confidence)
-
-| Criteria | Target Kind | Direction | Description |
-|----------|-------------|-----------|-------------|
-| `signature-based-driven-port` | GENERIC_PORT | DRIVEN | Interface with methods suggesting external service calls |
-
-### Priority 60 - Package Heuristics (MEDIUM confidence)
+### Priority 72 - Signature Analysis (HIGH confidence)
 
 | Criteria | Target Kind | Direction | Description |
 |----------|-------------|-----------|-------------|
-| `package-in` | USE_CASE | DRIVING | Interface in `*.ports.in.*` or `*.port.in.*` package |
-| `package-out` | GENERIC_PORT | DRIVEN | Interface in `*.ports.out.*` or `*.port.out.*` package |
+| `signature-based-gateway` | GATEWAY | DRIVEN | Interface manipulating multiple aggregate-like types in signatures |
 
-**Rationale**: Package organization often follows hexagonal architecture conventions.
+### Priority 70 - Signature Analysis (HIGH confidence)
+
+| Criteria | Target Kind | Direction | Description |
+|----------|-------------|-----------|-------------|
+| `signature-based-driven` | REPOSITORY | DRIVEN | Interface manipulating aggregate-like types in signatures |
 
 ---
 
