@@ -21,6 +21,7 @@ import io.hexaglue.plugin.audit.adapter.validator.ddd.DomainPurityValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.EntityIdentityValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.EventNamingValidator;
 import io.hexaglue.plugin.audit.adapter.validator.ddd.ValueObjectImmutabilityValidator;
+import io.hexaglue.plugin.audit.adapter.validator.hexagonal.ApplicationPurityValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.DependencyDirectionValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.DependencyInversionValidator;
 import io.hexaglue.plugin.audit.adapter.validator.hexagonal.LayerIsolationValidator;
@@ -222,6 +223,18 @@ public final class DefaultConstraints {
                                 + "indicate incomplete hexagonal architecture where the application cannot interact "
                                 + "with external systems. Each port must have a concrete implementation in the "
                                 + "infrastructure/adapter layer.",
+                        Severity.MAJOR));
+
+        // Application Purity
+        registry.register(
+                new ApplicationPurityValidator(),
+                Constraint.hexagonal(
+                        "hexagonal:application-purity",
+                        "Application layer must not depend on infrastructure frameworks",
+                        "The application layer (use cases, application services) should be framework-agnostic. "
+                                + "Application services should not import infrastructure annotations like @Service, "
+                                + "@Transactional, or any framework dependency. This ensures the application core "
+                                + "remains portable and testable independently of any framework.",
                         Severity.MAJOR));
     }
 
