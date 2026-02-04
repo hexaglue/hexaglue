@@ -14,6 +14,8 @@
 package io.hexaglue.plugin.audit.adapter.validator.hexagonal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivenPortType;
@@ -22,9 +24,11 @@ import io.hexaglue.plugin.audit.domain.model.Severity;
 import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.util.TestCodebaseBuilder;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -255,9 +259,9 @@ class PortDirectionValidatorTest {
     }
 
     @Test
-    @DisplayName("Should skip validation when no application services are in the registry")
-    void shouldSkipValidation_whenNoApplicationServices() {
-        // Given: Ports exist but no application services (e.g., excluded by config)
+    @DisplayName("Should skip validation when no application services and no discovery mechanism")
+    void shouldSkipValidation_whenNoApplicationServicesAndNoDiscoveryMechanism() {
+        // Given: Ports exist but no application services, no query, no compositionIndex
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
                 .addDrivenPort(PORT_PACKAGE + ".PaymentGateway", DrivenPortType.GATEWAY)
@@ -265,10 +269,10 @@ class PortDirectionValidatorTest {
                 .build();
         Codebase codebase = new TestCodebaseBuilder().build();
 
-        // When
+        // When: query is null and no compositionIndex
         List<Violation> violations = validator.validate(model, codebase, null);
 
-        // Then: No violations — cannot validate without application services
+        // Then: No violations — cannot validate without any discovery mechanism
         assertThat(violations).isEmpty();
     }
 
@@ -284,5 +288,141 @@ class PortDirectionValidatorTest {
     void shouldReturnCorrectConstraintId() {
         // When/Then
         assertThat(validator.constraintId().value()).isEqualTo("hexagonal:port-direction");
+    }
+
+    @Nested
+    @DisplayName("CompositionIndex strategy")
+    class CompositionIndexStrategyTests {
+
+        @Test
+        @DisplayName("Should pass when driving port is found via CompositionIndex IMPLEMENTS")
+        void shouldPass_whenDrivingPortFoundViaCompositionIndex() {
+            // Given: App service implements driving port, discoverable via CompositionIndex
+            String portQName = PORT_PACKAGE + ".OrderService";
+            String implQName = APP_PACKAGE + ".OrderServiceImpl";
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivingPort(portQName)
+                    .addApplicationService(implQName)
+                    .addImplements(implQName, portQName)
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            // When: No dependency in codebase, but IMPLEMENTS relationship exists
+            List<Violation> violations = validator.validate(model, codebase, null);
+
+            // Then: No violations — found via CompositionIndex
+            assertThat(violations).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should pass when driven port is found via CompositionIndex IMPLEMENTS")
+        void shouldPass_whenDrivenPortFoundViaCompositionIndex() {
+            // Given: Adapter implements driven port, discoverable via CompositionIndex
+            String portQName = PORT_PACKAGE + ".OrderRepository";
+            String implQName = "com.example.infrastructure.JpaOrderRepository";
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivenPort(portQName, DrivenPortType.REPOSITORY)
+                    .addApplicationService(APP_PACKAGE + ".SomeService")
+                    .addImplements(implQName, portQName)
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, null);
+
+            // Then: No violations — found via CompositionIndex
+            assertThat(violations)
+                    .filteredOn(v -> v.affectedTypes().contains(portQName))
+                    .isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("ArchitectureQuery strategy")
+    class ArchitectureQueryStrategyTests {
+
+        @Test
+        @DisplayName("Should pass when driving port implementor found via ArchitectureQuery")
+        void shouldPass_whenDrivingPortFoundViaQuery() {
+            // Given: App service implements driving port, only discoverable via query
+            String portQName = PORT_PACKAGE + ".OrderService";
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivingPort(portQName)
+                    .addApplicationService(APP_PACKAGE + ".SomeService")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            ArchitectureQuery query = mock(ArchitectureQuery.class);
+            when(query.findImplementors(portQName)).thenReturn(List.of(APP_PACKAGE + ".OrderServiceImpl"));
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, query);
+
+            // Then: No violations — found via ArchitectureQuery
+            assertThat(violations).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should pass when driven port implementor found via ArchitectureQuery")
+        void shouldPass_whenDrivenPortFoundViaQuery() {
+            // Given: Adapter implements driven port, only discoverable via query
+            String portQName = PORT_PACKAGE + ".OrderRepository";
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivenPort(portQName, DrivenPortType.REPOSITORY)
+                    .addApplicationService(APP_PACKAGE + ".SomeService")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            ArchitectureQuery query = mock(ArchitectureQuery.class);
+            when(query.findImplementors(portQName))
+                    .thenReturn(List.of("com.example.infrastructure.JpaOrderRepository"));
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, query);
+
+            // Then: No violations — found via ArchitectureQuery
+            assertThat(violations).isEmpty();
+        }
+
+        @Test
+        @DisplayName("Should fail when query returns empty implementors")
+        void shouldFail_whenQueryReturnsEmptyImplementors() {
+            // Given: No app service implements the ports, query returns empty
+            String portQName = PORT_PACKAGE + ".OrderService";
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addDrivingPort(portQName)
+                    .addApplicationService(APP_PACKAGE + ".SomeService")
+                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            ArchitectureQuery query = mock(ArchitectureQuery.class);
+            when(query.findImplementors(portQName)).thenReturn(List.of());
+
+            // When
+            List<Violation> violations = validator.validate(model, codebase, query);
+
+            // Then: Violation reported — no implementor found anywhere
+            assertThat(violations).hasSize(1);
+            assertThat(violations.get(0).message()).contains("DRIVING port").contains("not implemented");
+        }
+
+        @Test
+        @DisplayName("Should validate ports when no app services but query is available")
+        void shouldValidatePorts_whenNoAppServicesButQueryAvailable() {
+            // Given: Ports exist, no application services, but query is available
+            String drivingPortQName = PORT_PACKAGE + ".OrderService";
+            ArchitecturalModel model =
+                    new TestModelBuilder().addDrivingPort(drivingPortQName).build();
+            Codebase codebase = new TestCodebaseBuilder().build();
+
+            ArchitectureQuery query = mock(ArchitectureQuery.class);
+            when(query.findImplementors(drivingPortQName)).thenReturn(List.of(APP_PACKAGE + ".OrderServiceImpl"));
+
+            // When: No app services in registry, but query can find implementors
+            List<Violation> violations = validator.validate(model, codebase, query);
+
+            // Then: No violations — found via query despite no app services in registry
+            assertThat(violations).isEmpty();
+        }
     }
 }
