@@ -27,10 +27,12 @@ import java.util.Objects;
  * @param aggregateCount number of aggregate roots in this context
  * @param entityCount number of entities in this context
  * @param valueObjectCount number of value objects in this context
+ * @param applicationServiceCount number of application services in this context
  * @param portCount number of ports (driving + driven) in this context
  * @param totalTypeCount total number of architectural types in this context
  * @param typeNames simple names of all types in this context
  * @since 5.0.0
+ * @since 5.0.0 - Added applicationServiceCount parameter
  */
 public record BoundedContextDoc(
         String name,
@@ -38,6 +40,7 @@ public record BoundedContextDoc(
         int aggregateCount,
         int entityCount,
         int valueObjectCount,
+        int applicationServiceCount,
         int portCount,
         int totalTypeCount,
         List<String> typeNames) {

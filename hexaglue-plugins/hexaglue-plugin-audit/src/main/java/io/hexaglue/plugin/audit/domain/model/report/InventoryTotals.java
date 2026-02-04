@@ -21,9 +21,14 @@ package io.hexaglue.plugin.audit.domain.model.report;
  * @param valueObjects total value objects
  * @param identifiers total identifier types
  * @param domainEvents total domain events
+ * @param domainServices total domain services
+ * @param applicationServices total application services
+ * @param commandHandlers total command handlers
+ * @param queryHandlers total query handlers
  * @param drivingPorts total driving ports
  * @param drivenPorts total driven ports
  * @since 5.0.0
+ * @since 5.0.0 - Added domainServices, applicationServices, commandHandlers, queryHandlers parameters
  */
 public record InventoryTotals(
         int aggregates,
@@ -31,16 +36,30 @@ public record InventoryTotals(
         int valueObjects,
         int identifiers,
         int domainEvents,
+        int domainServices,
+        int applicationServices,
+        int commandHandlers,
+        int queryHandlers,
         int drivingPorts,
         int drivenPorts) {
 
     /**
-     * Returns the total number of domain types (aggregates + entities + value objects).
+     * Returns the total number of domain types (aggregates + entities + value objects + identifiers + domainEvents + domainServices).
      *
      * @return total domain types
      */
     public int totalDomainTypes() {
-        return aggregates + entities + valueObjects + identifiers + domainEvents;
+        return aggregates + entities + valueObjects + identifiers + domainEvents + domainServices;
+    }
+
+    /**
+     * Returns the total number of application layer types (application services + command handlers + query handlers).
+     *
+     * @return total application types
+     * @since 5.0.0
+     */
+    public int totalApplicationTypes() {
+        return applicationServices + commandHandlers + queryHandlers;
     }
 
     /**
@@ -58,6 +77,6 @@ public record InventoryTotals(
      * @return total elements
      */
     public int total() {
-        return totalDomainTypes() + totalPorts();
+        return totalDomainTypes() + totalApplicationTypes() + totalPorts();
     }
 }

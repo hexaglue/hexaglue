@@ -75,6 +75,7 @@ public final class BoundedContextDetector {
             int aggregateCount = 0;
             int entityCount = 0;
             int valueObjectCount = 0;
+            int applicationServiceCount = 0;
             int portCount = 0;
             List<String> typeNames = new ArrayList<>();
 
@@ -87,6 +88,7 @@ public final class BoundedContextDetector {
                     case AGGREGATE_ROOT -> aggregateCount++;
                     case ENTITY -> entityCount++;
                     case VALUE_OBJECT -> valueObjectCount++;
+                    case APPLICATION_SERVICE -> applicationServiceCount++;
                     case DRIVING_PORT, DRIVEN_PORT -> portCount++;
                     default -> {
                         // other kinds counted in total only
@@ -100,6 +102,7 @@ public final class BoundedContextDetector {
                     aggregateCount,
                     entityCount,
                     valueObjectCount,
+                    applicationServiceCount,
                     portCount,
                     types.size(),
                     typeNames));

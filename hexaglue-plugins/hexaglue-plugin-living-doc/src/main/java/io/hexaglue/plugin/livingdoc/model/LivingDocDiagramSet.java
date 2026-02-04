@@ -126,11 +126,12 @@ public record LivingDocDiagramSet(
         List<PortDoc> drivingPorts = portSelector.selectDrivingPorts();
         List<PortDoc> drivenPorts = portSelector.selectDrivenPorts();
         List<DomainTypeDoc> aggregates = domainSelector.selectAggregateRoots();
-        String portsFlow = renderer.renderPortsFlowDiagram(drivingPorts, drivenPorts, aggregates);
+        List<DomainTypeDoc> appServices = domainSelector.selectApplicationServices();
+        String portsFlow = renderer.renderPortsFlowDiagram(drivingPorts, drivenPorts, aggregates, appServices);
 
         // 5. Dependency graph (enhanced if multiple bounded contexts)
-        String dependencyGraph =
-                renderer.renderEnhancedDependenciesDiagram(drivingPorts, drivenPorts, aggregates, boundedContexts);
+        String dependencyGraph = renderer.renderEnhancedDependenciesDiagram(
+                drivingPorts, drivenPorts, aggregates, boundedContexts, appServices);
 
         return new LivingDocDiagramSet(
                 architectureOverview, domainModel, aggregateDiagrams, portsFlow, dependencyGraph);
@@ -163,6 +164,16 @@ public record LivingDocDiagramSet(
             }
         }
         graph.endSubgraph();
+
+        // Application Services subgraph (optional)
+        List<DocumentationModel.DocType> appServices = model.applicationServices();
+        if (!appServices.isEmpty()) {
+            graph.startSubgraph("AppServices", "Application Services");
+            for (DocumentationModel.DocType svc : appServices) {
+                graph.node(MermaidBuilder.sanitizeId(svc.simpleName()), "[\"" + svc.simpleName() + "\"]");
+            }
+            graph.endSubgraph();
+        }
 
         // Domain subgraph
         graph.startSubgraph("Domain", "Domain");
@@ -197,9 +208,14 @@ public record LivingDocDiagramSet(
                 .endSubgraph();
 
         // Connections
-        graph.arrow("UI", "DrivingPorts")
-                .arrow("DrivingPorts", "Domain")
-                .arrow("Domain", "DrivenPorts")
+        graph.arrow("UI", "DrivingPorts");
+        if (!appServices.isEmpty()) {
+            graph.arrow("DrivingPorts", "AppServices")
+                    .arrow("AppServices", "Domain");
+        } else {
+            graph.arrow("DrivingPorts", "Domain");
+        }
+        graph.arrow("Domain", "DrivenPorts")
                 .arrow("DrivenPorts", "DB")
                 .arrow("DrivenPorts", "EXT");
 

@@ -44,7 +44,8 @@ public final class BoundedContextRenderer {
         md.h2("Bounded Contexts");
         md.paragraph("Bounded contexts detected from package structure analysis.");
 
-        TableBuilder table = md.table("Context", "Root Package", "Aggregates", "Entities", "VOs", "Ports", "Total");
+        TableBuilder table =
+                md.table("Context", "Root Package", "Aggregates", "Entities", "VOs", "App Services", "Ports", "Total");
         for (BoundedContextDoc ctx : contexts) {
             table.row(
                     "**" + capitalize(ctx.name()) + "**",
@@ -52,6 +53,7 @@ public final class BoundedContextRenderer {
                     String.valueOf(ctx.aggregateCount()),
                     String.valueOf(ctx.entityCount()),
                     String.valueOf(ctx.valueObjectCount()),
+                    String.valueOf(ctx.applicationServiceCount()),
                     String.valueOf(ctx.portCount()),
                     String.valueOf(ctx.totalTypeCount()));
         }

@@ -906,7 +906,7 @@ class DiagramBuildersTest {
 
         var verdict = new Verdict(73, "C", ReportStatus.FAILED, "Test", "Summary", List.of(), ImmediateAction.none());
 
-        var totals = new InventoryTotals(1, 0, 2, 1, 0, 1, 1);
+        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 0, 2, 0)), totals);
         var components = ComponentDetails.of(
                 List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),
@@ -934,7 +934,7 @@ class DiagramBuildersTest {
 
         var verdict = new Verdict(73, "C", ReportStatus.FAILED, "Test", "Summary", List.of(), ImmediateAction.none());
 
-        var totals = new InventoryTotals(1, 0, 2, 1, 0, 1, 1);
+        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 0, 2, 0)), totals);
         var components = new ComponentDetails(
                 List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),
@@ -969,7 +969,7 @@ class DiagramBuildersTest {
 
         var verdict = new Verdict(73, "C", ReportStatus.FAILED, "Test", "Summary", List.of(), ImmediateAction.none());
 
-        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0);
+        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0, 0, 0, 0, 0);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 0, 2, 0)), totals);
         var components = new ComponentDetails(
                 List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),

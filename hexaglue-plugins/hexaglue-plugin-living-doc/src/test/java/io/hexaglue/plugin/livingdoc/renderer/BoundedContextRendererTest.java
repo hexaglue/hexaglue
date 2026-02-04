@@ -39,10 +39,10 @@ class BoundedContextRendererTest {
         @DisplayName("should render table with context data")
         void rendersTableWithData() {
             BoundedContextDoc orderCtx = new BoundedContextDoc(
-                    "order", "com.example.order", 1, 2, 3, 1, 7, List.of("Order", "LineItem", "OrderId"));
+                    "order", "com.example.order", 1, 2, 3, 0, 1, 7, List.of("Order", "LineItem", "OrderId"));
 
             BoundedContextDoc inventoryCtx = new BoundedContextDoc(
-                    "inventory", "com.example.inventory", 1, 0, 1, 0, 2, List.of("Product", "Sku"));
+                    "inventory", "com.example.inventory", 1, 0, 1, 0, 0, 2, List.of("Product", "Sku"));
 
             String result = renderer.renderBoundedContextsSection(List.of(orderCtx, inventoryCtx));
 
@@ -57,7 +57,7 @@ class BoundedContextRendererTest {
         @DisplayName("should include header row with expected columns")
         void includesHeaderRow() {
             BoundedContextDoc ctx =
-                    new BoundedContextDoc("order", "com.example.order", 1, 0, 0, 0, 1, List.of("Order"));
+                    new BoundedContextDoc("order", "com.example.order", 1, 0, 0, 0, 0, 1, List.of("Order"));
 
             String result = renderer.renderBoundedContextsSection(List.of(ctx));
 
@@ -66,6 +66,7 @@ class BoundedContextRendererTest {
             assertThat(result).contains("Aggregates");
             assertThat(result).contains("Entities");
             assertThat(result).contains("VOs");
+            assertThat(result).contains("App Services");
             assertThat(result).contains("Ports");
             assertThat(result).contains("Total");
         }
@@ -74,7 +75,7 @@ class BoundedContextRendererTest {
         @DisplayName("should capitalize context name")
         void capitalizesContextName() {
             BoundedContextDoc ctx =
-                    new BoundedContextDoc("order", "com.example.order", 1, 0, 0, 0, 1, List.of("Order"));
+                    new BoundedContextDoc("order", "com.example.order", 1, 0, 0, 0, 0, 1, List.of("Order"));
 
             String result = renderer.renderBoundedContextsSection(List.of(ctx));
 

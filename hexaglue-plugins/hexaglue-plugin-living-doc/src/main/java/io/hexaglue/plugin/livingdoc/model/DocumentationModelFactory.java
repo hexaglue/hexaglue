@@ -15,6 +15,7 @@ package io.hexaglue.plugin.livingdoc.model;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.ApplicationService;
 import io.hexaglue.arch.model.DrivenPort;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Entity;
@@ -71,13 +72,20 @@ public final class DocumentationModelFactory {
         List<DocType> identifiers =
                 domain.identifiers().map(DocumentationModelFactory::toDocType).toList();
 
+        List<DocType> applicationServices = model.typeRegistry()
+                .map(r -> r.all(ApplicationService.class)
+                        .map(DocumentationModelFactory::toDocType)
+                        .toList())
+                .orElse(List.of());
+
         List<DocPort> drivingPorts =
                 ports.drivingPorts().map(DocumentationModelFactory::toDocPort).toList();
 
         List<DocPort> drivenPorts =
                 ports.drivenPorts().map(DocumentationModelFactory::toDocPort).toList();
 
-        return new DocumentationModel(aggregateRoots, entities, valueObjects, identifiers, drivingPorts, drivenPorts);
+        return new DocumentationModel(
+                aggregateRoots, entities, valueObjects, identifiers, applicationServices, drivingPorts, drivenPorts);
     }
 
     // === Converters ===
@@ -136,6 +144,27 @@ public final class DocumentationModelFactory {
                 construct,
                 fieldCount,
                 id.classification().explain());
+    }
+
+    /**
+     * Converts an ApplicationService to a DocType for documentation.
+     *
+     * @param svc the application service
+     * @return the documentation type
+     * @since 5.0.0
+     */
+    private static DocType toDocType(ApplicationService svc) {
+        int methodCount = svc.structure().methods().size();
+        String construct = svc.structure().isRecord() ? "RECORD" : "CLASS";
+
+        return new DocType(
+                svc.id().simpleName(),
+                svc.id().packageName(),
+                svc.id().qualifiedName(),
+                "Application Service",
+                construct,
+                methodCount,
+                svc.classification().explain());
     }
 
     private static DocPort toDocPort(DrivingPort port) {

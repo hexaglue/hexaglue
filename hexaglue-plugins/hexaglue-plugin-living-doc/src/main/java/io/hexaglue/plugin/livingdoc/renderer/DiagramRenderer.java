@@ -121,6 +121,24 @@ public final class DiagramRenderer {
 
     public String renderPortsFlowDiagram(
             List<PortDoc> drivingPorts, List<PortDoc> drivenPorts, List<DomainTypeDoc> aggregates) {
+        return renderPortsFlowDiagram(drivingPorts, drivenPorts, aggregates, List.of());
+    }
+
+    /**
+     * Renders a ports flow diagram with optional application services layer.
+     *
+     * @param drivingPorts the driving ports
+     * @param drivenPorts the driven ports
+     * @param aggregates the aggregate roots
+     * @param applicationServices the application services
+     * @return the Mermaid diagram
+     * @since 5.0.0
+     */
+    public String renderPortsFlowDiagram(
+            List<PortDoc> drivingPorts,
+            List<PortDoc> drivenPorts,
+            List<DomainTypeDoc> aggregates,
+            List<DomainTypeDoc> applicationServices) {
         StringBuilder sb = new StringBuilder();
         sb.append("```mermaid\n");
         sb.append("flowchart LR\n");
@@ -145,6 +163,19 @@ public final class DiagramRenderer {
             }
         }
         sb.append("    end\n\n");
+
+        // Application Services (optional layer between driving ports and domain)
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    subgraph AppServices[\"Application Services\"]\n");
+            for (DomainTypeDoc svc : applicationServices) {
+                sb.append("        ")
+                        .append(MermaidBuilder.sanitizeId(svc.name()))
+                        .append("[")
+                        .append(svc.name())
+                        .append("]\n");
+            }
+            sb.append("    end\n\n");
+        }
 
         // Domain
         sb.append("    subgraph Domain[\"Domain\"]\n");
@@ -185,7 +216,12 @@ public final class DiagramRenderer {
         // Connections
         sb.append("    User --> Driving\n");
         sb.append("    API --> Driving\n");
-        sb.append("    Driving --> Domain\n");
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    Driving --> AppServices\n");
+            sb.append("    AppServices --> Domain\n");
+        } else {
+            sb.append("    Driving --> Domain\n");
+        }
         sb.append("    Domain --> Driven\n");
         sb.append("    Driven --> DB\n");
         sb.append("    Driven --> ExtAPI\n");
@@ -196,6 +232,24 @@ public final class DiagramRenderer {
 
     public String renderDependenciesDiagram(
             List<PortDoc> drivingPorts, List<PortDoc> drivenPorts, List<DomainTypeDoc> aggregates) {
+        return renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates, List.of());
+    }
+
+    /**
+     * Renders a dependency diagram with optional application services layer.
+     *
+     * @param drivingPorts the driving ports
+     * @param drivenPorts the driven ports
+     * @param aggregates the aggregate roots
+     * @param applicationServices the application services
+     * @return the Mermaid diagram
+     * @since 5.0.0
+     */
+    public String renderDependenciesDiagram(
+            List<PortDoc> drivingPorts,
+            List<PortDoc> drivenPorts,
+            List<DomainTypeDoc> aggregates,
+            List<DomainTypeDoc> applicationServices) {
         StringBuilder sb = new StringBuilder();
         sb.append("```mermaid\n");
         sb.append("flowchart TB\n");
@@ -220,6 +274,19 @@ public final class DiagramRenderer {
             }
         }
         sb.append("    end\n\n");
+
+        // Application Services (optional layer between driving ports and domain)
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    subgraph AppServices[\"Application Services\"]\n");
+            for (DomainTypeDoc svc : applicationServices) {
+                sb.append("        ")
+                        .append(MermaidBuilder.sanitizeId(svc.name()))
+                        .append("[[")
+                        .append(svc.name())
+                        .append("]]\n");
+            }
+            sb.append("    end\n\n");
+        }
 
         // Domain
         sb.append("    subgraph Domain[\"Domain\"]\n");
@@ -259,7 +326,12 @@ public final class DiagramRenderer {
 
         // Dependencies - all arrows point toward the domain
         sb.append("    DrivingAdapters --> DrivingPorts\n");
-        sb.append("    DrivingPorts --> Domain\n");
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    DrivingPorts --> AppServices\n");
+            sb.append("    AppServices --> Domain\n");
+        } else {
+            sb.append("    DrivingPorts --> Domain\n");
+        }
         sb.append("    DrivenAdapters --> DrivenPorts\n");
         sb.append("    DrivenPorts --> Domain\n");
 
@@ -285,8 +357,33 @@ public final class DiagramRenderer {
             List<PortDoc> drivenPorts,
             List<DomainTypeDoc> aggregates,
             List<BoundedContextDoc> boundedContexts) {
+        return renderEnhancedDependenciesDiagram(
+                drivingPorts, drivenPorts, aggregates, boundedContexts, List.of());
+    }
+
+    /**
+     * Renders an enhanced dependencies diagram with bounded context subgraphs
+     * and optional application services layer.
+     *
+     * <p>If there are fewer than 2 bounded contexts, falls back to the standard
+     * {@link #renderDependenciesDiagram} method.
+     *
+     * @param drivingPorts the driving ports
+     * @param drivenPorts the driven ports
+     * @param aggregates the aggregate roots
+     * @param boundedContexts the bounded contexts
+     * @param applicationServices the application services
+     * @return the Mermaid diagram
+     * @since 5.0.0
+     */
+    public String renderEnhancedDependenciesDiagram(
+            List<PortDoc> drivingPorts,
+            List<PortDoc> drivenPorts,
+            List<DomainTypeDoc> aggregates,
+            List<BoundedContextDoc> boundedContexts,
+            List<DomainTypeDoc> applicationServices) {
         if (boundedContexts == null || boundedContexts.size() < 2) {
-            return renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates);
+            return renderDependenciesDiagram(drivingPorts, drivenPorts, aggregates, applicationServices);
         }
 
         StringBuilder sb = new StringBuilder();
@@ -313,6 +410,19 @@ public final class DiagramRenderer {
             }
         }
         sb.append("    end\n\n");
+
+        // Application Services (optional layer between driving ports and domain)
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    subgraph AppServices[\"Application Services\"]\n");
+            for (DomainTypeDoc svc : applicationServices) {
+                sb.append("        ")
+                        .append(MermaidBuilder.sanitizeId(svc.name()))
+                        .append("[[")
+                        .append(svc.name())
+                        .append("]]\n");
+            }
+            sb.append("    end\n\n");
+        }
 
         // Domain with bounded context subgraphs
         sb.append("    subgraph Domain[\"Domain\"]\n");
@@ -359,7 +469,12 @@ public final class DiagramRenderer {
 
         // Dependencies
         sb.append("    DrivingAdapters --> DrivingPorts\n");
-        sb.append("    DrivingPorts --> Domain\n");
+        if (applicationServices != null && !applicationServices.isEmpty()) {
+            sb.append("    DrivingPorts --> AppServices\n");
+            sb.append("    AppServices --> Domain\n");
+        } else {
+            sb.append("    DrivingPorts --> Domain\n");
+        }
         sb.append("    DrivenAdapters --> DrivenPorts\n");
         sb.append("    DrivenPorts --> Domain\n");
 

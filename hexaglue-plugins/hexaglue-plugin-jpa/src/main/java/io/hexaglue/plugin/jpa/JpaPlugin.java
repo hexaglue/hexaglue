@@ -577,6 +577,12 @@ public final class JpaPlugin implements GeneratorPlugin {
         if (config.generateAdapters()) {
             for (io.hexaglue.arch.model.DrivenPort port :
                     portIndex.drivenPorts().toList()) {
+                if (!port.classification().conflicts().isEmpty()) {
+                    diagnostics.warn("Skipping adapter for port " + port.id().simpleName()
+                            + ": classification has conflicts ("
+                            + port.classification().explainBrief() + ")");
+                    continue;
+                }
                 if (port.managedAggregate().isEmpty()) {
                     diagnostics.warn("Skipping adapter for port " + port.id().simpleName() + ": no managed type");
                     continue;

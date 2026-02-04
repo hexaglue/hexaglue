@@ -201,7 +201,7 @@ class RenderersParityTest {
         var verdict = new Verdict(
                 73, "C", ReportStatus.FAILED, "Score below threshold", "Summary", List.of(), ImmediateAction.none());
 
-        var totals = new InventoryTotals(1, 0, 2, 1, 0, 1, 1);
+        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 0, 2, 0)), totals);
         var components = ComponentDetails.of(
                 List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),
@@ -230,7 +230,7 @@ class RenderersParityTest {
         var verdict = new Verdict(
                 60, "D", ReportStatus.FAILED, "Violations found", "Summary", List.of(), ImmediateAction.none());
 
-        var totals = new InventoryTotals(1, 0, 2, 1, 0, 1, 1);
+        var totals = new InventoryTotals(1, 0, 2, 1, 0, 0, 0, 0, 0, 1, 1);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 0, 2, 0)), totals);
         var components = ComponentDetails.of(
                 List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),

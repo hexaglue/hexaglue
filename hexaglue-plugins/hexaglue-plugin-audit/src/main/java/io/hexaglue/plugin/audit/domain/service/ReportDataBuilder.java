@@ -248,7 +248,7 @@ public class ReportDataBuilder {
             }
         }
 
-        InventoryTotals totals = calculateTotals(domainIndex, portIndex);
+        InventoryTotals totals = calculateTotals(domainIndex, portIndex, registry);
         Inventory inventory = new Inventory(bcInventories, totals);
 
         // Build component details (including application layer from registry)
@@ -269,7 +269,7 @@ public class ReportDataBuilder {
                 summary, inventory, components, DiagramsInfo.defaults(), relationships, typeViolations);
     }
 
-    private InventoryTotals calculateTotals(DomainIndex domainIndex, PortIndex portIndex) {
+    private InventoryTotals calculateTotals(DomainIndex domainIndex, PortIndex portIndex, TypeRegistry registry) {
         int aggregates =
                 domainIndex != null ? (int) domainIndex.aggregateRoots().count() : 0;
         int entities = domainIndex != null ? (int) domainIndex.entities().count() : 0;
@@ -278,11 +278,21 @@ public class ReportDataBuilder {
         int identifiers = domainIndex != null ? (int) domainIndex.identifiers().count() : 0;
         int domainEvents =
                 domainIndex != null ? (int) domainIndex.domainEvents().count() : 0;
+        int domainServices =
+                domainIndex != null ? (int) domainIndex.domainServices().count() : 0;
+        int applicationServices =
+                registry != null ? (int) registry.all(ApplicationService.class).count() : 0;
+        int commandHandlers =
+                registry != null ? (int) registry.all(CommandHandler.class).count() : 0;
+        int queryHandlers =
+                registry != null ? (int) registry.all(QueryHandler.class).count() : 0;
         int drivingPorts = portIndex != null ? (int) portIndex.drivingPorts().count() : 0;
         int drivenPorts = portIndex != null ? (int) portIndex.drivenPorts().count() : 0;
 
         return new InventoryTotals(
-                aggregates, entities, valueObjects, identifiers, domainEvents, drivingPorts, drivenPorts);
+                aggregates, entities, valueObjects, identifiers, domainEvents,
+                domainServices, applicationServices, commandHandlers, queryHandlers,
+                drivingPorts, drivenPorts);
     }
 
     private ComponentDetails buildComponentDetails(

@@ -162,6 +162,10 @@ public class MarkdownRenderer implements ReportRenderer {
         md.append("| Value Objects | ").append(totals.valueObjects()).append(" |\n");
         md.append("| Identifiers | ").append(totals.identifiers()).append(" |\n");
         md.append("| Domain Events | ").append(totals.domainEvents()).append(" |\n");
+        md.append("| Domain Services | ").append(totals.domainServices()).append(" |\n");
+        md.append("| Application Services | ").append(totals.applicationServices()).append(" |\n");
+        md.append("| Command Handlers | ").append(totals.commandHandlers()).append(" |\n");
+        md.append("| Query Handlers | ").append(totals.queryHandlers()).append(" |\n");
         md.append("| Driving Ports | ").append(totals.drivingPorts()).append(" |\n");
         md.append("| Driven Ports | ").append(totals.drivenPorts()).append(" |\n\n");
 

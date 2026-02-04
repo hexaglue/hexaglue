@@ -22,6 +22,7 @@ import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.DrivenPortType;
 import io.hexaglue.arch.model.Entity;
 import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.ApplicationService;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.plugin.livingdoc.model.BoundedContextDoc;
 import java.util.List;
@@ -198,6 +199,28 @@ class BoundedContextDetectorTest {
             assertThat(contexts).hasSize(1);
             assertThat(contexts.get(0).portCount()).isEqualTo(2);
             assertThat(contexts.get(0).totalTypeCount()).isEqualTo(3);
+        }
+    }
+
+    @Nested
+    @DisplayName("Application service counting")
+    class ApplicationServiceCounting {
+
+        @Test
+        @DisplayName("should count application services in bounded context")
+        void countsApplicationServicesInContext() {
+            AggregateRoot order = aggregateRoot("com.example.order.domain.Order");
+            ApplicationService orderService = applicationService("com.example.order.application.OrderService");
+
+            ArchitecturalModel model =
+                    createModel(ProjectContext.forTesting("app", "com.example"), order, orderService);
+
+            BoundedContextDetector detector = new BoundedContextDetector(model);
+            List<BoundedContextDoc> contexts = detector.detectAll();
+
+            assertThat(contexts).hasSize(1);
+            assertThat(contexts.get(0).applicationServiceCount()).isEqualTo(1);
+            assertThat(contexts.get(0).totalTypeCount()).isEqualTo(2);
         }
     }
 

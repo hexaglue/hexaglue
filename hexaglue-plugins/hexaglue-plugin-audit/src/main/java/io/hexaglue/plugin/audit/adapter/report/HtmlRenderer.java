@@ -221,6 +221,11 @@ public class HtmlRenderer implements ReportRenderer {
         renderInventoryItem(html, totals.entities(), "Entities");
         renderInventoryItem(html, totals.valueObjects(), "Value Objects");
         renderInventoryItem(html, totals.identifiers(), "Identifiers");
+        renderInventoryItem(html, totals.domainEvents(), "Domain Events");
+        renderInventoryItem(html, totals.domainServices(), "Domain Services");
+        renderInventoryItem(html, totals.applicationServices(), "App Services");
+        renderInventoryItem(html, totals.commandHandlers(), "Cmd Handlers");
+        renderInventoryItem(html, totals.queryHandlers(), "Query Handlers");
         renderInventoryItem(html, totals.drivingPorts(), "Driving Ports");
         renderInventoryItem(html, totals.drivenPorts(), "Driven Ports");
         html.append("  </div>\n");

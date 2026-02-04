@@ -330,7 +330,7 @@ class ReportDataTest {
     }
 
     private ArchitectureOverview createArchitecture() {
-        var totals = new InventoryTotals(3, 0, 7, 4, 0, 1, 5);
+        var totals = new InventoryTotals(3, 0, 7, 4, 0, 0, 0, 0, 0, 1, 5);
         var inventory = new Inventory(List.of(new BoundedContextInventory("Default", 3, 0, 7, 0)), totals);
         return new ArchitectureOverview(
                 "Test architecture", inventory, ComponentDetails.empty(), DiagramsInfo.defaults(), List.of());

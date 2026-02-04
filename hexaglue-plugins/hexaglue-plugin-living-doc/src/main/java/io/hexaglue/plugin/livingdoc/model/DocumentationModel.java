@@ -27,16 +27,19 @@ import java.util.Objects;
  * @param entities the entities (non-aggregate-root)
  * @param valueObjects the value objects
  * @param identifiers the identifier types (e.g., OrderId, CustomerId)
+ * @param applicationServices the application services
  * @param drivingPorts the driving ports (use cases)
  * @param drivenPorts the driven ports (repositories, gateways)
  * @since 4.0.0
  * @since 5.0.0 - Added identifiers parameter
+ * @since 5.0.0 - Added applicationServices parameter
  */
 public record DocumentationModel(
         List<DocType> aggregateRoots,
         List<DocType> entities,
         List<DocType> valueObjects,
         List<DocType> identifiers,
+        List<DocType> applicationServices,
         List<DocPort> drivingPorts,
         List<DocPort> drivenPorts) {
 
@@ -45,12 +48,14 @@ public record DocumentationModel(
         Objects.requireNonNull(entities, "entities must not be null");
         Objects.requireNonNull(valueObjects, "valueObjects must not be null");
         Objects.requireNonNull(identifiers, "identifiers must not be null");
+        Objects.requireNonNull(applicationServices, "applicationServices must not be null");
         Objects.requireNonNull(drivingPorts, "drivingPorts must not be null");
         Objects.requireNonNull(drivenPorts, "drivenPorts must not be null");
         aggregateRoots = List.copyOf(aggregateRoots);
         entities = List.copyOf(entities);
         valueObjects = List.copyOf(valueObjects);
         identifiers = List.copyOf(identifiers);
+        applicationServices = List.copyOf(applicationServices);
         drivingPorts = List.copyOf(drivingPorts);
         drivenPorts = List.copyOf(drivenPorts);
     }
@@ -65,6 +70,7 @@ public record DocumentationModel(
                 && entities.isEmpty()
                 && valueObjects.isEmpty()
                 && identifiers.isEmpty()
+                && applicationServices.isEmpty()
                 && drivingPorts.isEmpty()
                 && drivenPorts.isEmpty();
     }
