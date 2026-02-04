@@ -171,10 +171,18 @@ public class JsonReportRenderer implements ReportRenderer {
         json.append("        \"valueObjects\": ").append(totals.valueObjects()).append(",\n");
         json.append("        \"identifiers\": ").append(totals.identifiers()).append(",\n");
         json.append("        \"domainEvents\": ").append(totals.domainEvents()).append(",\n");
-        json.append("        \"domainServices\": ").append(totals.domainServices()).append(",\n");
-        json.append("        \"applicationServices\": ").append(totals.applicationServices()).append(",\n");
-        json.append("        \"commandHandlers\": ").append(totals.commandHandlers()).append(",\n");
-        json.append("        \"queryHandlers\": ").append(totals.queryHandlers()).append(",\n");
+        json.append("        \"domainServices\": ")
+                .append(totals.domainServices())
+                .append(",\n");
+        json.append("        \"applicationServices\": ")
+                .append(totals.applicationServices())
+                .append(",\n");
+        json.append("        \"commandHandlers\": ")
+                .append(totals.commandHandlers())
+                .append(",\n");
+        json.append("        \"queryHandlers\": ")
+                .append(totals.queryHandlers())
+                .append(",\n");
         json.append("        \"drivingPorts\": ").append(totals.drivingPorts()).append(",\n");
         json.append("        \"drivenPorts\": ").append(totals.drivenPorts()).append("\n");
         json.append("      }\n");

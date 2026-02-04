@@ -237,9 +237,33 @@ public class HtmlRenderer implements ReportRenderer {
         renderInventoryRow(
                 html, "Aggregate Roots", totals.aggregates(), arch.components().aggregates());
         renderInventoryRow(
+                html, "Entities", totals.entities(), arch.components().entities());
+        renderInventoryRow(
                 html, "Value Objects", totals.valueObjects(), arch.components().valueObjects());
         renderInventoryRow(
                 html, "Identifiers", totals.identifiers(), arch.components().identifiers());
+        renderInventoryRow(
+                html, "Domain Events", totals.domainEvents(), arch.components().domainEvents());
+        renderInventoryRow(
+                html,
+                "Domain Services",
+                totals.domainServices(),
+                arch.components().domainServices());
+        renderInventoryRow(
+                html,
+                "Application Services",
+                totals.applicationServices(),
+                arch.components().applicationServices());
+        renderInventoryRow(
+                html,
+                "Command Handlers",
+                totals.commandHandlers(),
+                arch.components().commandHandlers());
+        renderInventoryRow(
+                html,
+                "Query Handlers",
+                totals.queryHandlers(),
+                arch.components().queryHandlers());
         renderInventoryRowPorts(
                 html, "Driving Ports", totals.drivingPorts(), arch.components().drivingPorts());
         renderInventoryRowPorts(
@@ -375,8 +399,14 @@ public class HtmlRenderer implements ReportRenderer {
 
     private String extractName(Object item) {
         if (item instanceof AggregateComponent agg) return agg.name();
+        if (item instanceof EntityComponent entity) return entity.name();
         if (item instanceof ValueObjectComponent vo) return vo.name();
         if (item instanceof IdentifierComponent id) return id.name();
+        if (item instanceof DomainEventComponent event) return event.name();
+        if (item instanceof DomainServiceComponent svc) return svc.name();
+        if (item instanceof ApplicationServiceComponent appSvc) return appSvc.name();
+        if (item instanceof CommandHandlerComponent cmd) return cmd.name();
+        if (item instanceof QueryHandlerComponent query) return query.name();
         return item.toString();
     }
 

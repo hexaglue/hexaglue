@@ -88,7 +88,7 @@ public class PortsDiagramBuilder {
                     String adapter = port.adapter();
                     if (!renderedAdapters.contains(adapter)) {
                         sb.append("    class ").append(adapter).append("{\n");
-                        sb.append("        <<Adapter>>\n");
+                        sb.append("        <<ApplicationService>>\n");
                         sb.append("    }\n");
                         renderedAdapters.add(adapter);
                     }

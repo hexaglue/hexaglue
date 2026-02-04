@@ -269,6 +269,29 @@ public class IssueEnricher {
             }
         });
 
+        // Hexagonal: Layer Isolation
+        map.put("hexagonal:layer-isolation", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Layer isolation violations break the hexagonal architecture contract. "
+                        + "When layers bypass ports to access each other directly, the architecture "
+                        + "loses its ability to swap implementations and maintain testability.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Route the dependency through the appropriate port",
+                        List.of(
+                                "Identify the direct cross-layer dependency",
+                                "Create or use an existing port interface for this interaction",
+                                "Refactor the caller to depend on the port instead of the concrete class",
+                                "Ensure the adapter implements the port on the infrastructure side"),
+                        null,
+                        "0.5 days");
+            }
+        });
+
         return map;
     }
 

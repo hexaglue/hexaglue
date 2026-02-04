@@ -357,8 +357,7 @@ public final class DiagramRenderer {
             List<PortDoc> drivenPorts,
             List<DomainTypeDoc> aggregates,
             List<BoundedContextDoc> boundedContexts) {
-        return renderEnhancedDependenciesDiagram(
-                drivingPorts, drivenPorts, aggregates, boundedContexts, List.of());
+        return renderEnhancedDependenciesDiagram(drivingPorts, drivenPorts, aggregates, boundedContexts, List.of());
     }
 
     /**

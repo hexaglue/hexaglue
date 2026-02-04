@@ -522,6 +522,61 @@ class DiagramBuildersTest {
         }
 
         @Test
+        @DisplayName("should declare application services as Component in C4 diagram")
+        void shouldDeclareApplicationServicesAsComponent() {
+            // Given
+            var aggregates = List.of(
+                    AggregateComponent.of("Order", "com.example.domain", 9, List.of(), List.of("OrderRepository")));
+            var drivingPorts = List.of(
+                    PortComponent.driving("OrderUseCase", "com.example.port", 8, false, null, List.of("Order")));
+            var drivenPorts = List.of(
+                    PortComponent.driven("OrderRepository", "com.example.port", "REPOSITORY", 6, true, "JpaOrderRepo"));
+            var adapters = List.of(
+                    new AdapterComponent(
+                            "JpaOrderRepo",
+                            "com.example.infra",
+                            "OrderRepository",
+                            AdapterComponent.AdapterType.DRIVEN),
+                    new AdapterComponent(
+                            "OrderAppService",
+                            "com.example.app",
+                            "OrderUseCase",
+                            AdapterComponent.AdapterType.DRIVING));
+            var appServices = List.of(ApplicationServiceComponent.of("OrderAppService", "com.example.app", 5));
+            var components = new ComponentDetails(
+                    aggregates,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    appServices,
+                    List.of(),
+                    List.of(),
+                    drivingPorts,
+                    drivenPorts,
+                    adapters);
+
+            // When
+            String diagram = builder.build("E-Commerce", components, List.of());
+
+            // Then - Application services should be declared as Component()
+            assertThat(diagram).contains("Component(orderappservice");
+            assertThat(diagram).contains("\"Application Service\"");
+            // Application service should get blue styling
+            assertThat(diagram)
+                    .contains("UpdateElementStyle(orderappservice, $fontColor=\"white\", $bgColor=\"#2196F3\")");
+            // Driven adapter should get green styling
+            assertThat(diagram)
+                    .contains("UpdateElementStyle(jpaorderrepo, $fontColor=\"white\", $bgColor=\"#4CAF50\")");
+            // DRIVING adapter should NOT get green styling (filtered out)
+            long greenStyleCount = diagram.lines()
+                    .filter(l -> l.contains("$bgColor=\"#4CAF50\""))
+                    .count();
+            assertThat(greenStyleCount).isEqualTo(1); // Only JpaOrderRepo
+        }
+
+        @Test
         @DisplayName("should highlight cycles")
         void shouldHighlightCycles() {
             // Given
@@ -765,6 +820,37 @@ class DiagramBuildersTest {
             assertThat(diagram).contains("+type REPOSITORY");
             assertThat(diagram).contains("+methods 4");
             assertThat(diagram).contains("JpaOrderRepository ..|> OrderRepository : implements");
+        }
+
+        @Test
+        @DisplayName("should use ApplicationService stereotype for driving port adapters")
+        void shouldUseApplicationServiceStereotypeForDrivingPortAdapters() {
+            // Given
+            var components = new ComponentDetails(
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driving(
+                            "OrderApi", "com.example.port", 5, true, "OrderAppService", List.of("Order"))),
+                    List.of(PortComponent.driven(
+                            "OrderRepository", "com.example.port", "REPOSITORY", 4, true, "JpaOrderRepository")),
+                    List.of());
+
+            // When
+            String diagram = builder.build(components, List.of()).orElseThrow();
+
+            // Then - Driving port adapter should use <<ApplicationService>>
+            assertThat(diagram).contains("class OrderAppService{");
+            assertThat(diagram).contains("<<ApplicationService>>");
+            // Driven port adapter should still use <<Adapter>>
+            assertThat(diagram).contains("class JpaOrderRepository{");
+            assertThat(diagram).contains("<<Adapter>>");
         }
 
         @Test

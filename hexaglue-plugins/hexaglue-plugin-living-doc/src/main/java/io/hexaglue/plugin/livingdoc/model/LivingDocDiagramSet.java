@@ -210,14 +210,11 @@ public record LivingDocDiagramSet(
         // Connections
         graph.arrow("UI", "DrivingPorts");
         if (!appServices.isEmpty()) {
-            graph.arrow("DrivingPorts", "AppServices")
-                    .arrow("AppServices", "Domain");
+            graph.arrow("DrivingPorts", "AppServices").arrow("AppServices", "Domain");
         } else {
             graph.arrow("DrivingPorts", "Domain");
         }
-        graph.arrow("Domain", "DrivenPorts")
-                .arrow("DrivenPorts", "DB")
-                .arrow("DrivenPorts", "EXT");
+        graph.arrow("Domain", "DrivenPorts").arrow("DrivenPorts", "DB").arrow("DrivenPorts", "EXT");
 
         return graph.build();
     }

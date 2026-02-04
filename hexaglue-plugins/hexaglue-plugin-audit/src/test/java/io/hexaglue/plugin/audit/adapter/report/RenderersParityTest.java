@@ -122,6 +122,52 @@ class RenderersParityTest {
     }
 
     @Nested
+    @DisplayName("Inventory Parity")
+    class InventoryParity {
+
+        @Test
+        @DisplayName("HTML inventory table should contain all 11 component categories")
+        void htmlInventoryTableShouldContainAllCategories() {
+            // Given - data with all component types populated
+            ReportData dataWithAllTypes = createDataWithAllComponentTypes();
+
+            // When
+            String html = htmlRenderer.render(dataWithAllTypes, diagrams);
+
+            // Then - all 11 categories should appear in the table
+            assertThat(html).contains("Aggregate Roots");
+            assertThat(html).contains("Entities");
+            assertThat(html).contains("Value Objects");
+            assertThat(html).contains("Identifiers");
+            assertThat(html).contains("Domain Events");
+            assertThat(html).contains("Domain Services");
+            assertThat(html).contains("Application Services");
+            assertThat(html).contains("Command Handlers");
+            assertThat(html).contains("Query Handlers");
+            assertThat(html).contains("Driving Ports");
+            assertThat(html).contains("Driven Ports");
+        }
+
+        @Test
+        @DisplayName("HTML inventory table should show component names in details column")
+        void htmlInventoryTableShouldShowComponentNames() {
+            // Given - data with all component types populated
+            ReportData dataWithAllTypes = createDataWithAllComponentTypes();
+
+            // When
+            String html = htmlRenderer.render(dataWithAllTypes, diagrams);
+
+            // Then - component names should appear in the table
+            assertThat(html).contains("OrderEntity");
+            assertThat(html).contains("OrderPlacedEvent");
+            assertThat(html).contains("PricingService");
+            assertThat(html).contains("OrderAppService");
+            assertThat(html).contains("PlaceOrderHandler");
+            assertThat(html).contains("GetOrdersHandler");
+        }
+    }
+
+    @Nested
     @DisplayName("Diagram Encoding Parity")
     class DiagramEncodingParity {
 
@@ -278,6 +324,41 @@ class RenderersParityTest {
 
         var remediation = RemediationPlan.empty();
         var appendix = new Appendix(createScoreBreakdown(60, 50, 80, 40, 70), List.of(), List.of(), List.of());
+
+        return ReportData.create(metadata, verdict, architecture, issues, remediation, appendix);
+    }
+
+    private ReportData createDataWithAllComponentTypes() {
+        var metadata = new ReportMetadata("Test Project", "1.0", Instant.now(), "10ms", "5.0.0", "5.0.0");
+
+        var verdict = new Verdict(
+                73, "C", ReportStatus.FAILED, "Score below threshold", "Summary", List.of(), ImmediateAction.none());
+
+        var totals = new InventoryTotals(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1);
+        var inventory = new Inventory(List.of(new BoundedContextInventory("Test", 1, 1, 1, 1)), totals);
+        var components = new ComponentDetails(
+                List.of(AggregateComponent.of("Order", "pkg", 5, List.of(), List.of())),
+                List.of(EntityComponent.of("OrderEntity", "pkg", 3)),
+                List.of(ValueObjectComponent.of("Money", "pkg")),
+                List.of(new IdentifierComponent("OrderId", "pkg", "UUID")),
+                List.of(DomainEventComponent.of("OrderPlacedEvent", "pkg", 2)),
+                List.of(DomainServiceComponent.of("PricingService", "pkg", 3)),
+                List.of(ApplicationServiceComponent.of("OrderAppService", "pkg", 5)),
+                List.of(CommandHandlerComponent.of("PlaceOrderHandler", "pkg")),
+                List.of(QueryHandlerComponent.of("GetOrdersHandler", "pkg")),
+                List.of(PortComponent.driving("OrderUseCase", "pkg", 3, false, null, List.of())),
+                List.of(PortComponent.driven("OrderRepo", "pkg", "REPOSITORY", 4, false, null)),
+                List.of());
+        var architecture =
+                new ArchitectureOverview("Test arch", inventory, components, DiagramsInfo.defaults(), List.of());
+
+        var issues = IssuesSummary.empty();
+        var remediation = RemediationPlan.empty();
+        var appendix = new Appendix(
+                createScoreBreakdown(78, 60, 100, 24, 100),
+                List.of(),
+                List.of(),
+                List.of(new PackageMetric("pkg", 1, 1, 0.5, 0.0, 0.5, PackageMetric.ZoneType.STABLE_CORE)));
 
         return ReportData.create(metadata, verdict, architecture, issues, remediation, appendix);
     }

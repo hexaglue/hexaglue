@@ -153,7 +153,9 @@ public final class OverviewGenerator {
                 .row("Entities", String.valueOf(model.entities().size()))
                 .row("Value Objects", String.valueOf(model.valueObjects().size()))
                 .row("Identifiers", String.valueOf(model.identifiers().size()))
-                .row("Application Services", String.valueOf(model.applicationServices().size()))
+                .row(
+                        "Application Services",
+                        String.valueOf(model.applicationServices().size()))
                 .row("Driving Ports", String.valueOf(model.drivingPorts().size()))
                 .row("Driven Ports", String.valueOf(model.drivenPorts().size()))
                 .end();

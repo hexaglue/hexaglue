@@ -15,6 +15,7 @@ package io.hexaglue.plugin.audit.adapter.diagram;
 
 import io.hexaglue.plugin.audit.domain.model.report.AdapterComponent;
 import io.hexaglue.plugin.audit.domain.model.report.AggregateComponent;
+import io.hexaglue.plugin.audit.domain.model.report.ApplicationServiceComponent;
 import io.hexaglue.plugin.audit.domain.model.report.ComponentDetails;
 import io.hexaglue.plugin.audit.domain.model.report.PortComponent;
 import io.hexaglue.plugin.audit.domain.model.report.Relationship;
@@ -46,7 +47,8 @@ public class C4ComponentDiagramBuilder {
         sb.append("    title Component Diagram - ").append(projectName).append("\n\n");
 
         // Driving Side
-        if (!components.drivingPorts().isEmpty()) {
+        if (!components.drivingPorts().isEmpty()
+                || !components.applicationServices().isEmpty()) {
             sb.append("    Container_Boundary(driving, \"Driving Side\") {\n");
             for (PortComponent port : components.drivingPorts()) {
                 String portId = sanitizeId(port.name());
@@ -57,6 +59,16 @@ public class C4ComponentDiagramBuilder {
                         .append("\", \"Driving Port\", \"")
                         .append(describePort(port))
                         .append("\")\n");
+            }
+            for (ApplicationServiceComponent service : components.applicationServices()) {
+                String serviceId = sanitizeId(service.name());
+                sb.append("        Component(")
+                        .append(serviceId)
+                        .append(", \"")
+                        .append(service.name())
+                        .append("\", \"Application Service\", \"")
+                        .append(service.methods())
+                        .append(" methods\")\n");
             }
             sb.append("    }\n\n");
         }
@@ -193,12 +205,20 @@ public class C4ComponentDiagramBuilder {
                     .append(sanitizeId(port.name()))
                     .append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
         }
+        for (ApplicationServiceComponent service : components.applicationServices()) {
+            sb.append("    UpdateElementStyle(")
+                    .append(sanitizeId(service.name()))
+                    .append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
+        }
         for (AggregateComponent agg : components.aggregates()) {
             sb.append("    UpdateElementStyle(")
                     .append(sanitizeId(agg.name()))
                     .append(", $fontColor=\"white\", $bgColor=\"#FF9800\")\n");
         }
-        for (AdapterComponent adapter : components.adapters()) {
+        List<AdapterComponent> drivenAdaptersForStyle = components.adapters().stream()
+                .filter(a -> a.type() == AdapterComponent.AdapterType.DRIVEN)
+                .toList();
+        for (AdapterComponent adapter : drivenAdaptersForStyle) {
             sb.append("    UpdateElementStyle(")
                     .append(sanitizeId(adapter.name()))
                     .append(", $fontColor=\"white\", $bgColor=\"#4CAF50\")\n");

@@ -463,6 +463,59 @@ class FullArchitectureDiagramBuilderTest {
         }
     }
 
+    @Nested
+    @DisplayName("Styling")
+    class StylingTests {
+
+        @Test
+        @DisplayName("should not double-style application services as adapters")
+        void shouldNotDoublStyleApplicationServicesAsAdapters() {
+            // Given: application service exists as both app service and DRIVING adapter
+            ComponentDetails components = new ComponentDetails(
+                    List.of(AggregateComponent.of("Order", "com.example.order", 5, List.of(), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(ApplicationServiceComponent.of(
+                            "OrderAppService", "com.example.app", 3, List.of("Order"), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driven(
+                            "OrderRepository", "com.example.port", "REPOSITORY", 3, true, "JpaOrderRepository")),
+                    List.of(
+                            new AdapterComponent(
+                                    "OrderAppService",
+                                    "com.example.app",
+                                    "OrderUseCase",
+                                    AdapterComponent.AdapterType.DRIVING),
+                            new AdapterComponent(
+                                    "JpaOrderRepository",
+                                    "com.example.adapter",
+                                    "OrderRepository",
+                                    AdapterComponent.AdapterType.DRIVEN)));
+
+            // When
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
+
+            // Then - Application service should have blue styling, not green
+            // Count blue style (#2196F3) for OrderAppService
+            assertThat(result)
+                    .contains("UpdateElementStyle(orderappservice, $fontColor=\"white\", $bgColor=\"#2196F3\")");
+            // DRIVING adapter should NOT be re-styled as green
+            long greenStyleLines = result.lines()
+                    .filter(l -> l.contains("orderappservice") && l.contains("#4CAF50"))
+                    .count();
+            assertThat(greenStyleLines).isZero();
+            // DRIVEN adapter should still get green
+            assertThat(result)
+                    .contains("UpdateElementStyle(jpaorderrepository, $fontColor=\"white\", $bgColor=\"#4CAF50\")");
+        }
+    }
+
     // Helper methods for creating test fixtures
 
     private ComponentDetails createMinimalComponents() {

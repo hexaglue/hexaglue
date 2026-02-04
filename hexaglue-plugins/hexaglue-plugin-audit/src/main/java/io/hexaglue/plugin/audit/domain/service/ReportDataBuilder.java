@@ -196,6 +196,13 @@ public class ReportDataBuilder {
                     + "Review the issues section for details.";
         }
         if (!auditResult.violations().isEmpty()) {
+            int score = healthScore.overall();
+            if (score < 60) {
+                return "Your application has significant architectural issues that require attention.";
+            }
+            if (score < 70) {
+                return "Your application has notable architectural issues that should be addressed.";
+            }
             return "Your application is generally healthy but has some issues that should be reviewed.";
         }
         return "Congratulations! Your application follows all architectural best practices.";
@@ -290,9 +297,17 @@ public class ReportDataBuilder {
         int drivenPorts = portIndex != null ? (int) portIndex.drivenPorts().count() : 0;
 
         return new InventoryTotals(
-                aggregates, entities, valueObjects, identifiers, domainEvents,
-                domainServices, applicationServices, commandHandlers, queryHandlers,
-                drivingPorts, drivenPorts);
+                aggregates,
+                entities,
+                valueObjects,
+                identifiers,
+                domainEvents,
+                domainServices,
+                applicationServices,
+                commandHandlers,
+                queryHandlers,
+                drivingPorts,
+                drivenPorts);
     }
 
     private ComponentDetails buildComponentDetails(

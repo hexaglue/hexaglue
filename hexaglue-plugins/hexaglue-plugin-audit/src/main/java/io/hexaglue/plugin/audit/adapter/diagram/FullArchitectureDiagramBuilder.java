@@ -413,8 +413,11 @@ public class FullArchitectureDiagramBuilder {
                     .append("\")\n");
         }
 
-        // Adapter styles
-        for (AdapterComponent adapter : components.adapters()) {
+        // Adapter styles (driven only, to avoid overriding application service styles)
+        List<AdapterComponent> drivenAdapters = components.adapters().stream()
+                .filter(a -> a.type() == AdapterComponent.AdapterType.DRIVEN)
+                .toList();
+        for (AdapterComponent adapter : drivenAdapters) {
             sb.append("    UpdateElementStyle(")
                     .append(sanitizeId(adapter.name()))
                     .append(", $fontColor=\"white\", $bgColor=\"")

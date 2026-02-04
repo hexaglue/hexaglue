@@ -17,17 +17,25 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivenPortType;
+import io.hexaglue.arch.model.audit.SourceLocation;
+import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
 import io.hexaglue.plugin.audit.domain.model.AuditResult;
 import io.hexaglue.plugin.audit.domain.model.BuildOutcome;
+import io.hexaglue.plugin.audit.domain.model.ConstraintId;
+import io.hexaglue.plugin.audit.domain.model.Severity;
+import io.hexaglue.plugin.audit.domain.model.Violation;
 import io.hexaglue.plugin.audit.domain.model.report.AdapterComponent;
 import io.hexaglue.plugin.audit.domain.model.report.ComponentDetails;
 import io.hexaglue.plugin.audit.domain.model.report.PortComponent;
 import io.hexaglue.plugin.audit.domain.model.report.Relationship;
 import io.hexaglue.plugin.audit.domain.model.report.ReportData;
+import io.hexaglue.plugin.audit.domain.model.report.Verdict;
 import io.hexaglue.plugin.audit.util.TestModelBuilder;
+import io.hexaglue.spi.audit.ArchitectureQuery;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -171,6 +179,116 @@ class ReportDataBuilderTest {
 
             // Then - MapperImpl should not appear in relationships
             assertThat(relationships).noneMatch(r -> r.from().endsWith("MapperImpl"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Verdict summary alignment with score")
+    class VerdictSummaryAlignmentWithScore {
+
+        @Test
+        @DisplayName("should report significant issues when score is below 60 (Grade F)")
+        void shouldReportSignificantIssuesWhenScoreBelowSixty() {
+            // Given - A builder with a calculator that returns a low score
+            HealthScoreCalculator lowScoreCalculator = new HealthScoreCalculator() {
+                @Override
+                public HealthScore calculate(
+                        List<Violation> violations,
+                        ArchitectureQuery architectureQuery,
+                        Set<String> classifiedPackages) {
+                    return new HealthScore(54, 40, 50, 60, 70, 80, "F");
+                }
+            };
+            ReportDataBuilder customBuilder = new ReportDataBuilder(lowScoreCalculator, new IssueEnricher());
+
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addAggregateRoot("com.example.domain.Order")
+                    .build();
+            Violation majorViolation = Violation.builder(ConstraintId.of("hexagonal:layer-isolation"))
+                    .severity(Severity.MAJOR)
+                    .message("Layer isolation violated")
+                    .affectedType("com.example.Order")
+                    .location(SourceLocation.of("Order.java", 1, 1))
+                    .build();
+            AuditResult auditResult = new AuditResult(List.of(majorViolation), Map.of(), BuildOutcome.SUCCESS);
+
+            // When
+            ReportData report = customBuilder.build(
+                    null, auditResult, null, model, "test-project", "1.0.0", "5.0.0", "5.0.0", Duration.ofMillis(100));
+            Verdict verdict = report.verdict();
+
+            // Then - Summary should reflect the low score
+            assertThat(verdict.summary()).contains("significant architectural issues");
+        }
+
+        @Test
+        @DisplayName("should report notable issues when score is between 60 and 69 (Grade D)")
+        void shouldReportNotableIssuesWhenScoreBetweenSixtyAndSixtyNine() {
+            // Given
+            HealthScoreCalculator midScoreCalculator = new HealthScoreCalculator() {
+                @Override
+                public HealthScore calculate(
+                        List<Violation> violations,
+                        ArchitectureQuery architectureQuery,
+                        Set<String> classifiedPackages) {
+                    return new HealthScore(65, 60, 60, 70, 70, 80, "D");
+                }
+            };
+            ReportDataBuilder customBuilder = new ReportDataBuilder(midScoreCalculator, new IssueEnricher());
+
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addAggregateRoot("com.example.domain.Order")
+                    .build();
+            Violation majorViolation = Violation.builder(ConstraintId.of("hexagonal:layer-isolation"))
+                    .severity(Severity.MAJOR)
+                    .message("Layer isolation violated")
+                    .affectedType("com.example.Order")
+                    .location(SourceLocation.of("Order.java", 1, 1))
+                    .build();
+            AuditResult auditResult = new AuditResult(List.of(majorViolation), Map.of(), BuildOutcome.SUCCESS);
+
+            // When
+            ReportData report = customBuilder.build(
+                    null, auditResult, null, model, "test-project", "1.0.0", "5.0.0", "5.0.0", Duration.ofMillis(100));
+            Verdict verdict = report.verdict();
+
+            // Then - Summary should reflect the moderate score
+            assertThat(verdict.summary()).contains("notable architectural issues");
+        }
+
+        @Test
+        @DisplayName("should report generally healthy when score is 70 or above with violations")
+        void shouldReportGenerallyHealthyWhenScoreAboveSeventy() {
+            // Given
+            HealthScoreCalculator goodScoreCalculator = new HealthScoreCalculator() {
+                @Override
+                public HealthScore calculate(
+                        List<Violation> violations,
+                        ArchitectureQuery architectureQuery,
+                        Set<String> classifiedPackages) {
+                    return new HealthScore(75, 70, 70, 80, 80, 90, "C");
+                }
+            };
+            ReportDataBuilder customBuilder = new ReportDataBuilder(goodScoreCalculator, new IssueEnricher());
+
+            ArchitecturalModel model = new TestModelBuilder()
+                    .addAggregateRoot("com.example.domain.Order")
+                    .build();
+            Violation minorViolation = Violation.builder(ConstraintId.of("hexagonal:layer-isolation"))
+                    .severity(Severity.MINOR)
+                    .message("Minor layer issue")
+                    .affectedType("com.example.Order")
+                    .location(SourceLocation.of("Order.java", 1, 1))
+                    .build();
+            AuditResult auditResult = new AuditResult(List.of(minorViolation), Map.of(), BuildOutcome.SUCCESS);
+
+            // When
+            ReportData report = customBuilder.build(
+                    null, auditResult, null, model, "test-project", "1.0.0", "5.0.0", "5.0.0", Duration.ofMillis(100));
+            Verdict verdict = report.verdict();
+
+            // Then - Summary should say generally healthy
+            assertThat(verdict.summary()).contains("generally healthy");
         }
     }
 
