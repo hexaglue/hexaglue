@@ -348,6 +348,25 @@ public interface ArchitectureQuery {
 
     // === Port implementation analysis ===
 
+    // === Full graph dependency analysis ===
+
+    /**
+     * Returns the full dependency map from the application graph.
+     *
+     * <p>Unlike {@link io.hexaglue.arch.model.audit.Codebase#dependencies()} which
+     * only contains classified types, this method returns dependencies for ALL types
+     * in the application graph, including types excluded from classification.
+     *
+     * <p>Each entry maps a type's qualified name to the set of its dependency
+     * qualified names (field types, annotation types, method signatures, etc.).
+     *
+     * @return dependency map for all types, or empty map if graph is not available
+     * @since 5.0.0
+     */
+    default Map<String, Set<String>> allTypeDependencies() {
+        return Map.of();
+    }
+
     /**
      * Finds types that implement a given interface in the full application graph.
      *

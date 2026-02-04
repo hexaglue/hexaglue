@@ -22,9 +22,11 @@ import io.hexaglue.arch.model.audit.QualityLevel;
 import io.hexaglue.core.frontend.JavaModifier;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.model.*;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class DefaultArchitectureQueryTest {
@@ -360,6 +362,112 @@ class DefaultArchitectureQueryTest {
         assertThat(violations).isNotEmpty();
     }
 
+    // === allTypeDependencies ===
+
+    @Nested
+    class AllTypeDependencies {
+
+        @Test
+        void shouldReturnEmptyMapForEmptyGraph() {
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps).isEmpty();
+        }
+
+        @Test
+        void shouldReturnDependenciesFromReferencesEdges() {
+            TypeNode typeA = createType("com.example.A");
+            TypeNode typeB = createType("com.example.B");
+
+            graph.addNode(typeA);
+            graph.addNode(typeB);
+
+            graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.REFERENCES));
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps).containsKey("com.example.A");
+            assertThat(deps.get("com.example.A")).contains("com.example.B");
+            assertThat(deps).containsKey("com.example.B");
+            assertThat(deps.get("com.example.B")).isEmpty();
+        }
+
+        @Test
+        void shouldReturnDependenciesFromAnnotatedByEdges() {
+            TypeNode appService = createType("com.example.application.OrderService");
+            TypeNode annotation = createAnnotationType("org.springframework.stereotype.Service");
+
+            graph.addNode(appService);
+            graph.addNode(annotation);
+
+            graph.addEdge(Edge.raw(appService.id(), annotation.id(), EdgeKind.ANNOTATED_BY));
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps.get("com.example.application.OrderService"))
+                    .contains("org.springframework.stereotype.Service");
+        }
+
+        @Test
+        void shouldReturnDependenciesFromFieldTypeEdges() {
+            TypeNode typeA = createType("com.example.A");
+            TypeNode typeB = createType("com.example.B");
+
+            graph.addNode(typeA);
+            graph.addNode(typeB);
+
+            graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.FIELD_TYPE));
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps.get("com.example.A")).contains("com.example.B");
+        }
+
+        @Test
+        void shouldReturnDependenciesFromImplementsEdges() {
+            TypeNode impl = createType("com.example.OrderServiceImpl");
+            TypeNode iface = createInterfaceType("com.example.OrderService");
+
+            graph.addNode(impl);
+            graph.addNode(iface);
+
+            graph.addEdge(Edge.raw(impl.id(), iface.id(), EdgeKind.IMPLEMENTS));
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps.get("com.example.OrderServiceImpl")).contains("com.example.OrderService");
+        }
+
+        @Test
+        void shouldIncludeAllTypesInGraph() {
+            TypeNode typeA = createType("com.example.A");
+            TypeNode typeB = createType("com.example.B");
+            TypeNode typeC = createType("com.example.C");
+
+            graph.addNode(typeA);
+            graph.addNode(typeB);
+            graph.addNode(typeC);
+
+            graph.addEdge(Edge.raw(typeA.id(), typeB.id(), EdgeKind.REFERENCES));
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThat(deps).hasSize(3);
+            assertThat(deps).containsKeys("com.example.A", "com.example.B", "com.example.C");
+        }
+
+        @Test
+        void shouldReturnImmutableMap() {
+            TypeNode typeA = createType("com.example.A");
+            graph.addNode(typeA);
+
+            Map<String, Set<String>> deps = query.allTypeDependencies();
+
+            assertThatThrownBy(() -> deps.put("com.example.New", Set.of()))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
+    }
+
     // === Test utilities ===
 
     private TypeNode createType(String qualifiedName) {
@@ -368,6 +476,26 @@ class DefaultArchitectureQueryTest {
                 .simpleName(extractSimpleName(qualifiedName))
                 .packageName(extractPackageName(qualifiedName))
                 .form(io.hexaglue.core.frontend.JavaForm.CLASS)
+                .modifiers(Set.of(JavaModifier.PUBLIC))
+                .build();
+    }
+
+    private TypeNode createInterfaceType(String qualifiedName) {
+        return TypeNode.builder()
+                .qualifiedName(qualifiedName)
+                .simpleName(extractSimpleName(qualifiedName))
+                .packageName(extractPackageName(qualifiedName))
+                .form(io.hexaglue.core.frontend.JavaForm.INTERFACE)
+                .modifiers(Set.of(JavaModifier.PUBLIC))
+                .build();
+    }
+
+    private TypeNode createAnnotationType(String qualifiedName) {
+        return TypeNode.builder()
+                .qualifiedName(qualifiedName)
+                .simpleName(extractSimpleName(qualifiedName))
+                .packageName(extractPackageName(qualifiedName))
+                .form(io.hexaglue.core.frontend.JavaForm.ANNOTATION)
                 .modifiers(Set.of(JavaModifier.PUBLIC))
                 .build();
     }

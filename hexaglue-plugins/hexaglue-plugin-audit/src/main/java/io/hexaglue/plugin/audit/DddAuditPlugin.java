@@ -383,11 +383,12 @@ public class DddAuditPlugin implements AuditPlugin {
         try {
             // Capture v4 ArchitecturalModel
             this.archModel = context.model();
-            Codebase codebase = buildCodebaseFromModel(archModel);
 
-            // Get architecture query from core if available
+            // Get architecture query from core if available (needed for full graph dependencies)
             io.hexaglue.spi.audit.ArchitectureQuery coreQuery =
                     context.architectureQuery().orElse(null);
+
+            Codebase codebase = buildCodebaseFromModel(archModel, coreQuery);
 
             // Load configuration
             AuditConfiguration config = AuditConfiguration.fromPluginConfig(context.config());
@@ -835,7 +836,7 @@ public class DddAuditPlugin implements AuditPlugin {
      * @since 4.0.0
      * @since 4.1.0 - Uses registry() instead of deprecated convenience methods
      */
-    private Codebase buildCodebaseFromModel(ArchitecturalModel model) {
+    private Codebase buildCodebaseFromModel(ArchitecturalModel model, io.hexaglue.spi.audit.ArchitectureQuery query) {
         List<CodeUnit> units = new ArrayList<>();
         Map<String, Set<String>> dependencies = new HashMap<>();
 
@@ -903,6 +904,16 @@ public class DddAuditPlugin implements AuditPlugin {
             units.add(unit);
             dependencies.put(port.id().qualifiedName(), extractDependenciesV5(port));
         });
+
+        // Enrich with dependencies from excluded types (not in registry but in full graph)
+        if (query != null) {
+            Map<String, Set<String>> fullGraphDeps = query.allTypeDependencies();
+            for (Map.Entry<String, Set<String>> entry : fullGraphDeps.entrySet()) {
+                if (!dependencies.containsKey(entry.getKey())) {
+                    dependencies.put(entry.getKey(), entry.getValue());
+                }
+            }
+        }
 
         return new Codebase("audit-target", inferBasePackage(units), units, dependencies);
     }
@@ -1280,6 +1291,7 @@ public class DddAuditPlugin implements AuditPlugin {
                 deps.add(field.type().qualifiedName());
             }
         });
+        structure.annotations().forEach(ann -> deps.add(ann.qualifiedName()));
         return deps;
     }
 

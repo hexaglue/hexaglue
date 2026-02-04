@@ -858,6 +858,24 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
     }
 
     @Override
+    public Map<String, Set<String>> allTypeDependencies() {
+        Map<String, Set<String>> result = new HashMap<>();
+        for (TypeNode type : graph.typeNodes()) {
+            Set<String> deps = new HashSet<>();
+            for (Edge edge : graph.edgesFrom(type.id())) {
+                if (edge.kind() == EdgeKind.REFERENCES
+                        || edge.kind() == EdgeKind.ANNOTATED_BY
+                        || edge.kind() == EdgeKind.FIELD_TYPE
+                        || edge.kind() == EdgeKind.IMPLEMENTS) {
+                    graph.typeNode(edge.to()).ifPresent(targetType -> deps.add(targetType.qualifiedName()));
+                }
+            }
+            result.put(type.qualifiedName(), Set.copyOf(deps));
+        }
+        return Map.copyOf(result);
+    }
+
+    @Override
     public List<String> findImplementors(String interfaceQualifiedName) {
         if (interfaceQualifiedName == null) {
             return List.of();
