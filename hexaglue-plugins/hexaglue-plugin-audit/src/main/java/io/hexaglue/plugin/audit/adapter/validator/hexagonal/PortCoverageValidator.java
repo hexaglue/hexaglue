@@ -114,21 +114,21 @@ public class PortCoverageValidator implements ConstraintValidator {
     /**
      * Checks if a port has at least one adapter implementation.
      *
-     * <p>Uses three strategies in order:
+     * <p>Uses two strategies in order:
      * <ol>
-     *   <li><strong>Codebase dependencies</strong>: checks if any type depends on the port
-     *       (reverse lookup in the dependency map)</li>
      *   <li><strong>CompositionIndex graph</strong>: checks for IMPLEMENTS relationships
      *       targeting the port (covers generated adapters classified as OUT_OF_SCOPE)</li>
      *   <li><strong>ApplicationGraph via ArchitectureQuery</strong>: checks the full graph
      *       for implementations (covers adapters in excluded packages)</li>
      * </ol>
      *
-     * <p>Either strategy finding an adapter is sufficient.
+     * <p>Note: A previous strategy using {@code codebase.dependencies()} was removed because
+     * it incorrectly detected any dependency (including service-to-repository usage) as an
+     * adapter implementation. The correct approach is to look for IMPLEMENTS relationships only.
      *
      * @param portId the port's type identifier
      * @param model the architectural model (for CompositionIndex access)
-     * @param codebase the codebase containing dependency information
+     * @param codebase the codebase containing dependency information (unused, kept for API compatibility)
      * @param query the architecture query for full graph access (may be null)
      * @return true if the port has at least one adapter implementation
      * @since 5.0.0
@@ -137,14 +137,7 @@ public class PortCoverageValidator implements ConstraintValidator {
             TypeId portId, ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
         String portQualifiedName = portId.qualifiedName();
 
-        // Strategy 1: Check codebase dependencies (reverse lookup)
-        boolean foundViaDependencies = codebase.dependencies().entrySet().stream()
-                .anyMatch(entry -> entry.getValue().contains(portQualifiedName));
-        if (foundViaDependencies) {
-            return true;
-        }
-
-        // Strategy 2: Check CompositionIndex for IMPLEMENTS relationships
+        // Strategy 1: Check CompositionIndex for IMPLEMENTS relationships
         boolean foundViaCompositionIndex = model.compositionIndex()
                 .map(ci -> ci.graph().to(portId).anyMatch(r -> r.type() == RelationType.IMPLEMENTS))
                 .orElse(false);
@@ -152,7 +145,7 @@ public class PortCoverageValidator implements ConstraintValidator {
             return true;
         }
 
-        // Strategy 3: Check full ApplicationGraph via ArchitectureQuery (handles excluded packages)
+        // Strategy 2: Check full ApplicationGraph via ArchitectureQuery (handles excluded packages)
         if (query != null) {
             return !query.findImplementors(portQualifiedName).isEmpty();
         }

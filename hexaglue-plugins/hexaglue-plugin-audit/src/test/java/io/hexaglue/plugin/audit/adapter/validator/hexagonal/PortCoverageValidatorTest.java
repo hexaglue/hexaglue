@@ -52,13 +52,12 @@ class PortCoverageValidatorTest {
     @Test
     @DisplayName("Should pass when port has adapter implementation")
     void shouldPass_whenPortHasAdapterImplementation() {
-        // Given - Port with adapter that depends on it (adapter in dependencies)
+        // Given - Port with adapter that IMPLEMENTS it (not just depends)
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivingPort(PORT_PACKAGE + ".OrderService")
+                .addImplements(INFRA_PACKAGE + ".OrderServiceAdapter", PORT_PACKAGE + ".OrderService")
                 .build();
-        Codebase codebase = new TestCodebaseBuilder()
-                .addDependency(INFRA_PACKAGE + ".OrderServiceAdapter", PORT_PACKAGE + ".OrderService")
-                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
         List<Violation> violations = validator.validate(model, codebase, null);
@@ -93,16 +92,15 @@ class PortCoverageValidatorTest {
     @Test
     @DisplayName("Should check all ports")
     void shouldCheckAllPorts() {
-        // Given - Multiple ports, some with implementations, some without
+        // Given - Multiple ports, some with IMPLEMENTS relationships, some without
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivingPort(PORT_PACKAGE + ".OrderService")
                 .addDrivingPort(PORT_PACKAGE + ".PaymentGateway")
                 .addDrivingPort(PORT_PACKAGE + ".NotificationService")
+                .addImplements(INFRA_PACKAGE + ".OrderServiceAdapter", PORT_PACKAGE + ".OrderService")
+                .addImplements(INFRA_PACKAGE + ".NotificationServiceAdapter", PORT_PACKAGE + ".NotificationService")
                 .build();
-        Codebase codebase = new TestCodebaseBuilder()
-                .addDependency(INFRA_PACKAGE + ".OrderServiceAdapter", PORT_PACKAGE + ".OrderService")
-                .addDependency(INFRA_PACKAGE + ".NotificationServiceAdapter", PORT_PACKAGE + ".NotificationService")
-                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
         List<Violation> violations = validator.validate(model, codebase, null);
@@ -149,14 +147,13 @@ class PortCoverageValidatorTest {
     @Test
     @DisplayName("Should pass when port has multiple adapter implementations")
     void shouldPass_whenPortHasMultipleAdapterImplementations() {
-        // Given - Port with multiple adapters
+        // Given - Port with multiple adapters via IMPLEMENTS relationships
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addImplements(INFRA_PACKAGE + ".JpaOrderRepositoryAdapter", PORT_PACKAGE + ".OrderRepository")
+                .addImplements(INFRA_PACKAGE + ".MongoOrderRepositoryAdapter", PORT_PACKAGE + ".OrderRepository")
                 .build();
-        Codebase codebase = new TestCodebaseBuilder()
-                .addDependency(INFRA_PACKAGE + ".JpaOrderRepositoryAdapter", PORT_PACKAGE + ".OrderRepository")
-                .addDependency(INFRA_PACKAGE + ".MongoOrderRepositoryAdapter", PORT_PACKAGE + ".OrderRepository")
-                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
         List<Violation> violations = validator.validate(model, codebase, null);
@@ -240,15 +237,14 @@ class PortCoverageValidatorTest {
     }
 
     @Test
-    @DisplayName("Should pass when adapter exists and depends on port")
-    void shouldPass_whenAdapterExistsAndDependsOnPort() {
-        // Given - Realistic scenario with adapter implementing port
+    @DisplayName("Should pass when adapter implements port")
+    void shouldPass_whenAdapterImplementsPort() {
+        // Given - Realistic scenario with adapter IMPLEMENTING port (not just depending)
         ArchitecturalModel model = new TestModelBuilder()
                 .addDrivenPort(PORT_PACKAGE + ".CustomerRepository", DrivenPortType.REPOSITORY)
+                .addImplements(INFRA_PACKAGE + ".JpaCustomerRepository", PORT_PACKAGE + ".CustomerRepository")
                 .build();
-        Codebase codebase = new TestCodebaseBuilder()
-                .addDependency(INFRA_PACKAGE + ".JpaCustomerRepository", PORT_PACKAGE + ".CustomerRepository")
-                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
 
         // When
         List<Violation> violations = validator.validate(model, codebase, null);
@@ -293,16 +289,14 @@ class PortCoverageValidatorTest {
         }
 
         @Test
-        @DisplayName("Should pass when port has adapter via both Codebase and graph")
-        void shouldPass_whenPortHasAdapterViaBothCodebaseAndGraph() {
-            // Given - Both strategies find adapter
+        @DisplayName("Should pass when port has adapter via IMPLEMENTS in graph")
+        void shouldPass_whenPortHasAdapterViaImplementsInGraph() {
+            // Given - Adapter implements port via IMPLEMENTS relationship
             ArchitecturalModel model = new TestModelBuilder()
                     .addDrivingPort(PORT_PACKAGE + ".OrderService")
                     .addImplements(INFRA_PACKAGE + ".OrderRestController", PORT_PACKAGE + ".OrderService")
                     .build();
-            Codebase codebase = new TestCodebaseBuilder()
-                    .addDependency(INFRA_PACKAGE + ".OrderRestController", PORT_PACKAGE + ".OrderService")
-                    .build();
+            Codebase codebase = new TestCodebaseBuilder().build();
 
             // When
             List<Violation> violations = validator.validate(model, codebase, null);
