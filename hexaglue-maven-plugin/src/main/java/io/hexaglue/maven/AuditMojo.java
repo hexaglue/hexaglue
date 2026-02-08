@@ -216,6 +216,7 @@ public class AuditMojo extends AbstractMojo {
                 basePackage,
                 project.getName(),
                 project.getVersion(),
+                null,
                 reportDirectory.toPath(), // Audit plugins need output directory for reports
                 pluginConfigs,
                 Map.of(),

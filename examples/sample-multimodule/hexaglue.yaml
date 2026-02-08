@@ -1,0 +1,8 @@
+plugins:
+  jpa:
+    entitySuffix: "Entity"
+    generateRepositories: true
+    generateMappers: true
+    generateAdapters: true
+  audit:
+    failOnBlocker: false

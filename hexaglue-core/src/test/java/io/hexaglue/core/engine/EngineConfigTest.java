@@ -115,6 +115,7 @@ class EngineConfigTest {
                 null, // projectName
                 null, // projectVersion
                 null, // outputDirectory
+                null,
                 java.util.Map.of(),
                 java.util.Map.of(),
                 null,
@@ -143,6 +144,7 @@ class EngineConfigTest {
                 "Test Project", // projectName
                 "1.0.0", // projectVersion
                 outputDir,
+                null,
                 java.util.Map.of("plugin1", java.util.Map.of("key", "value")),
                 java.util.Map.of("option", "value"),
                 classificationConfig,

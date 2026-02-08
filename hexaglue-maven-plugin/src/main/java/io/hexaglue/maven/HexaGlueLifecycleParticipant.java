@@ -13,6 +13,8 @@
 
 package io.hexaglue.maven;
 
+import io.hexaglue.core.engine.MultiModuleOutputResolver;
+import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import org.apache.maven.AbstractMavenLifecycleParticipant;
@@ -87,6 +89,9 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
             // Multi-module: inject reactor goals on the parent project only
             injectReactorExecutionsIfNeeded(topLevel);
 
+            // Register generated-sources roots early so IDEs discover them on import
+            registerMultiModuleSourceRoots(session, topLevel);
+
             // Inject MapStruct into child modules that have the JPA plugin
             for (MavenProject project : session.getProjects()) {
                 Plugin hexagluePlugin = findHexaGluePlugin(project);
@@ -121,6 +126,29 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
 
         injectGoalIfNeeded(hexagluePlugin, REACTOR_GENERATE_GOAL, GENERATE_PHASE, REACTOR_GENERATE_EXECUTION_ID);
         injectGoalIfNeeded(hexagluePlugin, REACTOR_AUDIT_GOAL, AUDIT_PHASE, REACTOR_AUDIT_EXECUTION_ID);
+    }
+
+    /**
+     * Registers generated-source roots for each {@code jar}-packaged child module.
+     *
+     * <p>Source roots point to the path resolved by {@link MultiModuleOutputResolver}
+     * (under the reactor root's {@code target/}) so that child module {@code clean} phases
+     * never erase generated code. Calling {@code addCompileSourceRoot} early (in
+     * {@code afterProjectsRead}) ensures IDEs discover the roots during project import.</p>
+     *
+     * @since 5.0.0
+     */
+    private void registerMultiModuleSourceRoots(MavenSession session, MavenProject topLevel) {
+        MultiModuleOutputResolver outputResolver =
+                new MultiModuleOutputResolver(topLevel.getBasedir().toPath());
+        for (MavenProject project : session.getProjects()) {
+            if (!"jar".equals(project.getPackaging())) {
+                continue;
+            }
+            String moduleId = project.getArtifactId();
+            Path sourceRoot = outputResolver.resolveSourcesDirectory(moduleId);
+            project.addCompileSourceRoot(sourceRoot.toAbsolutePath().toString());
+        }
     }
 
     private void injectExecutionsIfNeeded(MavenProject project) {

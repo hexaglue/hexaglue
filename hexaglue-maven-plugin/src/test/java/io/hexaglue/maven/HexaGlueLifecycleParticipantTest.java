@@ -15,6 +15,9 @@ package io.hexaglue.maven;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.maven.execution.DefaultMavenExecutionRequest;
@@ -30,6 +33,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Tests for {@link HexaGlueLifecycleParticipant} MapStruct auto-injection.
@@ -271,6 +275,9 @@ class HexaGlueLifecycleParticipantTest {
     @DisplayName("Reactor goal injection")
     class ReactorGoalInjection {
 
+        @TempDir
+        Path tempDir;
+
         @Test
         @DisplayName("should inject reactor goals in parent for multi-module")
         void shouldInjectReactorGoalsInParentForMultiModule() throws Exception {
@@ -355,11 +362,69 @@ class HexaGlueLifecycleParticipantTest {
                     .isEmpty();
         }
 
-        private MavenProject createMultiModuleParent() {
+        @Test
+        @DisplayName("should register parent-based source roots on child jar modules")
+        void shouldRegisterParentBasedSourceRootsOnChildJarModules() throws Exception {
+            MavenProject parent = createMultiModuleParent();
+            MavenProject child = createJarChild("banking-infrastructure");
+            MavenSession session = createSession(parent, child);
+
+            participant.afterProjectsRead(session);
+
+            String expectedFragment = "target/generated-sources/hexaglue/modules/banking-infrastructure";
+            assertThat(child.getCompileSourceRoots()).anyMatch(root -> root.contains(expectedFragment));
+        }
+
+        @Test
+        @DisplayName("should not register source roots on POM-packaged modules")
+        void shouldNotRegisterSourceRootsOnPomPackagedModules() throws Exception {
+            MavenProject parent = createMultiModuleParent();
+            MavenProject pomChild = createPomChild("banking-bom");
+            int initialSourceRoots = pomChild.getCompileSourceRoots().size();
+            MavenSession session = createSession(parent, pomChild);
+
+            participant.afterProjectsRead(session);
+
+            assertThat(pomChild.getCompileSourceRoots()).hasSize(initialSourceRoots);
+        }
+
+        private MavenProject createJarChild(String artifactId) throws IOException {
+            Path childDir = tempDir.resolve(artifactId);
+            Files.createDirectories(childDir);
+
+            MavenProject project = new MavenProject();
+            project.setArtifactId(artifactId);
+            project.setPackaging("jar");
+            project.setDependencies(new ArrayList<>());
+            project.setBuild(new Build());
+            project.setFile(childDir.resolve("pom.xml").toFile());
+
+            return project;
+        }
+
+        private MavenProject createPomChild(String artifactId) throws IOException {
+            Path childDir = tempDir.resolve(artifactId);
+            Files.createDirectories(childDir);
+
+            MavenProject project = new MavenProject();
+            project.setArtifactId(artifactId);
+            project.setPackaging("pom");
+            project.setDependencies(new ArrayList<>());
+            project.setBuild(new Build());
+            project.setFile(childDir.resolve("pom.xml").toFile());
+
+            return project;
+        }
+
+        private MavenProject createMultiModuleParent() throws IOException {
+            Path parentDir = tempDir.resolve("parent");
+            Files.createDirectories(parentDir);
+
             // Build model first — setModel() replaces the internal model so
             // build and modules must be on the model before constructing the project.
             Model model = new Model();
             model.setModules(List.of("core", "infra"));
+            model.setPackaging("pom");
 
             Build build = new Build();
             Plugin hexagluePlugin = createPlugin("io.hexaglue", "hexaglue-maven-plugin");
@@ -367,7 +432,9 @@ class HexaGlueLifecycleParticipantTest {
             model.setBuild(build);
 
             MavenProject project = new MavenProject(model);
+            project.setArtifactId("parent");
             project.setDependencies(new ArrayList<>());
+            project.setFile(parentDir.resolve("pom.xml").toFile());
 
             return project;
         }
@@ -385,6 +452,8 @@ class HexaGlueLifecycleParticipantTest {
 
     private MavenProject createProjectWithJpaPlugin() {
         MavenProject project = new MavenProject();
+        project.setArtifactId("test-jpa-module");
+        project.setPackaging("jar");
         project.setDependencies(new ArrayList<>());
         Build build = new Build();
 
@@ -399,6 +468,8 @@ class HexaGlueLifecycleParticipantTest {
 
     private MavenProject createProjectWithoutJpaPlugin() {
         MavenProject project = new MavenProject();
+        project.setArtifactId("test-no-jpa-module");
+        project.setPackaging("jar");
         project.setDependencies(new ArrayList<>());
         Build build = new Build();
 

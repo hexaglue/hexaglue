@@ -211,6 +211,7 @@ public class ValidateMojo extends AbstractMojo {
                 project.getName(),
                 project.getVersion(),
                 null, // No output directory needed
+                null,
                 Map.of(),
                 Map.of(),
                 classificationConfig,

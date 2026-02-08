@@ -14,6 +14,7 @@
 package io.hexaglue.core.plugin;
 
 import io.hexaglue.core.engine.ModuleSourceSet;
+import io.hexaglue.core.engine.OverwritePolicy;
 import io.hexaglue.spi.plugin.CodeWriter;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -40,7 +41,7 @@ final class MultiModuleCodeWriter implements CodeWriter {
     private final FileSystemCodeWriter defaultWriter;
 
     /**
-     * Creates a MultiModuleCodeWriter.
+     * Creates a MultiModuleCodeWriter using each module's default output directory.
      *
      * @param modules the module source sets describing each module's output directory
      * @param defaultOutputDirectory the default output directory for non-module-specific files
@@ -48,17 +49,79 @@ final class MultiModuleCodeWriter implements CodeWriter {
      * @throws IllegalArgumentException if modules is empty
      */
     MultiModuleCodeWriter(List<ModuleSourceSet> modules, Path defaultOutputDirectory) {
+        this(modules, defaultOutputDirectory, null);
+    }
+
+    /**
+     * Creates a MultiModuleCodeWriter with an optional per-plugin output directory override.
+     *
+     * <p>When {@code pluginOutputOverride} is provided:
+     * <ul>
+     *   <li>If <strong>relative</strong>, it is resolved against each module's
+     *       {@link ModuleSourceSet#baseDir() baseDir}. This supports configurations
+     *       like {@code src/main/java/} where each module writes to its own source tree.</li>
+     *   <li>If <strong>absolute</strong>, it is used directly for all modules.</li>
+     * </ul>
+     *
+     * <p>When {@code pluginOutputOverride} is {@code null}, each module uses its
+     * default {@link ModuleSourceSet#outputDirectory()}.</p>
+     *
+     * @param modules the module source sets describing each module
+     * @param defaultOutputDirectory the default output directory for non-module-specific files
+     * @param pluginOutputOverride per-plugin output directory override (may be null)
+     * @throws NullPointerException if modules or defaultOutputDirectory is null
+     * @throws IllegalArgumentException if modules is empty
+     * @since 5.0.0
+     */
+    MultiModuleCodeWriter(List<ModuleSourceSet> modules, Path defaultOutputDirectory, Path pluginOutputOverride) {
+        this(modules, defaultOutputDirectory, pluginOutputOverride, OverwritePolicy.ALWAYS, Map.of());
+    }
+
+    /**
+     * Creates a MultiModuleCodeWriter with overwrite policy and previous checksums.
+     *
+     * @param modules the module source sets describing each module
+     * @param defaultOutputDirectory the default output directory for non-module-specific files
+     * @param pluginOutputOverride per-plugin output directory override (may be null)
+     * @param overwritePolicy the overwrite policy to apply
+     * @param previousChecksums checksums from the previous manifest (absolute path to checksum)
+     * @throws NullPointerException if modules or defaultOutputDirectory is null
+     * @throws IllegalArgumentException if modules is empty
+     * @since 5.0.0
+     */
+    MultiModuleCodeWriter(
+            List<ModuleSourceSet> modules,
+            Path defaultOutputDirectory,
+            Path pluginOutputOverride,
+            OverwritePolicy overwritePolicy,
+            Map<Path, String> previousChecksums) {
         Objects.requireNonNull(modules, "modules must not be null");
         Objects.requireNonNull(defaultOutputDirectory, "defaultOutputDirectory must not be null");
         if (modules.isEmpty()) {
             throw new IllegalArgumentException("modules must not be empty for multi-module writer");
         }
 
-        this.defaultWriter = new FileSystemCodeWriter(defaultOutputDirectory);
+        this.defaultWriter = new FileSystemCodeWriter(defaultOutputDirectory, overwritePolicy, previousChecksums);
         this.writers = new HashMap<>();
         for (ModuleSourceSet module : modules) {
-            writers.put(module.moduleId(), new FileSystemCodeWriter(module.outputDirectory()));
+            Path effectiveOutput = resolveModuleOutput(module, pluginOutputOverride);
+            writers.put(
+                    module.moduleId(), new FileSystemCodeWriter(effectiveOutput, overwritePolicy, previousChecksums));
         }
+    }
+
+    /**
+     * Resolves the effective output directory for a module, applying the plugin override if present.
+     */
+    private static Path resolveModuleOutput(ModuleSourceSet module, Path pluginOutputOverride) {
+        if (pluginOutputOverride == null) {
+            return module.outputDirectory();
+        }
+        if (pluginOutputOverride.isAbsolute()) {
+            return pluginOutputOverride;
+        }
+        // Relative path: resolve against the module's base directory
+        return module.baseDir().resolve(pluginOutputOverride);
     }
 
     // =========================================================================
@@ -153,6 +216,20 @@ final class MultiModuleCodeWriter implements CodeWriter {
             allFiles.addAll(writer.getGeneratedFiles());
         }
         return List.copyOf(allFiles);
+    }
+
+    /**
+     * Returns checksums for all generated files across all writers.
+     *
+     * @return an unmodifiable map of absolute file path to checksum string
+     * @since 5.0.0
+     */
+    Map<Path, String> getGeneratedFileChecksums() {
+        Map<Path, String> all = new HashMap<>(defaultWriter.getGeneratedFileChecksums());
+        for (FileSystemCodeWriter writer : writers.values()) {
+            all.putAll(writer.getGeneratedFileChecksums());
+        }
+        return Map.copyOf(all);
     }
 
     private FileSystemCodeWriter writerFor(String moduleId) {

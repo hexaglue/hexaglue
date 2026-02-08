@@ -310,6 +310,94 @@ final class MojoConfigLoader {
     }
 
     /**
+     * Loads output directory configuration from the {@code output:} section of hexaglue.yaml.
+     *
+     * <p>Expected YAML structure:
+     * <pre>{@code
+     * output:
+     *   sources: "target/generated-sources/hexaglue"
+     *   reports: "target/hexaglue/reports"
+     * }</pre>
+     *
+     * <p>Missing keys default to the standard HexaGlue convention paths.</p>
+     *
+     * @param projectBaseDir the project base directory (typically the reactor root)
+     * @param log the Maven logger
+     * @return the output configuration, never null
+     * @since 5.0.0
+     */
+    // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast
+    @SuppressWarnings("unchecked")
+    static OutputConfig loadOutputConfig(Path projectBaseDir, Log log) {
+        Path configPath = resolveConfigPath(projectBaseDir);
+
+        if (configPath == null) {
+            return OutputConfig.defaults();
+        }
+
+        try (Reader reader = Files.newBufferedReader(configPath)) {
+            Yaml yaml = new Yaml();
+            Map<String, Object> root = yaml.load(reader);
+
+            if (root == null || !root.containsKey("output")) {
+                return OutputConfig.defaults();
+            }
+
+            Object outputObj = root.get("output");
+            if (!(outputObj instanceof Map)) {
+                log.warn("Invalid configuration: 'output' must be a map");
+                return OutputConfig.defaults();
+            }
+
+            Map<String, Object> outputMap = (Map<String, Object>) outputObj;
+
+            String sourcesBase = OutputConfig.DEFAULT_SOURCES_BASE;
+            if (outputMap.get("sources") instanceof String s) {
+                sourcesBase = s;
+            }
+
+            String reportsBase = OutputConfig.DEFAULT_REPORTS_BASE;
+            if (outputMap.get("reports") instanceof String s) {
+                reportsBase = s;
+            }
+
+            OutputConfig config = new OutputConfig(sourcesBase, reportsBase);
+            if (!config.equals(OutputConfig.defaults())) {
+                log.info("Loaded output configuration from: " + configPath.getFileName());
+            }
+            return config;
+
+        } catch (IOException e) {
+            log.warn("Failed to read configuration file: " + configPath);
+            return OutputConfig.defaults();
+        } catch (Exception e) {
+            log.warn("Failed to parse output configuration: " + e.getMessage());
+            return OutputConfig.defaults();
+        }
+    }
+
+    /**
+     * Output directory configuration parsed from the {@code output:} section of hexaglue.yaml.
+     *
+     * @param sourcesBase relative path for generated sources (e.g., {@code "target/generated-sources/hexaglue"})
+     * @param reportsBase relative path for reports (e.g., {@code "target/hexaglue/reports"})
+     * @since 5.0.0
+     */
+    record OutputConfig(String sourcesBase, String reportsBase) {
+
+        /** Default base path for generated sources, relative to the project root. */
+        static final String DEFAULT_SOURCES_BASE = "target/generated-sources/hexaglue";
+
+        /** Default base path for reports, relative to the project root. */
+        static final String DEFAULT_REPORTS_BASE = "target/hexaglue/reports";
+
+        /** Returns the default output configuration. */
+        static OutputConfig defaults() {
+            return new OutputConfig(DEFAULT_SOURCES_BASE, DEFAULT_REPORTS_BASE);
+        }
+    }
+
+    /**
      * Resolves the path to hexaglue.yaml or hexaglue.yml in the project base directory.
      *
      * @param projectBaseDir the project base directory

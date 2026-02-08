@@ -130,6 +130,7 @@ public class ReactorAuditMojo extends AbstractMojo {
         EngineConfig config = ReactorEngineConfigBuilder.build(
                 session,
                 basePackage,
+                null, // No sources directory for audit-only
                 reportDirectory.toPath(),
                 pluginConfigs,
                 classificationConfig,

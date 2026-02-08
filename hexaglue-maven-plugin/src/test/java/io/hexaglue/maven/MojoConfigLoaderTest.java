@@ -242,4 +242,78 @@ class MojoConfigLoaderTest {
             assertThat(result).isEqualTo(dir.resolve("hexaglue.yaml"));
         }
     }
+
+    @Nested
+    @DisplayName("loadOutputConfig")
+    class LoadOutputConfig {
+
+        @Test
+        @DisplayName("should return defaults when no config file exists")
+        void shouldReturnDefaultsWhenNoConfigFile() {
+            MojoConfigLoader.OutputConfig config = MojoConfigLoader.loadOutputConfig(tempDir, log);
+
+            assertThat(config).isEqualTo(MojoConfigLoader.OutputConfig.defaults());
+            assertThat(config.sourcesBase()).isEqualTo("target/generated-sources/hexaglue");
+            assertThat(config.reportsBase()).isEqualTo("target/hexaglue/reports");
+        }
+
+        @Test
+        @DisplayName("should return defaults when no output section in YAML")
+        void shouldReturnDefaultsWhenNoOutputSection() throws IOException {
+            String yaml = """
+                    classification:
+                      exclude:
+                        - "*.shared.*"
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            MojoConfigLoader.OutputConfig config = MojoConfigLoader.loadOutputConfig(tempDir, log);
+
+            assertThat(config).isEqualTo(MojoConfigLoader.OutputConfig.defaults());
+        }
+
+        @Test
+        @DisplayName("should parse custom sources and reports paths")
+        void shouldParseCustomSourcesAndReportsPaths() throws IOException {
+            String yaml = """
+                    output:
+                      sources: "target/custom-sources"
+                      reports: "target/custom-reports"
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            MojoConfigLoader.OutputConfig config = MojoConfigLoader.loadOutputConfig(tempDir, log);
+
+            assertThat(config.sourcesBase()).isEqualTo("target/custom-sources");
+            assertThat(config.reportsBase()).isEqualTo("target/custom-reports");
+        }
+
+        @Test
+        @DisplayName("should use default for missing keys")
+        void shouldUseDefaultForMissingKeys() throws IOException {
+            String yaml = """
+                    output:
+                      sources: "custom/sources"
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            MojoConfigLoader.OutputConfig config = MojoConfigLoader.loadOutputConfig(tempDir, log);
+
+            assertThat(config.sourcesBase()).isEqualTo("custom/sources");
+            assertThat(config.reportsBase()).isEqualTo(MojoConfigLoader.OutputConfig.DEFAULT_REPORTS_BASE);
+        }
+
+        @Test
+        @DisplayName("should handle invalid output section type")
+        void shouldHandleInvalidOutputSectionType() throws IOException {
+            String yaml = """
+                    output: "not-a-map"
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            MojoConfigLoader.OutputConfig config = MojoConfigLoader.loadOutputConfig(tempDir, log);
+
+            assertThat(config).isEqualTo(MojoConfigLoader.OutputConfig.defaults());
+        }
+    }
 }
