@@ -36,6 +36,8 @@ import io.hexaglue.arch.model.audit.BoundedContextInfo;
 import io.hexaglue.arch.model.graph.RelationType;
 import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleDescriptor;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.audit.adapter.diagram.MermaidTypeConverter;
 import io.hexaglue.plugin.audit.adapter.report.model.HealthScore;
@@ -268,12 +270,15 @@ public class ReportDataBuilder {
         // Build type violations for diagram visualization
         List<TypeViolation> typeViolations = buildTypeViolations(violations);
 
+        // Build module topology for multi-module projects
+        ModuleTopology moduleTopology = buildModuleTopology(model);
+
         String summary = String.format(
                 "Analyzed %d types across %d bounded context%s",
                 totals.total(), bcInventories.size(), bcInventories.size() != 1 ? "s" : "");
 
         return new ArchitectureOverview(
-                summary, inventory, components, DiagramsInfo.defaults(), relationships, typeViolations);
+                summary, inventory, components, DiagramsInfo.defaults(), relationships, typeViolations, moduleTopology);
     }
 
     private InventoryTotals calculateTotals(DomainIndex domainIndex, PortIndex portIndex, TypeRegistry registry) {
@@ -739,6 +744,48 @@ public class ReportDataBuilder {
             // aggregate-cycle is handled separately in buildRelationships
             default -> null;
         };
+    }
+
+    /**
+     * Builds the module topology from the architectural model.
+     *
+     * <p>Returns {@code null} if the model does not contain a {@link ModuleIndex}
+     * (mono-module mode).
+     *
+     * @param model the architectural model
+     * @return the module topology, or null if mono-module
+     * @since 5.0.0
+     */
+    private ModuleTopology buildModuleTopology(ArchitecturalModel model) {
+        if (model.moduleIndex().isEmpty()) {
+            return null;
+        }
+        ModuleIndex moduleIndex = model.moduleIndex().get();
+
+        List<ModuleTopology.ModuleInfo> moduleInfos = moduleIndex
+                .modules()
+                .sorted(Comparator.comparing(ModuleDescriptor::moduleId))
+                .map(descriptor -> {
+                    int typeCount = (int)
+                            moduleIndex.typesInModule(descriptor.moduleId()).count();
+                    List<String> packages = moduleIndex
+                            .typesInModule(descriptor.moduleId())
+                            .map(typeId -> {
+                                String qn = typeId.qualifiedName();
+                                int lastDot = qn.lastIndexOf('.');
+                                return lastDot > 0 ? qn.substring(0, lastDot) : "";
+                            })
+                            .filter(pkg -> !pkg.isEmpty())
+                            .distinct()
+                            .sorted()
+                            .toList();
+                    return new ModuleTopology.ModuleInfo(
+                            descriptor.moduleId(), descriptor.role().name(), typeCount, packages);
+                })
+                .toList();
+
+        String summary = String.format("%d modules detected", moduleInfos.size());
+        return new ModuleTopology(moduleInfos, summary);
     }
 
     /**

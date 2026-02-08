@@ -201,6 +201,36 @@ public class JsonReportRenderer implements ReportRenderer {
         // Type violations
         json.append("    \"typeViolations\": ");
         appendTypeViolations(json, arch.typeViolations());
+
+        // Module topology (optional, multi-module only, since 5.0.0)
+        if (arch.moduleTopology() != null) {
+            json.append(",\n");
+            json.append("    \"moduleTopology\": {\n");
+            json.append("      \"summary\": ")
+                    .append(quote(arch.moduleTopology().summary()))
+                    .append(",\n");
+            json.append("      \"modules\": [\n");
+            var modules = arch.moduleTopology().modules();
+            for (int i = 0; i < modules.size(); i++) {
+                var module = modules.get(i);
+                json.append("        {\n");
+                json.append("          \"moduleId\": ")
+                        .append(quote(module.moduleId()))
+                        .append(",\n");
+                json.append("          \"role\": ").append(quote(module.role())).append(",\n");
+                json.append("          \"typeCount\": ")
+                        .append(module.typeCount())
+                        .append(",\n");
+                json.append("          \"packages\": ")
+                        .append(toJsonArray(module.packages()))
+                        .append("\n");
+                json.append("        }");
+                if (i < modules.size() - 1) json.append(",");
+                json.append("\n");
+            }
+            json.append("      ]\n");
+            json.append("    }");
+        }
         json.append("\n");
 
         json.append("  }");

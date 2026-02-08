@@ -346,6 +346,34 @@ public class HtmlRenderer implements ReportRenderer {
             }
         }
 
+        // Module Topology (optional, multi-module only, since 5.0.0)
+        if (arch.moduleTopology() != null) {
+            html.append("  <h3>Module Topology</h3>\n");
+            html.append("  <p>").append(escape(arch.moduleTopology().summary())).append("</p>\n");
+            html.append("  <table>\n");
+            html.append("    <thead><tr><th>Module</th><th>Role</th><th>Types</th><th>Packages</th></tr></thead>\n");
+            html.append("    <tbody>\n");
+            for (var module : arch.moduleTopology().modules()) {
+                html.append("    <tr>");
+                html.append("<td>").append(escape(module.moduleId())).append("</td>");
+                html.append("<td>").append(escape(module.role())).append("</td>");
+                html.append("<td>").append(module.typeCount()).append("</td>");
+                html.append("<td>")
+                        .append(escape(String.join(", ", module.packages())))
+                        .append("</td>");
+                html.append("</tr>\n");
+            }
+            html.append("    </tbody>\n");
+            html.append("  </table>\n");
+            if (diagrams != null && diagrams.moduleTopology() != null) {
+                html.append("  <div class=\"diagram-container\">\n");
+                html.append("    <div class=\"mermaid\">\n")
+                        .append(escapeDiagram(diagrams.moduleTopology()))
+                        .append("\n    </div>\n");
+                html.append("  </div>\n");
+            }
+        }
+
         html.append("</section>\n");
     }
 

@@ -25,6 +25,7 @@ import java.util.Objects;
  * @param diagrams diagram metadata (actual Mermaid content is in DiagramSet)
  * @param relationships list of relationships between components
  * @param typeViolations list of type-level violations for diagram visualization
+ * @param moduleTopology module topology for multi-module projects (nullable, absent in mono-module)
  * @since 5.0.0
  */
 public record ArchitectureOverview(
@@ -33,7 +34,8 @@ public record ArchitectureOverview(
         ComponentDetails components,
         DiagramsInfo diagrams,
         List<Relationship> relationships,
-        List<TypeViolation> typeViolations) {
+        List<TypeViolation> typeViolations,
+        ModuleTopology moduleTopology) {
 
     /**
      * Creates an architecture overview with validation.
@@ -45,10 +47,11 @@ public record ArchitectureOverview(
         Objects.requireNonNull(diagrams, "diagrams is required");
         relationships = relationships != null ? List.copyOf(relationships) : List.of();
         typeViolations = typeViolations != null ? List.copyOf(typeViolations) : List.of();
+        // moduleTopology is optional - may be null (absent in mono-module)
     }
 
     /**
-     * Constructor for backward compatibility (without typeViolations).
+     * Constructor for backward compatibility (without typeViolations and moduleTopology).
      */
     public ArchitectureOverview(
             String summary,
@@ -56,7 +59,20 @@ public record ArchitectureOverview(
             ComponentDetails components,
             DiagramsInfo diagrams,
             List<Relationship> relationships) {
-        this(summary, inventory, components, diagrams, relationships, List.of());
+        this(summary, inventory, components, diagrams, relationships, List.of(), null);
+    }
+
+    /**
+     * Constructor for backward compatibility (without moduleTopology).
+     */
+    public ArchitectureOverview(
+            String summary,
+            Inventory inventory,
+            ComponentDetails components,
+            DiagramsInfo diagrams,
+            List<Relationship> relationships,
+            List<TypeViolation> typeViolations) {
+        this(summary, inventory, components, diagrams, relationships, typeViolations, null);
     }
 
     /**
