@@ -19,10 +19,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.hexaglue.arch.model.index.ModuleRole;
 import io.hexaglue.core.engine.ModuleSourceSet;
+import io.hexaglue.core.engine.OverwritePolicy;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -544,6 +546,167 @@ class MultiModuleCodeWriterTest {
 
                 assertThat(writer.getGeneratedFiles()).hasSize(2);
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("overwrite policy propagation")
+    class OverwritePolicyPropagation {
+
+        @Test
+        @DisplayName("should skip existing file in module with NEVER policy")
+        void shouldSkipExistingFileInModuleWithNeverPolicy() throws IOException {
+            // Pre-create a file in the infra module output
+            Path existingFile = infraOutputDir.resolve("com/example/OrderEntity.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, "class OrderEntity { /* original */ }");
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule, infraModule), defaultOutputDir, null, OverwritePolicy.NEVER, Map.of());
+
+            writer.writeJavaSource(
+                    "banking-persistence", "com.example", "OrderEntity", "class OrderEntity { /* new */ }");
+
+            // Should NOT overwrite: content should remain "original"
+            assertThat(Files.readString(existingFile)).contains("original");
+        }
+
+        @Test
+        @DisplayName("should write new file in module regardless of NEVER policy")
+        void shouldWriteNewFileInModuleRegardlessOfNeverPolicy() throws IOException {
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule, infraModule), defaultOutputDir, null, OverwritePolicy.NEVER, Map.of());
+
+            writer.writeJavaSource("banking-core", "com.example", "NewClass", "class NewClass {}");
+
+            Path expectedFile = coreOutputDir.resolve("com/example/NewClass.java");
+            assertThat(expectedFile).exists();
+            assertThat(Files.readString(expectedFile)).isEqualTo("class NewClass {}");
+        }
+
+        @Test
+        @DisplayName("should overwrite in module with ALWAYS policy")
+        void shouldOverwriteInModuleWithAlwaysPolicy() throws IOException {
+            // Pre-create a file
+            Path existingFile = coreOutputDir.resolve("com/example/Order.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, "class Order { /* v1 */ }");
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule), defaultOutputDir, null, OverwritePolicy.ALWAYS, Map.of());
+
+            writer.writeJavaSource("banking-core", "com.example", "Order", "class Order { /* v2 */ }");
+
+            assertThat(Files.readString(existingFile)).contains("v2");
+        }
+
+        @Test
+        @DisplayName("should skip manually modified file in module with IF_UNCHANGED policy")
+        void shouldSkipManuallyModifiedFileInModuleWithIfUnchangedPolicy() throws IOException {
+            String generatedContent = "class OrderEntity { /* generated */ }";
+            String generatedChecksum = FileSystemCodeWriter.computeChecksum(generatedContent);
+
+            Path existingFile = infraOutputDir.resolve("com/example/OrderEntity.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, "class OrderEntity { /* manually edited */ }");
+
+            Map<Path, String> previousChecksums = Map.of(existingFile, generatedChecksum);
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule, infraModule),
+                    defaultOutputDir,
+                    null,
+                    OverwritePolicy.IF_UNCHANGED,
+                    previousChecksums);
+
+            writer.writeJavaSource(
+                    "banking-persistence", "com.example", "OrderEntity", "class OrderEntity { /* v2 */ }");
+
+            // Should NOT overwrite: file was manually modified
+            assertThat(Files.readString(existingFile)).contains("manually edited");
+        }
+
+        @Test
+        @DisplayName("should overwrite unchanged file in module with IF_UNCHANGED policy")
+        void shouldOverwriteUnchangedFileInModuleWithIfUnchangedPolicy() throws IOException {
+            String generatedContent = "class OrderEntity { /* generated */ }";
+            String generatedChecksum = FileSystemCodeWriter.computeChecksum(generatedContent);
+
+            Path existingFile = infraOutputDir.resolve("com/example/OrderEntity.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, generatedContent); // Same content as generated
+
+            Map<Path, String> previousChecksums = Map.of(existingFile, generatedChecksum);
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule, infraModule),
+                    defaultOutputDir,
+                    null,
+                    OverwritePolicy.IF_UNCHANGED,
+                    previousChecksums);
+
+            writer.writeJavaSource(
+                    "banking-persistence", "com.example", "OrderEntity", "class OrderEntity { /* v2 */ }");
+
+            // Should overwrite: file was unchanged since last generation
+            assertThat(Files.readString(existingFile)).contains("v2");
+        }
+    }
+
+    @Nested
+    @DisplayName("checksum aggregation")
+    class ChecksumAggregation {
+
+        @Test
+        @DisplayName("should aggregate checksums from all module writers")
+        void shouldAggregateChecksumsFromAllModuleWriters() throws IOException {
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule, infraModule), defaultOutputDir, null, OverwritePolicy.ALWAYS, Map.of());
+
+            writer.writeJavaSource("banking-core", "com.example", "Order", "class Order {}");
+            writer.writeJavaSource("banking-persistence", "com.example", "OrderEntity", "class OrderEntity {}");
+
+            Map<Path, String> checksums = writer.getGeneratedFileChecksums();
+            assertThat(checksums).hasSize(2);
+            assertThat(checksums.values()).allSatisfy(v -> assertThat(v).startsWith("sha256:"));
+        }
+
+        @Test
+        @DisplayName("should include default writer checksums in aggregation")
+        void shouldIncludeDefaultWriterChecksumsInAggregation() throws IOException {
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule), defaultOutputDir, null, OverwritePolicy.ALWAYS, Map.of());
+
+            writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+            writer.writeDoc("report.md", "# Report");
+
+            Map<Path, String> checksums = writer.getGeneratedFileChecksums();
+            assertThat(checksums).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("should return empty checksums when nothing generated")
+        void shouldReturnEmptyChecksumsWhenNothingGenerated() {
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule), defaultOutputDir, null, OverwritePolicy.ALWAYS, Map.of());
+
+            assertThat(writer.getGeneratedFileChecksums()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should track checksums for skipped files")
+        void shouldTrackChecksumsForSkippedFiles() throws IOException {
+            // Pre-create a file
+            Path existingFile = coreOutputDir.resolve("com/example/Order.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, "class Order { /* original */ }");
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(
+                    List.of(coreModule), defaultOutputDir, null, OverwritePolicy.NEVER, Map.of());
+
+            writer.writeJavaSource("banking-core", "com.example", "Order", "class Order { /* new */ }");
+
+            // Even though the write was skipped, checksums should be tracked
+            assertThat(writer.getGeneratedFileChecksums()).hasSize(1);
+            assertThat(writer.getGeneratedFiles()).hasSize(1);
         }
     }
 }

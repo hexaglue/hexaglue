@@ -19,6 +19,8 @@ import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.nio.file.Path;
 import java.util.Set;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -219,5 +221,145 @@ class EngineConfigTest {
         // Then
         assertThat(filtered.includeGenerated()).isTrue();
         assertThat(filtered.enabledCategories()).containsExactly(PluginCategory.AUDIT);
+    }
+
+    @Nested
+    @DisplayName("multi-module support")
+    class MultiModuleSupport {
+
+        @Test
+        @DisplayName("isMultiModule should return false when moduleSourceSets is empty")
+        void isMultiModuleShouldReturnFalseWhenEmpty() {
+            EngineConfig config = EngineConfig.minimal(tempDir, "com.example");
+
+            assertThat(config.isMultiModule()).isFalse();
+            assertThat(config.moduleSourceSets()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("isMultiModule should return true when moduleSourceSets is non-empty")
+        void isMultiModuleShouldReturnTrueWhenNonEmpty() {
+            Path moduleBase = tempDir;
+            io.hexaglue.core.engine.ModuleSourceSet module = new io.hexaglue.core.engine.ModuleSourceSet(
+                    "core",
+                    io.hexaglue.arch.model.index.ModuleRole.DOMAIN,
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    tempDir.resolve("output"),
+                    moduleBase);
+
+            EngineConfig config = new EngineConfig(
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    21,
+                    "com.example",
+                    null,
+                    null,
+                    tempDir.resolve("output"),
+                    null,
+                    java.util.Map.of(),
+                    java.util.Map.of(),
+                    null,
+                    null,
+                    false,
+                    java.util.List.of(module));
+
+            assertThat(config.isMultiModule()).isTrue();
+            assertThat(config.moduleSourceSets()).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("moduleSourceSets should default to empty list when null")
+        void moduleSourceSetsShouldDefaultToEmptyListWhenNull() {
+            EngineConfig config = new EngineConfig(
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    21,
+                    "com.example",
+                    null,
+                    null,
+                    null,
+                    null,
+                    java.util.Map.of(),
+                    java.util.Map.of(),
+                    null,
+                    null,
+                    false,
+                    null); // null moduleSourceSets
+
+            assertThat(config.moduleSourceSets()).isNotNull().isEmpty();
+            assertThat(config.isMultiModule()).isFalse();
+        }
+    }
+
+    @Nested
+    @DisplayName("pluginsEnabled")
+    class PluginsEnabled {
+
+        @Test
+        @DisplayName("should return true when outputDirectory is set")
+        void shouldReturnTrueWhenOutputDirectoryIsSet() {
+            EngineConfig config = new EngineConfig(
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    21,
+                    "com.example",
+                    null,
+                    null,
+                    tempDir.resolve("output"),
+                    null,
+                    java.util.Map.of(),
+                    java.util.Map.of(),
+                    null,
+                    null,
+                    false,
+                    java.util.List.of());
+
+            assertThat(config.pluginsEnabled()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return true when only reportsOutputDirectory is set (audit-only)")
+        void shouldReturnTrueWhenOnlyReportsOutputDirectoryIsSet() {
+            EngineConfig config = new EngineConfig(
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    21,
+                    "com.example",
+                    null,
+                    null,
+                    null,
+                    tempDir.resolve("reports"),
+                    java.util.Map.of(),
+                    java.util.Map.of(),
+                    null,
+                    null,
+                    false,
+                    java.util.List.of());
+
+            assertThat(config.pluginsEnabled()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should return false when both output directories are null")
+        void shouldReturnFalseWhenBothOutputDirectoriesAreNull() {
+            EngineConfig config = new EngineConfig(
+                    java.util.List.of(tempDir),
+                    java.util.List.of(),
+                    21,
+                    "com.example",
+                    null,
+                    null,
+                    null,
+                    null,
+                    java.util.Map.of(),
+                    java.util.Map.of(),
+                    null,
+                    null,
+                    false,
+                    java.util.List.of());
+
+            assertThat(config.pluginsEnabled()).isFalse();
+        }
     }
 }

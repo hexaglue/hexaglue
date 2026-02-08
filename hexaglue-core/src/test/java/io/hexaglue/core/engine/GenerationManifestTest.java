@@ -115,6 +115,42 @@ class GenerationManifestTest {
     }
 
     @Nested
+    @DisplayName("cross-plugin stale detection")
+    class CrossPluginStaleDetection {
+
+        @Test
+        @DisplayName("should not consider file stale when it moves between plugins")
+        void shouldNotConsiderFileStalWhenItMovesBetweenPlugins() {
+            // Previous: file in "jpa" plugin
+            GenerationManifest previous = new GenerationManifest(tempDir.resolve("prev.txt"));
+            previous.recordFile("jpa", Path.of("src/main/java/com/example/Entity.java"));
+
+            // Current: same file now in "audit" plugin (path unchanged)
+            GenerationManifest current = new GenerationManifest(tempDir.resolve("curr.txt"));
+            current.recordFile("audit", Path.of("src/main/java/com/example/Entity.java"));
+
+            // Stale detection is path-based, not plugin-based → no stale files
+            assertThat(current.computeStaleFiles(previous)).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should detect stale file regardless of original plugin")
+        void shouldDetectStaleFileRegardlessOfOriginalPlugin() {
+            // Previous: files in two different plugins
+            GenerationManifest previous = new GenerationManifest(tempDir.resolve("prev.txt"));
+            previous.recordFile("jpa", Path.of("com/example/JpaEntity.java"));
+            previous.recordFile("audit", Path.of("reports/audit.html"));
+
+            // Current: only the audit file remains
+            GenerationManifest current = new GenerationManifest(tempDir.resolve("curr.txt"));
+            current.recordFile("audit", Path.of("reports/audit.html"));
+
+            // JpaEntity.java was in "jpa" plugin, now gone → stale
+            assertThat(current.computeStaleFiles(previous)).containsExactly("com/example/JpaEntity.java");
+        }
+    }
+
+    @Nested
     @DisplayName("checksums")
     class Checksums {
 
@@ -254,6 +290,100 @@ class GenerationManifestTest {
             assertThat(content).contains("# HexaGlue Generation Manifest");
             assertThat(content).contains("# plugin: jpa");
             assertThat(content).contains("Test.java");
+        }
+    }
+
+    @Nested
+    @DisplayName("manifest format upgrade")
+    class ManifestFormatUpgrade {
+
+        @Test
+        @DisplayName("should upgrade legacy manifest to new format with checksums on resave")
+        void shouldUpgradeLegacyManifestToNewFormatWithChecksums() throws IOException {
+            Path manifestPath = tempDir.resolve("manifest.txt");
+
+            // Write a legacy manifest (no checksums, no pipe separators)
+            Files.writeString(manifestPath, """
+                    # HexaGlue Generation Manifest
+                    # Generated at: 2026-01-01T00:00:00Z
+                    #
+                    # plugin: jpa
+                    com/example/OrderEntity.java
+                    com/example/OrderRepo.java
+                    """);
+
+            // Load the legacy manifest
+            GenerationManifest legacy = GenerationManifest.load(manifestPath);
+            assertThat(legacy.allFiles()).hasSize(2);
+            assertThat(legacy.checksumFor("com/example/OrderEntity.java")).isEmpty();
+
+            // Simulate a new generation: create a new manifest that adds checksums
+            GenerationManifest upgraded = new GenerationManifest(manifestPath);
+            upgraded.recordFile("jpa", Path.of("com/example/OrderEntity.java"), "sha256:aaa111");
+            upgraded.recordFile("jpa", Path.of("com/example/OrderRepo.java"), "sha256:bbb222");
+            upgraded.save();
+
+            // Reload and verify the new format includes checksums
+            GenerationManifest reloaded = GenerationManifest.load(manifestPath);
+            assertThat(reloaded.allFiles()).hasSize(2);
+            assertThat(reloaded.checksumFor("com/example/OrderEntity.java")).hasValue("sha256:aaa111");
+            assertThat(reloaded.checksumFor("com/example/OrderRepo.java")).hasValue("sha256:bbb222");
+
+            // Verify the raw file content uses the pipe-separated format
+            String content = Files.readString(manifestPath);
+            assertThat(content).contains("com/example/OrderEntity.java|sha256:aaa111");
+            assertThat(content).contains("com/example/OrderRepo.java|sha256:bbb222");
+        }
+
+        @Test
+        @DisplayName("should detect stale files across legacy→new manifest transition")
+        void shouldDetectStaleFilesAcrossLegacyToNewTransition() throws IOException {
+            Path legacyPath = tempDir.resolve("legacy.txt");
+
+            // Write a legacy manifest with 3 files
+            Files.writeString(legacyPath, """
+                    # HexaGlue Generation Manifest
+                    # Generated at: 2026-01-01T00:00:00Z
+                    #
+                    # plugin: jpa
+                    com/example/OrderEntity.java
+                    com/example/CustomerEntity.java
+                    com/example/AddressEntity.java
+                    """);
+
+            GenerationManifest legacy = GenerationManifest.load(legacyPath);
+
+            // New generation only produces 2 files (with checksums)
+            GenerationManifest current = new GenerationManifest(tempDir.resolve("current.txt"));
+            current.recordFile("jpa", Path.of("com/example/OrderEntity.java"), "sha256:aaa");
+            current.recordFile("jpa", Path.of("com/example/CustomerEntity.java"), "sha256:bbb");
+
+            // AddressEntity.java is stale
+            assertThat(current.computeStaleFiles(legacy)).containsExactly("com/example/AddressEntity.java");
+        }
+
+        @Test
+        @DisplayName("should handle mixed manifest (some files with checksums, some without)")
+        void shouldHandleMixedManifest() throws IOException {
+            Path manifestPath = tempDir.resolve("mixed.txt");
+
+            // Simulate a manifest where some files have checksums and some don't
+            // (could happen if a plugin provides checksums and another doesn't)
+            GenerationManifest mixed = new GenerationManifest(manifestPath);
+            mixed.recordFile("jpa", Path.of("OrderEntity.java"), "sha256:abc");
+            mixed.recordFile("audit", Path.of("audit.html"), null); // no checksum
+            mixed.save();
+
+            // Reload and verify
+            GenerationManifest reloaded = GenerationManifest.load(manifestPath);
+            assertThat(reloaded.allFiles()).hasSize(2);
+            assertThat(reloaded.checksumFor("OrderEntity.java")).hasValue("sha256:abc");
+            assertThat(reloaded.checksumFor("audit.html")).isEmpty();
+
+            // Verify raw file content
+            String content = Files.readString(manifestPath);
+            assertThat(content).contains("OrderEntity.java|sha256:abc");
+            assertThat(content).contains("audit.html\n"); // No pipe
         }
     }
 

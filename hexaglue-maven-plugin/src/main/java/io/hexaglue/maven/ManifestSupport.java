@@ -87,7 +87,9 @@ final class ManifestSupport {
         GenerationManifest current = new GenerationManifest(manifestPath);
         for (PluginResult pr : result.pluginResult().pluginResults()) {
             for (Path file : pr.generatedFiles()) {
-                Path relative = projectRoot.relativize(file);
+                // When outputDirectory is relative (e.g. src/main/java), generated file
+                // paths are already relative to the project root; only relativize absolute paths.
+                Path relative = file.isAbsolute() ? projectRoot.relativize(file) : file;
                 String checksum = pr.checksums().get(file.toString());
                 current.recordFile(pr.pluginId(), relative, checksum);
             }

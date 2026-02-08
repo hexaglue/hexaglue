@@ -306,6 +306,305 @@ class ManifestSupportTest {
         }
     }
 
+    @Nested
+    @DisplayName("DELETE policy stale file cleanup")
+    class DeletePolicyStaleFileCleanup {
+
+        @Test
+        @DisplayName("should physically delete stale src/ files with DELETE policy")
+        void shouldDeleteStaleSrcFilesWithDeletePolicy() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // Create a src/ file on disk that the previous manifest references
+            Path staleFile = projectRoot.resolve("src/main/java/com/example/OldEntity.java");
+            Files.createDirectories(staleFile.getParent());
+            Files.writeString(staleFile, "class OldEntity {}");
+
+            // Create a previous manifest referencing this src/ file
+            Path prevManifestPath = manifestPath();
+            Files.createDirectories(prevManifestPath.getParent());
+            GenerationManifest previous = new GenerationManifest(prevManifestPath);
+            previous.recordFile("jpa-plugin", Path.of("src/main/java/com/example/OldEntity.java"));
+            previous.save();
+
+            // Current build produces a different file (OldEntity is now stale)
+            Path currentFile = projectRoot.resolve("target/hexaglue/generated-sources/com/example/NewEntity.java");
+            Files.createDirectories(currentFile.getParent());
+            Files.writeString(currentFile, "class NewEntity {}");
+
+            EngineResult result = engineResultWith(List.of(pluginResult("jpa-plugin", List.of(currentFile))));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.DELETE, log);
+
+            // The stale src/ file should have been physically deleted
+            assertThat(staleFile).doesNotExist();
+
+            // The manifest should only contain the current file
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(1);
+            assertThat(saved.allFiles()).anyMatch(f -> f.contains("NewEntity.java"));
+        }
+
+        @Test
+        @DisplayName("should not delete stale target/ files (only src/)")
+        void shouldNotDeleteStaleTargetFiles() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // Previous manifest has a target/ file
+            Path prevManifestPath = manifestPath();
+            Files.createDirectories(prevManifestPath.getParent());
+            GenerationManifest previous = new GenerationManifest(prevManifestPath);
+            previous.recordFile("jpa-plugin", Path.of("target/hexaglue/generated-sources/com/example/Old.java"));
+            previous.save();
+
+            // Create the file on disk
+            Path targetFile = projectRoot.resolve("target/hexaglue/generated-sources/com/example/Old.java");
+            Files.createDirectories(targetFile.getParent());
+            Files.writeString(targetFile, "class Old {}");
+
+            // Current build produces a different file
+            Path currentFile = projectRoot.resolve("target/hexaglue/generated-sources/com/example/New.java");
+            Files.createDirectories(currentFile.getParent());
+            Files.writeString(currentFile, "class New {}");
+
+            EngineResult result = engineResultWith(List.of(pluginResult("jpa-plugin", List.of(currentFile))));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.DELETE, log);
+
+            // target/ files should NOT be deleted by stale cleanup (mvn clean handles them)
+            assertThat(targetFile).exists();
+        }
+    }
+
+    @Nested
+    @DisplayName("Multi-module paths in manifest")
+    class MultiModulePaths {
+
+        @Test
+        @DisplayName("should handle multi-module paths with modules/ subdirectory")
+        void shouldHandleMultiModulePathsWithModulesSubdirectory() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // Simulate multi-module layout: target/generated-sources/hexaglue/modules/<moduleId>/...
+            Path infraFile = projectRoot.resolve(
+                    "target/generated-sources/hexaglue/modules/banking-infrastructure/com/example/AccountEntity.java");
+            Path domainFile = projectRoot.resolve(
+                    "target/generated-sources/hexaglue/modules/banking-domain/com/example/Order.java");
+            Files.createDirectories(infraFile.getParent());
+            Files.createDirectories(domainFile.getParent());
+            Files.writeString(infraFile, "@Entity class AccountEntity {}");
+            Files.writeString(domainFile, "class Order {}");
+
+            Map<String, String> checksums = Map.of(
+                    infraFile.toString(), "sha256:aaa111",
+                    domainFile.toString(), "sha256:bbb222");
+
+            PluginResult pr = pluginResultWithChecksums("jpa-plugin", List.of(infraFile, domainFile), checksums);
+            EngineResult result = engineResultWith(List.of(pr));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.WARN, log);
+
+            // Load and verify round-trip
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(2);
+
+            // All paths should be relative
+            for (String filePath : saved.allFiles()) {
+                assertThat(filePath).doesNotStartWith("/");
+            }
+
+            // Paths should contain the modules/<moduleId> structure
+            assertThat(saved.allFiles())
+                    .anyMatch(f -> f.contains("modules/banking-infrastructure/"))
+                    .anyMatch(f -> f.contains("modules/banking-domain/"));
+
+            // Checksums should survive round-trip
+            for (String filePath : saved.allFiles()) {
+                assertThat(saved.checksumFor(filePath)).isPresent();
+            }
+        }
+
+        @Test
+        @DisplayName("should detect stale files across multi-module paths")
+        void shouldDetectStaleFilesAcrossMultiModulePaths() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // Previous manifest had a src/ file in a multi-module-like structure
+            Path prevManifestPath = manifestPath();
+            Files.createDirectories(prevManifestPath.getParent());
+            GenerationManifest previous = new GenerationManifest(prevManifestPath);
+            previous.recordFile(
+                    "jpa-plugin",
+                    Path.of("target/generated-sources/hexaglue/modules/banking-infrastructure/com/example/Old.java"));
+            previous.recordFile(
+                    "jpa-plugin",
+                    Path.of(
+                            "target/generated-sources/hexaglue/modules/banking-infrastructure/com/example/Current.java"));
+            previous.save();
+
+            // Current build only produces Current.java (Old.java is stale but in target/, so ignored)
+            Path currentFile = projectRoot.resolve(
+                    "target/generated-sources/hexaglue/modules/banking-infrastructure/com/example/Current.java");
+            Files.createDirectories(currentFile.getParent());
+            Files.writeString(currentFile, "class Current {}");
+
+            EngineResult result = engineResultWith(List.of(pluginResult("jpa-plugin", List.of(currentFile))));
+
+            // Should not throw even with FAIL policy since stale files are in target/ (not src/)
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.FAIL, log);
+
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("Edge cases")
+    class EdgeCases {
+
+        @Test
+        @DisplayName("should record generated files from failed plugin result")
+        void shouldRecordGeneratedFilesFromFailedPluginResult() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // A plugin that fails but still produced some files before failing
+            Path generatedFile = projectRoot.resolve("target/hexaglue/generated-sources/com/example/Partial.java");
+            Files.createDirectories(generatedFile.getParent());
+            Files.writeString(generatedFile, "class Partial {}");
+
+            PluginResult failedResult = new PluginResult(
+                    "jpa-plugin",
+                    false,
+                    List.of(generatedFile),
+                    List.of(),
+                    10L,
+                    new RuntimeException("boom"),
+                    Map.of());
+
+            EngineResult result = engineResultWith(List.of(failedResult));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.WARN, log);
+
+            // The manifest should still contain the generated file from the failed plugin
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(1);
+            assertThat(saved.allFiles()).anyMatch(f -> f.contains("Partial.java"));
+        }
+
+        @Test
+        @DisplayName("should handle corrupted previous manifest gracefully")
+        void shouldHandleCorruptedPreviousManifestGracefully() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // Write a corrupted manifest (invalid content)
+            Path prevManifestPath = manifestPath();
+            Files.createDirectories(prevManifestPath.getParent());
+            Files.writeString(prevManifestPath, "THIS IS NOT A VALID MANIFEST\n\0\0\0GARBAGE");
+
+            // Current build produces a normal file
+            Path generatedFile = projectRoot.resolve("target/hexaglue/generated-sources/com/example/Foo.java");
+            Files.createDirectories(generatedFile.getParent());
+            Files.writeString(generatedFile, "class Foo {}");
+
+            EngineResult result = engineResultWith(List.of(pluginResult("jpa-plugin", List.of(generatedFile))));
+
+            // Should NOT throw — gracefully handles corrupted manifest
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.WARN, log);
+
+            // Manifest should be saved normally with the current file
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(1);
+        }
+    }
+
+    @Nested
+    @DisplayName("Multi-module multi-plugin checksums")
+    class MultiModuleMultiPluginChecksums {
+
+        @Test
+        @DisplayName("should record checksums from multiple plugins across modules")
+        void shouldRecordChecksumsFromMultiplePluginsAcrossModules() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            // JPA plugin generates files in infrastructure module
+            Path jpaFile1 = projectRoot.resolve(
+                    "target/generated-sources/hexaglue/modules/banking-infra/com/example/OrderEntity.java");
+            Path jpaFile2 = projectRoot.resolve(
+                    "target/generated-sources/hexaglue/modules/banking-infra/com/example/CustomerEntity.java");
+            Files.createDirectories(jpaFile1.getParent());
+            Files.writeString(jpaFile1, "@Entity class OrderEntity {}");
+            Files.writeString(jpaFile2, "@Entity class CustomerEntity {}");
+
+            // Audit plugin generates report at root level
+            Path auditFile = projectRoot.resolve("target/hexaglue/reports/audit.html");
+            Files.createDirectories(auditFile.getParent());
+            Files.writeString(auditFile, "<html>Audit Report</html>");
+
+            Map<String, String> jpaChecksums = Map.of(
+                    jpaFile1.toString(), "sha256:jpa111",
+                    jpaFile2.toString(), "sha256:jpa222");
+            Map<String, String> auditChecksums = Map.of(auditFile.toString(), "sha256:audit333");
+
+            PluginResult jpaPr = pluginResultWithChecksums("jpa-plugin", List.of(jpaFile1, jpaFile2), jpaChecksums);
+            PluginResult auditPr = pluginResultWithChecksums("audit-plugin", List.of(auditFile), auditChecksums);
+            EngineResult result = engineResultWith(List.of(jpaPr, auditPr));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.WARN, log);
+
+            // Verify saved manifest
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(3);
+
+            // All checksums should be present
+            for (String filePath : saved.allFiles()) {
+                assertThat(saved.checksumFor(filePath)).isPresent();
+            }
+
+            // JPA and audit files should be tracked under their respective plugins
+            assertThat(saved.filesForPlugin("jpa-plugin")).hasSize(2);
+            assertThat(saved.filesForPlugin("audit-plugin")).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should handle plugin with checksums and plugin without checksums")
+        void shouldHandlePluginWithChecksumsAndPluginWithout() throws Exception {
+            Path projectRoot = projectRoot();
+            Files.createDirectories(outputDirectory());
+
+            Path file1 = projectRoot.resolve("target/hexaglue/generated-sources/com/example/WithChecksum.java");
+            Path file2 = projectRoot.resolve("target/hexaglue/generated-sources/com/example/WithoutChecksum.java");
+            Files.createDirectories(file1.getParent());
+            Files.writeString(file1, "class WithChecksum {}");
+            Files.writeString(file2, "class WithoutChecksum {}");
+
+            // Plugin 1 has checksums
+            PluginResult pr1 =
+                    pluginResultWithChecksums("jpa-plugin", List.of(file1), Map.of(file1.toString(), "sha256:abc"));
+            // Plugin 2 has no checksums (old-style PluginResult)
+            PluginResult pr2 = new PluginResult("living-doc", true, List.of(file2), List.of(), 10L, null, Map.of());
+            EngineResult result = engineResultWith(List.of(pr1, pr2));
+
+            ManifestSupport.processManifest(result, projectRoot, outputDirectory(), StaleFilePolicy.WARN, log);
+
+            GenerationManifest saved = GenerationManifest.load(manifestPath());
+            assertThat(saved.fileCount()).isEqualTo(2);
+
+            // File 1 should have checksum, file 2 should not
+            String path1 = saved.filesForPlugin("jpa-plugin").iterator().next();
+            assertThat(saved.checksumFor(path1)).isPresent();
+
+            String path2 = saved.filesForPlugin("living-doc").iterator().next();
+            assertThat(saved.checksumFor(path2)).isEmpty();
+        }
+    }
+
     // --- Helpers ---
 
     private static PluginResult pluginResult(String pluginId, List<Path> generatedFiles) {

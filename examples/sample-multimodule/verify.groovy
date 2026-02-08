@@ -135,5 +135,77 @@ assert modulesContent.contains("DOMAIN") :
 assert modulesContent.contains("INFRASTRUCTURE") :
     "modules.md should contain INFRASTRUCTURE role"
 
-println 'SUCCESS: sample-multimodule integration test passed - reactor execution, convention detection, JPA auto-routing, generation completeness, and report content verified'
+// ── Generation manifest ──────────────────────────────────────────────────────
+def manifest = new File(basedir, "target/hexaglue/manifest.txt")
+assert manifest.exists() :
+    "Generation manifest should exist at target/hexaglue/manifest.txt"
+
+def manifestContent = manifest.text
+
+assert manifestContent.contains("# HexaGlue Generation Manifest") :
+    "Manifest should contain header"
+
+assert manifestContent.contains("# plugin:") :
+    "Manifest should contain plugin headers"
+
+assert manifestContent.contains("AccountEntity.java") :
+    "Manifest should list generated AccountEntity"
+
+assert manifestContent.contains("TransactionEntity.java") :
+    "Manifest should list generated TransactionEntity"
+
+// ── Manifest checksums ──────────────────────────────────────────────────────
+assert manifestContent.contains("sha256:") :
+    "Manifest should contain SHA-256 checksums"
+
+// Verify all non-comment, non-blank lines have a checksum (pipe-separated)
+manifestContent.eachLine { line ->
+    if (!line.startsWith("#") && !line.isBlank()) {
+        assert line.contains("|sha256:") :
+            "Each manifest entry should have a checksum: ${line}"
+    }
+}
+
+// ── Manifest paths should be relative ────────────────────────────────────────
+manifestContent.eachLine { line ->
+    if (!line.startsWith("#") && !line.isBlank()) {
+        def path = line.split("\\|")[0]
+        assert !path.startsWith("/") :
+            "Manifest paths should be relative, not absolute: ${path}"
+    }
+}
+
+// ── Manifest files exist on disk ─────────────────────────────────────────────
+// Verify that every file listed in the manifest actually exists on disk
+manifestContent.eachLine { line ->
+    if (!line.startsWith("#") && !line.isBlank()) {
+        def path = line.split("\\|")[0]
+        def fileOnDisk = new File(basedir, path)
+        assert fileOnDisk.exists() :
+            "File listed in manifest should exist on disk: ${path}"
+    }
+}
+
+// ── Generated content validation ─────────────────────────────────────────────
+// Verify AccountEntity.java contains JPA annotations (proves correct generation)
+def accountEntityFiles = []
+generatedSourcesDir.eachFileRecurse { if (it.name == 'AccountEntity.java') accountEntityFiles << it }
+assert !accountEntityFiles.isEmpty() :
+    "AccountEntity.java should exist in generated sources"
+
+def accountEntityContent = accountEntityFiles[0].text
+assert accountEntityContent.contains("@Entity") :
+    "AccountEntity.java should contain @Entity annotation"
+assert accountEntityContent.contains("@Id") :
+    "AccountEntity.java should contain @Id annotation"
+
+// ── Reactor lifecycle: generated sources survive child clean ──────────────────
+// The Maven invoker runs 'clean verify'. After reactor-generate writes to
+// parent/target/, each child module 'clean' only erases its own target/.
+// If we reach this point, the generated sources survived child clean phases
+// (banking-infrastructure compiled successfully with generated JPA entities).
+assert logContent.contains("Compiling") :
+    "Build log should show compilation (proof that generated sources survived child clean)"
+
+println 'SUCCESS: sample-multimodule integration test passed - reactor execution, convention detection, JPA auto-routing, generation completeness, manifest with checksums, manifest-filesystem consistency, generated content, and report content verified'
 return true
