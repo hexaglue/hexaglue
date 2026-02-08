@@ -16,6 +16,7 @@ package io.hexaglue.spi.plugin;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.spi.audit.ArchitectureQuery;
@@ -249,5 +250,30 @@ public interface PluginContext {
      */
     default Optional<CompositionIndex> compositionIndex() {
         return model().compositionIndex();
+    }
+
+    /**
+     * Returns the module index for multi-module project navigation.
+     *
+     * <p>The module index maps types to their containing module and provides
+     * queries for module-level navigation. It is only present in multi-module
+     * projects; in mono-module projects, this returns empty.
+     *
+     * <p>Example:
+     * <pre>{@code
+     * context.moduleIndex().ifPresent(modules -> {
+     *     modules.moduleOf(typeId).ifPresent(mod ->
+     *         System.out.println("Type belongs to: " + mod.moduleId()));
+     *
+     *     modules.modulesByRole(ModuleRole.INFRASTRUCTURE)
+     *         .forEach(mod -> System.out.println("Infra: " + mod.moduleId()));
+     * });
+     * }</pre>
+     *
+     * @return an optional containing the module index, or empty if not available
+     * @since 5.0.0
+     */
+    default Optional<ModuleIndex> moduleIndex() {
+        return model().moduleIndex();
     }
 }

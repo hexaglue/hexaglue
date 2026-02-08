@@ -119,7 +119,8 @@ class EngineConfigTest {
                 java.util.Map.of(),
                 null,
                 mutableSet,
-                false);
+                false,
+                java.util.List.of());
 
         // When: try to modify the original set
         mutableSet.add(PluginCategory.AUDIT);
@@ -146,7 +147,8 @@ class EngineConfigTest {
                 java.util.Map.of("option", "value"),
                 classificationConfig,
                 null,
-                false);
+                false,
+                java.util.List.of());
 
         // When: apply category filter
         EngineConfig filtered = config.onlyGenerators();
