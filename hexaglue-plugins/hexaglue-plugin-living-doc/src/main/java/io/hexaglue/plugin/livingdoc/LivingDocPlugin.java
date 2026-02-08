@@ -15,6 +15,7 @@ package io.hexaglue.plugin.livingdoc;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.livingdoc.config.LivingDocConfig;
@@ -26,6 +27,7 @@ import io.hexaglue.plugin.livingdoc.content.RelationshipEnricher;
 import io.hexaglue.plugin.livingdoc.content.StructureBuilder;
 import io.hexaglue.plugin.livingdoc.generator.DiagramGenerator;
 import io.hexaglue.plugin.livingdoc.generator.DomainDocGenerator;
+import io.hexaglue.plugin.livingdoc.generator.ModuleDocGenerator;
 import io.hexaglue.plugin.livingdoc.generator.OverviewGenerator;
 import io.hexaglue.plugin.livingdoc.generator.PortDocGenerator;
 import io.hexaglue.plugin.livingdoc.model.BoundedContextDoc;
@@ -163,13 +165,24 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         // Index renderer
         IndexRenderer indexRenderer = new IndexRenderer();
 
+        // Extract module index for multi-module support (nullable in mono-module)
+        ModuleIndex moduleIndex = archModel.moduleIndex().orElse(null);
+
         // Overview receives pre-rendered diagram (or null when diagrams disabled)
         String overviewDiagram = diagramSet != null ? diagramSet.architectureOverview() : null;
         OverviewGenerator overviewGen = new OverviewGenerator(
-                docModel, overviewDiagram, boundedContexts, glossaryEntries, packageTree, indexRenderer);
+                docModel, overviewDiagram, boundedContexts, glossaryEntries, packageTree, indexRenderer, moduleIndex);
         String readme = overviewGen.generate();
         writer.writeDoc(config.outputDir() + "/README.md", readme);
         diagnostics.info("Generated architecture overview");
+
+        // Generate modules documentation if multi-module
+        if (moduleIndex != null) {
+            ModuleDocGenerator moduleDocGen = new ModuleDocGenerator(moduleIndex);
+            String modulesDoc = moduleDocGen.generate();
+            writer.writeDoc(config.outputDir() + "/modules.md", modulesDoc);
+            diagnostics.info("Generated modules documentation");
+        }
 
         // Generate domain documentation
         DomainDocGenerator domainGen = new DomainDocGenerator(domainSelector, relationshipEnricher);
