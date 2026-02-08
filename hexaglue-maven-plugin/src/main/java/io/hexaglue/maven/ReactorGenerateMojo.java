@@ -18,6 +18,7 @@ import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.engine.ModuleSourceSet;
+import io.hexaglue.core.engine.StaleFilePolicy;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.core.ClassificationConfig;
@@ -96,6 +97,22 @@ public class ReactorGenerateMojo extends AbstractMojo {
             defaultValue = "${project.build.directory}/hexaglue/generated-sources")
     private File outputDirectory;
 
+    /**
+     * Policy for handling stale generated files in {@code src/} directories.
+     *
+     * <p>Stale files are files generated in a previous build but not regenerated
+     * in the current build. Possible values:
+     * <ul>
+     *   <li>{@code WARN} (default): log warnings for stale files</li>
+     *   <li>{@code DELETE}: delete stale files automatically</li>
+     *   <li>{@code FAIL}: fail the build if stale files are detected</li>
+     * </ul>
+     *
+     * @since 5.0.0
+     */
+    @Parameter(property = "hexaglue.staleFilePolicy", defaultValue = "WARN")
+    private StaleFilePolicy staleFilePolicy;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -119,6 +136,7 @@ public class ReactorGenerateMojo extends AbstractMojo {
                 session,
                 basePackage,
                 outputDirectory.toPath(),
+                null, // No reports directory for generate-only
                 pluginConfigs,
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR),
@@ -189,16 +207,19 @@ public class ReactorGenerateMojo extends AbstractMojo {
             getLog().info("Generated " + result.generatedFileCount() + " files across reactor modules");
         }
 
-        // Register generated sources in each module project
+        // Manifest and stale file cleanup
+        ManifestSupport.processManifest(result, rootBaseDir, outputDirectory.toPath(), staleFilePolicy, getLog());
+
+        // Register generated sources in each module project (skip if already a source root)
         for (ModuleSourceSet mss : config.moduleSourceSets()) {
-            File moduleOutputDir = mss.outputDirectory().toFile();
-            if (moduleOutputDir.exists() || moduleOutputDir.mkdirs()) {
-                for (MavenProject project : session.getProjects()) {
-                    if (project.getArtifactId().equals(mss.moduleId())) {
-                        project.addCompileSourceRoot(moduleOutputDir.getAbsolutePath());
+            for (MavenProject project : session.getProjects()) {
+                if (project.getArtifactId().equals(mss.moduleId())) {
+                    String sourceRoot = mss.outputDirectory().toAbsolutePath().toString();
+                    if (!project.getCompileSourceRoots().contains(sourceRoot)) {
+                        project.addCompileSourceRoot(sourceRoot);
                         getLog().debug("Registered generated-sources for module: " + mss.moduleId());
-                        break;
                     }
+                    break;
                 }
             }
         }

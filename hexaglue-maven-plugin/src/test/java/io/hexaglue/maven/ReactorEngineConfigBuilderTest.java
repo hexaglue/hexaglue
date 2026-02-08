@@ -80,7 +80,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then
             assertThat(config.sourceRoots()).hasSize(2);
@@ -99,7 +107,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: only the existing source root is included
             assertThat(config.sourceRoots()).hasSize(1);
@@ -126,7 +142,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: shared jar only appears once
             long count = config.classpathEntries().stream()
@@ -161,7 +185,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then
             assertThat(config.moduleSourceSets()).hasSize(2);
@@ -190,7 +222,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then
             assertThat(config.moduleSourceSets()).hasSize(1);
@@ -214,7 +254,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: roles detected from artifactId suffix
             assertThat(config.moduleSourceSets()).hasSize(2);
@@ -249,7 +297,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: YAML wins over convention
             assertThat(config.moduleSourceSets().get(0).role()).isEqualTo(ModuleRole.APPLICATION);
@@ -266,10 +322,81 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: falls back to SHARED
             assertThat(config.moduleSourceSets().get(0).role()).isEqualTo(ModuleRole.SHARED);
+        }
+    }
+
+    @Nested
+    @DisplayName("Output directory")
+    class OutputDirectory {
+
+        @Test
+        @DisplayName("should route module output to parent target directory")
+        void shouldRouteModuleOutputToParentTargetDirectory() throws IOException {
+            // Given
+            MavenProject parent = createParentProject("parent");
+            MavenProject core = createJarModule("banking-core", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, core);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Then: output directory is under parent/target/generated-sources/hexaglue/modules/<moduleId>/
+            Path parentBaseDir = parent.getBasedir().toPath();
+            Path expectedPrefix = parentBaseDir.resolve("target/generated-sources/hexaglue/modules/banking-core");
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).outputDirectory()).isEqualTo(expectedPrefix);
+        }
+
+        @Test
+        @DisplayName("should not place output inside child module target")
+        void shouldNotPlaceOutputInsideChildModuleTarget() throws IOException {
+            // Given
+            MavenProject parent = createParentProject("parent");
+            MavenProject infra = createJarModule("banking-infrastructure", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, infra);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Then: output directory does NOT start with the child module's baseDir
+            Path childBaseDir = infra.getBasedir().toPath();
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).outputDirectory())
+                    .satisfies(outputPath -> assertThat(outputPath.startsWith(childBaseDir))
+                            .as("Output should not be under child module's baseDir")
+                            .isFalse());
         }
     }
 
@@ -289,7 +416,15 @@ class ReactorEngineConfigBuilderTest {
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
-                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
 
             // Then: only jar module included
             assertThat(config.moduleSourceSets()).hasSize(1);

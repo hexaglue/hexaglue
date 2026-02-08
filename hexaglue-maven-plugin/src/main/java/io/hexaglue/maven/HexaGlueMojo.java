@@ -17,6 +17,7 @@ import io.hexaglue.core.engine.Diagnostic;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
+import io.hexaglue.core.engine.StaleFilePolicy;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.core.ClassificationConfig;
@@ -111,6 +112,22 @@ public class HexaGlueMojo extends AbstractMojo {
     @Parameter(property = "hexaglue.skipValidation", defaultValue = "false")
     private boolean skipValidation;
 
+    /**
+     * Policy for handling stale generated files in {@code src/} directories.
+     *
+     * <p>Stale files are files generated in a previous build but not regenerated
+     * in the current build. Possible values:
+     * <ul>
+     *   <li>{@code WARN} (default): log warnings for stale files</li>
+     *   <li>{@code DELETE}: delete stale files automatically</li>
+     *   <li>{@code FAIL}: fail the build if stale files are detected</li>
+     * </ul>
+     *
+     * @since 5.0.0
+     */
+    @Parameter(property = "hexaglue.staleFilePolicy", defaultValue = "WARN")
+    private StaleFilePolicy staleFilePolicy;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -171,9 +188,16 @@ public class HexaGlueMojo extends AbstractMojo {
             getLog().info("Generated " + result.generatedFileCount() + " files");
         }
 
-        // Add generated sources to compilation
-        if (outputDirectory.exists() || outputDirectory.mkdirs()) {
-            project.addCompileSourceRoot(outputDirectory.getAbsolutePath());
+        // Manifest and stale file cleanup
+        ManifestSupport.processManifest(
+                result, project.getBasedir().toPath(), outputDirectory.toPath(), staleFilePolicy, getLog());
+
+        // Add generated sources to compilation (skip if already a source root, e.g. src/main/java)
+        String outputPath = outputDirectory.getAbsolutePath();
+        if (!project.getCompileSourceRoots().contains(outputPath)) {
+            if (outputDirectory.exists() || outputDirectory.mkdirs()) {
+                project.addCompileSourceRoot(outputPath);
+            }
         }
     }
 
@@ -207,8 +231,9 @@ public class HexaGlueMojo extends AbstractMojo {
                 project.getName(),
                 project.getVersion(),
                 outputDirectory.toPath(),
+                null,
                 pluginConfigs,
-                Map.of(), // options
+                Map.of("hexaglue.projectRoot", project.getBasedir().toPath()),
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR), // Only run generator plugins
                 false, // Do not include @Generated types during generation

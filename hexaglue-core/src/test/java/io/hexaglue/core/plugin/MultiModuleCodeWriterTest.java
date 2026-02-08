@@ -261,4 +261,289 @@ class MultiModuleCodeWriterTest {
             assertThat(writer.getGeneratedFiles()).hasSize(1);
         }
     }
+
+    @Nested
+    @DisplayName("plugin output override")
+    class PluginOutputOverride {
+
+        private Path coreSrcMain;
+        private Path infraSrcMain;
+
+        @BeforeEach
+        void setUp() throws IOException {
+            coreSrcMain = Files.createDirectories(tempDir.resolve("banking-core/src/main/java"));
+            infraSrcMain = Files.createDirectories(tempDir.resolve("banking-persistence/src/main/java"));
+        }
+
+        @Nested
+        @DisplayName("with relative override path")
+        class RelativeOverride {
+
+            @Test
+            @DisplayName("should resolve relative path against each module's baseDir")
+            void shouldResolveRelativePathAgainstModuleBaseDir() throws IOException {
+                Path relativeOverride = Path.of("src/main/java");
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, relativeOverride);
+
+                writer.writeJavaSource("banking-core", "com.example.domain", "Order", "class Order {}");
+                writer.writeJavaSource(
+                        "banking-persistence", "com.example.infra", "OrderEntity", "class OrderEntity {}");
+
+                // Should write to module.baseDir().resolve("src/main/java") instead of module.outputDirectory()
+                Path expectedCoreFile = coreSrcMain.resolve("com/example/domain/Order.java");
+                Path expectedInfraFile = infraSrcMain.resolve("com/example/infra/OrderEntity.java");
+
+                assertThat(expectedCoreFile).exists();
+                assertThat(Files.readString(expectedCoreFile)).isEqualTo("class Order {}");
+
+                assertThat(expectedInfraFile).exists();
+                assertThat(Files.readString(expectedInfraFile)).isEqualTo("class OrderEntity {}");
+            }
+
+            @Test
+            @DisplayName("should resolve different relative paths for each module")
+            void shouldResolveDifferentRelativePathsForEachModule() throws IOException {
+                Path customDir = Files.createDirectories(tempDir.resolve("banking-core/custom/output"));
+                Path relativeOverride = Path.of("custom/output");
+
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, relativeOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "Test", "class Test {}");
+
+                Path expectedFile = customDir.resolve("com/example/Test.java");
+                assertThat(expectedFile).exists();
+            }
+
+            @Test
+            @DisplayName("should support nested relative paths")
+            void shouldSupportNestedRelativePaths() throws IOException {
+                Path nestedDir = Files.createDirectories(tempDir.resolve("banking-core/generated/sources/hexaglue"));
+                Path relativeOverride = Path.of("generated/sources/hexaglue");
+
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, relativeOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "Generated", "class Generated {}");
+
+                Path expectedFile = nestedDir.resolve("com/example/Generated.java");
+                assertThat(expectedFile).exists();
+            }
+
+            @Test
+            @DisplayName("should handle relative path with multiple modules")
+            void shouldHandleRelativePathWithMultipleModules() throws IOException {
+                Path relativeOverride = Path.of("src/main/java");
+
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, relativeOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writer.writeJavaSource("banking-persistence", "com.example", "B", "class B {}");
+
+                assertThat(coreSrcMain.resolve("com/example/A.java")).exists();
+                assertThat(infraSrcMain.resolve("com/example/B.java")).exists();
+                // Should not write to original outputDirectory
+                assertThat(coreOutputDir.resolve("com/example/A.java")).doesNotExist();
+                assertThat(infraOutputDir.resolve("com/example/B.java")).doesNotExist();
+            }
+
+            @Test
+            @DisplayName("getOutputDirectory(moduleId) should return overridden path")
+            void getOutputDirectoryShouldReturnOverriddenPath() throws IOException {
+                Path relativeOverride = Path.of("src/main/java");
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, relativeOverride);
+
+                assertThat(writer.getOutputDirectory("banking-core")).isEqualTo(coreSrcMain);
+                assertThat(writer.getOutputDirectory("banking-persistence")).isEqualTo(infraSrcMain);
+            }
+        }
+
+        @Nested
+        @DisplayName("with absolute override path")
+        class AbsoluteOverride {
+
+            @Test
+            @DisplayName("should use absolute path directly for all modules")
+            void shouldUseAbsolutePathDirectlyForAllModules() throws IOException {
+                Path absoluteOverride = Files.createDirectories(tempDir.resolve("shared-output"));
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, absoluteOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writer.writeJavaSource("banking-persistence", "com.example", "B", "class B {}");
+
+                // Both should write to the same absolute directory
+                assertThat(absoluteOverride.resolve("com/example/A.java")).exists();
+                assertThat(absoluteOverride.resolve("com/example/B.java")).exists();
+
+                // Should not write to module-specific directories
+                assertThat(coreOutputDir.resolve("com/example/A.java")).doesNotExist();
+                assertThat(infraOutputDir.resolve("com/example/B.java")).doesNotExist();
+            }
+
+            @Test
+            @DisplayName("getOutputDirectory(moduleId) should return same absolute path for all modules")
+            void getOutputDirectoryShouldReturnSameAbsolutePathForAllModules() throws IOException {
+                Path absoluteOverride = Files.createDirectories(tempDir.resolve("shared-output"));
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, absoluteOverride);
+
+                assertThat(writer.getOutputDirectory("banking-core")).isEqualTo(absoluteOverride);
+                assertThat(writer.getOutputDirectory("banking-persistence")).isEqualTo(absoluteOverride);
+            }
+
+            @Test
+            @DisplayName("should create parent directories if absolute path does not exist")
+            void shouldCreateParentDirectoriesIfAbsolutePathDoesNotExist() throws IOException {
+                Path absoluteOverride = tempDir.resolve("non-existent/deep/path");
+                // Don't pre-create this directory
+
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, absoluteOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "Test", "class Test {}");
+
+                Path expectedFile = absoluteOverride.resolve("com/example/Test.java");
+                assertThat(expectedFile).exists();
+            }
+        }
+
+        @Nested
+        @DisplayName("with null override (default behavior)")
+        class NullOverride {
+
+            @Test
+            @DisplayName("should use module outputDirectory when override is null")
+            void shouldUseModuleOutputDirectoryWhenOverrideIsNull() throws IOException {
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, null);
+
+                writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writer.writeJavaSource("banking-persistence", "com.example", "B", "class B {}");
+
+                // Should use the original outputDirectory from ModuleSourceSet
+                assertThat(coreOutputDir.resolve("com/example/A.java")).exists();
+                assertThat(infraOutputDir.resolve("com/example/B.java")).exists();
+            }
+
+            @Test
+            @DisplayName("getOutputDirectory(moduleId) should return module outputDirectory")
+            void getOutputDirectoryShouldReturnModuleOutputDirectory() {
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, null);
+
+                assertThat(writer.getOutputDirectory("banking-core")).isEqualTo(coreOutputDir);
+                assertThat(writer.getOutputDirectory("banking-persistence")).isEqualTo(infraOutputDir);
+            }
+
+            @Test
+            @DisplayName("should behave identically to original constructor")
+            void shouldBehaveIdenticallyToOriginalConstructor() throws IOException {
+                MultiModuleCodeWriter writerWithNull =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, null);
+                MultiModuleCodeWriter writerOriginal = new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir);
+
+                writerWithNull.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writerOriginal.writeJavaSource("banking-core", "com.example", "B", "class B {}");
+
+                assertThat(writerWithNull.getOutputDirectory("banking-core"))
+                        .isEqualTo(writerOriginal.getOutputDirectory("banking-core"));
+                assertThat(coreOutputDir.resolve("com/example/A.java")).exists();
+                assertThat(coreOutputDir.resolve("com/example/B.java")).exists();
+            }
+        }
+
+        @Nested
+        @DisplayName("edge cases")
+        class EdgeCases {
+
+            @Test
+            @DisplayName("should handle empty string relative path as current directory")
+            void shouldHandleEmptyStringRelativePathAsCurrentDirectory() throws IOException {
+                Path emptyRelative = Path.of("");
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, emptyRelative);
+
+                writer.writeJavaSource("banking-core", "com.example", "Test", "class Test {}");
+
+                // Should resolve against baseDir (same as baseDir itself)
+                Path expectedFile = coreModule.baseDir().resolve("com/example/Test.java");
+                assertThat(expectedFile).exists();
+            }
+
+            @Test
+            @DisplayName("should handle single dot relative path as current directory")
+            void shouldHandleSingleDotRelativePathAsCurrentDirectory() throws IOException {
+                Path dotRelative = Path.of(".");
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule), defaultOutputDir, dotRelative);
+
+                writer.writeJavaSource("banking-core", "com.example", "Test", "class Test {}");
+
+                Path expectedFile = coreModule.baseDir().resolve("com/example/Test.java");
+                assertThat(expectedFile).exists();
+            }
+
+            @Test
+            @DisplayName("should reject null modules with override")
+            void shouldRejectNullModulesWithOverride() {
+                assertThatNullPointerException()
+                        .isThrownBy(() -> new MultiModuleCodeWriter(null, defaultOutputDir, Path.of("src/main/java")))
+                        .withMessageContaining("modules");
+            }
+
+            @Test
+            @DisplayName("should reject null defaultOutputDirectory with override")
+            void shouldRejectNullDefaultOutputDirectoryWithOverride() {
+                assertThatNullPointerException()
+                        .isThrownBy(
+                                () -> new MultiModuleCodeWriter(List.of(coreModule), null, Path.of("src/main/java")))
+                        .withMessageContaining("defaultOutputDirectory");
+            }
+
+            @Test
+            @DisplayName("should reject empty modules list with override")
+            void shouldRejectEmptyModulesListWithOverride() {
+                assertThatThrownBy(
+                                () -> new MultiModuleCodeWriter(List.of(), defaultOutputDir, Path.of("src/main/java")))
+                        .isInstanceOf(IllegalArgumentException.class)
+                        .hasMessageContaining("modules must not be empty");
+            }
+        }
+
+        @Nested
+        @DisplayName("aggregation with override")
+        class AggregationWithOverride {
+
+            @Test
+            @DisplayName("getGeneratedFiles should aggregate from overridden paths")
+            void getGeneratedFilesShouldAggregateFromOverriddenPaths() throws IOException {
+                Path relativeOverride = Path.of("src/main/java");
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, relativeOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writer.writeJavaSource("banking-persistence", "com.example", "B", "class B {}");
+                writer.writeJavaSource("com.example", "C", "class C {}"); // default writer
+
+                assertThat(writer.getGeneratedFiles()).hasSize(3);
+            }
+
+            @Test
+            @DisplayName("getGeneratedFiles should work with absolute override")
+            void getGeneratedFilesShouldWorkWithAbsoluteOverride() throws IOException {
+                Path absoluteOverride = Files.createDirectories(tempDir.resolve("shared-output"));
+                MultiModuleCodeWriter writer =
+                        new MultiModuleCodeWriter(List.of(coreModule, infraModule), defaultOutputDir, absoluteOverride);
+
+                writer.writeJavaSource("banking-core", "com.example", "A", "class A {}");
+                writer.writeJavaSource("banking-persistence", "com.example", "B", "class B {}");
+
+                assertThat(writer.getGeneratedFiles()).hasSize(2);
+            }
+        }
+    }
 }

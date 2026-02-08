@@ -16,6 +16,7 @@ package io.hexaglue.maven;
 import io.hexaglue.arch.model.index.ModuleRole;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.ModuleSourceSet;
+import io.hexaglue.core.engine.MultiModuleOutputResolver;
 import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
 import java.io.File;
@@ -56,26 +57,78 @@ final class ReactorEngineConfigBuilder {
      *
      * @param session the Maven session containing all reactor projects
      * @param basePackage the base package to analyze
-     * @param outputDirectory the default output directory (for reactor-level output)
+     * @param sourcesOutputDirectory directory for generated sources (null for audit-only)
+     * @param reportsOutputDirectory directory for reports (null for generate-only)
      * @param pluginConfigs plugin configurations from hexaglue.yaml
      * @param classificationConfig classification configuration (exclusions, explicit mappings)
      * @param enabledCategories plugin categories to execute
      * @param includeGenerated whether to include {@code @Generated}-annotated types
      * @param log the Maven logger
      * @return the unified engine configuration
+     * @since 5.0.0 added separate sourcesOutputDirectory and reportsOutputDirectory
      */
     static EngineConfig build(
             MavenSession session,
             String basePackage,
-            Path outputDirectory,
+            Path sourcesOutputDirectory,
+            Path reportsOutputDirectory,
             Map<String, Map<String, Object>> pluginConfigs,
             ClassificationConfig classificationConfig,
             Set<PluginCategory> enabledCategories,
             boolean includeGenerated,
             Log log) {
+        MavenProject topLevel = findTopLevelProject(session);
+        return build(
+                session,
+                basePackage,
+                sourcesOutputDirectory,
+                reportsOutputDirectory,
+                pluginConfigs,
+                classificationConfig,
+                enabledCategories,
+                includeGenerated,
+                Map.of("hexaglue.projectRoot", topLevel.getBasedir().toPath()),
+                log);
+    }
+
+    /**
+     * Builds a unified {@link EngineConfig} from the Maven reactor session with custom options.
+     *
+     * @param session the Maven session containing all reactor projects
+     * @param basePackage the base package to analyze
+     * @param sourcesOutputDirectory directory for generated sources (null for audit-only)
+     * @param reportsOutputDirectory directory for reports (null for generate-only)
+     * @param pluginConfigs plugin configurations from hexaglue.yaml
+     * @param classificationConfig classification configuration (exclusions, explicit mappings)
+     * @param enabledCategories plugin categories to execute
+     * @param includeGenerated whether to include {@code @Generated}-annotated types
+     * @param options additional engine options (e.g. projectRoot)
+     * @param log the Maven logger
+     * @return the unified engine configuration
+     * @since 5.0.0
+     */
+    static EngineConfig build(
+            MavenSession session,
+            String basePackage,
+            Path sourcesOutputDirectory,
+            Path reportsOutputDirectory,
+            Map<String, Map<String, Object>> pluginConfigs,
+            ClassificationConfig classificationConfig,
+            Set<PluginCategory> enabledCategories,
+            boolean includeGenerated,
+            Map<String, Object> options,
+            Log log) {
 
         MavenProject topLevel = findTopLevelProject(session);
         Path rootBaseDir = topLevel.getBasedir().toPath();
+
+        // Load output config from YAML for custom base paths in MultiModuleOutputResolver
+        MojoConfigLoader.OutputConfig outputConfig = MojoConfigLoader.loadOutputConfig(rootBaseDir, log);
+        MultiModuleOutputResolver outputResolver = new MultiModuleOutputResolver(
+                rootBaseDir,
+                outputConfig.sourcesBase(),
+                outputConfig.sourcesBase().replace("generated-sources", "generated-resources"),
+                outputConfig.reportsBase());
 
         // Load module role configurations from hexaglue.yaml
         Map<String, ModuleRole> moduleRoles = MojoConfigLoader.loadModuleConfigs(rootBaseDir, log);
@@ -112,8 +165,9 @@ final class ReactorEngineConfigBuilder {
                 }
             }
 
-            // Module-specific output directory
-            Path moduleOutputDir = moduleBaseDir.resolve("target/hexaglue/generated-sources");
+            // Module-specific output directory — placed under the parent's target/ so that
+            // child module clean phases do not erase generated sources (see reactor-lifecycle-fix.md)
+            Path moduleOutputDir = outputResolver.resolveSourcesDirectory(moduleId);
 
             moduleSourceSets.add(new ModuleSourceSet(
                     moduleId, role, moduleSourceRoots, List.copyOf(classpathSet), moduleOutputDir, moduleBaseDir));
@@ -135,9 +189,10 @@ final class ReactorEngineConfigBuilder {
                 basePackage,
                 topLevel.getName(),
                 topLevel.getVersion(),
-                outputDirectory,
+                sourcesOutputDirectory,
+                reportsOutputDirectory,
                 pluginConfigs,
-                Map.of(),
+                options != null ? options : Map.of(),
                 classificationConfig,
                 enabledCategories,
                 includeGenerated,

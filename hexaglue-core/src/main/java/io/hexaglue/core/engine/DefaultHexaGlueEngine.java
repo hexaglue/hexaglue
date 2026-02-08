@@ -40,11 +40,14 @@ import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -226,13 +229,15 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             PluginExecutionResult pluginResult = null;
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
+                Map<Path, String> previousChecksums = loadPreviousChecksums(config);
                 PluginExecutor executor = new PluginExecutor(
                         config.outputDirectory(),
                         config.pluginConfigs(),
                         graph,
                         config.enabledCategories(),
                         archModel,
-                        config.moduleSourceSets());
+                        config.moduleSourceSets(),
+                        previousChecksums);
                 pluginResult = executor.execute(primaryClassifications);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",
@@ -492,6 +497,52 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         }
 
         return io.hexaglue.arch.model.classification.ClassificationStrategy.WEIGHTED;
+    }
+
+    /**
+     * Loads checksums from the previous manifest for overwrite policy support.
+     *
+     * @param config the engine configuration
+     * @return a map of absolute file paths to their checksums, or empty if unavailable
+     * @since 5.0.0
+     */
+    private Map<Path, String> loadPreviousChecksums(EngineConfig config) {
+        if (config.outputDirectory() == null) {
+            return Map.of();
+        }
+        Path manifestPath = config.outputDirectory().getParent().resolve("manifest.txt");
+        Path projectRoot = resolveProjectRoot(config);
+        if (projectRoot == null) {
+            return Map.of();
+        }
+        try {
+            GenerationManifest manifest = GenerationManifest.load(manifestPath);
+            Map<Path, String> result = new HashMap<>();
+            for (String relativePath : manifest.allFiles()) {
+                manifest.checksumFor(relativePath).ifPresent(checksum -> {
+                    Path absolute = projectRoot.resolve(relativePath);
+                    result.put(absolute, checksum);
+                });
+            }
+            return result.isEmpty() ? Map.of() : Map.copyOf(result);
+        } catch (IOException e) {
+            log.debug("No previous manifest found: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /**
+     * Resolves the project root directory from the engine options.
+     */
+    private Path resolveProjectRoot(EngineConfig config) {
+        Object root = config.options().get("hexaglue.projectRoot");
+        if (root instanceof Path p) {
+            return p;
+        }
+        if (root instanceof String s) {
+            return Path.of(s);
+        }
+        return null;
     }
 
     /**

@@ -17,6 +17,8 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Result of executing all plugins.
@@ -79,6 +81,22 @@ public record PluginExecutionResult(List<PluginResult> pluginResults) {
                 .findFirst()
                 .map(PluginResult::outputs)
                 .orElse(Map.of());
+    }
+
+    /**
+     * Returns all source root directories that were actually written to by any plugin.
+     *
+     * <p>This aggregates the {@code usedSourceRoots} from all plugin results, so the
+     * calling mojo can register them as compile source roots via
+     * {@code MavenProject.addCompileSourceRoot()}.
+     *
+     * @return all distinct source root paths used across all plugins
+     * @since 5.0.0
+     */
+    public Set<Path> usedSourceRoots() {
+        return pluginResults.stream()
+                .flatMap(r -> r.usedSourceRoots().stream())
+                .collect(Collectors.toUnmodifiableSet());
     }
 
     /**

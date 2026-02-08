@@ -32,6 +32,7 @@ import java.util.Set;
  * @param projectName the name of the project being analyzed (e.g., from Maven pom.xml)
  * @param projectVersion the version of the project (e.g., "1.0.0")
  * @param outputDirectory directory for generated sources (null to skip plugin execution)
+ * @param reportsOutputDirectory directory for generated reports (null to use outputDirectory parent + /reports)
  * @param pluginConfigs plugin configurations keyed by plugin ID
  * @param options additional options (key-value pairs)
  * @param classificationConfig configuration for classification (exclusions, explicit mappings, validation)
@@ -40,6 +41,7 @@ import java.util.Set;
  * @param moduleSourceSets module source sets for multi-module projects (empty list for mono-module)
  * @since 5.0.0 added includeGenerated parameter
  * @since 5.0.0 added moduleSourceSets for multi-module support
+ * @since 5.0.0 added reportsOutputDirectory to separate sources and reports output
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -49,6 +51,7 @@ public record EngineConfig(
         String projectName,
         String projectVersion,
         Path outputDirectory,
+        Path reportsOutputDirectory,
         Map<String, Map<String, Object>> pluginConfigs,
         Map<String, Object> options,
         ClassificationConfig classificationConfig,
@@ -111,6 +114,7 @@ public record EngineConfig(
                 null,
                 null,
                 null,
+                null,
                 Map.of(),
                 Map.of(),
                 null,
@@ -132,6 +136,7 @@ public record EngineConfig(
                 null,
                 null,
                 outputDirectory,
+                null,
                 pluginConfigs,
                 Map.of(),
                 null,
@@ -159,6 +164,7 @@ public record EngineConfig(
                 null,
                 null,
                 null,
+                null,
                 Map.of(),
                 Map.of(),
                 classificationConfig,
@@ -181,6 +187,7 @@ public record EngineConfig(
                 projectName,
                 projectVersion,
                 outputDirectory,
+                reportsOutputDirectory,
                 pluginConfigs,
                 options,
                 classificationConfig,
@@ -203,6 +210,7 @@ public record EngineConfig(
                 projectName,
                 projectVersion,
                 outputDirectory,
+                reportsOutputDirectory,
                 pluginConfigs,
                 options,
                 classificationConfig,
@@ -225,6 +233,7 @@ public record EngineConfig(
                 projectName,
                 projectVersion,
                 outputDirectory,
+                reportsOutputDirectory,
                 pluginConfigs,
                 options,
                 classificationConfig,
@@ -251,6 +260,7 @@ public record EngineConfig(
                 projectName,
                 projectVersion,
                 outputDirectory,
+                reportsOutputDirectory,
                 pluginConfigs,
                 options,
                 classificationConfig,

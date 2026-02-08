@@ -16,6 +16,7 @@ package io.hexaglue.core.plugin;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Result of executing a single plugin.
@@ -27,6 +28,10 @@ import java.util.Map;
  * @param executionTimeMs execution time in milliseconds
  * @param error the exception if execution failed, null otherwise
  * @param outputs plugin outputs stored via setOutput() during execution
+ * @param usedSourceRoots source root directories actually written to by this plugin
+ * @param checksums SHA-256 checksums of generated files (path string to checksum)
+ * @since 5.0.0 added usedSourceRoots
+ * @since 5.0.0 added checksums for overwrite policy support
  */
 public record PluginResult(
         String pluginId,
@@ -35,13 +40,55 @@ public record PluginResult(
         List<PluginDiagnostic> diagnostics,
         long executionTimeMs,
         Throwable error,
-        Map<String, Object> outputs) {
+        Map<String, Object> outputs,
+        Set<Path> usedSourceRoots,
+        Map<String, String> checksums) {
 
     /**
-     * Compact constructor that ensures outputs is never null.
+     * Compact constructor that ensures outputs, usedSourceRoots, and checksums are never null.
      */
     public PluginResult {
         outputs = outputs != null ? Map.copyOf(outputs) : Map.of();
+        usedSourceRoots = usedSourceRoots != null ? Set.copyOf(usedSourceRoots) : Set.of();
+        checksums = checksums != null ? Map.copyOf(checksums) : Map.of();
+    }
+
+    /**
+     * Backwards-compatible constructor without usedSourceRoots and checksums.
+     */
+    public PluginResult(
+            String pluginId,
+            boolean success,
+            List<Path> generatedFiles,
+            List<PluginDiagnostic> diagnostics,
+            long executionTimeMs,
+            Throwable error,
+            Map<String, Object> outputs) {
+        this(pluginId, success, generatedFiles, diagnostics, executionTimeMs, error, outputs, Set.of(), Map.of());
+    }
+
+    /**
+     * Backwards-compatible constructor without checksums.
+     */
+    public PluginResult(
+            String pluginId,
+            boolean success,
+            List<Path> generatedFiles,
+            List<PluginDiagnostic> diagnostics,
+            long executionTimeMs,
+            Throwable error,
+            Map<String, Object> outputs,
+            Set<Path> usedSourceRoots) {
+        this(
+                pluginId,
+                success,
+                generatedFiles,
+                diagnostics,
+                executionTimeMs,
+                error,
+                outputs,
+                usedSourceRoots,
+                Map.of());
     }
 
     /**
