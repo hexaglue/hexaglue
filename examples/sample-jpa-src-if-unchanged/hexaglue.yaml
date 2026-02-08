@@ -1,0 +1,7 @@
+plugins:
+  io.hexaglue.plugin.jpa:
+    outputDirectory: src/main/java
+    overwrite: if-unchanged
+    generateRepositories: true
+    generateMappers: false
+    generateAdapters: false

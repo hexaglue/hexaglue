@@ -336,7 +336,7 @@ public final class PluginExecutor {
             long elapsed = System.currentTimeMillis() - start;
 
             List<Path> generatedFiles = extractGeneratedFiles(writer);
-            Set<Path> sourceRoots = extractUsedSourceRoots(writer);
+            Set<Path> sourceRoots = extractUsedSourceRoots(writer, moduleSourceSets);
             Map<String, String> fileChecksums = extractChecksums(writer);
 
             log.info("Plugin {} completed in {}ms, generated {} files", pluginId, elapsed, generatedFiles.size());
@@ -360,7 +360,7 @@ public final class PluginExecutor {
             diagnostics.error("Plugin execution failed: " + e.getMessage(), e);
 
             List<Path> generatedFiles = extractGeneratedFiles(writer);
-            Set<Path> sourceRoots = extractUsedSourceRoots(writer);
+            Set<Path> sourceRoots = extractUsedSourceRoots(writer, moduleSourceSets);
             Map<String, String> fileChecksums = extractChecksums(writer);
 
             // Capture outputs even on failure (partial outputs may exist)
@@ -411,7 +411,7 @@ public final class PluginExecutor {
     /**
      * Resolves the per-plugin output directory override, or null if no override is configured.
      */
-    private Path resolvePluginOutputOverride(Map<String, Object> pluginConfig) {
+    static Path resolvePluginOutputOverride(Map<String, Object> pluginConfig) {
         Object override = pluginConfig.get("outputDirectory");
         if (override instanceof String dir && !dir.isBlank()) {
             return Path.of(dir);
@@ -426,7 +426,7 @@ public final class PluginExecutor {
      * @return the overwrite policy, defaulting to {@link OverwritePolicy#ALWAYS}
      * @since 5.0.0
      */
-    private OverwritePolicy resolveOverwritePolicy(Map<String, Object> pluginConfig) {
+    static OverwritePolicy resolveOverwritePolicy(Map<String, Object> pluginConfig) {
         Object override = pluginConfig.get("overwrite");
         if (override instanceof String policy) {
             try {
@@ -441,7 +441,7 @@ public final class PluginExecutor {
     /**
      * Extracts generated files from the code writer, handling both mono and multi-module writers.
      */
-    private List<Path> extractGeneratedFiles(CodeWriter writer) {
+    private static List<Path> extractGeneratedFiles(CodeWriter writer) {
         if (writer instanceof MultiModuleCodeWriter mmWriter) {
             return mmWriter.getGeneratedFiles();
         } else if (writer instanceof FileSystemCodeWriter fsWriter) {
@@ -455,7 +455,7 @@ public final class PluginExecutor {
      *
      * @since 5.0.0
      */
-    private Map<String, String> extractChecksums(CodeWriter writer) {
+    static Map<String, String> extractChecksums(CodeWriter writer) {
         if (writer instanceof MultiModuleCodeWriter mmWriter) {
             return mmWriter.getGeneratedFileChecksums().entrySet().stream()
                     .collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
@@ -472,8 +472,10 @@ public final class PluginExecutor {
      * <p>For a mono-module writer, this returns the single output directory.
      * For a multi-module writer, this returns all module output directories
      * that contain at least one generated file.</p>
+     *
+     * @since 5.0.0
      */
-    private Set<Path> extractUsedSourceRoots(CodeWriter writer) {
+    static Set<Path> extractUsedSourceRoots(CodeWriter writer, List<ModuleSourceSet> moduleSourceSets) {
         List<Path> generatedFiles = extractGeneratedFiles(writer);
         if (generatedFiles.isEmpty()) {
             return Set.of();
@@ -483,7 +485,7 @@ public final class PluginExecutor {
             // Collect distinct output directories from all modules that have generated files
             Set<Path> roots = new HashSet<>();
             roots.add(mmWriter.getOutputDirectory()); // default output
-            for (io.hexaglue.core.engine.ModuleSourceSet mss : moduleSourceSets) {
+            for (ModuleSourceSet mss : moduleSourceSets) {
                 Path moduleOutput = mmWriter.getOutputDirectory(mss.moduleId());
                 // Only include if we actually wrote files there
                 for (Path file : generatedFiles) {

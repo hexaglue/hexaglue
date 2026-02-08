@@ -271,9 +271,12 @@ public record EngineConfig(
 
     /**
      * Returns true if plugin execution is enabled.
+     *
+     * <p>Plugins are enabled when at least one output directory is configured:
+     * either for generated sources or for reports (audit-only mode).</p>
      */
     public boolean pluginsEnabled() {
-        return outputDirectory != null;
+        return outputDirectory != null || reportsOutputDirectory != null;
     }
 
     /**

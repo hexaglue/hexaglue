@@ -230,8 +230,11 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
                 Map<Path, String> previousChecksums = loadPreviousChecksums(config);
+                // Use reportsOutputDirectory as fallback when outputDirectory is null (audit-only mode)
+                Path effectiveOutputDir =
+                        config.outputDirectory() != null ? config.outputDirectory() : config.reportsOutputDirectory();
                 PluginExecutor executor = new PluginExecutor(
-                        config.outputDirectory(),
+                        effectiveOutputDir,
                         config.pluginConfigs(),
                         graph,
                         config.enabledCategories(),

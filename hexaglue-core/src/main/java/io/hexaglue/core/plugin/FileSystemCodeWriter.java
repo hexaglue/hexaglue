@@ -256,7 +256,13 @@ final class FileSystemCodeWriter implements CodeWriter {
                 yield true;
             }
             case IF_UNCHANGED -> {
+                // Lookup supports both relative and absolute paths: previousChecksums
+                // may use absolute keys (from loadPreviousChecksums) while file may be
+                // relative when the plugin outputDirectory is relative (e.g. src/main/java).
                 String previousChecksum = previousChecksums.get(file);
+                if (previousChecksum == null && !file.isAbsolute()) {
+                    previousChecksum = previousChecksums.get(file.toAbsolutePath().normalize());
+                }
                 if (previousChecksum == null) {
                     yield false;
                 }

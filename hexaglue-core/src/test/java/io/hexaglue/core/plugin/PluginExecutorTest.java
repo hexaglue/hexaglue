@@ -19,6 +19,7 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.index.ModuleRole;
 import io.hexaglue.core.engine.ModuleSourceSet;
+import io.hexaglue.core.engine.OverwritePolicy;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
@@ -28,6 +29,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -436,6 +438,367 @@ class PluginExecutorTest {
 
             // Then: Executes successfully with multi-module writer
             assertThat(result.isSuccess()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Overwrite policy resolution")
+    class OverwritePolicyResolution {
+
+        @Test
+        @DisplayName("should default to ALWAYS when no overwrite config")
+        void shouldDefaultToAlwaysWhenNoConfig() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of())).isEqualTo(OverwritePolicy.ALWAYS);
+        }
+
+        @Test
+        @DisplayName("should resolve ALWAYS from lowercase string")
+        void shouldResolveAlwaysFromLowercase() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "always")))
+                    .isEqualTo(OverwritePolicy.ALWAYS);
+        }
+
+        @Test
+        @DisplayName("should resolve IF_UNCHANGED from 'if-unchanged' (hyphen)")
+        void shouldResolveIfUnchangedFromHyphen() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "if-unchanged")))
+                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
+        }
+
+        @Test
+        @DisplayName("should resolve IF_UNCHANGED from uppercase")
+        void shouldResolveIfUnchangedFromUppercase() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "IF_UNCHANGED")))
+                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
+        }
+
+        @Test
+        @DisplayName("should resolve NEVER from lowercase")
+        void shouldResolveNeverFromLowercase() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "never")))
+                    .isEqualTo(OverwritePolicy.NEVER);
+        }
+
+        @Test
+        @DisplayName("should default to ALWAYS for invalid value")
+        void shouldDefaultToAlwaysForInvalidValue() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "invalid-value")))
+                    .isEqualTo(OverwritePolicy.ALWAYS);
+        }
+
+        @Test
+        @DisplayName("should default to ALWAYS when overwrite value is not a string")
+        void shouldDefaultToAlwaysWhenNotString() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", 42)))
+                    .isEqualTo(OverwritePolicy.ALWAYS);
+        }
+
+        @Test
+        @DisplayName("should handle mixed case with hyphens")
+        void shouldHandleMixedCaseWithHyphens() {
+            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "If-Unchanged")))
+                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
+        }
+    }
+
+    @Nested
+    @DisplayName("Plugin output override resolution")
+    class PluginOutputOverrideResolution {
+
+        @Test
+        @DisplayName("should return null when no outputDirectory in config")
+        void shouldReturnNullWhenNoConfig() {
+            assertThat(PluginExecutor.resolvePluginOutputOverride(Map.of())).isNull();
+        }
+
+        @Test
+        @DisplayName("should resolve path from outputDirectory string")
+        void shouldResolvePathFromString() {
+            Path result = PluginExecutor.resolvePluginOutputOverride(Map.of("outputDirectory", "src/main/java"));
+            assertThat(result).isEqualTo(Path.of("src/main/java"));
+        }
+
+        @Test
+        @DisplayName("should return null for blank outputDirectory")
+        void shouldReturnNullForBlank() {
+            assertThat(PluginExecutor.resolvePluginOutputOverride(Map.of("outputDirectory", "   ")))
+                    .isNull();
+        }
+
+        @Test
+        @DisplayName("should return null when outputDirectory is not a string")
+        void shouldReturnNullWhenNotString() {
+            assertThat(PluginExecutor.resolvePluginOutputOverride(Map.of("outputDirectory", 42)))
+                    .isNull();
+        }
+
+        @Test
+        @DisplayName("should resolve absolute path")
+        void shouldResolveAbsolutePath() {
+            Path result = PluginExecutor.resolvePluginOutputOverride(Map.of("outputDirectory", "/tmp/output"));
+            assertThat(result).isEqualTo(Path.of("/tmp/output"));
+            assertThat(result.isAbsolute()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Checksum extraction")
+    class ChecksumExtraction {
+
+        @Test
+        @DisplayName("should extract checksums from FileSystemCodeWriter after write")
+        void shouldExtractChecksumsFromFileSystemCodeWriter() throws IOException {
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
+            writer.writeJavaSource("com.example", "Foo", "class Foo {}");
+
+            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
+
+            assertThat(checksums).hasSize(1);
+            assertThat(checksums.values().iterator().next()).startsWith("sha256:");
+        }
+
+        @Test
+        @DisplayName("should extract checksums from MultiModuleCodeWriter after write")
+        void shouldExtractChecksumsFromMultiModuleCodeWriter() throws IOException {
+            Path coreOutput = tempDir.resolve("core-output");
+            Path coreBase = tempDir.resolve("core");
+            Files.createDirectories(coreBase);
+            ModuleSourceSet coreModule =
+                    new ModuleSourceSet("core", ModuleRole.DOMAIN, List.of(coreBase), List.of(), coreOutput, coreBase);
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(List.of(coreModule), outputDir);
+            writer.writeJavaSource("core", "com.example", "Bar", "class Bar {}");
+
+            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
+
+            assertThat(checksums).hasSize(1);
+            assertThat(checksums.values().iterator().next()).startsWith("sha256:");
+        }
+
+        @Test
+        @DisplayName("should return empty map for unknown writer type")
+        void shouldReturnEmptyMapForUnknownWriter() {
+            Map<String, String> checksums = PluginExecutor.extractChecksums(new TestCodeWriter());
+
+            assertThat(checksums).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should return empty map when no files written")
+        void shouldReturnEmptyMapWhenNoFilesWritten() {
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
+
+            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
+
+            assertThat(checksums).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should convert Path keys to String keys")
+        void shouldConvertPathKeysToStringKeys() throws IOException {
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
+            writer.writeJavaSource("com.example", "A", "class A {}");
+            writer.writeJavaSource("com.example", "B", "class B {}");
+
+            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
+
+            assertThat(checksums).hasSize(2);
+            // All keys should be string paths, not Path objects
+            for (String key : checksums.keySet()) {
+                assertThat(key).contains("com/example/");
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Used source roots extraction")
+    class UsedSourceRootsExtraction {
+
+        @Test
+        @DisplayName("should return empty set when no files generated")
+        void shouldReturnEmptySetWhenNoFilesGenerated() {
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
+
+            Set<Path> roots = PluginExecutor.extractUsedSourceRoots(writer, List.of());
+
+            assertThat(roots).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should return single output directory for mono-module writer")
+        void shouldReturnSingleOutputDirectoryForMonoModule() throws IOException {
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
+            writer.writeJavaSource("com.example", "Foo", "class Foo {}");
+
+            Set<Path> roots = PluginExecutor.extractUsedSourceRoots(writer, List.of());
+
+            assertThat(roots).containsExactly(outputDir);
+        }
+
+        @Test
+        @DisplayName("should return only modules with generated files")
+        void shouldReturnOnlyModulesWithGeneratedFiles() throws IOException {
+            Path coreOutput = tempDir.resolve("core-output");
+            Path infraOutput = tempDir.resolve("infra-output");
+            Path coreBase = tempDir.resolve("core");
+            Path infraBase = tempDir.resolve("infra");
+            Files.createDirectories(coreBase);
+            Files.createDirectories(infraBase);
+
+            ModuleSourceSet coreModule =
+                    new ModuleSourceSet("core", ModuleRole.DOMAIN, List.of(coreBase), List.of(), coreOutput, coreBase);
+            ModuleSourceSet infraModule = new ModuleSourceSet(
+                    "infra", ModuleRole.INFRASTRUCTURE, List.of(infraBase), List.of(), infraOutput, infraBase);
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(List.of(coreModule, infraModule), outputDir);
+            // Only write to core, not infra
+            writer.writeJavaSource("core", "com.example", "Foo", "class Foo {}");
+
+            Set<Path> roots = PluginExecutor.extractUsedSourceRoots(writer, List.of(coreModule, infraModule));
+
+            // Should include default output + core output, but NOT infra output
+            assertThat(roots).contains(coreOutput);
+            assertThat(roots).doesNotContain(infraOutput);
+        }
+
+        @Test
+        @DisplayName("should include default writer root in multi-module")
+        void shouldIncludeDefaultWriterRootInMultiModule() throws IOException {
+            Path coreOutput = tempDir.resolve("core-output");
+            Path coreBase = tempDir.resolve("core");
+            Files.createDirectories(coreBase);
+
+            ModuleSourceSet coreModule =
+                    new ModuleSourceSet("core", ModuleRole.DOMAIN, List.of(coreBase), List.of(), coreOutput, coreBase);
+
+            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(List.of(coreModule), outputDir);
+            writer.writeJavaSource("core", "com.example", "Foo", "class Foo {}");
+
+            Set<Path> roots = PluginExecutor.extractUsedSourceRoots(writer, List.of(coreModule));
+
+            // Default output root is always included when files are generated
+            assertThat(roots).contains(outputDir);
+        }
+
+        @Test
+        @DisplayName("should return empty set for unknown writer type with no files")
+        void shouldReturnEmptySetForUnknownWriterType() {
+            Set<Path> roots = PluginExecutor.extractUsedSourceRoots(new TestCodeWriter(), List.of());
+
+            assertThat(roots).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("Plugin output override cascade")
+    class PluginOutputOverrideCascade {
+
+        @Test
+        @DisplayName("should use plugin-specific outputDirectory when configured")
+        void shouldUsePluginSpecificOutputDirectoryWhenConfigured() throws IOException {
+            // Given: plugin config specifies a custom outputDirectory
+            Path customOutput = tempDir.resolve("custom-plugin-output");
+            Map<String, Object> jpaConfig = Map.of("outputDirectory", customOutput.toString());
+
+            // When: resolvePluginOutputOverride returns the configured path
+            Path overridePath = PluginExecutor.resolvePluginOutputOverride(jpaConfig);
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(overridePath);
+            writer.writeJavaSource("com.example", "Entity", "class Entity {}");
+
+            // Then: file written to custom directory, not default
+            assertThat(customOutput.resolve("com/example/Entity.java")).exists();
+            assertThat(outputDir.resolve("com/example/Entity.java")).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("should fall back to global outputDirectory when no plugin override")
+        void shouldFallBackToGlobalOutputDirectoryWhenNoPluginOverride() throws IOException {
+            // Given: plugin config has no outputDirectory
+            Map<String, Object> auditConfig = Map.of("someOtherKey", "value");
+
+            // When: resolvePluginOutputOverride returns null → fall back to global
+            Path overridePath = PluginExecutor.resolvePluginOutputOverride(auditConfig);
+            assertThat(overridePath).isNull();
+
+            // Then: effective output is the global one
+            Path effectiveOutput = overridePath != null ? overridePath : outputDir;
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(effectiveOutput);
+            writer.writeJavaSource("com.example", "Report", "class Report {}");
+
+            assertThat(outputDir.resolve("com/example/Report.java")).exists();
+        }
+
+        @Test
+        @DisplayName("should combine plugin override with overwrite policy")
+        void shouldCombinePluginOverrideWithOverwritePolicy() throws IOException {
+            // Given: plugin config with both outputDirectory and overwrite policy
+            Path customOutput = tempDir.resolve("custom-output");
+            Map<String, Object> jpaConfig = Map.of("outputDirectory", customOutput.toString(), "overwrite", "never");
+
+            Path overridePath = PluginExecutor.resolvePluginOutputOverride(jpaConfig);
+            OverwritePolicy policy = PluginExecutor.resolveOverwritePolicy(jpaConfig);
+
+            // Pre-create existing file in custom output
+            Path existingFile = customOutput.resolve("com/example/Entity.java");
+            Files.createDirectories(existingFile.getParent());
+            Files.writeString(existingFile, "class Entity { /* original */ }");
+
+            // When: create writer with both override and policy
+            FileSystemCodeWriter writer = new FileSystemCodeWriter(overridePath, policy, Map.of());
+            writer.writeJavaSource("com.example", "Entity", "class Entity { /* new */ }");
+
+            // Then: NEVER policy should prevent overwrite
+            assertThat(Files.readString(existingFile)).contains("original");
+        }
+
+        @Test
+        @DisplayName("should apply per-plugin overwrite policy independently")
+        void shouldApplyPerPluginOverwritePolicyIndependently() {
+            // Given: two plugins with different overwrite policies
+            Map<String, Object> jpaConfig = Map.of("overwrite", "if-unchanged");
+            Map<String, Object> auditConfig = Map.of("overwrite", "always");
+
+            // Then: each plugin gets its own policy
+            assertThat(PluginExecutor.resolveOverwritePolicy(jpaConfig)).isEqualTo(OverwritePolicy.IF_UNCHANGED);
+            assertThat(PluginExecutor.resolveOverwritePolicy(auditConfig)).isEqualTo(OverwritePolicy.ALWAYS);
+        }
+    }
+
+    @Nested
+    @DisplayName("PluginResult backward-compatible constructors")
+    class PluginResultConstructors {
+
+        @Test
+        @DisplayName("7-arg constructor should produce empty usedSourceRoots and checksums")
+        void sevenArgConstructorShouldProduceEmptySourceRootsAndChecksums() {
+            PluginResult result = new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of());
+
+            assertThat(result.usedSourceRoots()).isNotNull().isEmpty();
+            assertThat(result.checksums()).isNotNull().isEmpty();
+        }
+
+        @Test
+        @DisplayName("8-arg constructor should produce empty checksums")
+        void eightArgConstructorShouldProduceEmptyChecksums() {
+            Set<Path> roots = Set.of(Path.of("/output"));
+            PluginResult result = new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of(), roots);
+
+            assertThat(result.usedSourceRoots()).isEqualTo(roots);
+            assertThat(result.checksums()).isNotNull().isEmpty();
+        }
+
+        @Test
+        @DisplayName("9-arg constructor should preserve actual checksums")
+        void nineArgConstructorShouldPreserveActualChecksums() {
+            Set<Path> roots = Set.of(Path.of("/output"));
+            Map<String, String> checksums = Map.of("/output/com/example/Foo.java", "sha256:abc123");
+
+            PluginResult result =
+                    new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of(), roots, checksums);
+
+            assertThat(result.usedSourceRoots()).isEqualTo(roots);
+            assertThat(result.checksums()).hasSize(1);
+            assertThat(result.checksums()).containsEntry("/output/com/example/Foo.java", "sha256:abc123");
         }
     }
 

@@ -127,6 +127,80 @@ class MultiModuleOutputResolverTest {
     }
 
     @Nested
+    @DisplayName("consistency")
+    class Consistency {
+
+        @Test
+        @DisplayName("two resolvers with same reactorBaseDir should produce identical paths")
+        void twoResolversWithSameBaseDirShouldProduceIdenticalPaths() {
+            // Simulates the scenario where Builder and Participant both create a resolver
+            MultiModuleOutputResolver resolver1 = new MultiModuleOutputResolver(tempDir);
+            MultiModuleOutputResolver resolver2 = new MultiModuleOutputResolver(tempDir);
+
+            assertThat(resolver1.resolveSourcesDirectory("banking-core"))
+                    .isEqualTo(resolver2.resolveSourcesDirectory("banking-core"));
+            assertThat(resolver1.resolveResourcesDirectory("banking-core"))
+                    .isEqualTo(resolver2.resolveResourcesDirectory("banking-core"));
+            assertThat(resolver1.resolveReportsDirectory()).isEqualTo(resolver2.resolveReportsDirectory());
+            assertThat(resolver1.resolveDefaultOutputDirectory()).isEqualTo(resolver2.resolveDefaultOutputDirectory());
+        }
+
+        @Test
+        @DisplayName("custom resolver should produce consistent sources/resources/reports for same module")
+        void customResolverShouldProduceConsistentPaths() {
+            MultiModuleOutputResolver resolver = new MultiModuleOutputResolver(
+                    tempDir, "target/custom-src", "target/custom-res", "target/custom-reports");
+
+            Path sources = resolver.resolveSourcesDirectory("infra");
+            Path resources = resolver.resolveResourcesDirectory("infra");
+            Path reports = resolver.resolveReportsDirectory();
+
+            // Sources and resources should have parallel structure with /modules/infra
+            assertThat(sources).isEqualTo(tempDir.resolve("target/custom-src/modules/infra"));
+            assertThat(resources).isEqualTo(tempDir.resolve("target/custom-res/modules/infra"));
+            // Reports are shared (no module subdirectory)
+            assertThat(reports).isEqualTo(tempDir.resolve("target/custom-reports"));
+        }
+
+        @Test
+        @DisplayName("sources and resources should differ only in base segment")
+        void sourcesAndResourcesShouldDifferOnlyInBaseSegment() {
+            MultiModuleOutputResolver resolver = new MultiModuleOutputResolver(tempDir);
+
+            Path sources = resolver.resolveSourcesDirectory("my-module");
+            Path resources = resolver.resolveResourcesDirectory("my-module");
+
+            // Both should end with /modules/my-module
+            assertThat(sources.getFileName()).isEqualTo(resources.getFileName());
+            assertThat(sources.getParent().getFileName())
+                    .isEqualTo(resources.getParent().getFileName());
+            // But the base segment should differ
+            assertThat(sources.toString()).contains("generated-sources");
+            assertThat(resources.toString()).contains("generated-resources");
+        }
+
+        @Test
+        @DisplayName("multiple modules should have distinct output directories")
+        void multipleModulesShouldHaveDistinctOutputDirectories() {
+            MultiModuleOutputResolver resolver = new MultiModuleOutputResolver(tempDir);
+
+            Path coreOutput = resolver.resolveSourcesDirectory("banking-core");
+            Path infraOutput = resolver.resolveSourcesDirectory("banking-infrastructure");
+            Path apiOutput = resolver.resolveSourcesDirectory("banking-api");
+
+            assertThat(coreOutput).isNotEqualTo(infraOutput);
+            assertThat(infraOutput).isNotEqualTo(apiOutput);
+            assertThat(coreOutput).isNotEqualTo(apiOutput);
+
+            // All should share the same prefix
+            Path commonPrefix = tempDir.resolve("target/generated-sources/hexaglue/modules");
+            assertThat(coreOutput.startsWith(commonPrefix)).isTrue();
+            assertThat(infraOutput.startsWith(commonPrefix)).isTrue();
+            assertThat(apiOutput.startsWith(commonPrefix)).isTrue();
+        }
+    }
+
+    @Nested
     @DisplayName("validation")
     class Validation {
 

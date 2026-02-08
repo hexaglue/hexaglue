@@ -401,6 +401,45 @@ class ReactorEngineConfigBuilderTest {
     }
 
     @Nested
+    @DisplayName("Custom output configuration")
+    class CustomOutputConfiguration {
+
+        @Test
+        @DisplayName("should use custom sources base from YAML output config")
+        void shouldUseCustomSourcesBaseFromYaml() throws IOException {
+            // Given: YAML with custom output paths
+            String yaml = """
+                    output:
+                      sources: "target/custom-hexaglue-sources"
+                    """;
+            MavenProject parent = createParentProject("parent");
+            Files.writeString(parent.getBasedir().toPath().resolve("hexaglue.yaml"), yaml);
+
+            MavenProject core = createJarModule("banking-core", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, core);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Then: module output directory should use the custom sources base
+            Path parentBaseDir = parent.getBasedir().toPath();
+            Path expectedPrefix = parentBaseDir.resolve("target/custom-hexaglue-sources/modules/banking-core");
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).outputDirectory()).isEqualTo(expectedPrefix);
+        }
+    }
+
+    @Nested
     @DisplayName("Module filtering")
     class ModuleFiltering {
 
@@ -429,6 +468,165 @@ class ReactorEngineConfigBuilderTest {
             // Then: only jar module included
             assertThat(config.moduleSourceSets()).hasSize(1);
             assertThat(config.moduleSourceSets().get(0).moduleId()).isEqualTo("core");
+        }
+    }
+
+    @Nested
+    @DisplayName("Custom reports output configuration")
+    class CustomReportsOutputConfiguration {
+
+        @Test
+        @DisplayName("should use custom reports base from YAML output config")
+        void shouldUseCustomReportsBaseFromYaml() throws IOException {
+            // Given: YAML with custom reports path
+            String yaml = """
+                    output:
+                      reports: "target/custom-reports"
+                    """;
+            MavenProject parent = createParentProject("parent");
+            Files.writeString(parent.getBasedir().toPath().resolve("hexaglue.yaml"), yaml);
+
+            MavenProject core = createJarModule("banking-core", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, core);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Then: reportsOutputDirectory should be null (not set in build() call),
+            // but the custom reports base is used by MultiModuleOutputResolver internally.
+            // We verify that the module output dir uses the DEFAULT sources base
+            // (i.e., custom reports doesn't affect sources)
+            Path parentBaseDir = parent.getBasedir().toPath();
+            Path expectedSourcesPrefix =
+                    parentBaseDir.resolve("target/generated-sources/hexaglue/modules/banking-core");
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).outputDirectory()).isEqualTo(expectedSourcesPrefix);
+        }
+
+        @Test
+        @DisplayName("should use both custom sources and reports bases from YAML")
+        void shouldUseBothCustomSourcesAndReportsBasesFromYaml() throws IOException {
+            // Given: YAML with both custom paths
+            String yaml = """
+                    output:
+                      sources: "target/my-sources"
+                      reports: "target/my-reports"
+                    """;
+            MavenProject parent = createParentProject("parent");
+            Files.writeString(parent.getBasedir().toPath().resolve("hexaglue.yaml"), yaml);
+
+            MavenProject core = createJarModule("core", "src/main/java");
+            MavenProject infra = createJarModule("infra", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, core, infra);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Then: both modules should use the custom sources base
+            Path parentBaseDir = parent.getBasedir().toPath();
+            assertThat(config.moduleSourceSets()).hasSize(2);
+            assertThat(config.moduleSourceSets().get(0).outputDirectory())
+                    .isEqualTo(parentBaseDir.resolve("target/my-sources/modules/core"));
+            assertThat(config.moduleSourceSets().get(1).outputDirectory())
+                    .isEqualTo(parentBaseDir.resolve("target/my-sources/modules/infra"));
+        }
+    }
+
+    @Nested
+    @DisplayName("Non-jar packaging exclusion")
+    class NonJarPackagingExclusion {
+
+        @Test
+        @DisplayName("should filter out WAR packaging modules")
+        void shouldFilterOutWarPackagingModules() throws IOException {
+            MavenProject parent = createParentProject("parent");
+            MavenProject core = createJarModule("core", "src/main/java");
+            MavenProject webapp = createModuleWithPackaging("webapp", "war");
+
+            MavenSession session = createSession(parent, parent, core, webapp);
+
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            // Only jar module included
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).moduleId()).isEqualTo("core");
+        }
+
+        @Test
+        @DisplayName("should filter out EAR packaging modules")
+        void shouldFilterOutEarPackagingModules() throws IOException {
+            MavenProject parent = createParentProject("parent");
+            MavenProject core = createJarModule("core", "src/main/java");
+            MavenProject ear = createModuleWithPackaging("app-ear", "ear");
+
+            MavenSession session = createSession(parent, parent, core, ear);
+
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).moduleId()).isEqualTo("core");
+        }
+
+        @Test
+        @DisplayName("should handle reactor with only non-jar modules")
+        void shouldHandleReactorWithOnlyNonJarModules() throws IOException {
+            MavenProject parent = createParentProject("parent");
+            MavenProject bom = createPomModule("bom");
+            MavenProject webapp = createModuleWithPackaging("webapp", "war");
+
+            MavenSession session = createSession(parent, parent, bom, webapp);
+
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session,
+                    "com.example",
+                    outputDir,
+                    null,
+                    Map.of(),
+                    null,
+                    Set.of(PluginCategory.GENERATOR),
+                    false,
+                    log);
+
+            assertThat(config.moduleSourceSets()).isEmpty();
+            assertThat(config.isMultiModule()).isFalse();
         }
     }
 
@@ -506,6 +704,25 @@ class ReactorEngineConfigBuilderTest {
         artifacts.add(artifact);
         project.setArtifacts(artifacts);
 
+        return project;
+    }
+
+    private MavenProject createModuleWithPackaging(String artifactId, String packaging) throws IOException {
+        Path moduleDir = tempDir.resolve(artifactId);
+        Files.createDirectories(moduleDir);
+
+        Model model = new Model();
+        Build build = new Build();
+        model.setBuild(build);
+
+        MavenProject project = new MavenProject(model);
+        project.setArtifactId(artifactId);
+        project.setName(artifactId);
+        project.setVersion("1.0.0-SNAPSHOT");
+        project.setPackaging(packaging);
+        project.setFile(moduleDir.resolve("pom.xml").toFile());
+
+        project.setArtifacts(Collections.emptySet());
         return project;
     }
 
