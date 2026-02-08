@@ -88,8 +88,8 @@ class EntitySpecBuilderTest {
                 true, // generateAdapters
                 true, // generateMappers
                 true, // generateRepositories
-                true // generateEmbeddables
-                );
+                true, // generateEmbeddables
+                null);
     }
 
     /**

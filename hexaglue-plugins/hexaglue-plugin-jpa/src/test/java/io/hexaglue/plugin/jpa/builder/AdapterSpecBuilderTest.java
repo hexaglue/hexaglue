@@ -61,7 +61,19 @@ class AdapterSpecBuilderTest {
     @BeforeEach
     void setUp() {
         config = new JpaConfig(
-                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
+                "Entity",
+                "Embeddable",
+                "JpaRepository",
+                "Adapter",
+                "Mapper",
+                "",
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                null);
         orderAggregate = createOrderAggregate();
     }
 
@@ -488,7 +500,8 @@ class AdapterSpecBuilderTest {
                     true,
                     true,
                     true,
-                    true);
+                    true,
+                    null);
 
             DrivenPort port = createSimplePort("CustomerRepository");
 
@@ -541,7 +554,8 @@ class AdapterSpecBuilderTest {
                     true,
                     true,
                     true,
-                    true);
+                    true,
+                    null);
 
             DrivenPort port1 = createSimplePort("ReadableOrderRepository");
             DrivenPort port2 = createSimplePort("WritableOrderRepository");
