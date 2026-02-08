@@ -117,8 +117,7 @@ final class ReactorEngineConfigBuilder {
             moduleSourceSets.add(new ModuleSourceSet(
                     moduleId, role, moduleSourceRoots, List.copyOf(classpathSet), moduleOutputDir, moduleBaseDir));
 
-            log.debug(String.format(
-                    "Module '%s' [%s]: %d source root(s)", moduleId, role, moduleSourceRoots.size()));
+            log.debug(String.format("Module '%s' [%s]: %d source root(s)", moduleId, role, moduleSourceRoots.size()));
         }
 
         // Resolve Java version from top-level project

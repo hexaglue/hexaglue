@@ -374,8 +374,8 @@ class HexaGlueLifecycleParticipantTest {
 
         private Plugin findHexaGluePlugin(MavenProject project) {
             return project.getBuildPlugins().stream()
-                    .filter(p -> "io.hexaglue".equals(p.getGroupId())
-                            && "hexaglue-maven-plugin".equals(p.getArtifactId()))
+                    .filter(p ->
+                            "io.hexaglue".equals(p.getGroupId()) && "hexaglue-maven-plugin".equals(p.getArtifactId()))
                     .findFirst()
                     .orElse(null);
         }

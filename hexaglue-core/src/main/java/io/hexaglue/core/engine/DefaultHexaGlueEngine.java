@@ -328,8 +328,8 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
         // Register all modules
         List<ModuleDescriptor> descriptors = new ArrayList<>();
         for (ModuleSourceSet mss : moduleSourceSets) {
-            ModuleDescriptor descriptor = new ModuleDescriptor(
-                    mss.moduleId(), mss.role(), mss.baseDir(), mss.sourceRoots(), null);
+            ModuleDescriptor descriptor =
+                    new ModuleDescriptor(mss.moduleId(), mss.role(), mss.baseDir(), mss.sourceRoots(), null);
             builder.addModule(descriptor);
             descriptors.add(descriptor);
         }

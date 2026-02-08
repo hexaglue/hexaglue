@@ -322,7 +322,8 @@ public final class PluginExecutor {
             // Capture plugin outputs for retrieval by the engine/mojos
             Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
 
-            return new PluginResult(pluginId, true, generatedFiles, diagnostics.getDiagnostics(), elapsed, null, pluginOutputs);
+            return new PluginResult(
+                    pluginId, true, generatedFiles, diagnostics.getDiagnostics(), elapsed, null, pluginOutputs);
 
         } catch (Exception e) {
             log.error("Plugin {} failed: {}", pluginId, e.getMessage(), e);

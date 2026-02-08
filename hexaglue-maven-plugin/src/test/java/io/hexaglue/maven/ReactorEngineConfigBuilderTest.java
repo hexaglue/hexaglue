@@ -144,8 +144,7 @@ class ReactorEngineConfigBuilderTest {
         @DisplayName("should assign roles from YAML config")
         void shouldAssignRolesFromYamlConfig() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     modules:
                       core:
                         role: DOMAIN
@@ -289,7 +288,8 @@ class ReactorEngineConfigBuilderTest {
     private MavenProject createJarModuleWithArtifact(String artifactId, File artifactFile) throws IOException {
         MavenProject project = createJarModule(artifactId, "src/main/java");
 
-        Artifact artifact = new DefaultArtifact("com.example", "dep-" + artifactId, "1.0", "compile", "jar", "", new DefaultArtifactHandler("jar"));
+        Artifact artifact = new DefaultArtifact(
+                "com.example", "dep-" + artifactId, "1.0", "compile", "jar", "", new DefaultArtifactHandler("jar"));
         artifact.setFile(artifactFile);
 
         Set<Artifact> artifacts = new HashSet<>();
@@ -320,8 +320,8 @@ class ReactorEngineConfigBuilderTest {
 
     @SuppressWarnings("deprecation") // No non-deprecated constructor available in Maven 3.9.x
     private MavenSession createSession(MavenProject topLevel, MavenProject... projects) {
-        MavenSession session =
-                new MavenSession(null, new DefaultMavenExecutionRequest(), new DefaultMavenExecutionResult(), List.of(projects));
+        MavenSession session = new MavenSession(
+                null, new DefaultMavenExecutionRequest(), new DefaultMavenExecutionResult(), List.of(projects));
         session.setCurrentProject(topLevel);
         return session;
     }
