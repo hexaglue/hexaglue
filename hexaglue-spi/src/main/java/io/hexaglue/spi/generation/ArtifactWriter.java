@@ -110,6 +110,22 @@ public interface ArtifactWriter extends CodeWriter {
             public java.nio.file.Path getDocsOutputDirectory() {
                 return writer.getDocsOutputDirectory();
             }
+
+            @Override
+            public void writeJavaSource(String moduleId, String packageName, String className, String content)
+                    throws java.io.IOException {
+                writer.writeJavaSource(moduleId, packageName, className, content);
+            }
+
+            @Override
+            public java.nio.file.Path getOutputDirectory(String moduleId) {
+                return writer.getOutputDirectory(moduleId);
+            }
+
+            @Override
+            public boolean isMultiModule() {
+                return writer.isMultiModule();
+            }
         };
     }
 }
