@@ -22,6 +22,7 @@ import org.apache.maven.execution.DefaultMavenExecutionResult;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
+import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
@@ -263,6 +264,120 @@ class HexaGlueLifecycleParticipantTest {
 
             // Project without JPA should remain unchanged
             assertThat(projectWithoutJpa.getDependencies()).hasSize(initialDepsWithoutJpa);
+        }
+    }
+
+    @Nested
+    @DisplayName("Reactor goal injection")
+    class ReactorGoalInjection {
+
+        @Test
+        @DisplayName("should inject reactor goals in parent for multi-module")
+        void shouldInjectReactorGoalsInParentForMultiModule() throws Exception {
+            MavenProject parent = createMultiModuleParent();
+            MavenProject child = createProjectWithJpaPlugin();
+            MavenSession session = createSession(parent, child);
+
+            participant.afterProjectsRead(session);
+
+            Plugin parentPlugin = findHexaGluePlugin(parent);
+            assertThat(parentPlugin).isNotNull();
+            assertThat(parentPlugin.getExecutions())
+                    .filteredOn(e -> e.getGoals().contains("reactor-generate"))
+                    .hasSize(1);
+            assertThat(parentPlugin.getExecutions())
+                    .filteredOn(e -> e.getGoals().contains("reactor-audit"))
+                    .hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should not inject mono-module goals in child modules of multi-module project")
+        void shouldNotInjectMonoModuleGoalsInChildModules() throws Exception {
+            MavenProject parent = createMultiModuleParent();
+            MavenProject child = createProjectWithJpaPlugin();
+            MavenSession session = createSession(parent, child);
+
+            participant.afterProjectsRead(session);
+
+            Plugin childPlugin = findHexaGluePlugin(child);
+            if (childPlugin != null) {
+                // Child should NOT have mono-module goals injected
+                assertThat(childPlugin.getExecutions())
+                        .filteredOn(e -> e.getGoals().contains("generate"))
+                        .isEmpty();
+                assertThat(childPlugin.getExecutions())
+                        .filteredOn(e -> e.getGoals().contains("audit"))
+                        .isEmpty();
+            }
+        }
+
+        @Test
+        @DisplayName("should keep mono-module behavior for single project")
+        void shouldKeepMonoModuleBehaviorForSingleProject() throws Exception {
+            MavenProject project = createProjectWithJpaPlugin();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin plugin = findHexaGluePlugin(project);
+            assertThat(plugin).isNotNull();
+            // Should have mono-module goals
+            assertThat(plugin.getExecutions())
+                    .filteredOn(e -> e.getGoals().contains("generate"))
+                    .hasSize(1);
+            assertThat(plugin.getExecutions())
+                    .filteredOn(e -> e.getGoals().contains("audit"))
+                    .hasSize(1);
+            // Should NOT have reactor goals
+            assertThat(plugin.getExecutions())
+                    .filteredOn(e -> e.getGoals().contains("reactor-generate"))
+                    .isEmpty();
+        }
+
+        @Test
+        @DisplayName("should inject MapStruct into child modules with JPA plugin in multi-module")
+        void shouldInjectMapStructIntoChildModulesWithJpaPlugin() throws Exception {
+            MavenProject parent = createMultiModuleParent();
+            MavenProject childWithJpa = createProjectWithJpaPlugin();
+            MavenProject childWithoutJpa = createProjectWithoutJpaPlugin();
+            MavenSession session = createSession(parent, childWithJpa, childWithoutJpa);
+
+            participant.afterProjectsRead(session);
+
+            // Child with JPA should get MapStruct
+            assertThat(childWithJpa.getDependencies())
+                    .filteredOn(d -> "org.mapstruct".equals(d.getGroupId()))
+                    .isNotEmpty();
+
+            // Child without JPA should not get MapStruct
+            assertThat(childWithoutJpa.getDependencies())
+                    .filteredOn(d -> "org.mapstruct".equals(d.getGroupId()))
+                    .isEmpty();
+        }
+
+        private MavenProject createMultiModuleParent() {
+            // Build model first — setModel() replaces the internal model so
+            // build and modules must be on the model before constructing the project.
+            Model model = new Model();
+            model.setModules(List.of("core", "infra"));
+
+            Build build = new Build();
+            Plugin hexagluePlugin = createPlugin("io.hexaglue", "hexaglue-maven-plugin");
+            build.setPlugins(new ArrayList<>(List.of(hexagluePlugin)));
+            model.setBuild(build);
+
+            MavenProject project = new MavenProject(model);
+            project.setDependencies(new ArrayList<>());
+
+            return project;
+        }
+
+        private Plugin findHexaGluePlugin(MavenProject project) {
+            return project.getBuildPlugins().stream()
+                    .filter(p -> "io.hexaglue".equals(p.getGroupId())
+                            && "hexaglue-maven-plugin".equals(p.getArtifactId()))
+                    .findFirst()
+                    .orElse(null);
         }
     }
 

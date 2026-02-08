@@ -60,6 +60,12 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
     private static final String AUDIT_PHASE = "verify";
     private static final String AUDIT_EXECUTION_ID = "default-hexaglue-audit";
 
+    private static final String REACTOR_GENERATE_GOAL = "reactor-generate";
+    private static final String REACTOR_GENERATE_EXECUTION_ID = "default-hexaglue-reactor-generate";
+
+    private static final String REACTOR_AUDIT_GOAL = "reactor-audit";
+    private static final String REACTOR_AUDIT_EXECUTION_ID = "default-hexaglue-reactor-audit";
+
     private static final String JPA_PLUGIN_GROUP_ID = "io.hexaglue.plugins";
     private static final String JPA_PLUGIN_ARTIFACT_ID = "hexaglue-plugin-jpa";
 
@@ -73,9 +79,49 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
 
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
-        for (MavenProject project : session.getProjects()) {
-            injectExecutionsIfNeeded(project);
+        MavenProject topLevel = session.getProjects().get(0);
+        boolean isMultiModule = topLevel.getModules() != null && !topLevel.getModules().isEmpty();
+
+        if (isMultiModule) {
+            // Multi-module: inject reactor goals on the parent project only
+            injectReactorExecutionsIfNeeded(topLevel);
+
+            // Inject MapStruct into child modules that have the JPA plugin
+            for (MavenProject project : session.getProjects()) {
+                Plugin hexagluePlugin = findHexaGluePlugin(project);
+                if (hexagluePlugin != null && hasJpaPlugin(hexagluePlugin)) {
+                    injectMapStructDependencies(project);
+                    injectMapStructAnnotationProcessor(project);
+                }
+            }
+        } else {
+            // Mono-module: existing behavior
+            for (MavenProject project : session.getProjects()) {
+                injectExecutionsIfNeeded(project);
+            }
         }
+    }
+
+    /**
+     * Injects reactor-level goals on the parent project for multi-module builds.
+     *
+     * <p>Instead of injecting {@code generate} and {@code audit} on each child module,
+     * this injects {@code reactor-generate} and {@code reactor-audit} on the parent POM,
+     * so HexaGlue runs once with a unified view of all modules.</p>
+     *
+     * @param parentProject the top-level reactor project
+     * @since 5.0.0
+     */
+    private void injectReactorExecutionsIfNeeded(MavenProject parentProject) {
+        Plugin hexagluePlugin = findHexaGluePlugin(parentProject);
+        if (hexagluePlugin == null) {
+            return;
+        }
+
+        injectGoalIfNeeded(
+                hexagluePlugin, REACTOR_GENERATE_GOAL, GENERATE_PHASE, REACTOR_GENERATE_EXECUTION_ID);
+        injectGoalIfNeeded(
+                hexagluePlugin, REACTOR_AUDIT_GOAL, AUDIT_PHASE, REACTOR_AUDIT_EXECUTION_ID);
     }
 
     private void injectExecutionsIfNeeded(MavenProject project) {

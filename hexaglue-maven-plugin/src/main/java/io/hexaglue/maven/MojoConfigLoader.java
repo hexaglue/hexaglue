@@ -13,6 +13,7 @@
 
 package io.hexaglue.maven;
 
+import io.hexaglue.arch.model.index.ModuleRole;
 import io.hexaglue.spi.core.ClassificationConfig;
 import java.io.IOException;
 import java.io.Reader;
@@ -228,20 +229,130 @@ final class MojoConfigLoader {
     }
 
     /**
+     * Loads module configurations from the {@code modules:} section of hexaglue.yaml.
+     *
+     * <p>Expected YAML structure:
+     * <pre>{@code
+     * modules:
+     *   banking-core:
+     *     role: DOMAIN
+     *   banking-persistence:
+     *     role: INFRASTRUCTURE
+     * }</pre>
+     *
+     * <p>If a module declares an invalid role, it defaults to {@link ModuleRole#SHARED}
+     * and a warning is logged.
+     *
+     * @param projectBaseDir the project base directory (typically the reactor root)
+     * @param log the Maven logger
+     * @return a map of module IDs to their configured roles, or empty if not configured
+     * @since 5.0.0
+     */
+    // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast
+    @SuppressWarnings("unchecked")
+    static Map<String, ModuleRole> loadModuleConfigs(Path projectBaseDir, Log log) {
+        Path configPath = resolveConfigPath(projectBaseDir);
+
+        if (configPath == null) {
+            return Map.of();
+        }
+
+        try (Reader reader = Files.newBufferedReader(configPath)) {
+            Yaml yaml = new Yaml();
+            Map<String, Object> root = yaml.load(reader);
+
+            if (root == null || !root.containsKey("modules")) {
+                return Map.of();
+            }
+
+            Object modulesObj = root.get("modules");
+            if (!(modulesObj instanceof Map)) {
+                log.warn("Invalid configuration: 'modules' must be a map");
+                return Map.of();
+            }
+
+            Map<String, Object> modulesMap = (Map<String, Object>) modulesObj;
+            Map<String, ModuleRole> result = new HashMap<>();
+
+            for (Map.Entry<String, Object> entry : modulesMap.entrySet()) {
+                String moduleId = entry.getKey();
+                Object moduleConfig = entry.getValue();
+
+                ModuleRole role = ModuleRole.SHARED;
+                if (moduleConfig instanceof Map) {
+                    Map<String, Object> configMap = (Map<String, Object>) moduleConfig;
+                    Object roleObj = configMap.get("role");
+                    if (roleObj instanceof String roleStr) {
+                        try {
+                            role = ModuleRole.valueOf(roleStr.toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            log.warn(String.format(
+                                    "Invalid role '%s' for module '%s', defaulting to SHARED", roleStr, moduleId));
+                        }
+                    }
+                }
+
+                result.put(moduleId, role);
+            }
+
+            if (!result.isEmpty()) {
+                log.info(String.format("Loaded module configurations for %d module(s)", result.size()));
+            }
+            return Collections.unmodifiableMap(result);
+
+        } catch (IOException e) {
+            log.warn("Failed to read configuration file: " + configPath);
+            return Map.of();
+        } catch (Exception e) {
+            log.warn("Failed to parse module configurations: " + e.getMessage());
+            return Map.of();
+        }
+    }
+
+    /**
      * Resolves the path to hexaglue.yaml or hexaglue.yml in the project base directory.
      *
      * @param projectBaseDir the project base directory
      * @return the config path, or null if neither file exists
      */
     private static Path resolveConfigPath(Path projectBaseDir) {
-        Path configPath = projectBaseDir.resolve("hexaglue.yaml");
+        return resolveLocal(projectBaseDir);
+    }
+
+    /**
+     * Resolves hexaglue.yaml or hexaglue.yml in the given directory.
+     *
+     * @param dir the directory to search in
+     * @return the config path, or null if neither file exists
+     */
+    private static Path resolveLocal(Path dir) {
+        Path configPath = dir.resolve("hexaglue.yaml");
         if (Files.exists(configPath)) {
             return configPath;
         }
-        configPath = projectBaseDir.resolve("hexaglue.yml");
+        configPath = dir.resolve("hexaglue.yml");
         if (Files.exists(configPath)) {
             return configPath;
         }
         return null;
+    }
+
+    /**
+     * Resolves configuration path with hierarchical lookup: local directory first, then parent.
+     *
+     * <p>This is used in multi-module projects where a child module may override
+     * the parent configuration, or fall back to the reactor root configuration.
+     *
+     * @param localDir the local module directory (checked first)
+     * @param parentDir the parent/reactor root directory (fallback)
+     * @return the config path, or null if neither location has a config file
+     * @since 5.0.0
+     */
+    static Path resolveConfigPathHierarchical(Path localDir, Path parentDir) {
+        Path local = resolveLocal(localDir);
+        if (local != null) {
+            return local;
+        }
+        return resolveLocal(parentDir);
     }
 }

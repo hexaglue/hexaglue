@@ -15,9 +15,11 @@ package io.hexaglue.core.plugin;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.core.audit.DefaultArchitectureQuery;
+import io.hexaglue.core.engine.ModuleSourceSet;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.generation.PluginCategory;
+import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.HexaGluePlugin;
 import io.hexaglue.spi.plugin.PluginContext;
 import java.nio.file.Path;
@@ -58,6 +60,7 @@ public final class PluginExecutor {
     private final ApplicationGraph graph;
     private final Set<PluginCategory> enabledCategories;
     private final ArchitecturalModel architecturalModel;
+    private final List<ModuleSourceSet> moduleSourceSets;
 
     /**
      * Creates a plugin executor with the v4 ArchitecturalModel.
@@ -75,11 +78,33 @@ public final class PluginExecutor {
             ApplicationGraph graph,
             Set<PluginCategory> enabledCategories,
             ArchitecturalModel architecturalModel) {
+        this(outputDirectory, pluginConfigs, graph, enabledCategories, architecturalModel, List.of());
+    }
+
+    /**
+     * Creates a plugin executor with multi-module support.
+     *
+     * @param outputDirectory the directory for generated sources (default/fallback)
+     * @param pluginConfigs plugin configurations keyed by plugin ID
+     * @param graph the application graph for architecture analysis (may be null)
+     * @param enabledCategories plugin categories to execute (null or empty for all categories)
+     * @param architecturalModel the architectural model (must not be null)
+     * @param moduleSourceSets module source sets for multi-module routing (empty for mono-module)
+     * @since 5.0.0
+     */
+    public PluginExecutor(
+            Path outputDirectory,
+            Map<String, Map<String, Object>> pluginConfigs,
+            ApplicationGraph graph,
+            Set<PluginCategory> enabledCategories,
+            ArchitecturalModel architecturalModel,
+            List<ModuleSourceSet> moduleSourceSets) {
         this.outputDirectory = outputDirectory;
         this.pluginConfigs = pluginConfigs;
         this.graph = graph;
         this.enabledCategories = enabledCategories;
         this.architecturalModel = Objects.requireNonNull(architecturalModel, "architecturalModel must not be null");
+        this.moduleSourceSets = moduleSourceSets != null ? moduleSourceSets : List.of();
     }
 
     /**
@@ -266,8 +291,16 @@ public final class PluginExecutor {
         log.info("Executing plugin: {}", pluginId);
 
         CollectingDiagnosticReporter diagnostics = new CollectingDiagnosticReporter(pluginId);
-        FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDirectory);
         MapPluginConfig config = new MapPluginConfig(pluginConfigs.getOrDefault(pluginId, Map.of()));
+
+        // Choose CodeWriter: multi-module or mono-module
+        CodeWriter writer;
+        if (!moduleSourceSets.isEmpty()) {
+            writer = new MultiModuleCodeWriter(moduleSourceSets, outputDirectory);
+            log.debug("Using MultiModuleCodeWriter for plugin {}", pluginId);
+        } else {
+            writer = new FileSystemCodeWriter(outputDirectory);
+        }
 
         // Create ArchitectureQuery from graph if available
         // Note: PortModel and DomainModel are no longer used (v4 uses ArchitecturalModel)
@@ -282,33 +315,37 @@ public final class PluginExecutor {
             plugin.execute(context);
             long elapsed = System.currentTimeMillis() - start;
 
-            log.info(
-                    "Plugin {} completed in {}ms, generated {} files",
-                    pluginId,
-                    elapsed,
-                    writer.getGeneratedFiles().size());
+            List<Path> generatedFiles = extractGeneratedFiles(writer);
+
+            log.info("Plugin {} completed in {}ms, generated {} files", pluginId, elapsed, generatedFiles.size());
 
             // Capture plugin outputs for retrieval by the engine/mojos
             Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
 
-            return new PluginResult(
-                    pluginId,
-                    true,
-                    writer.getGeneratedFiles(),
-                    diagnostics.getDiagnostics(),
-                    elapsed,
-                    null,
-                    pluginOutputs);
+            return new PluginResult(pluginId, true, generatedFiles, diagnostics.getDiagnostics(), elapsed, null, pluginOutputs);
 
         } catch (Exception e) {
             log.error("Plugin {} failed: {}", pluginId, e.getMessage(), e);
             diagnostics.error("Plugin execution failed: " + e.getMessage(), e);
 
+            List<Path> generatedFiles = extractGeneratedFiles(writer);
+
             // Capture outputs even on failure (partial outputs may exist)
             Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
 
-            return new PluginResult(
-                    pluginId, false, writer.getGeneratedFiles(), diagnostics.getDiagnostics(), 0, e, pluginOutputs);
+            return new PluginResult(pluginId, false, generatedFiles, diagnostics.getDiagnostics(), 0, e, pluginOutputs);
         }
+    }
+
+    /**
+     * Extracts generated files from the code writer, handling both mono and multi-module writers.
+     */
+    private List<Path> extractGeneratedFiles(CodeWriter writer) {
+        if (writer instanceof MultiModuleCodeWriter mmWriter) {
+            return mmWriter.getGeneratedFiles();
+        } else if (writer instanceof FileSystemCodeWriter fsWriter) {
+            return fsWriter.getGeneratedFiles();
+        }
+        return List.of();
     }
 }
