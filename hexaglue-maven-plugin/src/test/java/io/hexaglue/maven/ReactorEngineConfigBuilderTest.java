@@ -180,13 +180,13 @@ class ReactorEngineConfigBuilderTest {
         }
 
         @Test
-        @DisplayName("should default to SHARED when no YAML config")
-        void shouldDefaultToSharedWhenNoYamlConfig() throws IOException {
-            // Given
+        @DisplayName("should default to SHARED when no YAML config and no convention match")
+        void shouldDefaultToSharedWhenNoYamlConfigAndNoConventionMatch() throws IOException {
+            // Given: artifactId with no recognizable suffix
             MavenProject parent = createParentProject("parent");
-            MavenProject core = createJarModule("core", "src/main/java");
+            MavenProject banking = createJarModule("banking", "src/main/java");
 
-            MavenSession session = createSession(parent, parent, core);
+            MavenSession session = createSession(parent, parent, banking);
 
             // When
             EngineConfig config = ReactorEngineConfigBuilder.build(
@@ -194,6 +194,81 @@ class ReactorEngineConfigBuilderTest {
 
             // Then
             assertThat(config.moduleSourceSets()).hasSize(1);
+            assertThat(config.moduleSourceSets().get(0).role()).isEqualTo(ModuleRole.SHARED);
+        }
+    }
+
+    @Nested
+    @DisplayName("Convention detection")
+    class ConventionDetection {
+
+        @Test
+        @DisplayName("should detect role by convention when no YAML config")
+        void shouldDetectRoleByConventionWhenNoYamlConfig() throws IOException {
+            // Given: modules with conventional suffixes, no hexaglue.yaml
+            MavenProject parent = createParentProject("parent");
+            MavenProject core = createJarModule("banking-core", "src/main/java");
+            MavenProject infra = createJarModule("banking-persistence", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, core, infra);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+
+            // Then: roles detected from artifactId suffix
+            assertThat(config.moduleSourceSets()).hasSize(2);
+            assertThat(config.moduleSourceSets().stream()
+                            .filter(m -> m.moduleId().equals("banking-core"))
+                            .findFirst()
+                            .orElseThrow()
+                            .role())
+                    .isEqualTo(ModuleRole.DOMAIN);
+            assertThat(config.moduleSourceSets().stream()
+                            .filter(m -> m.moduleId().equals("banking-persistence"))
+                            .findFirst()
+                            .orElseThrow()
+                            .role())
+                    .isEqualTo(ModuleRole.INFRASTRUCTURE);
+        }
+
+        @Test
+        @DisplayName("YAML explicit role should override convention")
+        void yamlExplicitRoleShouldOverrideConvention() throws IOException {
+            // Given: YAML says banking-core is APPLICATION, convention says DOMAIN
+            String yaml = """
+                    modules:
+                      banking-core:
+                        role: APPLICATION
+                    """;
+            MavenProject parent = createParentProject("parent");
+            Files.writeString(parent.getBasedir().toPath().resolve("hexaglue.yaml"), yaml);
+
+            MavenProject core = createJarModule("banking-core", "src/main/java");
+            MavenSession session = createSession(parent, parent, core);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+
+            // Then: YAML wins over convention
+            assertThat(config.moduleSourceSets().get(0).role()).isEqualTo(ModuleRole.APPLICATION);
+        }
+
+        @Test
+        @DisplayName("should default to SHARED when no YAML and no convention match")
+        void shouldDefaultToSharedWhenNoYamlAndNoConventionMatch() throws IOException {
+            // Given: module with no recognizable suffix
+            MavenProject parent = createParentProject("parent");
+            MavenProject banking = createJarModule("banking", "src/main/java");
+
+            MavenSession session = createSession(parent, parent, banking);
+
+            // When
+            EngineConfig config = ReactorEngineConfigBuilder.build(
+                    session, "com.example", outputDir, Map.of(), null, Set.of(PluginCategory.GENERATOR), false, log);
+
+            // Then: falls back to SHARED
             assertThat(config.moduleSourceSets().get(0).role()).isEqualTo(ModuleRole.SHARED);
         }
     }

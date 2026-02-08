@@ -26,6 +26,7 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -123,6 +124,20 @@ public class ReactorGenerateMojo extends AbstractMojo {
                 Set.of(PluginCategory.GENERATOR),
                 false, // Do not include @Generated types during generation
                 getLog());
+
+        // Validate targetModule references in plugin configurations
+        if (config.isMultiModule()) {
+            Set<String> knownModuleIds = config.moduleSourceSets().stream()
+                    .map(ModuleSourceSet::moduleId)
+                    .collect(Collectors.toSet());
+            TargetModuleValidator.ValidationResult validation =
+                    TargetModuleValidator.validate(pluginConfigs, knownModuleIds);
+            if (!validation.isValid()) {
+                validation.errors().forEach(err -> getLog().error(err));
+                throw new MojoExecutionException("Invalid targetModule configuration: "
+                        + validation.errors().size() + " error(s)");
+            }
+        }
 
         // Run analysis
         HexaGlueEngine engine = HexaGlueEngine.create();

@@ -24,6 +24,9 @@ import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleIndex;
+import io.hexaglue.arch.model.index.ModuleRole;
+import io.hexaglue.arch.model.index.ModuleRouting;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.jpa.builder.AdapterSpecBuilder;
@@ -152,12 +155,25 @@ public final class JpaPlugin implements GeneratorPlugin {
         String infraPackage =
                 pluginConfig.getString("infrastructurePackage").orElse(basePackage + ".infrastructure.persistence");
 
+        // Resolve effective target module once (explicit > auto-routing > null)
+        String effectiveTargetModule = resolveEffectiveTargetModule(config, model, writer, diagnostics);
+
         diagnostics.info("JPA Plugin starting with package: " + infraPackage);
         logConfig(diagnostics, config);
+        if (effectiveTargetModule != null) {
+            diagnostics.info("  effectiveTargetModule: " + effectiveTargetModule);
+        }
         logClassificationSummary(model, diagnostics);
 
         generateFromV5Model(
-                model, model.domainIndex().get(), model.portIndex().get(), config, infraPackage, writer, diagnostics);
+                model,
+                model.domainIndex().get(),
+                model.portIndex().get(),
+                config,
+                infraPackage,
+                writer,
+                effectiveTargetModule,
+                diagnostics);
     }
 
     /**
@@ -173,14 +189,63 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @since 5.0.0
      */
     /**
-     * Writes a Java source file, routing to a target module if configured.
+     * Resolves the effective target module for JPA code routing.
      *
-     * <p>In multi-module mode with a configured {@code targetModule}, the generated
-     * file is routed to the specified module's output directory. Otherwise, it uses
-     * the default output directory.
+     * <p>Priority chain: explicit {@code targetModule} in config &gt; auto-routing by
+     * {@link ModuleRole#INFRASTRUCTURE} convention &gt; {@code null} (default output).</p>
+     *
+     * @param config the JPA configuration
+     * @param model the architectural model
+     * @param writer the artifact writer
+     * @param diagnostics the diagnostic reporter
+     * @return the resolved module ID, or {@code null} if routing should use the default output
+     * @since 5.0.0
+     */
+    private String resolveEffectiveTargetModule(
+            JpaConfig config, ArchitecturalModel model, ArtifactWriter writer, DiagnosticReporter diagnostics) {
+        // Not multi-module → no routing
+        if (!writer.isMultiModule()) {
+            return null;
+        }
+
+        // Priority 1: explicit configuration
+        if (config.targetModule() != null) {
+            return config.targetModule();
+        }
+
+        // Priority 2: auto-routing by ModuleRole.INFRASTRUCTURE
+        Optional<ModuleIndex> moduleIndexOpt = model.moduleIndex();
+        if (moduleIndexOpt.isEmpty()) {
+            return null;
+        }
+
+        ModuleIndex moduleIndex = moduleIndexOpt.get();
+        Optional<String> autoRouted = ModuleRouting.resolveUniqueModuleByRole(moduleIndex, ModuleRole.INFRASTRUCTURE);
+
+        if (autoRouted.isPresent()) {
+            diagnostics.info("JPA auto-routing: detected unique INFRASTRUCTURE module '" + autoRouted.get() + "'");
+            return autoRouted.get();
+        }
+
+        // Check if there are multiple INFRASTRUCTURE modules (warn the user)
+        long infraCount = moduleIndex.modulesByRole(ModuleRole.INFRASTRUCTURE).count();
+        if (infraCount > 1) {
+            diagnostics.warn("JPA auto-routing: " + infraCount + " INFRASTRUCTURE modules found. "
+                    + "Please configure 'targetModule' explicitly in hexaglue.yaml under plugins.jpa.");
+        }
+
+        return null;
+    }
+
+    /**
+     * Writes a Java source file, routing to a target module if resolved.
+     *
+     * <p>When {@code effectiveTargetModule} is non-null and the writer supports
+     * multi-module output, the generated file is routed to the specified module's
+     * output directory. Otherwise, it uses the default output directory.</p>
      *
      * @param writer the artifact writer
-     * @param config the JPA configuration
+     * @param effectiveTargetModule the resolved target module (may be {@code null})
      * @param packageName the package name
      * @param className the class name
      * @param content the Java source content
@@ -188,10 +253,10 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @since 5.0.0
      */
     private void writeJavaSource(
-            ArtifactWriter writer, JpaConfig config, String packageName, String className, String content)
+            ArtifactWriter writer, String effectiveTargetModule, String packageName, String className, String content)
             throws IOException {
-        if (config.targetModule() != null && writer.isMultiModule()) {
-            writer.writeJavaSource(config.targetModule(), packageName, className, content);
+        if (effectiveTargetModule != null && writer.isMultiModule()) {
+            writer.writeJavaSource(effectiveTargetModule, packageName, className, content);
         } else {
             writer.writeJavaSource(packageName, className, content);
         }
@@ -204,6 +269,7 @@ public final class JpaPlugin implements GeneratorPlugin {
             JpaConfig config,
             String infraPackage,
             ArtifactWriter writer,
+            String effectiveTargetModule,
             DiagnosticReporter diagnostics) {
 
         diagnostics.info("Using v5 model types for JPA generation");
@@ -248,7 +314,8 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec embeddableTypeSpec = JpaEmbeddableCodegen.generate(embeddableSpec);
                     String embeddableSource = toJavaSource(infraPackage, embeddableTypeSpec);
-                    writeJavaSource(writer, config, infraPackage, embeddableSpec.className(), embeddableSource);
+                    writeJavaSource(
+                            writer, effectiveTargetModule, infraPackage, embeddableSpec.className(), embeddableSource);
                     embeddableCount++;
                     diagnostics.info("Generated embeddable: " + embeddableSpec.className());
 
@@ -416,7 +483,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, effectiveTargetModule, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated entity: " + entitySpec.className());
 
@@ -436,7 +503,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
                     String repoSource = toJavaSource(infraPackage, repoTypeSpec);
-                    writeJavaSource(writer, config, infraPackage, repoSpec.interfaceName(), repoSource);
+                    writeJavaSource(writer, effectiveTargetModule, infraPackage, repoSpec.interfaceName(), repoSource);
                     repositoryCount++;
                     diagnostics.info("Generated repository: " + repoSpec.interfaceName());
                 }
@@ -455,7 +522,8 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
                     String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
-                    writeJavaSource(writer, config, infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    writeJavaSource(
+                            writer, effectiveTargetModule, infraPackage, mapperSpec.interfaceName(), mapperSource);
                     mapperCount++;
                     diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
                 }
@@ -493,7 +561,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, effectiveTargetModule, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated entity: " + entitySpec.className());
 
@@ -513,7 +581,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
                     String repoSource = toJavaSource(infraPackage, repoTypeSpec);
-                    writeJavaSource(writer, config, infraPackage, repoSpec.interfaceName(), repoSource);
+                    writeJavaSource(writer, effectiveTargetModule, infraPackage, repoSpec.interfaceName(), repoSource);
                     repositoryCount++;
                     diagnostics.info("Generated repository: " + repoSpec.interfaceName());
                 }
@@ -532,7 +600,8 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
                     String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
-                    writeJavaSource(writer, config, infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    writeJavaSource(
+                            writer, effectiveTargetModule, infraPackage, mapperSpec.interfaceName(), mapperSource);
                     mapperCount++;
                     diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
                 }
@@ -587,7 +656,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, effectiveTargetModule, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated child entity: " + entitySpec.className());
 
@@ -630,7 +699,8 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                         TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
                         String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                        writeJavaSource(writer, config, infraPackage, adapterSpec.className(), adapterSource);
+                        writeJavaSource(
+                                writer, effectiveTargetModule, infraPackage, adapterSpec.className(), adapterSource);
                         adapterCount++;
 
                         diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
@@ -662,7 +732,12 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                             TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
                             String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                            writeJavaSource(writer, config, infraPackage, adapterSpec.className(), adapterSource);
+                            writeJavaSource(
+                                    writer,
+                                    effectiveTargetModule,
+                                    infraPackage,
+                                    adapterSpec.className(),
+                                    adapterSource);
                             adapterCount++;
 
                             diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "

@@ -18,6 +18,7 @@ import io.hexaglue.core.engine.Diagnostic;
 import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
+import io.hexaglue.core.engine.ModuleSourceSet;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.core.ClassificationConfig;
@@ -27,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -134,6 +136,20 @@ public class ReactorAuditMojo extends AbstractMojo {
                 Set.of(PluginCategory.AUDIT),
                 true, // Include @Generated types so audit can see generated adapters
                 getLog());
+
+        // Validate targetModule references in plugin configurations
+        if (config.isMultiModule()) {
+            Set<String> knownModuleIds = config.moduleSourceSets().stream()
+                    .map(ModuleSourceSet::moduleId)
+                    .collect(Collectors.toSet());
+            TargetModuleValidator.ValidationResult validation =
+                    TargetModuleValidator.validate(pluginConfigs, knownModuleIds);
+            if (!validation.isValid()) {
+                validation.errors().forEach(err -> getLog().error(err));
+                throw new MojoExecutionException("Invalid targetModule configuration: "
+                        + validation.errors().size() + " error(s)");
+            }
+        }
 
         // Run analysis
         HexaGlueEngine engine = HexaGlueEngine.create();

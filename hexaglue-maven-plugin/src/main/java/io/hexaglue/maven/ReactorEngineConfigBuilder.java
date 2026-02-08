@@ -38,8 +38,9 @@ import org.apache.maven.project.MavenProject;
  * modules in the reactor, constructs {@link ModuleSourceSet} descriptors for each, and produces
  * a single {@link EngineConfig} suitable for whole-reactor analysis.</p>
  *
- * <p>Module roles are resolved from the {@code modules:} section of the root {@code hexaglue.yaml}.
- * Modules without an explicit role default to {@link ModuleRole#SHARED}.</p>
+ * <p>Module roles are resolved using a priority chain: explicit YAML configuration &gt;
+ * convention-based detection from the Maven artifactId suffix &gt;
+ * default {@link ModuleRole#SHARED}.</p>
  *
  * @since 5.0.0
  */
@@ -92,7 +93,7 @@ final class ReactorEngineConfigBuilder {
             }
 
             String moduleId = project.getArtifactId();
-            ModuleRole role = moduleRoles.getOrDefault(moduleId, ModuleRole.SHARED);
+            ModuleRole role = resolveModuleRole(moduleId, moduleRoles, log);
             Path moduleBaseDir = project.getBasedir().toPath();
 
             // Collect source roots (filter to existing directories)
@@ -141,6 +142,30 @@ final class ReactorEngineConfigBuilder {
                 enabledCategories,
                 includeGenerated,
                 moduleSourceSets);
+    }
+
+    /**
+     * Resolves the {@link ModuleRole} for a module using a priority chain:
+     * YAML explicit &gt; convention detection &gt; SHARED default.
+     */
+    private static ModuleRole resolveModuleRole(String moduleId, Map<String, ModuleRole> yamlRoles, Log log) {
+        // Priority 1: explicit YAML configuration
+        ModuleRole yamlRole = yamlRoles.get(moduleId);
+        if (yamlRole != null) {
+            log.debug(String.format("Module '%s': role %s (from hexaglue.yaml)", moduleId, yamlRole));
+            return yamlRole;
+        }
+
+        // Priority 2: convention-based detection from artifactId suffix
+        return ModuleRoleDetector.detect(moduleId)
+                .map(detected -> {
+                    log.info(String.format("Module '%s': role %s (detected by convention)", moduleId, detected));
+                    return detected;
+                })
+                .orElseGet(() -> {
+                    log.debug(String.format("Module '%s': role SHARED (default)", moduleId));
+                    return ModuleRole.SHARED;
+                });
     }
 
     /**
