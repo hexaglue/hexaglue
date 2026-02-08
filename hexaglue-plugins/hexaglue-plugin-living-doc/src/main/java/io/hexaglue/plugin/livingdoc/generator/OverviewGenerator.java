@@ -13,6 +13,8 @@
 
 package io.hexaglue.plugin.livingdoc.generator;
 
+import io.hexaglue.arch.model.index.ModuleDescriptor;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.plugin.livingdoc.markdown.MarkdownBuilder;
 import io.hexaglue.plugin.livingdoc.markdown.TableBuilder;
 import io.hexaglue.plugin.livingdoc.model.BoundedContextDoc;
@@ -23,6 +25,7 @@ import io.hexaglue.plugin.livingdoc.model.GlossaryEntry;
 import io.hexaglue.plugin.livingdoc.renderer.BoundedContextRenderer;
 import io.hexaglue.plugin.livingdoc.renderer.IndexRenderer;
 import io.hexaglue.plugin.livingdoc.util.PluginVersion;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 
@@ -45,6 +48,7 @@ public final class OverviewGenerator {
     private final List<GlossaryEntry> glossaryEntries;
     private final String packageTree;
     private final IndexRenderer indexRenderer;
+    private final ModuleIndex moduleIndex;
 
     /**
      * Creates an OverviewGenerator from a DocumentationModel and optional pre-rendered diagram.
@@ -88,12 +92,36 @@ public final class OverviewGenerator {
             List<GlossaryEntry> glossaryEntries,
             String packageTree,
             IndexRenderer indexRenderer) {
+        this(model, overviewDiagram, boundedContexts, glossaryEntries, packageTree, indexRenderer, null);
+    }
+
+    /**
+     * Creates an OverviewGenerator with all content sections and module index.
+     *
+     * @param model the documentation model
+     * @param overviewDiagram the pre-rendered architecture overview diagram, or {@code null} if diagrams are disabled
+     * @param boundedContexts the detected bounded contexts
+     * @param glossaryEntries the glossary entries to include
+     * @param packageTree the rendered package tree, or {@code null} to skip
+     * @param indexRenderer the index renderer, or {@code null} to skip
+     * @param moduleIndex the module index for multi-module projects, or {@code null} in mono-module
+     * @since 5.0.0
+     */
+    public OverviewGenerator(
+            DocumentationModel model,
+            String overviewDiagram,
+            List<BoundedContextDoc> boundedContexts,
+            List<GlossaryEntry> glossaryEntries,
+            String packageTree,
+            IndexRenderer indexRenderer,
+            ModuleIndex moduleIndex) {
         this.model = Objects.requireNonNull(model, "model must not be null");
         this.overviewDiagram = overviewDiagram;
         this.boundedContexts = Objects.requireNonNull(boundedContexts, "boundedContexts must not be null");
         this.glossaryEntries = Objects.requireNonNull(glossaryEntries, "glossaryEntries must not be null");
         this.packageTree = packageTree;
         this.indexRenderer = indexRenderer;
+        this.moduleIndex = moduleIndex;
     }
 
     /**
@@ -134,6 +162,9 @@ public final class OverviewGenerator {
             md.raw(bcRenderer.renderBoundedContextsSection(boundedContexts));
         }
 
+        // Module topology (multi-module only)
+        generateModuleTopologySection(md);
+
         // Glossary
         generateGlossarySection(md);
 
@@ -167,6 +198,9 @@ public final class OverviewGenerator {
                 .bulletItem("[Ports](ports.md) - Driving and driven ports");
         if (overviewDiagram != null) {
             md.bulletItem("[Diagrams](diagrams.md) - Architecture diagrams");
+        }
+        if (moduleIndex != null) {
+            md.bulletItem("[Modules](modules.md) - Module topology and structure");
         }
         md.newline().horizontalRule();
     }
@@ -234,6 +268,43 @@ public final class OverviewGenerator {
         }
 
         md.paragraph("*See [ports.md](ports.md) for complete details.*");
+    }
+
+    /**
+     * Generates the module topology section for multi-module projects.
+     *
+     * @since 5.0.0
+     */
+    private void generateModuleTopologySection(MarkdownBuilder md) {
+        if (moduleIndex == null) {
+            return;
+        }
+
+        md.h2("Module Topology");
+
+        List<ModuleDescriptor> modules = moduleIndex
+                .modules()
+                .sorted(Comparator.comparing(ModuleDescriptor::moduleId))
+                .toList();
+
+        TableBuilder table = md.table("Module", "Role", "Types");
+        for (ModuleDescriptor module : modules) {
+            long typeCount = moduleIndex.typesInModule(module.moduleId()).count();
+            table.row(module.moduleId(), module.role().name(), String.valueOf(typeCount));
+        }
+        table.end();
+
+        // Mermaid diagram
+        md.raw("\n```mermaid\ngraph TB\n");
+        for (ModuleDescriptor module : modules) {
+            long typeCount = moduleIndex.typesInModule(module.moduleId()).count();
+            String nodeId = module.moduleId().replaceAll("[^a-zA-Z0-9]", "_");
+            md.raw("    " + nodeId + "[\"" + module.moduleId() + "\\n"
+                    + module.role().name() + " (" + typeCount + " types)\"]\n");
+        }
+        md.raw("```\n\n");
+
+        md.paragraph("*See [modules.md](modules.md) for complete details.*");
     }
 
     /**
