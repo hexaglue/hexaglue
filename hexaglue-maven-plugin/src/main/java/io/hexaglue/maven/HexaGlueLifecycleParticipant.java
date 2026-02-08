@@ -80,7 +80,8 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
         MavenProject topLevel = session.getProjects().get(0);
-        boolean isMultiModule = topLevel.getModules() != null && !topLevel.getModules().isEmpty();
+        boolean isMultiModule =
+                topLevel.getModules() != null && !topLevel.getModules().isEmpty();
 
         if (isMultiModule) {
             // Multi-module: inject reactor goals on the parent project only
@@ -118,10 +119,8 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
             return;
         }
 
-        injectGoalIfNeeded(
-                hexagluePlugin, REACTOR_GENERATE_GOAL, GENERATE_PHASE, REACTOR_GENERATE_EXECUTION_ID);
-        injectGoalIfNeeded(
-                hexagluePlugin, REACTOR_AUDIT_GOAL, AUDIT_PHASE, REACTOR_AUDIT_EXECUTION_ID);
+        injectGoalIfNeeded(hexagluePlugin, REACTOR_GENERATE_GOAL, GENERATE_PHASE, REACTOR_GENERATE_EXECUTION_ID);
+        injectGoalIfNeeded(hexagluePlugin, REACTOR_AUDIT_GOAL, AUDIT_PHASE, REACTOR_AUDIT_EXECUTION_ID);
     }
 
     private void injectExecutionsIfNeeded(MavenProject project) {

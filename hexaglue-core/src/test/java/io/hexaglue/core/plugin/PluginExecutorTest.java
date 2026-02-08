@@ -425,8 +425,8 @@ class PluginExecutorTest {
             Path coreSrc = coreBase.resolve("src/main/java");
             Files.createDirectories(coreSrc);
 
-            ModuleSourceSet coreModule = new ModuleSourceSet(
-                    "core", ModuleRole.DOMAIN, List.of(coreSrc), List.of(), coreOutput, coreBase);
+            ModuleSourceSet coreModule =
+                    new ModuleSourceSet("core", ModuleRole.DOMAIN, List.of(coreSrc), List.of(), coreOutput, coreBase);
 
             PluginExecutor executor =
                     new PluginExecutor(outputDir, Map.of(), null, null, emptyModel(), List.of(coreModule));

@@ -117,8 +117,9 @@ public class ReactorAuditMojo extends AbstractMojo {
                 : session.getProjects().get(0).getBasedir().toPath();
 
         // Build plugin configs: audit config override if present, otherwise YAML
-        Map<String, Map<String, Object>> pluginConfigs =
-                auditConfig != null ? auditConfig.toPluginConfigs() : MojoConfigLoader.loadPluginConfigs(rootBaseDir, getLog());
+        Map<String, Map<String, Object>> pluginConfigs = auditConfig != null
+                ? auditConfig.toPluginConfigs()
+                : MojoConfigLoader.loadPluginConfigs(rootBaseDir, getLog());
 
         ClassificationConfig classificationConfig =
                 MojoConfigLoader.loadClassificationConfig(rootBaseDir, failOnUnclassified, getLog());
@@ -172,8 +173,7 @@ public class ReactorAuditMojo extends AbstractMojo {
 
         // Check failure conditions
         if (failOnError && snapshot.errorCount() > 0) {
-            throw new MojoFailureException(
-                    "Reactor audit failed with " + snapshot.errorCount() + " ERROR violations");
+            throw new MojoFailureException("Reactor audit failed with " + snapshot.errorCount() + " ERROR violations");
         }
 
         if (failOnWarning && snapshot.warningCount() > 0) {

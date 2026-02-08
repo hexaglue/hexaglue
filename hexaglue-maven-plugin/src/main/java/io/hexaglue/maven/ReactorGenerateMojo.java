@@ -162,10 +162,9 @@ public class ReactorGenerateMojo extends AbstractMojo {
             for (var unclassified : result.unclassifiedTypes()) {
                 getLog().error("  - " + unclassified.typeName() + ": " + unclassified.reasoning());
             }
-            throw new MojoFailureException(
-                    "Generation blocked: " + result.unclassifiedCount() + " unclassified types. "
-                            + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml. "
-                            + "Use -Dhexaglue.skipValidation=true to bypass (not recommended).");
+            throw new MojoFailureException("Generation blocked: " + result.unclassifiedCount() + " unclassified types. "
+                    + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml. "
+                    + "Use -Dhexaglue.skipValidation=true to bypass (not recommended).");
         } else if (result.unclassifiedCount() > 0) {
             getLog().warn("Warning: " + result.unclassifiedCount() + " unclassified types detected");
         }

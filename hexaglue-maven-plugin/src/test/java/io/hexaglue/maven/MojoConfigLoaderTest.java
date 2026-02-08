@@ -47,8 +47,7 @@ class MojoConfigLoaderTest {
         @DisplayName("should parse module section with roles")
         void shouldParseModuleSectionWithRoles() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     classification:
                       exclude:
                         - "*.shared.*"
@@ -82,8 +81,7 @@ class MojoConfigLoaderTest {
         @DisplayName("should return empty map when no modules section")
         void shouldReturnEmptyMapWhenNoModulesSection() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     classification:
                       exclude:
                         - "*.shared.*"
@@ -104,8 +102,7 @@ class MojoConfigLoaderTest {
         @DisplayName("should default to SHARED for invalid role")
         void shouldDefaultToSharedForInvalidRole() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     modules:
                       my-module:
                         role: INVALID_ROLE
@@ -137,8 +134,7 @@ class MojoConfigLoaderTest {
         @DisplayName("should handle module without role property")
         void shouldHandleModuleWithoutRoleProperty() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     modules:
                       some-module:
                         description: "A module without explicit role"
@@ -157,8 +153,7 @@ class MojoConfigLoaderTest {
         @DisplayName("should handle case-insensitive role values")
         void shouldHandleCaseInsensitiveRoleValues() throws IOException {
             // Given
-            String yaml =
-                    """
+            String yaml = """
                     modules:
                       mod1:
                         role: domain
