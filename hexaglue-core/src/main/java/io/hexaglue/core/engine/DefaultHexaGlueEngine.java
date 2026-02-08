@@ -15,6 +15,9 @@ package io.hexaglue.core.engine;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.index.ModuleDescriptor;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.core.builder.NewArchitecturalModelBuilder;
 import io.hexaglue.core.classification.ClassificationResult;
 import io.hexaglue.core.classification.ClassificationResults;
@@ -26,6 +29,7 @@ import io.hexaglue.core.frontend.CachedSpoonAnalyzer;
 import io.hexaglue.core.frontend.JavaFrontend;
 import io.hexaglue.core.frontend.JavaFrontend.JavaAnalysisInput;
 import io.hexaglue.core.frontend.JavaSemanticModel;
+import io.hexaglue.core.frontend.SourceRef;
 import io.hexaglue.core.frontend.spoon.SpoonFrontend;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.core.graph.builder.GraphBuilder;
@@ -36,6 +40,7 @@ import io.hexaglue.core.graph.query.GraphQuery;
 import io.hexaglue.core.plugin.PluginExecutionResult;
 import io.hexaglue.core.plugin.PluginExecutor;
 import io.hexaglue.spi.classification.PrimaryClassificationResult;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -207,7 +212,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
 
             // Step 5: Build ArchitecturalModel with v5 indices
             log.info("Building ArchitecturalModel");
-            ArchitecturalModel archModel = buildArchitecturalModel(config, v5Result);
+            ArchitecturalModel archModel = buildArchitecturalModel(config, v5Result, graph);
             log.debug("Built ArchitecturalModel with {} elements", archModel.size());
 
             // Step 4.5: Export primary classifications for enrichment and secondary classifiers
@@ -222,7 +227,12 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
             if (config.pluginsEnabled()) {
                 log.info("Executing plugins");
                 PluginExecutor executor = new PluginExecutor(
-                        config.outputDirectory(), config.pluginConfigs(), graph, config.enabledCategories(), archModel);
+                        config.outputDirectory(),
+                        config.pluginConfigs(),
+                        graph,
+                        config.enabledCategories(),
+                        archModel,
+                        config.moduleSourceSets());
                 pluginResult = executor.execute(primaryClassifications);
                 log.info(
                         "Plugins executed: {} plugins, {} files generated",
@@ -264,15 +274,18 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
      * Builds the ArchitecturalModel with v5 indices from NewArchitecturalModelBuilder.
      *
      * <p>This creates the unified model that plugins can access via ArchModelPluginContext.
-     * The model includes v5 enriched indices (domainIndex, portIndex, typeRegistry).</p>
+     * The model includes v5 enriched indices (domainIndex, portIndex, typeRegistry).
+     * In multi-module mode, a {@link ModuleIndex} is built and attached to the model.</p>
      *
      * @param config the engine configuration
      * @param v5Result the v5 model result containing type registry and indices
+     * @param graph the application graph for type-to-module mapping
      * @return the built ArchitecturalModel
      * @since 5.0.0 updated to use direct ArchitecturalModel.builder (legacy builder removed)
+     * @since 5.0.0 added graph parameter for multi-module ModuleIndex construction
      */
     private ArchitecturalModel buildArchitecturalModel(
-            EngineConfig config, NewArchitecturalModelBuilder.Result v5Result) {
+            EngineConfig config, NewArchitecturalModelBuilder.Result v5Result, ApplicationGraph graph) {
         // Create project context
         ProjectContext projectContext = ProjectContext.of(
                 config.projectName() != null ? config.projectName() : "hexaglue-project",
@@ -280,13 +293,78 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                 config.sourceRoots().isEmpty() ? null : config.sourceRoots().get(0));
 
         // Build ArchitecturalModel directly with v5 indices
-        return ArchitecturalModel.builder(projectContext)
+        ArchitecturalModel.Builder builder = ArchitecturalModel.builder(projectContext)
                 .typeRegistry(v5Result.typeRegistry())
                 .classificationReport(v5Result.classificationReport())
                 .domainIndex(v5Result.domainIndex())
                 .portIndex(v5Result.portIndex())
-                .compositionIndex(v5Result.compositionIndex())
-                .build();
+                .compositionIndex(v5Result.compositionIndex());
+
+        // Build ModuleIndex in multi-module mode
+        if (config.isMultiModule()) {
+            ModuleIndex moduleIndex = buildModuleIndex(config.moduleSourceSets(), graph);
+            builder.moduleIndex(moduleIndex);
+            log.info("Built ModuleIndex: {} modules, mapping types to modules", moduleIndex.size());
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Builds a {@link ModuleIndex} by mapping each type in the graph to its containing module.
+     *
+     * <p>For each {@link TypeNode} with a {@link SourceRef}, the file path is resolved to an
+     * absolute path and matched against the source roots of each module. The first module whose
+     * source root is a prefix of the file path "owns" that type.</p>
+     *
+     * @param moduleSourceSets the module source sets from the engine configuration
+     * @param graph the application graph containing all type nodes
+     * @return the built ModuleIndex
+     * @since 5.0.0
+     */
+    private ModuleIndex buildModuleIndex(List<ModuleSourceSet> moduleSourceSets, ApplicationGraph graph) {
+        ModuleIndex.Builder builder = ModuleIndex.builder();
+
+        // Register all modules
+        List<ModuleDescriptor> descriptors = new ArrayList<>();
+        for (ModuleSourceSet mss : moduleSourceSets) {
+            ModuleDescriptor descriptor = new ModuleDescriptor(
+                    mss.moduleId(), mss.role(), mss.baseDir(), mss.sourceRoots(), null);
+            builder.addModule(descriptor);
+            descriptors.add(descriptor);
+        }
+
+        // Map each type node to its module via source file path matching
+        for (TypeNode typeNode : graph.typeNodes()) {
+            Optional<SourceRef> srcRef = typeNode.sourceRef();
+            if (srcRef.isEmpty()) {
+                continue;
+            }
+
+            Path filePath = Path.of(srcRef.get().filePath()).toAbsolutePath().normalize();
+
+            for (ModuleDescriptor descriptor : descriptors) {
+                if (matchesModule(filePath, descriptor)) {
+                    builder.assignType(TypeId.of(typeNode.qualifiedName()), descriptor);
+                    break;
+                }
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Checks if a file path belongs to a module by testing against its source roots.
+     */
+    private boolean matchesModule(Path filePath, ModuleDescriptor descriptor) {
+        for (Path sourceRoot : descriptor.sourceRoots()) {
+            Path normalizedRoot = sourceRoot.toAbsolutePath().normalize();
+            if (filePath.startsWith(normalizedRoot)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

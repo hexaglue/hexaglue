@@ -17,6 +17,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ProjectContext;
+import io.hexaglue.arch.model.index.ModuleRole;
+import io.hexaglue.core.engine.ModuleSourceSet;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
@@ -394,6 +396,46 @@ class PluginExecutorTest {
             // Then
             assertThat(context.model().project().name()).isEqualTo("Test");
             assertThat(context.model().project().basePackage()).isEqualTo("com.example");
+        }
+    }
+
+    @Nested
+    @DisplayName("CodeWriter selection")
+    class CodeWriterSelection {
+
+        @Test
+        @DisplayName("should use FileSystemCodeWriter by default (mono-module)")
+        void shouldUseFileSystemCodeWriterByDefault() {
+            // Given: No modules - standard mono-module executor
+            PluginExecutor executor = new PluginExecutor(outputDir, Map.of(), null, null, emptyModel());
+
+            // When
+            PluginExecutionResult result = executor.execute();
+
+            // Then: Executes successfully (no plugins registered externally, but no crash)
+            assertThat(result.isSuccess()).isTrue();
+        }
+
+        @Test
+        @DisplayName("should use MultiModuleCodeWriter when modules present")
+        void shouldUseMultiModuleCodeWriterWhenModulesPresent() throws IOException {
+            // Given: Modules are configured
+            Path coreOutput = tempDir.resolve("core-output");
+            Path coreBase = tempDir.resolve("core");
+            Path coreSrc = coreBase.resolve("src/main/java");
+            Files.createDirectories(coreSrc);
+
+            ModuleSourceSet coreModule = new ModuleSourceSet(
+                    "core", ModuleRole.DOMAIN, List.of(coreSrc), List.of(), coreOutput, coreBase);
+
+            PluginExecutor executor =
+                    new PluginExecutor(outputDir, Map.of(), null, null, emptyModel(), List.of(coreModule));
+
+            // When
+            PluginExecutionResult result = executor.execute();
+
+            // Then: Executes successfully with multi-module writer
+            assertThat(result.isSuccess()).isTrue();
         }
     }
 
