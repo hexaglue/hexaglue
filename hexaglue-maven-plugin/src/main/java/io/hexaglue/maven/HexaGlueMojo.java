@@ -211,7 +211,8 @@ public class HexaGlueMojo extends AbstractMojo {
                 Map.of(), // options
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR), // Only run generator plugins
-                false); // Do not include @Generated types during generation
+                false, // Do not include @Generated types during generation
+                List.of()); // Mono-module
     }
 
     private String formatDiagnostic(Diagnostic diag) {

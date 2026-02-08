@@ -262,7 +262,8 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 Map.of(),
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR), // Only run generator plugins
-                false); // Do not include @Generated types during generation
+                false, // Do not include @Generated types during generation
+                List.of()); // Mono-module
     }
 
     private EngineConfig buildAuditConfig() {
@@ -301,7 +302,8 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 Map.of(),
                 classificationConfig,
                 Set.of(PluginCategory.AUDIT), // Only run audit plugins
-                true); // Include @Generated types so audit can see generated adapters
+                true, // Include @Generated types so audit can see generated adapters
+                List.of()); // Mono-module
     }
 
     /**

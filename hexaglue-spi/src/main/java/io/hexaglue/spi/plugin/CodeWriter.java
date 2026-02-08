@@ -161,4 +161,51 @@ public interface CodeWriter {
      * @return the documentation output directory path
      */
     Path getDocsOutputDirectory();
+
+    // =========================================================================
+    // Multi-module support
+    // =========================================================================
+
+    /**
+     * Writes a Java source file to a specific module's output directory.
+     *
+     * <p>In multi-module mode, this routes the generated file to the output
+     * directory of the specified module. In mono-module mode, the default
+     * implementation delegates to {@link #writeJavaSource(String, String, String)}.
+     *
+     * @param moduleId the target module identifier
+     * @param packageName the package name (e.g., "com.example.infrastructure")
+     * @param className the simple class name (e.g., "OrderEntity")
+     * @param content the complete Java source code
+     * @throws IOException if writing fails
+     * @since 5.0.0
+     */
+    default void writeJavaSource(String moduleId, String packageName, String className, String content)
+            throws IOException {
+        writeJavaSource(packageName, className, content);
+    }
+
+    /**
+     * Returns the output directory for a specific module.
+     *
+     * <p>In multi-module mode, returns the output directory of the specified module.
+     * In mono-module mode, the default implementation delegates to {@link #getOutputDirectory()}.
+     *
+     * @param moduleId the module identifier
+     * @return the output directory path for the module
+     * @since 5.0.0
+     */
+    default Path getOutputDirectory(String moduleId) {
+        return getOutputDirectory();
+    }
+
+    /**
+     * Returns whether this writer supports multi-module routing.
+     *
+     * @return true if this writer routes to multiple module output directories
+     * @since 5.0.0
+     */
+    default boolean isMultiModule() {
+        return false;
+    }
 }

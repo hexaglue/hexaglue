@@ -37,7 +37,9 @@ import java.util.Set;
  * @param classificationConfig configuration for classification (exclusions, explicit mappings, validation)
  * @param enabledCategories plugin categories to execute (null or empty for all categories)
  * @param includeGenerated whether to include {@code @Generated}-annotated types in the semantic model
+ * @param moduleSourceSets module source sets for multi-module projects (empty list for mono-module)
  * @since 5.0.0 added includeGenerated parameter
+ * @since 5.0.0 added moduleSourceSets for multi-module support
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -51,7 +53,8 @@ public record EngineConfig(
         Map<String, Object> options,
         ClassificationConfig classificationConfig,
         Set<PluginCategory> enabledCategories,
-        boolean includeGenerated) {
+        boolean includeGenerated,
+        List<ModuleSourceSet> moduleSourceSets) {
 
     /**
      * Compact constructor with validation.
@@ -93,6 +96,7 @@ public record EngineConfig(
         options = Map.copyOf(options);
         classificationConfig = classificationConfig != null ? classificationConfig : ClassificationConfig.defaults();
         enabledCategories = enabledCategories != null ? Set.copyOf(enabledCategories) : null;
+        moduleSourceSets = moduleSourceSets != null ? List.copyOf(moduleSourceSets) : List.of();
     }
 
     /**
@@ -111,7 +115,8 @@ public record EngineConfig(
                 Map.of(),
                 null,
                 null,
-                false);
+                false,
+                List.of());
     }
 
     /**
@@ -131,7 +136,8 @@ public record EngineConfig(
                 Map.of(),
                 null,
                 null,
-                false);
+                false,
+                List.of());
     }
 
     /**
@@ -157,7 +163,8 @@ public record EngineConfig(
                 Map.of(),
                 classificationConfig,
                 null,
-                false);
+                false,
+                List.of());
     }
 
     /**
@@ -178,7 +185,8 @@ public record EngineConfig(
                 options,
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR),
-                includeGenerated);
+                includeGenerated,
+                moduleSourceSets);
     }
 
     /**
@@ -199,7 +207,8 @@ public record EngineConfig(
                 options,
                 classificationConfig,
                 Set.of(PluginCategory.AUDIT),
-                includeGenerated);
+                includeGenerated,
+                moduleSourceSets);
     }
 
     /**
@@ -220,7 +229,8 @@ public record EngineConfig(
                 options,
                 classificationConfig,
                 null,
-                includeGenerated);
+                includeGenerated,
+                moduleSourceSets);
     }
 
     /**
@@ -245,7 +255,8 @@ public record EngineConfig(
                 options,
                 classificationConfig,
                 enabledCategories,
-                true);
+                true,
+                moduleSourceSets);
     }
 
     /**
@@ -253,5 +264,15 @@ public record EngineConfig(
      */
     public boolean pluginsEnabled() {
         return outputDirectory != null;
+    }
+
+    /**
+     * Returns whether this configuration targets a multi-module project.
+     *
+     * @return true if module source sets are defined
+     * @since 5.0.0
+     */
+    public boolean isMultiModule() {
+        return !moduleSourceSets.isEmpty();
     }
 }

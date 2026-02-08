@@ -18,6 +18,7 @@ import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.index.CompositionIndex;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.arch.model.report.PrioritizedRemediation;
@@ -69,9 +70,11 @@ import java.util.Optional;
  * @param domainIndexInternal the domain index for domain type access (internal field)
  * @param portIndexInternal the port index for port type access (internal field)
  * @param compositionIndexInternal the composition index for cross-package relationships (internal field)
+ * @param moduleIndexInternal the module index for multi-module type-to-module mapping (internal field)
  * @since 4.0.0
  * @since 5.0.0 removed ElementRegistry, ElementRef, and related legacy types
  * @since 5.0.0 added compositionIndex for cross-package composition detection
+ * @since 5.0.0 added moduleIndex for multi-module support
  */
 public record ArchitecturalModel(
         ProjectContext project,
@@ -81,7 +84,8 @@ public record ArchitecturalModel(
         ClassificationReport classificationReportInternal,
         DomainIndex domainIndexInternal,
         PortIndex portIndexInternal,
-        CompositionIndex compositionIndexInternal) {
+        CompositionIndex compositionIndexInternal,
+        ModuleIndex moduleIndexInternal) {
 
     /**
      * Creates a new ArchitecturalModel instance.
@@ -98,6 +102,7 @@ public record ArchitecturalModel(
      * @param domainIndexInternal the domain index, may be null
      * @param portIndexInternal the port index, may be null
      * @param compositionIndexInternal the composition index, may be null
+     * @param moduleIndexInternal the module index, may be null (absent in mono-module)
      * @throws NullPointerException if any required field is null
      */
     public ArchitecturalModel {
@@ -105,7 +110,7 @@ public record ArchitecturalModel(
         Objects.requireNonNull(relationships, "relationships must not be null");
         Objects.requireNonNull(analysisMetadata, "analysisMetadata must not be null");
         // typeRegistryInternal, classificationReportInternal, domainIndexInternal, portIndexInternal,
-        // compositionIndexInternal may be null for backward compatibility
+        // compositionIndexInternal, moduleIndexInternal may be null for backward compatibility
     }
 
     // === New v4.1.0 API ===
@@ -162,6 +167,20 @@ public record ArchitecturalModel(
      */
     public Optional<CompositionIndex> compositionIndex() {
         return Optional.ofNullable(compositionIndexInternal);
+    }
+
+    /**
+     * Returns the module index if available.
+     *
+     * <p>The module index maps types to their containing module and provides
+     * queries for module-level navigation. It is only present in multi-module
+     * projects.</p>
+     *
+     * @return an optional containing the module index, or empty if not available
+     * @since 5.0.0
+     */
+    public Optional<ModuleIndex> moduleIndex() {
+        return Optional.ofNullable(moduleIndexInternal);
     }
 
     /**
@@ -252,6 +271,7 @@ public record ArchitecturalModel(
      *
      * @since 5.0.0 removed ElementRegistry support, use typeRegistry() instead
      * @since 5.0.0 added compositionIndex support
+     * @since 5.0.0 added moduleIndex support
      */
     public static final class Builder {
         private final ProjectContext project;
@@ -263,6 +283,7 @@ public record ArchitecturalModel(
         private DomainIndex domainIndex;
         private PortIndex portIndex;
         private CompositionIndex compositionIndex;
+        private ModuleIndex moduleIndex;
 
         private Builder(ProjectContext project) {
             this.project = Objects.requireNonNull(project, "project must not be null");
@@ -367,6 +388,18 @@ public record ArchitecturalModel(
         }
 
         /**
+         * Sets the module index (v5.0.0).
+         *
+         * @param moduleIndex the module index
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder moduleIndex(ModuleIndex moduleIndex) {
+            this.moduleIndex = moduleIndex;
+            return this;
+        }
+
+        /**
          * Builds the model with the specified metadata.
          *
          * @param metadata the analysis metadata
@@ -381,7 +414,8 @@ public record ArchitecturalModel(
                     this.classificationReport,
                     this.domainIndex,
                     this.portIndex,
-                    this.compositionIndex);
+                    this.compositionIndex,
+                    this.moduleIndex);
         }
 
         /**
@@ -400,7 +434,8 @@ public record ArchitecturalModel(
                     this.classificationReport,
                     this.domainIndex,
                     this.portIndex,
-                    this.compositionIndex);
+                    this.compositionIndex,
+                    this.moduleIndex);
         }
     }
 }
