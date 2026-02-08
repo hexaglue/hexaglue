@@ -172,6 +172,31 @@ public final class JpaPlugin implements GeneratorPlugin {
      * @param diagnostics the diagnostic reporter
      * @since 5.0.0
      */
+    /**
+     * Writes a Java source file, routing to a target module if configured.
+     *
+     * <p>In multi-module mode with a configured {@code targetModule}, the generated
+     * file is routed to the specified module's output directory. Otherwise, it uses
+     * the default output directory.
+     *
+     * @param writer the artifact writer
+     * @param config the JPA configuration
+     * @param packageName the package name
+     * @param className the class name
+     * @param content the Java source content
+     * @throws IOException if writing fails
+     * @since 5.0.0
+     */
+    private void writeJavaSource(
+            ArtifactWriter writer, JpaConfig config, String packageName, String className, String content)
+            throws IOException {
+        if (config.targetModule() != null && writer.isMultiModule()) {
+            writer.writeJavaSource(config.targetModule(), packageName, className, content);
+        } else {
+            writer.writeJavaSource(packageName, className, content);
+        }
+    }
+
     private void generateFromV5Model(
             ArchitecturalModel model,
             DomainIndex domainIndex,
@@ -223,7 +248,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec embeddableTypeSpec = JpaEmbeddableCodegen.generate(embeddableSpec);
                     String embeddableSource = toJavaSource(infraPackage, embeddableTypeSpec);
-                    writer.writeJavaSource(infraPackage, embeddableSpec.className(), embeddableSource);
+                    writeJavaSource(writer, config, infraPackage, embeddableSpec.className(), embeddableSource);
                     embeddableCount++;
                     diagnostics.info("Generated embeddable: " + embeddableSpec.className());
 
@@ -391,7 +416,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated entity: " + entitySpec.className());
 
@@ -411,7 +436,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
                     String repoSource = toJavaSource(infraPackage, repoTypeSpec);
-                    writer.writeJavaSource(infraPackage, repoSpec.interfaceName(), repoSource);
+                    writeJavaSource(writer, config, infraPackage, repoSpec.interfaceName(), repoSource);
                     repositoryCount++;
                     diagnostics.info("Generated repository: " + repoSpec.interfaceName());
                 }
@@ -430,7 +455,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
                     String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
-                    writer.writeJavaSource(infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    writeJavaSource(writer, config, infraPackage, mapperSpec.interfaceName(), mapperSource);
                     mapperCount++;
                     diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
                 }
@@ -468,7 +493,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated entity: " + entitySpec.className());
 
@@ -488,7 +513,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec repoTypeSpec = JpaRepositoryCodegen.generate(repoSpec);
                     String repoSource = toJavaSource(infraPackage, repoTypeSpec);
-                    writer.writeJavaSource(infraPackage, repoSpec.interfaceName(), repoSource);
+                    writeJavaSource(writer, config, infraPackage, repoSpec.interfaceName(), repoSource);
                     repositoryCount++;
                     diagnostics.info("Generated repository: " + repoSpec.interfaceName());
                 }
@@ -507,7 +532,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                     TypeSpec mapperTypeSpec = JpaMapperCodegen.generate(mapperSpec);
                     String mapperSource = toJavaSource(infraPackage, mapperTypeSpec);
-                    writer.writeJavaSource(infraPackage, mapperSpec.interfaceName(), mapperSource);
+                    writeJavaSource(writer, config, infraPackage, mapperSpec.interfaceName(), mapperSource);
                     mapperCount++;
                     diagnostics.info("Generated mapper: " + mapperSpec.interfaceName());
                 }
@@ -562,7 +587,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                 TypeSpec entityTypeSpec = JpaEntityCodegen.generate(entitySpec);
                 String entitySource = toJavaSource(infraPackage, entityTypeSpec);
-                writer.writeJavaSource(infraPackage, entitySpec.className(), entitySource);
+                writeJavaSource(writer, config, infraPackage, entitySpec.className(), entitySource);
                 entityCount++;
                 diagnostics.info("Generated child entity: " + entitySpec.className());
 
@@ -605,7 +630,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                         TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
                         String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                        writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
+                        writeJavaSource(writer, config, infraPackage, adapterSpec.className(), adapterSource);
                         adapterCount++;
 
                         diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
@@ -637,7 +662,7 @@ public final class JpaPlugin implements GeneratorPlugin {
 
                             TypeSpec adapterTypeSpec = JpaAdapterCodegen.generate(adapterSpec);
                             String adapterSource = toJavaSource(infraPackage, adapterTypeSpec);
-                            writer.writeJavaSource(infraPackage, adapterSpec.className(), adapterSource);
+                            writeJavaSource(writer, config, infraPackage, adapterSpec.className(), adapterSource);
                             adapterCount++;
 
                             diagnostics.info("Generated adapter: " + adapterSpec.className() + " implementing "
@@ -693,6 +718,9 @@ public final class JpaPlugin implements GeneratorPlugin {
         diagnostics.info("  generateRepositories: " + config.generateRepositories());
         diagnostics.info("  generateMappers: " + config.generateMappers());
         diagnostics.info("  generateAdapters: " + config.generateAdapters());
+        if (config.targetModule() != null) {
+            diagnostics.info("  targetModule: " + config.targetModule());
+        }
     }
 
     /**

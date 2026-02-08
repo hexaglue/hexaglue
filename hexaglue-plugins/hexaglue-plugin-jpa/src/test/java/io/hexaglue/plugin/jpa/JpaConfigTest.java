@@ -45,6 +45,7 @@ class JpaConfigTest {
             assertThat(config.generateRepositories()).isTrue();
             assertThat(config.generateMappers()).isTrue();
             assertThat(config.generateAdapters()).isTrue();
+            assertThat(config.targetModule()).isNull();
         }
     }
 
@@ -153,6 +154,26 @@ class JpaConfigTest {
         }
 
         @Test
+        @DisplayName("should use custom targetModule")
+        void shouldUseCustomTargetModule() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("targetModule", "banking-persistence"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.targetModule()).isEqualTo("banking-persistence");
+        }
+
+        @Test
+        @DisplayName("should have null targetModule by default")
+        void shouldHaveNullTargetModuleByDefault() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of());
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.targetModule()).isNull();
+        }
+
+        @Test
         @DisplayName("should use all default values when config is empty")
         void shouldUseDefaultsForEmptyConfig() {
             PluginConfig pluginConfig = createPluginConfig(Map.of());
@@ -169,6 +190,7 @@ class JpaConfigTest {
             assertThat(config.generateRepositories()).isTrue();
             assertThat(config.generateMappers()).isTrue();
             assertThat(config.generateAdapters()).isTrue();
+            assertThat(config.targetModule()).isNull();
         }
 
         @Test

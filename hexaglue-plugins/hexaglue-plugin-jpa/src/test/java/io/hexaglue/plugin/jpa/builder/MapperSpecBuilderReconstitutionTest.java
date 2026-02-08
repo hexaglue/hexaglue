@@ -71,7 +71,19 @@ class MapperSpecBuilderReconstitutionTest {
     @BeforeEach
     void setUp() {
         config = new JpaConfig(
-                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
+                "Entity",
+                "Embeddable",
+                "JpaRepository",
+                "Adapter",
+                "Mapper",
+                "",
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                null);
     }
 
     private ClassificationTrace highConfidence(ElementKind kind) {
@@ -429,7 +441,8 @@ class MapperSpecBuilderReconstitutionTest {
                     true,
                     true,
                     true,
-                    true);
+                    true,
+                    null);
 
             AggregateRoot aggregate = createAggregateWithAuditFields(
                     "reconstitute",
@@ -476,7 +489,8 @@ class MapperSpecBuilderReconstitutionTest {
                     true,
                     true,
                     true,
-                    true);
+                    true,
+                    null);
 
             AggregateRoot aggregate = createAggregateWithAuditFields(
                     "reconstitute",

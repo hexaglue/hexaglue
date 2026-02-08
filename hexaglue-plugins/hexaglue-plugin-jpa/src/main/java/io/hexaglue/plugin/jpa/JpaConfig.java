@@ -51,7 +51,9 @@ import io.hexaglue.spi.plugin.PluginConfig;
  * @param generateMappers true to generate MapStruct mapper interfaces
  * @param generateAdapters true to generate port adapter implementations
  * @param generateEmbeddables true to generate JPA embeddable classes for value objects
+ * @param targetModule target module for multi-module routing (null = no routing)
  * @since 2.0.0
+ * @since 5.0.0 added targetModule for multi-module support
  */
 public record JpaConfig(
         String entitySuffix,
@@ -65,7 +67,8 @@ public record JpaConfig(
         boolean generateRepositories,
         boolean generateMappers,
         boolean generateAdapters,
-        boolean generateEmbeddables) {
+        boolean generateEmbeddables,
+        String targetModule) {
 
     /**
      * Creates configuration from plugin config.
@@ -83,7 +86,8 @@ public record JpaConfig(
                 config.getBoolean("generateRepositories", true),
                 config.getBoolean("generateMappers", true),
                 config.getBoolean("generateAdapters", true),
-                config.getBoolean("generateEmbeddables", true));
+                config.getBoolean("generateEmbeddables", true),
+                config.getString("targetModule").orElse(null));
     }
 
     /**
@@ -91,6 +95,18 @@ public record JpaConfig(
      */
     static JpaConfig defaults() {
         return new JpaConfig(
-                "Entity", "Embeddable", "JpaRepository", "Adapter", "Mapper", "", false, false, true, true, true, true);
+                "Entity",
+                "Embeddable",
+                "JpaRepository",
+                "Adapter",
+                "Mapper",
+                "",
+                false,
+                false,
+                true,
+                true,
+                true,
+                true,
+                null);
     }
 }
