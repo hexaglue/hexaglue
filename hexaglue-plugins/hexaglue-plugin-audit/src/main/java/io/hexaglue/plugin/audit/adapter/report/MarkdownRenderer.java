@@ -230,6 +230,30 @@ public class MarkdownRenderer implements ReportRenderer {
                 md.append(diagrams.fullArchitecture());
                 md.append("\n```\n\n");
             }
+
+            // Module Topology diagram (optional, multi-module only, since 5.0.0)
+            if (diagrams.moduleTopology() != null) {
+                md.append("### Module Topology\n\n");
+                md.append("```mermaid\n");
+                md.append(diagrams.moduleTopology());
+                md.append("\n```\n\n");
+            }
+        }
+
+        // Module Topology table (optional, multi-module only, since 5.0.0)
+        if (arch.moduleTopology() != null) {
+            md.append("### Module Topology\n\n");
+            md.append(arch.moduleTopology().summary()).append("\n\n");
+            md.append("| Module | Role | Types | Packages |\n");
+            md.append("|--------|------|------:|---------|\n");
+            for (var module : arch.moduleTopology().modules()) {
+                md.append("| ").append(module.moduleId());
+                md.append(" | ").append(module.role());
+                md.append(" | ").append(module.typeCount());
+                md.append(" | ").append(String.join(", ", module.packages()));
+                md.append(" |\n");
+            }
+            md.append("\n");
         }
     }
 

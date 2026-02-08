@@ -53,6 +53,7 @@ import java.util.Optional;
  * @param applicationLayer classDiagram showing application services, command/query handlers (optional)
  * @param portsLayer classDiagram showing driving and driven ports (optional)
  * @param fullArchitecture C4Component showing full hexagonal architecture with all layers (optional)
+ * @param moduleTopology graph diagram showing module topology (optional, multi-module only)
  * @since 5.0.0
  */
 public record DiagramSet(
@@ -65,7 +66,8 @@ public record DiagramSet(
         String packageZones,
         String applicationLayer,
         String portsLayer,
-        String fullArchitecture) {
+        String fullArchitecture,
+        String moduleTopology) {
 
     /**
      * Individual diagram for an aggregate.
@@ -92,6 +94,7 @@ public record DiagramSet(
         // applicationLayer is optional - may be null
         // portsLayer is optional - may be null
         // fullArchitecture is optional - may be null
+        // moduleTopology is optional - may be null
     }
 
     /**
@@ -108,6 +111,7 @@ public record DiagramSet(
         private String applicationLayer;
         private String portsLayer;
         private String fullArchitecture;
+        private String moduleTopology;
 
         public Builder scoreRadar(String scoreRadar) {
             this.scoreRadar = scoreRadar;
@@ -180,6 +184,18 @@ public record DiagramSet(
             return this;
         }
 
+        /**
+         * Sets the module topology diagram (optional).
+         *
+         * @param moduleTopology the graph diagram for module topology
+         * @return this builder
+         * @since 5.0.0
+         */
+        public Builder moduleTopology(String moduleTopology) {
+            this.moduleTopology = moduleTopology;
+            return this;
+        }
+
         public DiagramSet build() {
             return new DiagramSet(
                     scoreRadar,
@@ -191,7 +207,8 @@ public record DiagramSet(
                     packageZones,
                     applicationLayer,
                     portsLayer,
-                    fullArchitecture);
+                    fullArchitecture,
+                    moduleTopology);
         }
     }
 
@@ -326,5 +343,25 @@ public record DiagramSet(
      */
     public String fullArchitectureMarkdown() {
         return fullArchitecture != null ? wrapInCodeBlock(fullArchitecture) : null;
+    }
+
+    /**
+     * Returns the module topology diagram as optional.
+     *
+     * @return optional module topology diagram
+     * @since 5.0.0
+     */
+    public Optional<String> moduleTopologyOpt() {
+        return Optional.ofNullable(moduleTopology);
+    }
+
+    /**
+     * Returns the module topology diagram wrapped in a markdown code block.
+     *
+     * @return wrapped diagram, or null if not present
+     * @since 5.0.0
+     */
+    public String moduleTopologyMarkdown() {
+        return moduleTopology != null ? wrapInCodeBlock(moduleTopology) : null;
     }
 }

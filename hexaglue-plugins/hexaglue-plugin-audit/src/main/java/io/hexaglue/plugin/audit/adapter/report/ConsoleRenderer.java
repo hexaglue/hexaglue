@@ -82,6 +82,14 @@ public class ConsoleRenderer implements ReportRenderer {
         // Issues summary
         renderIssuesSummary(out, data.issues());
 
+        // Module topology summary (optional, multi-module only)
+        if (data.architecture().moduleTopology() != null) {
+            out.append("  ")
+                    .append(bold("Modules: "))
+                    .append(data.architecture().moduleTopology().summary())
+                    .append("\n\n");
+        }
+
         // Remediation summary
         renderRemediationSummary(out, data.remediation());
 

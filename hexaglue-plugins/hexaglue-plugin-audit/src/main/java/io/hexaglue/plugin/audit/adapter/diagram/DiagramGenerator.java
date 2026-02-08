@@ -56,6 +56,7 @@ public class DiagramGenerator {
     private final ApplicationLayerDiagramBuilder applicationLayerBuilder;
     private final PortsDiagramBuilder portsDiagramBuilder;
     private final FullArchitectureDiagramBuilder fullArchitectureBuilder;
+    private final ModuleTopologyDiagramBuilder moduleTopologyBuilder;
 
     /**
      * Creates a diagram generator with default builders.
@@ -70,7 +71,8 @@ public class DiagramGenerator {
                 new QuadrantChartBuilder(),
                 new ApplicationLayerDiagramBuilder(),
                 new PortsDiagramBuilder(),
-                new FullArchitectureDiagramBuilder());
+                new FullArchitectureDiagramBuilder(),
+                new ModuleTopologyDiagramBuilder());
     }
 
     /**
@@ -85,7 +87,8 @@ public class DiagramGenerator {
      * @param applicationLayerBuilder application layer diagram builder
      * @param portsDiagramBuilder ports layer diagram builder
      * @param fullArchitectureBuilder full architecture diagram builder
-     * @since 5.0.0 added applicationLayerBuilder, portsDiagramBuilder, and fullArchitectureBuilder
+     * @param moduleTopologyBuilder module topology diagram builder
+     * @since 5.0.0 added applicationLayerBuilder, portsDiagramBuilder, fullArchitectureBuilder, and moduleTopologyBuilder
      */
     public DiagramGenerator(
             RadarChartBuilder radarChartBuilder,
@@ -96,7 +99,8 @@ public class DiagramGenerator {
             QuadrantChartBuilder quadrantChartBuilder,
             ApplicationLayerDiagramBuilder applicationLayerBuilder,
             PortsDiagramBuilder portsDiagramBuilder,
-            FullArchitectureDiagramBuilder fullArchitectureBuilder) {
+            FullArchitectureDiagramBuilder fullArchitectureBuilder,
+            ModuleTopologyDiagramBuilder moduleTopologyBuilder) {
         this.radarChartBuilder = radarChartBuilder;
         this.c4ContextBuilder = c4ContextBuilder;
         this.c4ComponentBuilder = c4ComponentBuilder;
@@ -106,6 +110,7 @@ public class DiagramGenerator {
         this.applicationLayerBuilder = applicationLayerBuilder;
         this.portsDiagramBuilder = portsDiagramBuilder;
         this.fullArchitectureBuilder = fullArchitectureBuilder;
+        this.moduleTopologyBuilder = moduleTopologyBuilder;
     }
 
     /**
@@ -134,7 +139,8 @@ public class DiagramGenerator {
                 quadrantChartBuilder,
                 new ApplicationLayerDiagramBuilder(),
                 new PortsDiagramBuilder(),
-                new FullArchitectureDiagramBuilder());
+                new FullArchitectureDiagramBuilder(),
+                new ModuleTopologyDiagramBuilder());
     }
 
     /**
@@ -157,6 +163,7 @@ public class DiagramGenerator {
                 .portsLayer(generatePortsLayer(reportData).orElse(null))
                 .fullArchitecture(
                         generateFullArchitecture(reportData, projectName).orElse(null))
+                .moduleTopology(generateModuleTopology(reportData).orElse(null))
                 .build();
     }
 
@@ -284,5 +291,19 @@ public class DiagramGenerator {
                 reportData.architecture().components(),
                 reportData.architecture().relationships(),
                 reportData.architecture().typeViolations());
+    }
+
+    /**
+     * Generates the module topology diagram.
+     *
+     * <p>Shows the modules in a multi-module project with their roles
+     * and type counts.
+     *
+     * @param reportData the report data
+     * @return Optional containing the Mermaid diagram, or empty if mono-module
+     * @since 5.0.0
+     */
+    private Optional<String> generateModuleTopology(ReportData reportData) {
+        return moduleTopologyBuilder.build(reportData.architecture().moduleTopology());
     }
 }
