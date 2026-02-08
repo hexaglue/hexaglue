@@ -131,6 +131,44 @@ class ModuleIndexTest {
     }
 
     @Nested
+    @DisplayName("module(String)")
+    class ModuleTests {
+
+        @Test
+        @DisplayName("should return module for known moduleId")
+        void shouldReturnModuleForKnownModuleId() {
+            ModuleIndex index = ModuleIndex.builder()
+                    .addModule(CORE_MODULE)
+                    .addModule(INFRA_MODULE)
+                    .build();
+
+            Optional<ModuleDescriptor> result = index.module("banking-core");
+
+            assertThat(result).contains(CORE_MODULE);
+        }
+
+        @Test
+        @DisplayName("should return empty for unknown moduleId")
+        void shouldReturnEmptyForUnknownModuleId() {
+            ModuleIndex index = ModuleIndex.builder().addModule(CORE_MODULE).build();
+
+            Optional<ModuleDescriptor> result = index.module("unknown-module");
+
+            assertThat(result).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should reject null moduleId")
+        void shouldRejectNullModuleId() {
+            ModuleIndex index = ModuleIndex.builder().build();
+
+            assertThatNullPointerException()
+                    .isThrownBy(() -> index.module(null))
+                    .withMessageContaining("moduleId");
+        }
+    }
+
+    @Nested
     @DisplayName("typesInModule(String)")
     class TypesInModuleTests {
 

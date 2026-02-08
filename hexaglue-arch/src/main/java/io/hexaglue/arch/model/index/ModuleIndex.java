@@ -92,6 +92,19 @@ public final class ModuleIndex {
     }
 
     /**
+     * Returns the module descriptor for the given module ID.
+     *
+     * @param moduleId the module identifier
+     * @return an optional containing the module descriptor, or empty if not found
+     * @throws NullPointerException if moduleId is null
+     * @since 5.0.0
+     */
+    public Optional<ModuleDescriptor> module(String moduleId) {
+        Objects.requireNonNull(moduleId, "moduleId must not be null");
+        return Optional.ofNullable(modulesById.get(moduleId));
+    }
+
+    /**
      * Returns all registered modules.
      *
      * @return a stream of all module descriptors
