@@ -261,7 +261,8 @@ final class FileSystemCodeWriter implements CodeWriter {
                 // relative when the plugin outputDirectory is relative (e.g. src/main/java).
                 String previousChecksum = previousChecksums.get(file);
                 if (previousChecksum == null && !file.isAbsolute()) {
-                    previousChecksum = previousChecksums.get(file.toAbsolutePath().normalize());
+                    previousChecksum =
+                            previousChecksums.get(file.toAbsolutePath().normalize());
                 }
                 if (previousChecksum == null) {
                     yield false;

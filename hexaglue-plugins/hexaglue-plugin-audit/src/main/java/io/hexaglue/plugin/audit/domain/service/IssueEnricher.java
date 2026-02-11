@@ -106,6 +106,11 @@ public class IssueEnricher {
             case "hexagonal:port-direction" -> "Port direction violation";
             case "hexagonal:layer-isolation" -> "Layer isolation violation";
             case "hexagonal:dependency-inversion" -> "Dependency inversion violation";
+            case "hexagonal:dependency-direction" -> "Dependency direction violation";
+            case "hexagonal:port-interface" -> "Port is not an interface";
+            case "hexagonal:application-purity" -> "Application layer purity violation";
+            case "ddd:aggregate-consistency" -> "Aggregate consistency violation";
+            case "ddd:event-naming" -> "Domain event naming violation";
             default -> humanize(constraintId);
         };
     }
@@ -220,7 +225,7 @@ public class IssueEnricher {
                                     + "        // implementation\n"
                                     + "    }\n"
                                     + "}",
-                            "1 day");
+                            "0.5 days");
                 } else {
                     // Driven port: requires full persistence chain (adapter, entity, mapper, converters)
                     // Can be automated by hexaglue-plugin-jpa
@@ -265,7 +270,7 @@ public class IssueEnricher {
                                 "Move the call to the appropriate layer",
                                 "Consider if the port type is correct"),
                         null,
-                        "0.25 days");
+                        "0.5 days");
             }
         });
 
@@ -288,7 +293,331 @@ public class IssueEnricher {
                                 "Refactor the caller to depend on the port instead of the concrete class",
                                 "Ensure the adapter implements the port on the infrastructure side"),
                         null,
+                        "1 day");
+            }
+        });
+
+        // DDD: Entity Identity
+        map.put("ddd:entity-identity", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Entities are defined by their identity, not their attributes. Without an identity "
+                        + "field, the entity cannot be uniquely identified, tracked, or persisted. Equality "
+                        + "comparisons become attribute-based instead of identity-based, which breaks DDD "
+                        + "semantics and can cause subtle bugs in collections and persistence operations.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Add a dedicated identity field to the entity",
+                        List.of(
+                                "Create a typed identifier (e.g., OrderId wrapping UUID) or use a simple ID type",
+                                "Add the identity field to the entity class",
+                                "Implement equals/hashCode based on the identity field (or use a record)"),
+                        "// Create a typed identifier\n"
+                                + "public record OrderId(UUID value) {\n"
+                                + "    public static OrderId generate() {\n"
+                                + "        return new OrderId(UUID.randomUUID());\n"
+                                + "    }\n"
+                                + "}\n\n"
+                                + "// Add identity to the entity\n"
+                                + "public class Order {\n"
+                                + "    private final OrderId id;\n"
+                                + "    // ... other fields\n"
+                                + "}",
                         "0.5 days");
+            }
+        });
+
+        // DDD: Aggregate Repository
+        map.put("ddd:aggregate-repository", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Aggregate roots are the unit of retrieval and persistence in DDD. Without a "
+                        + "repository interface, there is no standard way to load or save the aggregate, "
+                        + "and the aggregate boundary cannot be enforced for persistence operations. "
+                        + "This often leads to ad-hoc data access that bypasses aggregate invariants.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Create a driven port (repository interface) for the aggregate root",
+                        List.of(
+                                "Create a repository interface in the domain layer (driven port)",
+                                "Define standard persistence methods (save, findById, delete)",
+                                "Implement the repository in the infrastructure layer as an adapter"),
+                        "// Domain layer: driven port\n"
+                                + "public interface OrderRepository {\n"
+                                + "    void save(Order order);\n"
+                                + "    Optional<Order> findById(OrderId id);\n"
+                                + "    void delete(OrderId id);\n"
+                                + "}",
+                        "1 day");
+            }
+        });
+
+        // DDD: Aggregate Boundary
+        map.put("ddd:aggregate-boundary", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Direct access to internal entities bypasses the aggregate root, which is "
+                        + "responsible for enforcing invariants and maintaining consistency. External "
+                        + "code modifying internal entities can break business rules and lead to "
+                        + "inconsistent state that the aggregate root cannot prevent or detect.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Route all access to internal entities through the aggregate root",
+                        List.of(
+                                "Remove direct references to the internal entity from external code",
+                                "Add methods on the aggregate root to expose the needed behavior",
+                                "If external code needs read access, return value objects or DTOs instead",
+                                "Ensure the internal entity is not directly retrievable from repositories"),
+                        "// Before: external code accesses entity directly\n"
+                                + "// orderItem.updateQuantity(5);\n\n"
+                                + "// After: access through aggregate root\n"
+                                + "order.updateItemQuantity(orderItemId, 5);",
+                        "2 days");
+            }
+        });
+
+        // DDD: Aggregate Consistency
+        map.put("ddd:aggregate-consistency", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                boolean isMultiOwnership = v.message().contains("multiple aggregates");
+                if (isMultiOwnership) {
+                    return "An entity referenced by multiple aggregates creates unclear ownership "
+                            + "and consistency boundaries. When two aggregates share an entity, it is "
+                            + "unclear which aggregate is responsible for maintaining its invariants, "
+                            + "and concurrent modifications can lead to data corruption.";
+                }
+                return "An oversized aggregate is harder to understand, maintain, and reason about. "
+                        + "Large aggregates cause performance issues (loading too many objects), "
+                        + "increase transaction contention, and often indicate that the aggregate "
+                        + "is trying to enforce too many invariants at once.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                boolean isMultiOwnership = v.message().contains("multiple aggregates");
+                if (isMultiOwnership) {
+                    return Suggestion.complete(
+                            "Assign the entity to a single aggregate or promote it to its own aggregate",
+                            List.of(
+                                    "Identify which aggregate is the true owner of the entity",
+                                    "Remove the entity reference from the other aggregate(s)",
+                                    "Replace removed references with the entity's identifier (TypeId) or a value object",
+                                    "If the entity is truly shared, consider promoting it to its own aggregate root"),
+                            "// Before: entity shared between aggregates\n"
+                                    + "// Order -> OrderItem <- Inventory\n\n"
+                                    + "// After: reference by ID instead\n"
+                                    + "public class Inventory {\n"
+                                    + "    private final List<OrderItemId> reservedItems; // reference by ID\n"
+                                    + "}",
+                            "1 day");
+                }
+                return Suggestion.complete(
+                        "Split the aggregate into smaller, more focused aggregates",
+                        List.of(
+                                "Identify groups of entities that enforce related invariants",
+                                "Extract each group into its own aggregate with a dedicated root",
+                                "Replace direct entity references between aggregates with identifiers",
+                                "Use domain events to coordinate between the new aggregates"),
+                        null,
+                        "3 days");
+            }
+        });
+
+        // DDD: Domain Purity
+        map.put("ddd:domain-purity", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Infrastructure imports in the domain layer (e.g., JPA annotations, Spring "
+                        + "framework classes) couple the business logic to specific technologies. "
+                        + "This makes the domain model harder to test in isolation, impossible to "
+                        + "reuse with different frameworks, and blurs the separation between what "
+                        + "the system does and how it does it.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Remove infrastructure imports and use domain-pure alternatives",
+                        List.of(
+                                "Identify all forbidden infrastructure imports in the domain type",
+                                "Replace framework annotations with domain concepts (e.g., remove @Entity, @Column)",
+                                "If infrastructure behavior is needed, define a port interface in the domain layer",
+                                "Move framework-specific code to infrastructure adapters"),
+                        "// Before: domain polluted with JPA\n"
+                                + "@Entity\n"
+                                + "public class Order { ... }\n\n"
+                                + "// After: pure domain model\n"
+                                + "public class Order {\n"
+                                + "    private final OrderId id;\n"
+                                + "    private final List<OrderItem> items;\n"
+                                + "    // Pure business logic, no framework imports\n"
+                                + "}",
+                        "1 day");
+            }
+        });
+
+        // DDD: Event Naming
+        map.put("ddd:event-naming", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Domain events represent facts that have already happened in the business "
+                        + "domain. A name not in past tense is misleading: it suggests a command "
+                        + "(something to do) rather than an event (something that occurred). "
+                        + "Consistent past-tense naming makes event flows easier to understand "
+                        + "and aligns with event-sourcing and event-driven architecture conventions.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Rename the event class to use past tense",
+                        List.of(
+                                "Rename the event class to past tense (e.g., OrderPlace -> OrderPlaced)",
+                                "Update all references to the renamed class"),
+                        "// Before: imperative/present tense\n"
+                                + "public record OrderPlace(OrderId orderId) {}\n\n"
+                                + "// After: past tense\n"
+                                + "public record OrderPlaced(OrderId orderId) {}",
+                        "0.5 days");
+            }
+        });
+
+        // Hexagonal: Port Interface
+        map.put("hexagonal:port-interface", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Ports defined as classes instead of interfaces prevent the application from "
+                        + "swapping implementations. The core principle of hexagonal architecture is "
+                        + "that the application core depends on abstractions (interfaces), and adapters "
+                        + "provide concrete implementations. A port as a class violates the Dependency "
+                        + "Inversion Principle and makes testing with mocks or stubs impossible.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Convert the port from a class to an interface",
+                        List.of(
+                                "Extract an interface from the existing port class",
+                                "Move the implementation to an adapter class in the infrastructure layer",
+                                "Update all dependents to reference the interface instead of the class"),
+                        "// Before: port as a class\n"
+                                + "public class OrderRepository { ... }\n\n"
+                                + "// After: port as an interface\n"
+                                + "public interface OrderRepository {\n"
+                                + "    void save(Order order);\n"
+                                + "    Optional<Order> findById(OrderId id);\n"
+                                + "}\n\n"
+                                + "// Implementation in infrastructure layer\n"
+                                + "public class JpaOrderRepository implements OrderRepository { ... }",
+                        "1 day");
+            }
+        });
+
+        // Hexagonal: Dependency Direction
+        map.put("hexagonal:dependency-direction", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "The domain or application layer depends on infrastructure, which inverts "
+                        + "the fundamental rule of hexagonal architecture: dependencies must flow "
+                        + "inward toward the domain core. This makes the business logic tightly "
+                        + "coupled to specific technology choices, impossible to test without "
+                        + "infrastructure, and difficult to evolve independently.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Invert the dependency by introducing a port interface",
+                        List.of(
+                                "Identify the infrastructure type that the domain/application depends on",
+                                "Create a port interface in the domain layer defining the needed behavior",
+                                "Move the infrastructure implementation to an adapter that implements the port",
+                                "Inject the port interface via constructor in the domain/application code"),
+                        "// Before: domain depends on infrastructure\n"
+                                + "public class OrderService {\n"
+                                + "    private final JpaOrderDao dao; // infrastructure!\n"
+                                + "}\n\n"
+                                + "// After: domain depends on port (interface)\n"
+                                + "public class OrderService {\n"
+                                + "    private final OrderRepository repository; // port interface\n"
+                                + "}",
+                        "2 days");
+            }
+        });
+
+        // Hexagonal: Dependency Inversion
+        map.put("hexagonal:dependency-inversion", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "The application layer depends on a concrete infrastructure class instead "
+                        + "of an abstraction (interface). This creates tight coupling to a specific "
+                        + "implementation, making it impossible to swap adapters, test with mocks, "
+                        + "or evolve the infrastructure independently of the application logic.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Replace the concrete dependency with a port interface",
+                        List.of(
+                                "Identify the concrete infrastructure class being referenced",
+                                "Create or reuse a port interface that defines the needed contract",
+                                "Change the application code to depend on the port interface",
+                                "Ensure the concrete class implements the port interface"),
+                        "// Before: depends on concrete class\n"
+                                + "public class PlaceOrderUseCase {\n"
+                                + "    private final StripePaymentGateway gateway; // concrete!\n"
+                                + "}\n\n"
+                                + "// After: depends on abstraction\n"
+                                + "public class PlaceOrderUseCase {\n"
+                                + "    private final PaymentGateway gateway; // port interface\n"
+                                + "}",
+                        "1 day");
+            }
+        });
+
+        // Hexagonal: Application Purity
+        map.put("hexagonal:application-purity", new IssueTemplate() {
+            @Override
+            public String impact(Violation v) {
+                return "Infrastructure imports in the application layer (e.g., @Service, "
+                        + "@Transactional, JPA annotations) tie the use-case orchestration to a "
+                        + "specific framework. This makes application services non-portable, harder "
+                        + "to test without the framework runtime, and blurs the boundary between "
+                        + "application logic and infrastructure concerns.";
+            }
+
+            @Override
+            public Suggestion suggestion(Violation v) {
+                return Suggestion.complete(
+                        "Remove infrastructure imports from application services",
+                        List.of(
+                                "Remove framework annotations (@Service, @Transactional, @Component)",
+                                "Replace framework-specific types with domain or port interfaces",
+                                "Configure dependency injection and transaction management externally (in the infrastructure layer)",
+                                "If validation is needed, use domain-specific validation instead of javax/jakarta.validation"),
+                        "// Before: framework-coupled application service\n"
+                                + "@Service\n"
+                                + "@Transactional\n"
+                                + "public class PlaceOrderUseCase { ... }\n\n"
+                                + "// After: pure application service\n"
+                                + "public class PlaceOrderUseCase {\n"
+                                + "    private final OrderRepository orderRepository; // port\n"
+                                + "    private final PaymentGateway paymentGateway;   // port\n"
+                                + "    // Pure use-case orchestration, no framework imports\n"
+                                + "}",
+                        "1 day");
             }
         });
 
