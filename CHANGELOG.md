@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [5.0.0] - 2026-01-24
+## [5.0.0] - 2026-02-13
 
 ### Breaking Changes
 
@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `DomainModel`, `PortModel` removed - Use `model.registry()` API
   - All plugins migrated to new `ArchType` API
 
+- **IR models relocated** - Classification and core models moved from `io.hexaglue.spi` to `io.hexaglue.arch.model`
+
 ### Added
 
 - **New architectural model API**
@@ -30,6 +32,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `ResolutionResult` - Result type for element resolution
   - Fluent Query API for domain model traversal
   - `RepositoryInterfaceCriterion` for improved repository detection
+
+- **Multi-module support** - Single reactor execution across Maven multi-module projects
+  - `ModuleDescriptor` (record) - Module description: moduleId, role, baseDir, sourceRoots, basePackage
+  - `ModuleRole` (enum) - Architectural role: DOMAIN, INFRASTRUCTURE, APPLICATION, API, ASSEMBLY, SHARED
+  - `ModuleIndex` - Type-to-module index with `moduleOf(TypeId)`, `typesInModule(moduleId)`, `modulesByRole(role)`
+  - `ModuleSourceSet` (record) - Module source layout: sourceRoots, classpathEntries, outputDirectory
+  - `MultiModuleCodeWriter` - Routes generated code to the correct module via `Map<String, FileSystemCodeWriter>`
+  - `ReactorGenerateMojo` - `reactor-generate` goal with `@Mojo(aggregator = true)`
+  - `ReactorAuditMojo` - `reactor-audit` goal with `@Mojo(aggregator = true)`
+  - `ReactorEngineConfigBuilder` - Unified `EngineConfig` from `MavenSession` with YAML > convention > SHARED resolution chain
+  - `HexaGlueLifecycleParticipant` - Auto-detection of multi-module projects, injects `reactor-*` goals
+  - `ModuleRoleDetector` - Convention-based role detection via module name suffixes
+  - `TargetModuleValidator` - Fail-fast validation of plugin `targetModule` routing
+  - `CodeWriter` default methods: `writeJavaSource(moduleId, ...)`, `getOutputDirectory(moduleId)`, `isMultiModule()`
+  - Zero breaking change for mono-module: `ArchitecturalModel.moduleIndex()` returns `Optional.empty()`
+
+- **JPA plugin multi-module routing** - `targetModule` configuration to route generated JPA code to infrastructure modules
+
+- **Audit plugin enhancements**
+  - `hexagonal:application-purity` constraint (#23)
+  - Module Topology section in audit reports
+  - Remediation templates for all 15 audit constraints
+  - Report restructured with JSON pivot, Mermaid diagrams, and enriched violations
+  - Violations displayed on C4 diagrams with ELK layout, attributes and methods
+
+- **Living-doc plugin enhancements**
+  - Module topology in generated documentation
+  - Glossary, structure, bounded contexts, and index sections
+  - Javadoc and `sourceLocation` extraction pipeline
+  - Type-level, field-level, and method-level Javadoc propagation
+
+- **Generation manifest** - SHA-256 checksums and overwrite policy for generated files
 
 - **Golden file tests for regression detection**
   - `GoldenFileTest` in `hexaglue-core` with 3 domain examples (Coffeeshop, Banking, E-commerce)
@@ -41,6 +75,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - PITest configuration with JUnit 5 support
   - Baseline metrics: 39% mutation score, 69% line coverage, 62% test strength
 
+- **Auto-inject `jakarta.persistence-api` and MapStruct** dependencies for JPA plugin users
+
 ### Fixed
 
 - **Classification improvements**
@@ -48,8 +84,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Domain enums correctly classified as `VALUE_OBJECT` (H2)
   - Coupling metric threshold inversion fixed - efferent/afferent correctly calculated (H3)
   - Classification rate now displays as percentage (H4)
+  - Pivot `CoreAppClasses` correctly classified as `APPLICATION_SERVICE` (#24)
 
 - **JPA plugin fixes**
+  - Generate `toDomain()` via `reconstitute()` for rich domain objects (#8)
+  - Generate child `@Entity` with `@OneToMany` for aggregate sub-entities (#9, #18)
+  - Generate child entity conversion methods in MapStruct mappers (#19)
+  - Fix reconstitution for records (#10)
+  - Normalize nested type names from JVM binary format (#11)
+  - Fix `mapToXxx()` for foreign key identity reconstitution (#12)
+  - Unwrap single-value record VOs to primitives instead of `@Embedded` (#13)
+  - Fix `isX()` getter for primitive boolean in reconstitution (#14)
+  - Convert embedded VOs via `toDomain()` in reconstitution method (#15)
+  - Convert `Instant` audit fields to `LocalDateTime` in reconstitution (#16)
+  - Support parameterless Spring Data query methods with embedded conditions (#17)
+  - Prevent double suffix in adapter class naming (#7)
+  - Filter duplicate audit fields when `enableAuditing=true` (#6)
   - SQL reserved words (`order`, `user`, etc.) escaped in column names (C3)
   - `@AttributeOverrides` generated for duplicate embedded types (M11)
   - Simple wrapper embeddables skipped to avoid redundant code (M13)
@@ -59,6 +109,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Method inference for adapter implementations fixed (C1)
 
 - **Audit plugin fixes**
+  - Port-coverage adapter detection logic corrected
+  - Application-purity dependencies populated for excluded types (#25)
+  - 6 visualization and UX bugs corrected in audit reports
+  - 3-strategy lookup in `PortDirectionValidator` to eliminate false positives
+  - Application services support and classification guard added
+  - `DomainPurityValidator` severity changed to `CRITICAL` to fail build on violations
   - Invalid JSON caused by decimal commas fixed (C5)
   - Version display corrected to show actual HexaGlue version (M1)
   - `affectedType` extraction from violations fixed (M2)
@@ -92,9 +148,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `hexaglue-plugin-audit` - Uses new `ArchType` API
   - `hexaglue-plugin-living-doc` - Uses new `ArchType` API
 
+- **Classification and core models relocated** from `io.hexaglue.spi` to `io.hexaglue.arch.model`
+
+- **Null safety enforced** - `null` returns replaced with `Optional` and logging added to silent catch blocks across all modules
+
 - **Test infrastructure modernized**
   - `TestModelBuilder` for creating test fixtures with v5 API
   - `V5TestModelBuilder` for living-doc tests
+  - `sample-jpa-bugfixes` integration tests for all JPA bug fixes
   - Comprehensive test coverage for all plugin components
 
 ### Removed
@@ -111,6 +172,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `io.hexaglue.spi.ir` package
   - `IrSnapshot`, `DomainModel`, `PortModel`, `DomainType`, `Port`
   - All IR-related tests and builders
+
+- **Deprecated code removed** - `PropertyFieldSpec` constructor, orphan IT parameters, deprecated SPI methods with no usages
 
 ### Migration Guide
 
@@ -132,6 +195,12 @@ model.registry().all(DomainType.class).forEach(type -> {
         case ValueObject vo -> processValueObject(vo);
         // ...
     }
+});
+
+// Multi-module: access module index (Optional, empty in mono-module)
+model.moduleIndex().ifPresent(index -> {
+    ModuleDescriptor module = index.moduleOf(type.id());
+    index.modulesByRole(ModuleRole.INFRASTRUCTURE).forEach(m -> { ... });
 });
 ```
 
