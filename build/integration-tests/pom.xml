@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.hexaglue</groupId>
         <artifactId>hexaglue-build</artifactId>
-        <version>5.0.0-SNAPSHOT</version>
+        <version>5.0.0</version>
     </parent>
 
     <artifactId>hexaglue-build-integration-tests</artifactId>
