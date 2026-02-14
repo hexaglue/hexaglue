@@ -197,14 +197,14 @@ Add these dependencies to your project:
 <dependency>
     <groupId>org.mapstruct</groupId>
     <artifactId>mapstruct</artifactId>
-    <version>1.5.5.Final</version>
+    <version>1.6.3</version>
 </dependency>
 
 <!-- MapStruct Processor (for annotation processing) -->
 <dependency>
     <groupId>org.mapstruct</groupId>
     <artifactId>mapstruct-processor</artifactId>
-    <version>1.5.5.Final</version>
+    <version>1.6.3</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -214,6 +214,13 @@ Add these dependencies to your project:
 `io.hexaglue.plugin.jpa`
 
 ## Version History
+
+### v5.0.0 (2026-01-28)
+
+- Multi-module support with `targetModule` routing via `ModuleIndex`
+- Automatic routing to `INFRASTRUCTURE` role modules
+- Enhanced embeddable generation for nested value objects
+- MapStruct dependency updated to 1.6.3
 
 ### v4.1.0 (2026-01-20)
 

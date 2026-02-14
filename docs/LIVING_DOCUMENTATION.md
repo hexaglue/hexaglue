@@ -143,7 +143,7 @@ Configure via `hexaglue.yaml`:
 
 ```yaml
 plugins:
-  living-doc:
+  io.hexaglue.plugin.livingdoc:
     outputDir: "living-doc"      # Default
     generateDiagrams: true       # Default
 ```
@@ -161,7 +161,7 @@ If you don't need Mermaid diagrams:
 
 ```yaml
 plugins:
-  living-doc:
+  io.hexaglue.plugin.livingdoc:
     generateDiagrams: false
 ```
 

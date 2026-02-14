@@ -111,6 +111,12 @@ The generated diagrams use [Mermaid](https://mermaid.js.org/) syntax, which is s
 
 ## Version History
 
+### v5.0.0 (2026-01-28)
+
+- Multi-module support with module topology section in generated docs
+- `targetModule` routing for documentation output
+- Enhanced architecture overview with module relationships
+
 ### v4.1.0 (2026-01-20)
 
 - Migrated to use `model.registry().all(Type.class)` pattern

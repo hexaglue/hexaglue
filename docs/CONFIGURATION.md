@@ -102,7 +102,7 @@ classification:
 ```yaml
 plugins:
   # JPA Plugin
-  jpa:
+  io.hexaglue.plugin.jpa:
     entitySuffix: "Entity"
     repositorySuffix: "JpaRepository"
     adapterSuffix: "Adapter"
@@ -112,12 +112,12 @@ plugins:
     enableOptimisticLocking: false
 
   # Living Doc Plugin
-  living-doc:
+  io.hexaglue.plugin.livingdoc:
     outputDir: "living-doc"
     generateDiagrams: true
 
   # Audit Plugin
-  audit:
+  io.hexaglue.plugin.audit.ddd:
     failOnBlocker: true
     failOnCritical: false
 ```
@@ -249,7 +249,7 @@ classification:
     failOnUnclassified: false
 
 plugins:
-  jpa:
+  io.hexaglue.plugin.jpa:
     enableAuditing: true
 ```
 

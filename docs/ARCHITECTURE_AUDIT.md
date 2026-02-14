@@ -56,7 +56,7 @@ The audit plugin checks 14 constraints in two categories:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -194,7 +194,7 @@ Configure via `hexaglue.yaml`:
 
 ```yaml
 plugins:
-  audit:
+  io.hexaglue.plugin.audit.ddd:
     # Fail build on BLOCKER violations
     failOnBlocker: true      # Default
     # Fail build on CRITICAL violations
@@ -211,7 +211,7 @@ During development, you may want to allow critical violations temporarily:
 
 ```yaml
 plugins:
-  audit:
+  io.hexaglue.plugin.audit.ddd:
     failOnCritical: false
 ```
 
@@ -226,7 +226,7 @@ Enable only specific constraints:
 
 ```yaml
 plugins:
-  audit:
+  io.hexaglue.plugin.audit.ddd:
     enabledConstraints: "ddd:entity-identity,ddd:aggregate-repository"
 ```
 
@@ -340,17 +340,17 @@ Full production configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
         </dependency>
     </dependencies>
 </plugin>

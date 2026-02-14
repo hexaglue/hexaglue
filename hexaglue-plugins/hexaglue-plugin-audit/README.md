@@ -25,7 +25,7 @@ Add the plugin dependency to your `pom.xml`:
 <dependency>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-plugin-audit</artifactId>
-    <version>4.1.0</version>
+    <version>2.0.0</version>
     <scope>provided</scope>
 </dependency>
 ```
@@ -42,7 +42,7 @@ Add to your HexaGlue Maven plugin configuration:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>4.1.0</version>
+    <version>5.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -51,7 +51,7 @@ Add to your HexaGlue Maven plugin configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>1.0.0</version>
+            <version>2.0.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -305,7 +305,7 @@ Current test coverage: **176 tests** covering:
 ## Requirements
 
 - Java 17 or higher
-- HexaGlue 3.0.0 or higher
+- HexaGlue 5.0.0 or higher
 - Maven 3.8+ or Gradle 7.0+
 
 ## License

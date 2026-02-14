@@ -231,7 +231,7 @@ Configure via `hexaglue.yaml`:
 
 ```yaml
 plugins:
-  jpa:
+  io.hexaglue.plugin.jpa:
     entitySuffix: "Entity"           # Default
     repositorySuffix: "JpaRepository" # Default
     adapterSuffix: "Adapter"         # Default
