@@ -37,7 +37,7 @@ Add the plugin as a dependency to the HexaGlue Maven plugin:
 The plugin generates the following documentation files:
 
 ```
-docs/architecture/
+target/hexaglue/reports/{outputDir}/
 ├── README.md      # Architecture overview with summary and diagrams
 ├── domain.md      # Detailed domain model documentation
 ├── ports.md       # Ports documentation (driving and driven)
@@ -46,12 +46,23 @@ docs/architecture/
 
 ## Configuration
 
-Configuration is planned for future versions. Currently the plugin uses these defaults:
+Configuration is done via `hexaglue.yaml`, placed at the project root alongside `pom.xml`. Options are set under `plugins.io.hexaglue.plugin.livingdoc:`.
 
 | Option | Default | Description |
 |--------|---------|-------------|
-| `outputDir` | `docs/architecture` | Output directory for generated documentation |
+| `outputDir` | `living-doc` | Output directory for generated documentation (relative to `target/hexaglue/reports/`) |
 | `generateDiagrams` | `true` | Whether to generate Mermaid diagrams |
+| `maxPropertiesInDiagram` | `5` | Maximum properties shown per class in diagrams |
+
+### YAML Configuration
+
+```yaml
+plugins:
+  io.hexaglue.plugin.livingdoc:
+    outputDir: "living-doc"
+    generateDiagrams: true
+    maxPropertiesInDiagram: 5
+```
 
 ## Sample Output
 

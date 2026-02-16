@@ -64,6 +64,29 @@ target/generated-sources/hexaglue/
 | `generateRepositories` | `true` | Generate Spring Data JPA repository interfaces |
 | `generateMappers` | `true` | Generate MapStruct mapper interfaces |
 | `generateAdapters` | `true` | Generate port adapter implementations |
+| `embeddableSuffix` | `Embeddable` | Suffix for `@Embeddable` value object classes |
+| `generateEmbeddables` | `true` | Generate `@Embeddable` classes for value objects |
+| `infrastructurePackage` | `{basePackage}.infrastructure.persistence` | Target package for generated JPA artifacts |
+| `targetModule` | `null` | Multi-module: target module ID for routing generated artifacts |
+
+### YAML Configuration
+
+```yaml
+plugins:
+  io.hexaglue.plugin.jpa:
+    entitySuffix: "Entity"
+    embeddableSuffix: "Embeddable"
+    repositorySuffix: "JpaRepository"
+    adapterSuffix: "Adapter"
+    mapperSuffix: "Mapper"
+    tablePrefix: "app_"
+    enableAuditing: true
+    enableOptimisticLocking: true
+    generateRepositories: true
+    generateMappers: true
+    generateAdapters: true
+    generateEmbeddables: true
+```
 
 ## Sample Output
 

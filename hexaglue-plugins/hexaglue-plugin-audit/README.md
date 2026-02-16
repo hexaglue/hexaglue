@@ -57,43 +57,46 @@ Add to your HexaGlue Maven plugin configuration:
 </plugin>
 ```
 
-### Advanced Configuration
+### Configuration
+
+The audit behavior is controlled via the `<configuration>` parameters of the HexaGlue Maven plugin:
 
 ```xml
 <plugin>
-    <id>io.hexaglue.plugin.audit.ddd</id>
-    <enabled>true</enabled>
-    <config>
-        <!-- Fail build on BLOCKER or CRITICAL violations (default: true) -->
-        <allowCriticalViolations>false</allowCriticalViolations>
-
-        <!-- Enable specific constraints (comma-separated) -->
-        <enabledConstraints>
-            ddd:entity-identity,
-            ddd:aggregate-repository,
-            ddd:value-object-immutable,
-            ddd:aggregate-cycle,
-            ddd:aggregate-consistency,
-            hexagonal:port-interface,
-            hexagonal:dependency-direction,
-            hexagonal:layer-isolation
-        </enabledConstraints>
-
-        <!-- Enable specific metrics (comma-separated) -->
-        <enabledMetrics>
-            aggregate.avgSize,
-            aggregate.coupling.efferent,
-            domain.coverage,
-            port.coverage
-        </enabledMetrics>
-
-        <!-- Override severity for specific constraints -->
-        <severity>
-            <ddd:entity-identity>BLOCKER</ddd:entity-identity>
-            <ddd:aggregate-repository>MAJOR</ddd:aggregate-repository>
-        </severity>
-    </config>
+    <groupId>io.hexaglue</groupId>
+    <artifactId>hexaglue-maven-plugin</artifactId>
+    <version>5.0.0</version>
+    <extensions>true</extensions>
+    <configuration>
+        <basePackage>com.example</basePackage>
+        <!-- Fail build on ERROR or BLOCKER violations (default: true) -->
+        <failOnError>true</failOnError>
+        <!-- Fail build on WARNING violations (default: false) -->
+        <failOnWarning>false</failOnWarning>
+        <!-- Custom report directory (default: ${project.build.directory}/hexaglue/reports) -->
+        <reportDirectory>${project.build.directory}/hexaglue/reports</reportDirectory>
+    </configuration>
+    <dependencies>
+        <dependency>
+            <groupId>io.hexaglue.plugins</groupId>
+            <artifactId>hexaglue-plugin-audit</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+    </dependencies>
 </plugin>
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `failOnError` | boolean | `true` | Fail build on ERROR or BLOCKER violations |
+| `failOnWarning` | boolean | `false` | Fail build on WARNING violations |
+| `reportDirectory` | string | `${project.build.directory}/hexaglue/reports` | Output directory for audit reports |
+| `skip` | boolean | `false` | Disable audit entirely (also via `-Dhexaglue.skip=true`) |
+
+### Skip Audit
+
+```bash
+mvn clean verify -Dhexaglue.skip=true
 ```
 
 ## Constraints
@@ -167,9 +170,9 @@ The plugin generates reports in 4 formats:
 
 | Format | File | Description |
 |--------|------|-------------|
-| **HTML** | `audit-report.html` | Interactive report with styled diagrams |
-| **Markdown** | `AUDIT-REPORT.md` | Documentation-friendly format |
-| **JSON** | `audit-report.json` | Machine-readable for CI/CD integration |
+| **HTML** | `target/hexaglue/reports/audit/audit-report.html` | Interactive report with styled diagrams |
+| **Markdown** | `target/hexaglue/reports/audit/AUDIT-REPORT.md` | Documentation-friendly format |
+| **JSON** | `target/hexaglue/reports/audit/audit-report.json` | Machine-readable for CI/CD integration |
 | **Console** | stdout | Build output summary |
 
 ### Report Sections
