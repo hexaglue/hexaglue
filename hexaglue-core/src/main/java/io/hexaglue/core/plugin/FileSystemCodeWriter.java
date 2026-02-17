@@ -13,19 +13,12 @@
 
 package io.hexaglue.core.plugin;
 
-import io.hexaglue.core.engine.OverwritePolicy;
 import io.hexaglue.spi.plugin.CodeWriter;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HexFormat;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,12 +38,7 @@ import org.slf4j.LoggerFactory;
  * which avoids fragile parent-path derivation when the output directory
  * follows a non-standard layout (e.g. {@code src/main/java/}).
  *
- * <p>Supports {@link OverwritePolicy} to protect manually edited files when
- * writing to {@code src/main/java/}. Each written file's SHA-256 checksum
- * is tracked for later manifest storage.
- *
  * @since 5.0.0 added 3-arg constructor
- * @since 5.0.0 added OverwritePolicy and checksum support
  */
 final class FileSystemCodeWriter implements CodeWriter {
 
@@ -59,10 +47,7 @@ final class FileSystemCodeWriter implements CodeWriter {
     private final Path outputDirectory;
     private final Path resourcesDirectory;
     private final Path docsDirectory;
-    private final OverwritePolicy overwritePolicy;
-    private final Map<Path, String> previousChecksums;
     private final List<Path> generatedFiles = new ArrayList<>();
-    private final Map<Path, String> checksums = new HashMap<>();
 
     /**
      * Creates a writer with explicit directories for sources, resources, and documentation.
@@ -79,8 +64,6 @@ final class FileSystemCodeWriter implements CodeWriter {
         this.outputDirectory = Objects.requireNonNull(sourcesDirectory, "sourcesDirectory must not be null");
         this.resourcesDirectory = Objects.requireNonNull(resourcesDirectory, "resourcesDirectory must not be null");
         this.docsDirectory = Objects.requireNonNull(docsDirectory, "docsDirectory must not be null");
-        this.overwritePolicy = OverwritePolicy.ALWAYS;
-        this.previousChecksums = Map.of();
     }
 
     /**
@@ -93,26 +76,12 @@ final class FileSystemCodeWriter implements CodeWriter {
      * @param outputDirectory directory for generated Java source files
      */
     FileSystemCodeWriter(Path outputDirectory) {
-        this(outputDirectory, OverwritePolicy.ALWAYS, Map.of());
-    }
-
-    /**
-     * Creates a writer with overwrite policy and previous checksums for edit protection.
-     *
-     * @param outputDirectory directory for generated Java source files
-     * @param overwritePolicy the overwrite policy to apply
-     * @param previousChecksums checksums from the previous manifest (absolute path to checksum)
-     * @since 5.0.0
-     */
-    FileSystemCodeWriter(Path outputDirectory, OverwritePolicy overwritePolicy, Map<Path, String> previousChecksums) {
         this.outputDirectory = outputDirectory;
         // outputDirectory = target/hexaglue/generated-sources (or target/hexaglue/reports for audit)
         // hexaglueBase = target/hexaglue
         Path hexaglueBase = outputDirectory.getParent();
         this.resourcesDirectory = hexaglueBase.resolve("generated-resources");
         this.docsDirectory = hexaglueBase.resolve("reports");
-        this.overwritePolicy = overwritePolicy != null ? overwritePolicy : OverwritePolicy.ALWAYS;
-        this.previousChecksums = previousChecksums != null ? previousChecksums : Map.of();
     }
 
     // =========================================================================
@@ -122,18 +91,12 @@ final class FileSystemCodeWriter implements CodeWriter {
     @Override
     public void writeJavaSource(String packageName, String className, String content) throws IOException {
         Path file = resolveJavaSourcePath(packageName, className);
-        String contentChecksum = computeChecksum(content);
-
-        if (shouldSkipWrite(file, contentChecksum)) {
-            generatedFiles.add(file);
-            checksums.put(file, contentChecksum);
-            return;
+        if (Files.exists(file)) {
+            log.warn("Overwriting existing file: {}", file);
         }
-
         Files.createDirectories(file.getParent());
         Files.writeString(file, content);
         generatedFiles.add(file);
-        checksums.put(file, contentChecksum);
     }
 
     @Override
@@ -147,7 +110,6 @@ final class FileSystemCodeWriter implements CodeWriter {
         if (Files.exists(file)) {
             Files.delete(file);
             generatedFiles.remove(file);
-            checksums.remove(file);
         }
     }
 
@@ -168,18 +130,12 @@ final class FileSystemCodeWriter implements CodeWriter {
     @Override
     public void writeResource(String path, String content) throws IOException {
         Path file = resourcesDirectory.resolve(path);
-        String contentChecksum = computeChecksum(content);
-
-        if (shouldSkipWrite(file, contentChecksum)) {
-            generatedFiles.add(file);
-            checksums.put(file, contentChecksum);
-            return;
+        if (Files.exists(file)) {
+            log.warn("Overwriting existing resource: {}", file);
         }
-
         Files.createDirectories(file.getParent());
         Files.writeString(file, content);
         generatedFiles.add(file);
-        checksums.put(file, contentChecksum);
     }
 
     @Override
@@ -193,7 +149,6 @@ final class FileSystemCodeWriter implements CodeWriter {
         if (Files.exists(file)) {
             Files.delete(file);
             generatedFiles.remove(file);
-            checksums.remove(file);
         }
     }
 
@@ -204,18 +159,12 @@ final class FileSystemCodeWriter implements CodeWriter {
     @Override
     public void writeDoc(String path, String content) throws IOException {
         Path file = docsDirectory.resolve(path);
-        String contentChecksum = computeChecksum(content);
-
-        if (shouldSkipWrite(file, contentChecksum)) {
-            generatedFiles.add(file);
-            checksums.put(file, contentChecksum);
-            return;
+        if (Files.exists(file)) {
+            log.warn("Overwriting existing document: {}", file);
         }
-
         Files.createDirectories(file.getParent());
         Files.writeString(file, content);
         generatedFiles.add(file);
-        checksums.put(file, contentChecksum);
     }
 
     @Override
@@ -229,82 +178,12 @@ final class FileSystemCodeWriter implements CodeWriter {
         if (Files.exists(file)) {
             Files.delete(file);
             generatedFiles.remove(file);
-            checksums.remove(file);
         }
     }
 
     @Override
     public Path getDocsOutputDirectory() {
         return docsDirectory;
-    }
-
-    // =========================================================================
-    // Overwrite policy
-    // =========================================================================
-
-    /**
-     * Determines whether a write should be skipped based on the overwrite policy.
-     */
-    private boolean shouldSkipWrite(Path file, String newContentChecksum) {
-        if (!Files.exists(file)) {
-            return false;
-        }
-        return switch (overwritePolicy) {
-            case ALWAYS -> false;
-            case NEVER -> {
-                log.info("Skipped {} (overwrite policy: NEVER)", file.getFileName());
-                yield true;
-            }
-            case IF_UNCHANGED -> {
-                // Lookup supports both relative and absolute paths: previousChecksums
-                // may use absolute keys (from loadPreviousChecksums) while file may be
-                // relative when the plugin outputDirectory is relative (e.g. src/main/java).
-                String previousChecksum = previousChecksums.get(file);
-                if (previousChecksum == null && !file.isAbsolute()) {
-                    previousChecksum =
-                            previousChecksums.get(file.toAbsolutePath().normalize());
-                }
-                if (previousChecksum == null) {
-                    yield false;
-                }
-                String existingChecksum = computeFileChecksum(file);
-                if (!previousChecksum.equals(existingChecksum)) {
-                    log.warn("Skipped {}: manually modified since last generation", file.getFileName());
-                    yield true;
-                }
-                yield false;
-            }
-        };
-    }
-
-    /**
-     * Computes the SHA-256 checksum of a string content.
-     *
-     * @param content the content to hash
-     * @return the checksum in the format {@code sha256:<hex>}
-     */
-    static String computeChecksum(String content) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content.getBytes(StandardCharsets.UTF_8));
-            return "sha256:" + HexFormat.of().formatHex(hash);
-        } catch (NoSuchAlgorithmException e) {
-            throw new AssertionError("SHA-256 not available", e);
-        }
-    }
-
-    /**
-     * Computes the SHA-256 checksum of an existing file on disk.
-     */
-    private static String computeFileChecksum(Path file) {
-        try {
-            byte[] content = Files.readAllBytes(file);
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(content);
-            return "sha256:" + HexFormat.of().formatHex(hash);
-        } catch (IOException | NoSuchAlgorithmException e) {
-            return "";
-        }
     }
 
     // =========================================================================
@@ -316,15 +195,5 @@ final class FileSystemCodeWriter implements CodeWriter {
      */
     List<Path> getGeneratedFiles() {
         return List.copyOf(generatedFiles);
-    }
-
-    /**
-     * Returns checksums for all generated files (including skipped ones).
-     *
-     * @return an unmodifiable map of absolute file path to checksum string
-     * @since 5.0.0
-     */
-    Map<Path, String> getGeneratedFileChecksums() {
-        return Map.copyOf(checksums);
     }
 }

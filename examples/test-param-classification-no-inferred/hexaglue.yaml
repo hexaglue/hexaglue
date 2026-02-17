@@ -1,0 +1,11 @@
+classification:
+  explicit:
+    com.example.domain.Book: AGGREGATE_ROOT
+    com.example.domain.BookId: IDENTIFIER
+    com.example.ports.out.BookRepository: DRIVEN_PORT
+    com.example.util.StringHelper: VALUE_OBJECT
+  validation:
+    allowInferred: false
+
+plugins:
+  io.hexaglue.plugin.livingdoc: {}

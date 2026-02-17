@@ -73,28 +73,40 @@ public class ReactorAuditMojo extends AbstractMojo {
     private boolean skip;
 
     /**
-     * Fail the build if ERROR-level violations are found.
+     * Fail the Maven build when audit errors are found.
+     * Overrides the YAML {@code failOnError} setting.
+     * Default: {@code true}.
+     *
+     * @since 5.1.0
      */
-    @Parameter(property = "hexaglue.failOnError", defaultValue = "true")
-    private boolean failOnError;
+    @Parameter(property = "hexaglue.failOnError")
+    private Boolean failOnError;
 
     /**
-     * Fail the build if WARNING-level violations are found.
+     * Treat BLOCKER violations as audit errors.
+     * Overrides the YAML {@code errorOnBlocker} setting.
+     * Default: {@code true}.
+     *
+     * @since 5.1.0
      */
-    @Parameter(property = "hexaglue.failOnWarning", defaultValue = "false")
-    private boolean failOnWarning;
+    @Parameter(property = "hexaglue.errorOnBlocker")
+    private Boolean errorOnBlocker;
+
+    /**
+     * Treat CRITICAL violations as audit errors.
+     * Overrides the YAML {@code errorOnCritical} setting.
+     * Default: {@code false}.
+     *
+     * @since 5.1.0
+     */
+    @Parameter(property = "hexaglue.errorOnCritical")
+    private Boolean errorOnCritical;
 
     /**
      * Output directory for audit reports.
      */
     @Parameter(property = "hexaglue.reportDirectory", defaultValue = "${project.build.directory}/hexaglue/reports")
     private File reportDirectory;
-
-    /**
-     * Audit configuration (rules, thresholds, etc.).
-     */
-    @Parameter
-    private AuditConfig auditConfig;
 
     /**
      * Whether to fail the build if unclassified types remain.
@@ -118,10 +130,8 @@ public class ReactorAuditMojo extends AbstractMojo {
                 ? session.getTopLevelProject().getBasedir().toPath()
                 : session.getProjects().get(0).getBasedir().toPath();
 
-        // Build plugin configs: audit config override if present, otherwise YAML
-        Map<String, Map<String, Object>> pluginConfigs = auditConfig != null
-                ? auditConfig.toPluginConfigs()
-                : MojoConfigLoader.loadPluginConfigs(rootBaseDir, getLog());
+        // Load plugin configs from hexaglue.yaml
+        Map<String, Map<String, Object>> pluginConfigs = MojoConfigLoader.loadPluginConfigs(rootBaseDir, getLog());
 
         ClassificationConfig classificationConfig =
                 MojoConfigLoader.loadClassificationConfig(rootBaseDir, failOnUnclassified, getLog());
@@ -188,14 +198,14 @@ public class ReactorAuditMojo extends AbstractMojo {
         // Log summary
         logAuditSummary(snapshot);
 
-        // Check failure conditions
-        if (failOnError && snapshot.errorCount() > 0) {
-            throw new MojoFailureException("Reactor audit failed with " + snapshot.errorCount() + " ERROR violations");
-        }
+        // Check failure conditions with Maven > YAML > defaults precedence
+        AuditFailureResolver resolver =
+                AuditFailureResolver.resolve(failOnError, errorOnBlocker, errorOnCritical, pluginConfigs);
 
-        if (failOnWarning && snapshot.warningCount() > 0) {
+        long errorCount = resolver.countErrors(snapshot);
+        if (resolver.failOnError() && errorCount > 0) {
             throw new MojoFailureException(
-                    "Reactor audit failed with " + snapshot.warningCount() + " WARNING violations");
+                    "Reactor audit failed with " + errorCount + " error-level violations (BLOCKER/CRITICAL)");
         }
 
         getLog().info("Reactor audit completed: " + (snapshot.passed() ? "PASSED" : "FAILED"));

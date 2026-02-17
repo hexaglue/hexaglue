@@ -1,0 +1,6 @@
+classification:
+  exclude:
+    - "*.util.*"
+
+plugins:
+  io.hexaglue.plugin.livingdoc: {}

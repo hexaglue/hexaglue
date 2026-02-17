@@ -16,7 +16,6 @@ package io.hexaglue.core.plugin;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.core.audit.DefaultArchitectureQuery;
 import io.hexaglue.core.engine.ModuleSourceSet;
-import io.hexaglue.core.engine.OverwritePolicy;
 import io.hexaglue.core.graph.ApplicationGraph;
 import io.hexaglue.spi.audit.ArchitectureQuery;
 import io.hexaglue.spi.generation.PluginCategory;
@@ -62,7 +61,6 @@ public final class PluginExecutor {
     private final Set<PluginCategory> enabledCategories;
     private final ArchitecturalModel architecturalModel;
     private final List<ModuleSourceSet> moduleSourceSets;
-    private final Map<Path, String> previousChecksums;
 
     /**
      * Creates a plugin executor with the v4 ArchitecturalModel.
@@ -80,7 +78,7 @@ public final class PluginExecutor {
             ApplicationGraph graph,
             Set<PluginCategory> enabledCategories,
             ArchitecturalModel architecturalModel) {
-        this(outputDirectory, pluginConfigs, graph, enabledCategories, architecturalModel, List.of(), Map.of());
+        this(outputDirectory, pluginConfigs, graph, enabledCategories, architecturalModel, List.of());
     }
 
     /**
@@ -101,36 +99,12 @@ public final class PluginExecutor {
             Set<PluginCategory> enabledCategories,
             ArchitecturalModel architecturalModel,
             List<ModuleSourceSet> moduleSourceSets) {
-        this(outputDirectory, pluginConfigs, graph, enabledCategories, architecturalModel, moduleSourceSets, Map.of());
-    }
-
-    /**
-     * Creates a plugin executor with multi-module support and previous checksums.
-     *
-     * @param outputDirectory the directory for generated sources (default/fallback)
-     * @param pluginConfigs plugin configurations keyed by plugin ID
-     * @param graph the application graph for architecture analysis (may be null)
-     * @param enabledCategories plugin categories to execute (null or empty for all categories)
-     * @param architecturalModel the architectural model (must not be null)
-     * @param moduleSourceSets module source sets for multi-module routing (empty for mono-module)
-     * @param previousChecksums checksums from the previous manifest for overwrite protection
-     * @since 5.0.0
-     */
-    public PluginExecutor(
-            Path outputDirectory,
-            Map<String, Map<String, Object>> pluginConfigs,
-            ApplicationGraph graph,
-            Set<PluginCategory> enabledCategories,
-            ArchitecturalModel architecturalModel,
-            List<ModuleSourceSet> moduleSourceSets,
-            Map<Path, String> previousChecksums) {
         this.outputDirectory = outputDirectory;
         this.pluginConfigs = pluginConfigs;
         this.graph = graph;
         this.enabledCategories = enabledCategories;
         this.architecturalModel = Objects.requireNonNull(architecturalModel, "architecturalModel must not be null");
         this.moduleSourceSets = moduleSourceSets != null ? moduleSourceSets : List.of();
-        this.previousChecksums = previousChecksums != null ? previousChecksums : Map.of();
     }
 
     /**
@@ -337,7 +311,6 @@ public final class PluginExecutor {
 
             List<Path> generatedFiles = extractGeneratedFiles(writer);
             Set<Path> sourceRoots = extractUsedSourceRoots(writer, moduleSourceSets);
-            Map<String, String> fileChecksums = extractChecksums(writer);
 
             log.info("Plugin {} completed in {}ms, generated {} files", pluginId, elapsed, generatedFiles.size());
 
@@ -352,8 +325,7 @@ public final class PluginExecutor {
                     elapsed,
                     null,
                     pluginOutputs,
-                    sourceRoots,
-                    fileChecksums);
+                    sourceRoots);
 
         } catch (Exception e) {
             log.error("Plugin {} failed: {}", pluginId, e.getMessage(), e);
@@ -361,21 +333,12 @@ public final class PluginExecutor {
 
             List<Path> generatedFiles = extractGeneratedFiles(writer);
             Set<Path> sourceRoots = extractUsedSourceRoots(writer, moduleSourceSets);
-            Map<String, String> fileChecksums = extractChecksums(writer);
 
             // Capture outputs even on failure (partial outputs may exist)
             Map<String, Object> pluginOutputs = outputStore.getAll(pluginId);
 
             return new PluginResult(
-                    pluginId,
-                    false,
-                    generatedFiles,
-                    diagnostics.getDiagnostics(),
-                    0,
-                    e,
-                    pluginOutputs,
-                    sourceRoots,
-                    fileChecksums);
+                    pluginId, false, generatedFiles, diagnostics.getDiagnostics(), 0, e, pluginOutputs, sourceRoots);
         }
     }
 
@@ -393,18 +356,16 @@ public final class PluginExecutor {
     private CodeWriter createCodeWriter(String pluginId) {
         Map<String, Object> pluginConfig = pluginConfigs.getOrDefault(pluginId, Map.of());
         Path pluginOutputOverride = resolvePluginOutputOverride(pluginConfig);
-        OverwritePolicy overwrite = resolveOverwritePolicy(pluginConfig);
 
         if (!moduleSourceSets.isEmpty()) {
             log.debug("Using MultiModuleCodeWriter for plugin {}", pluginId);
             // In multi-module mode, the override is resolved per-module:
             // relative paths resolve against each module's baseDir,
             // absolute paths are used directly.
-            return new MultiModuleCodeWriter(
-                    moduleSourceSets, outputDirectory, pluginOutputOverride, overwrite, previousChecksums);
+            return new MultiModuleCodeWriter(moduleSourceSets, outputDirectory, pluginOutputOverride);
         } else {
             Path effectiveOutputDir = pluginOutputOverride != null ? pluginOutputOverride : outputDirectory;
-            return new FileSystemCodeWriter(effectiveOutputDir, overwrite, previousChecksums);
+            return new FileSystemCodeWriter(effectiveOutputDir);
         }
     }
 
@@ -420,25 +381,6 @@ public final class PluginExecutor {
     }
 
     /**
-     * Resolves the overwrite policy from plugin configuration.
-     *
-     * @param pluginConfig the plugin configuration map
-     * @return the overwrite policy, defaulting to {@link OverwritePolicy#ALWAYS}
-     * @since 5.0.0
-     */
-    static OverwritePolicy resolveOverwritePolicy(Map<String, Object> pluginConfig) {
-        Object override = pluginConfig.get("overwrite");
-        if (override instanceof String policy) {
-            try {
-                return OverwritePolicy.valueOf(policy.toUpperCase().replace("-", "_"));
-            } catch (IllegalArgumentException e) {
-                log.warn("Invalid overwrite policy '{}', using ALWAYS", policy);
-            }
-        }
-        return OverwritePolicy.ALWAYS;
-    }
-
-    /**
      * Extracts generated files from the code writer, handling both mono and multi-module writers.
      */
     private static List<Path> extractGeneratedFiles(CodeWriter writer) {
@@ -448,22 +390,6 @@ public final class PluginExecutor {
             return fsWriter.getGeneratedFiles();
         }
         return List.of();
-    }
-
-    /**
-     * Extracts checksums from the code writer, handling both mono and multi-module writers.
-     *
-     * @since 5.0.0
-     */
-    static Map<String, String> extractChecksums(CodeWriter writer) {
-        if (writer instanceof MultiModuleCodeWriter mmWriter) {
-            return mmWriter.getGeneratedFileChecksums().entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
-        } else if (writer instanceof FileSystemCodeWriter fsWriter) {
-            return fsWriter.getGeneratedFileChecksums().entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
-        }
-        return Map.of();
     }
 
     /**

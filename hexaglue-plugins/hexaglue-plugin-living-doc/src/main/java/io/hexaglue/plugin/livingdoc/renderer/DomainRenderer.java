@@ -27,8 +27,31 @@ import java.util.stream.Collectors;
 
 /**
  * Renders domain type documentation to Markdown.
+ *
+ * @since 4.0.0
  */
 public final class DomainRenderer {
+
+    private final boolean includeDebugSections;
+
+    /**
+     * Creates a renderer with debug sections enabled (default behavior).
+     *
+     * @since 5.1.0
+     */
+    public DomainRenderer() {
+        this(true);
+    }
+
+    /**
+     * Creates a renderer with configurable debug section inclusion.
+     *
+     * @param includeDebugSections whether to include debug sections in the output
+     * @since 5.1.0
+     */
+    public DomainRenderer(boolean includeDebugSections) {
+        this.includeDebugSections = includeDebugSections;
+    }
 
     public String renderType(DomainTypeDoc type) {
         MarkdownBuilder md = new MarkdownBuilder();
@@ -68,7 +91,9 @@ public final class DomainRenderer {
         }
 
         // Debug information
-        md.raw(renderDebugSection(type));
+        if (includeDebugSections) {
+            md.raw(renderDebugSection(type));
+        }
 
         md.horizontalRule();
 

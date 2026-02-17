@@ -1,4 +1,5 @@
 // Verify audit execution detected violations but did not fail build
+// (failOnError=false disables build failure on audit errors)
 
 def buildLog = new File(basedir, "build.log")
 def logText = buildLog.text

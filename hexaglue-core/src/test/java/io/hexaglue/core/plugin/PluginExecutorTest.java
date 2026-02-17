@@ -19,7 +19,6 @@ import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.ProjectContext;
 import io.hexaglue.arch.model.index.ModuleRole;
 import io.hexaglue.core.engine.ModuleSourceSet;
-import io.hexaglue.core.engine.OverwritePolicy;
 import io.hexaglue.spi.plugin.CodeWriter;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
@@ -442,66 +441,6 @@ class PluginExecutorTest {
     }
 
     @Nested
-    @DisplayName("Overwrite policy resolution")
-    class OverwritePolicyResolution {
-
-        @Test
-        @DisplayName("should default to ALWAYS when no overwrite config")
-        void shouldDefaultToAlwaysWhenNoConfig() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of())).isEqualTo(OverwritePolicy.ALWAYS);
-        }
-
-        @Test
-        @DisplayName("should resolve ALWAYS from lowercase string")
-        void shouldResolveAlwaysFromLowercase() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "always")))
-                    .isEqualTo(OverwritePolicy.ALWAYS);
-        }
-
-        @Test
-        @DisplayName("should resolve IF_UNCHANGED from 'if-unchanged' (hyphen)")
-        void shouldResolveIfUnchangedFromHyphen() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "if-unchanged")))
-                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
-        }
-
-        @Test
-        @DisplayName("should resolve IF_UNCHANGED from uppercase")
-        void shouldResolveIfUnchangedFromUppercase() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "IF_UNCHANGED")))
-                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
-        }
-
-        @Test
-        @DisplayName("should resolve NEVER from lowercase")
-        void shouldResolveNeverFromLowercase() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "never")))
-                    .isEqualTo(OverwritePolicy.NEVER);
-        }
-
-        @Test
-        @DisplayName("should default to ALWAYS for invalid value")
-        void shouldDefaultToAlwaysForInvalidValue() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "invalid-value")))
-                    .isEqualTo(OverwritePolicy.ALWAYS);
-        }
-
-        @Test
-        @DisplayName("should default to ALWAYS when overwrite value is not a string")
-        void shouldDefaultToAlwaysWhenNotString() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", 42)))
-                    .isEqualTo(OverwritePolicy.ALWAYS);
-        }
-
-        @Test
-        @DisplayName("should handle mixed case with hyphens")
-        void shouldHandleMixedCaseWithHyphens() {
-            assertThat(PluginExecutor.resolveOverwritePolicy(Map.of("overwrite", "If-Unchanged")))
-                    .isEqualTo(OverwritePolicy.IF_UNCHANGED);
-        }
-    }
-
-    @Nested
     @DisplayName("Plugin output override resolution")
     class PluginOutputOverrideResolution {
 
@@ -538,75 +477,6 @@ class PluginExecutorTest {
             Path result = PluginExecutor.resolvePluginOutputOverride(Map.of("outputDirectory", "/tmp/output"));
             assertThat(result).isEqualTo(Path.of("/tmp/output"));
             assertThat(result.isAbsolute()).isTrue();
-        }
-    }
-
-    @Nested
-    @DisplayName("Checksum extraction")
-    class ChecksumExtraction {
-
-        @Test
-        @DisplayName("should extract checksums from FileSystemCodeWriter after write")
-        void shouldExtractChecksumsFromFileSystemCodeWriter() throws IOException {
-            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
-            writer.writeJavaSource("com.example", "Foo", "class Foo {}");
-
-            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
-
-            assertThat(checksums).hasSize(1);
-            assertThat(checksums.values().iterator().next()).startsWith("sha256:");
-        }
-
-        @Test
-        @DisplayName("should extract checksums from MultiModuleCodeWriter after write")
-        void shouldExtractChecksumsFromMultiModuleCodeWriter() throws IOException {
-            Path coreOutput = tempDir.resolve("core-output");
-            Path coreBase = tempDir.resolve("core");
-            Files.createDirectories(coreBase);
-            ModuleSourceSet coreModule =
-                    new ModuleSourceSet("core", ModuleRole.DOMAIN, List.of(coreBase), List.of(), coreOutput, coreBase);
-
-            MultiModuleCodeWriter writer = new MultiModuleCodeWriter(List.of(coreModule), outputDir);
-            writer.writeJavaSource("core", "com.example", "Bar", "class Bar {}");
-
-            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
-
-            assertThat(checksums).hasSize(1);
-            assertThat(checksums.values().iterator().next()).startsWith("sha256:");
-        }
-
-        @Test
-        @DisplayName("should return empty map for unknown writer type")
-        void shouldReturnEmptyMapForUnknownWriter() {
-            Map<String, String> checksums = PluginExecutor.extractChecksums(new TestCodeWriter());
-
-            assertThat(checksums).isEmpty();
-        }
-
-        @Test
-        @DisplayName("should return empty map when no files written")
-        void shouldReturnEmptyMapWhenNoFilesWritten() {
-            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
-
-            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
-
-            assertThat(checksums).isEmpty();
-        }
-
-        @Test
-        @DisplayName("should convert Path keys to String keys")
-        void shouldConvertPathKeysToStringKeys() throws IOException {
-            FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
-            writer.writeJavaSource("com.example", "A", "class A {}");
-            writer.writeJavaSource("com.example", "B", "class B {}");
-
-            Map<String, String> checksums = PluginExecutor.extractChecksums(writer);
-
-            assertThat(checksums).hasSize(2);
-            // All keys should be string paths, not Path objects
-            for (String key : checksums.keySet()) {
-                assertThat(key).contains("com/example/");
-            }
         }
     }
 
@@ -727,41 +597,6 @@ class PluginExecutorTest {
 
             assertThat(outputDir.resolve("com/example/Report.java")).exists();
         }
-
-        @Test
-        @DisplayName("should combine plugin override with overwrite policy")
-        void shouldCombinePluginOverrideWithOverwritePolicy() throws IOException {
-            // Given: plugin config with both outputDirectory and overwrite policy
-            Path customOutput = tempDir.resolve("custom-output");
-            Map<String, Object> jpaConfig = Map.of("outputDirectory", customOutput.toString(), "overwrite", "never");
-
-            Path overridePath = PluginExecutor.resolvePluginOutputOverride(jpaConfig);
-            OverwritePolicy policy = PluginExecutor.resolveOverwritePolicy(jpaConfig);
-
-            // Pre-create existing file in custom output
-            Path existingFile = customOutput.resolve("com/example/Entity.java");
-            Files.createDirectories(existingFile.getParent());
-            Files.writeString(existingFile, "class Entity { /* original */ }");
-
-            // When: create writer with both override and policy
-            FileSystemCodeWriter writer = new FileSystemCodeWriter(overridePath, policy, Map.of());
-            writer.writeJavaSource("com.example", "Entity", "class Entity { /* new */ }");
-
-            // Then: NEVER policy should prevent overwrite
-            assertThat(Files.readString(existingFile)).contains("original");
-        }
-
-        @Test
-        @DisplayName("should apply per-plugin overwrite policy independently")
-        void shouldApplyPerPluginOverwritePolicyIndependently() {
-            // Given: two plugins with different overwrite policies
-            Map<String, Object> jpaConfig = Map.of("overwrite", "if-unchanged");
-            Map<String, Object> auditConfig = Map.of("overwrite", "always");
-
-            // Then: each plugin gets its own policy
-            assertThat(PluginExecutor.resolveOverwritePolicy(jpaConfig)).isEqualTo(OverwritePolicy.IF_UNCHANGED);
-            assertThat(PluginExecutor.resolveOverwritePolicy(auditConfig)).isEqualTo(OverwritePolicy.ALWAYS);
-        }
     }
 
     @Nested
@@ -769,36 +604,20 @@ class PluginExecutorTest {
     class PluginResultConstructors {
 
         @Test
-        @DisplayName("7-arg constructor should produce empty usedSourceRoots and checksums")
-        void sevenArgConstructorShouldProduceEmptySourceRootsAndChecksums() {
+        @DisplayName("7-arg constructor should produce empty usedSourceRoots")
+        void sevenArgConstructorShouldProduceEmptySourceRoots() {
             PluginResult result = new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of());
 
             assertThat(result.usedSourceRoots()).isNotNull().isEmpty();
-            assertThat(result.checksums()).isNotNull().isEmpty();
         }
 
         @Test
-        @DisplayName("8-arg constructor should produce empty checksums")
-        void eightArgConstructorShouldProduceEmptyChecksums() {
+        @DisplayName("8-arg constructor should preserve usedSourceRoots")
+        void eightArgConstructorShouldPreserveSourceRoots() {
             Set<Path> roots = Set.of(Path.of("/output"));
             PluginResult result = new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of(), roots);
 
             assertThat(result.usedSourceRoots()).isEqualTo(roots);
-            assertThat(result.checksums()).isNotNull().isEmpty();
-        }
-
-        @Test
-        @DisplayName("9-arg constructor should preserve actual checksums")
-        void nineArgConstructorShouldPreserveActualChecksums() {
-            Set<Path> roots = Set.of(Path.of("/output"));
-            Map<String, String> checksums = Map.of("/output/com/example/Foo.java", "sha256:abc123");
-
-            PluginResult result =
-                    new PluginResult("test", true, List.of(), List.of(), 10L, null, Map.of(), roots, checksums);
-
-            assertThat(result.usedSourceRoots()).isEqualTo(roots);
-            assertThat(result.checksums()).hasSize(1);
-            assertThat(result.checksums()).containsEntry("/output/com/example/Foo.java", "sha256:abc123");
         }
     }
 

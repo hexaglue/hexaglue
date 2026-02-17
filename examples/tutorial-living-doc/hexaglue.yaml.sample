@@ -1,0 +1,9 @@
+# HexaGlue configuration for tutorial-living-doc
+# This example uses default values - this file demonstrates available options
+
+plugins:
+  io.hexaglue.plugin.livingdoc:
+    outputDir: "living-doc"
+    generateDiagrams: true
+    maxPropertiesInDiagram: 5
+    includeDebugSections: true

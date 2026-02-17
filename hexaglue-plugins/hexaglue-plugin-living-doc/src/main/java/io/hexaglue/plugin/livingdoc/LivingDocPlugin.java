@@ -185,13 +185,14 @@ public final class LivingDocPlugin implements GeneratorPlugin {
         }
 
         // Generate domain documentation
-        DomainDocGenerator domainGen = new DomainDocGenerator(domainSelector, relationshipEnricher);
+        DomainDocGenerator domainGen =
+                new DomainDocGenerator(domainSelector, relationshipEnricher, config.includeDebugSections());
         String domainDoc = domainGen.generate();
         writer.writeDoc(config.outputDir() + "/domain.md", domainDoc);
         diagnostics.info("Generated domain model documentation");
 
         // Generate ports documentation
-        PortDocGenerator portGen = new PortDocGenerator(portSelector);
+        PortDocGenerator portGen = new PortDocGenerator(portSelector, config.includeDebugSections());
         String portsDoc = portGen.generate();
         writer.writeDoc(config.outputDir() + "/ports.md", portsDoc);
         diagnostics.info("Generated ports documentation");

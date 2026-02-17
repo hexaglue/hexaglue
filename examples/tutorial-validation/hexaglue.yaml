@@ -62,16 +62,15 @@ classification:
 # Configure individual HexaGlue plugins.
 
 plugins:
-  # Living Documentation Plugin
-  living-doc:
-    enabled: true
-    outputFormat: "html"
-    includeMetrics: true
+  # Living Documentation Plugin (for demonstration)
+  io.hexaglue.plugin.livingdoc:
+    outputDir: "living-doc"       # default
+    generateDiagrams: true        # default
+    maxPropertiesInDiagram: 5     # default
+    includeDebugSections: true    # default
 
-  # DDD Audit Plugin
-  audit:
-    enabled: true
-    # Allow violations without failing the build (for demo purposes)
-    allowCriticalViolations: true
-    # Generate separate documentation files (ARCHITECTURE-OVERVIEW.md, etc.)
-    generateDocs: true
+  # DDD Audit Plugin (for demonstration)
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: true                   # Défaut
+    errorOnCritical: false                # Défaut
+    generateDocs: false

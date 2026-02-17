@@ -64,8 +64,23 @@ public final class DomainDocGenerator {
      * @since 5.0.0
      */
     public DomainDocGenerator(DomainContentSelector contentSelector, RelationshipEnricher relationshipEnricher) {
+        this(contentSelector, relationshipEnricher, true);
+    }
+
+    /**
+     * Creates a generator with relationship enrichment and configurable debug sections.
+     *
+     * @param contentSelector the domain content selector
+     * @param relationshipEnricher the relationship enricher, or {@code null} if unavailable
+     * @param includeDebugSections whether to include debug sections in the generated documentation
+     * @since 5.1.0
+     */
+    public DomainDocGenerator(
+            DomainContentSelector contentSelector,
+            RelationshipEnricher relationshipEnricher,
+            boolean includeDebugSections) {
         this.contentSelector = contentSelector;
-        this.renderer = new DomainRenderer();
+        this.renderer = new DomainRenderer(includeDebugSections);
         this.relationshipEnricher = relationshipEnricher;
     }
 

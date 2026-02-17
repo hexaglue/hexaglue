@@ -244,6 +244,69 @@ class MojoConfigLoaderTest {
     }
 
     @Nested
+    @DisplayName("loadPluginConfigs")
+    class LoadPluginConfigs {
+
+        @Test
+        @DisplayName("should load audit plugin config from YAML under io.hexaglue.plugin.audit")
+        void shouldLoadAuditPluginConfigFromYaml() throws IOException {
+            // Given
+            String yaml = """
+                    plugins:
+                      io.hexaglue.plugin.audit:
+                        errorOnBlocker: true
+                        errorOnCritical: false
+                        generateDocs: false
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            // When
+            Map<String, Map<String, Object>> configs = MojoConfigLoader.loadPluginConfigs(tempDir, log);
+
+            // Then
+            assertThat(configs).containsKey("io.hexaglue.plugin.audit");
+            Map<String, Object> auditConfig = configs.get("io.hexaglue.plugin.audit");
+            assertThat(auditConfig.get("errorOnBlocker")).isEqualTo(true);
+            assertThat(auditConfig.get("errorOnCritical")).isEqualTo(false);
+            assertThat(auditConfig.get("generateDocs")).isEqualTo(false);
+        }
+
+        @Test
+        @DisplayName("should return empty map when no config file exists")
+        void shouldReturnEmptyMapWhenNoConfigFile() {
+            // When
+            Map<String, Map<String, Object>> configs = MojoConfigLoader.loadPluginConfigs(tempDir, log);
+
+            // Then
+            assertThat(configs).isEmpty();
+        }
+
+        @Test
+        @DisplayName("should load multiple plugin configs from YAML")
+        void shouldLoadMultiplePluginConfigs() throws IOException {
+            // Given
+            String yaml = """
+                    plugins:
+                      io.hexaglue.plugin.jpa:
+                        entitySuffix: "Entity"
+                      io.hexaglue.plugin.livingdoc:
+                        outputDir: "living-doc"
+                      io.hexaglue.plugin.audit:
+                        errorOnBlocker: true
+                    """;
+            Files.writeString(tempDir.resolve("hexaglue.yaml"), yaml);
+
+            // When
+            Map<String, Map<String, Object>> configs = MojoConfigLoader.loadPluginConfigs(tempDir, log);
+
+            // Then
+            assertThat(configs).hasSize(3);
+            assertThat(configs)
+                    .containsKeys("io.hexaglue.plugin.jpa", "io.hexaglue.plugin.livingdoc", "io.hexaglue.plugin.audit");
+        }
+    }
+
+    @Nested
     @DisplayName("loadOutputConfig")
     class LoadOutputConfig {
 

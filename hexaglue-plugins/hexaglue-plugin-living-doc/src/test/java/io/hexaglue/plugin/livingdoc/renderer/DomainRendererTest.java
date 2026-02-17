@@ -721,6 +721,43 @@ class DomainRendererTest {
         }
     }
 
+    @Nested
+    class IncludeDebugSectionsConfig {
+
+        @Test
+        void shouldIncludeDebugSectionByDefault() {
+            DomainRenderer defaultRenderer = new DomainRenderer();
+            DomainTypeDoc type = createSimpleAggregate();
+
+            String result = defaultRenderer.renderType(type);
+
+            assertThat(result).contains("Debug Information");
+            assertThat(result).contains("<details>");
+        }
+
+        @Test
+        void shouldIncludeDebugSectionWhenEnabled() {
+            DomainRenderer enabledRenderer = new DomainRenderer(true);
+            DomainTypeDoc type = createSimpleAggregate();
+
+            String result = enabledRenderer.renderType(type);
+
+            assertThat(result).contains("Debug Information");
+            assertThat(result).contains("<details>");
+        }
+
+        @Test
+        void shouldExcludeDebugSectionWhenDisabled() {
+            DomainRenderer disabledRenderer = new DomainRenderer(false);
+            DomainTypeDoc type = createSimpleAggregate();
+
+            String result = disabledRenderer.renderType(type);
+
+            assertThat(result).doesNotContain("Debug Information");
+            assertThat(result).doesNotContain("<details>");
+        }
+    }
+
     // Helper methods
 
     private DomainTypeDoc createSimpleAggregate() {

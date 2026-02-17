@@ -1,8 +1,9 @@
 plugins:
-  jpa:
+  io.hexaglue.plugin.jpa:
     entitySuffix: "Entity"
     generateRepositories: true
     generateMappers: true
     generateAdapters: true
-  audit:
-    failOnBlocker: false
+
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: false

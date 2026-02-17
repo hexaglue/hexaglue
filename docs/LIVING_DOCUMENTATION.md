@@ -144,8 +144,10 @@ Configure via `hexaglue.yaml`:
 ```yaml
 plugins:
   io.hexaglue.plugin.livingdoc:
-    outputDir: "living-doc"      # Default
-    generateDiagrams: true       # Default
+    outputDir: "living-doc"            # Default
+    generateDiagrams: true             # Default
+    maxPropertiesInDiagram: 5          # Default
+    includeDebugSections: true         # Default
 ```
 
 ### Options
@@ -154,6 +156,8 @@ plugins:
 |--------|---------|-------------|
 | `outputDir` | `living-doc` | Output directory relative to `target/hexaglue/` |
 | `generateDiagrams` | `true` | Generate Mermaid diagrams in diagrams.md |
+| `maxPropertiesInDiagram` | `5` | Max properties shown per class in diagrams |
+| `includeDebugSections` | `true` | Include classification debug sections in docs |
 
 ### Disable Diagrams
 

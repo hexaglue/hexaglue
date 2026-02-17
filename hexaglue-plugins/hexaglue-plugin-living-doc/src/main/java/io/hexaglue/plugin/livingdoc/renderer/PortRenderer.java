@@ -22,8 +22,31 @@ import java.util.List;
 
 /**
  * Renders port documentation to Markdown.
+ *
+ * @since 4.0.0
  */
 public final class PortRenderer {
+
+    private final boolean includeDebugSections;
+
+    /**
+     * Creates a renderer with debug sections enabled (default behavior).
+     *
+     * @since 5.1.0
+     */
+    public PortRenderer() {
+        this(true);
+    }
+
+    /**
+     * Creates a renderer with configurable debug section inclusion.
+     *
+     * @param includeDebugSections whether to include debug sections in the output
+     * @since 5.1.0
+     */
+    public PortRenderer(boolean includeDebugSections) {
+        this.includeDebugSections = includeDebugSections;
+    }
 
     public String renderPort(PortDoc port) {
         MarkdownBuilder md = new MarkdownBuilder();
@@ -65,7 +88,9 @@ public final class PortRenderer {
         }
 
         // Debug information
-        md.raw(renderDebugSection(port));
+        if (includeDebugSections) {
+            md.raw(renderDebugSection(port));
+        }
 
         md.horizontalRule();
 

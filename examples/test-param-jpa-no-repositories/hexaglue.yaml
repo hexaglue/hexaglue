@@ -1,0 +1,4 @@
+plugins:
+  io.hexaglue.plugin.jpa:
+    generateRepositories: false
+    generateAdapters: false

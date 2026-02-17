@@ -53,6 +53,22 @@ Configuration is done via `hexaglue.yaml`, placed at the project root alongside 
 | `outputDir` | `living-doc` | Output directory for generated documentation (relative to `target/hexaglue/reports/`) |
 | `generateDiagrams` | `true` | Whether to generate Mermaid diagrams |
 | `maxPropertiesInDiagram` | `5` | Maximum properties shown per class in diagrams |
+| `includeDebugSections` | `true` | Include debug sections (classification trace, source location) in `domain.md` and `ports.md`. Set to `false` for more concise documentation. |
+| `outputDirectory` | (global default) | Per-plugin override for the output directory |
+| `overwrite` | `always` | Controls overwriting of existing files: `always` (overwrite unconditionally), `if-unchanged` (overwrite only if the file was not manually edited), `never` (never overwrite) |
+
+### Maven Parameters
+
+These parameters are set in the `<configuration>` block of the Maven plugin:
+
+| Parameter | Type | Default | Property | Description |
+|-----------|------|---------|----------|-------------|
+| `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. Documentation is generated from domain types in this package. |
+| `outputDirectory` | string | `target/hexaglue/generated-sources` | `hexaglue.outputDirectory` | Base directory for generated output |
+| `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
+| `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
+| `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |
+| `failOnUnclassified` | boolean | `false` | `hexaglue.failOnUnclassified` | Fail the build if domain types cannot be classified |
 
 ### YAML Configuration
 
@@ -62,6 +78,7 @@ plugins:
     outputDir: "living-doc"
     generateDiagrams: true
     maxPropertiesInDiagram: 5
+    includeDebugSections: true
 ```
 
 ## Sample Output

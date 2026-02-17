@@ -1,0 +1,6 @@
+classification:
+  validation:
+    failOnUnclassified: true
+
+plugins:
+  io.hexaglue.plugin.livingdoc: {}

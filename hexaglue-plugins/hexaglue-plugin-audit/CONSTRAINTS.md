@@ -818,18 +818,6 @@ public class Order {
 
 ## Configuration Examples
 
-### Disable Specific Constraints
-
-```xml
-<config>
-    <enabledConstraints>
-        ddd:entity-identity,
-        ddd:aggregate-repository,
-        hexagonal:port-interface
-    </enabledConstraints>
-</config>
-```
-
 ### Adjust Severity Levels
 
 ```xml
@@ -841,12 +829,28 @@ public class Order {
 </config>
 ```
 
-### Allow Critical Violations (for migration)
+### Enable CRITICAL as errors (strict mode)
 
 ```xml
-<config>
-    <allowCriticalViolations>true</allowCriticalViolations>
-</config>
+<configuration>
+    <errorOnCritical>true</errorOnCritical>
+</configuration>
+```
+
+Or via `hexaglue.yaml`:
+
+```yaml
+plugins:
+  io.hexaglue.plugin.audit:
+    errorOnCritical: true
+```
+
+### Disable build failure (for migration)
+
+```xml
+<configuration>
+    <failOnError>false</failOnError>
+</configuration>
 ```
 
 ---

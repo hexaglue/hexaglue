@@ -18,7 +18,6 @@ import io.hexaglue.core.engine.EngineConfig;
 import io.hexaglue.core.engine.EngineResult;
 import io.hexaglue.core.engine.HexaGlueEngine;
 import io.hexaglue.core.engine.ModuleSourceSet;
-import io.hexaglue.core.engine.StaleFilePolicy;
 import io.hexaglue.core.plugin.PluginCyclicDependencyException;
 import io.hexaglue.core.plugin.PluginDependencyException;
 import io.hexaglue.spi.core.ClassificationConfig;
@@ -96,22 +95,6 @@ public class ReactorGenerateMojo extends AbstractMojo {
             property = "hexaglue.outputDirectory",
             defaultValue = "${project.build.directory}/hexaglue/generated-sources")
     private File outputDirectory;
-
-    /**
-     * Policy for handling stale generated files in {@code src/} directories.
-     *
-     * <p>Stale files are files generated in a previous build but not regenerated
-     * in the current build. Possible values:
-     * <ul>
-     *   <li>{@code WARN} (default): log warnings for stale files</li>
-     *   <li>{@code DELETE}: delete stale files automatically</li>
-     *   <li>{@code FAIL}: fail the build if stale files are detected</li>
-     * </ul>
-     *
-     * @since 5.0.0
-     */
-    @Parameter(property = "hexaglue.staleFilePolicy", defaultValue = "WARN")
-    private StaleFilePolicy staleFilePolicy;
 
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
@@ -206,9 +189,6 @@ public class ReactorGenerateMojo extends AbstractMojo {
         if (result.generatedFileCount() > 0) {
             getLog().info("Generated " + result.generatedFileCount() + " files across reactor modules");
         }
-
-        // Manifest and stale file cleanup
-        ManifestSupport.processManifest(result, rootBaseDir, outputDirectory.toPath(), staleFilePolicy, getLog());
 
         // Register generated sources in each module project (skip if already a source root)
         for (ModuleSourceSet mss : config.moduleSourceSets()) {

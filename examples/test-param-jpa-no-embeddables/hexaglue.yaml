@@ -1,0 +1,3 @@
+plugins:
+  io.hexaglue.plugin.jpa:
+    generateEmbeddables: false

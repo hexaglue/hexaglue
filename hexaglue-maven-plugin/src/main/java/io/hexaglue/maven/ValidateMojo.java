@@ -170,8 +170,11 @@ public class ValidateMojo extends AbstractMojo {
             writeMarkdownReport(result);
         }
 
-        // Check failure condition
-        if (failOnUnclassified && result.unclassifiedCount() > 0) {
+        // Check failure condition (Maven parameter OR YAML classification.validation.failOnUnclassified)
+        ClassificationConfig classificationConfig = loadClassificationConfig();
+        boolean effectiveFailOnUnclassified =
+                failOnUnclassified || classificationConfig.validationConfig().failOnUnclassified();
+        if (effectiveFailOnUnclassified && result.unclassifiedCount() > 0) {
             throw new MojoFailureException("Validation failed: " + result.unclassifiedCount() + " unclassified types. "
                     + "Add jMolecules annotations or configure explicit classifications in hexaglue.yaml");
         }
@@ -278,6 +281,26 @@ public class ValidateMojo extends AbstractMojo {
                         }
                     }
                     builder.explicitClassifications(explicitClassifications);
+                }
+            }
+
+            // Parse validation settings (failOnUnclassified from YAML)
+            if (classificationMap.containsKey("validation")) {
+                Object validationObj = classificationMap.get("validation");
+                if (validationObj instanceof Map) {
+                    Map<?, ?> validationMap = (Map<?, ?>) validationObj;
+                    if (!failOnUnclassified && validationMap.containsKey("failOnUnclassified")) {
+                        Object val = validationMap.get("failOnUnclassified");
+                        if (val instanceof Boolean && (Boolean) val) {
+                            builder.failOnUnclassified();
+                        }
+                    }
+                    if (validationMap.containsKey("allowInferred")) {
+                        Object val = validationMap.get("allowInferred");
+                        if (val instanceof Boolean && !(Boolean) val) {
+                            builder.explicitOnly();
+                        }
+                    }
                 }
             }
 

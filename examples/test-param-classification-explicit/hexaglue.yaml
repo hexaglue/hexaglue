@@ -1,0 +1,6 @@
+classification:
+  explicit:
+    com.example.domain.BookId: VALUE_OBJECT
+
+plugins:
+  io.hexaglue.plugin.livingdoc: {}

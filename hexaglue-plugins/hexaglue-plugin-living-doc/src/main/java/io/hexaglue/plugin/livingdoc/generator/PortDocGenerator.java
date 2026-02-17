@@ -49,8 +49,19 @@ public final class PortDocGenerator {
      * @since 5.0.0 - Accepts PortContentSelector instead of ArchitecturalModel
      */
     public PortDocGenerator(PortContentSelector contentSelector) {
+        this(contentSelector, true);
+    }
+
+    /**
+     * Creates a generator with configurable debug section inclusion.
+     *
+     * @param contentSelector the port content selector
+     * @param includeDebugSections whether to include debug sections in the generated documentation
+     * @since 5.1.0
+     */
+    public PortDocGenerator(PortContentSelector contentSelector, boolean includeDebugSections) {
         this.contentSelector = contentSelector;
-        this.renderer = new PortRenderer();
+        this.renderer = new PortRenderer(includeDebugSections);
     }
 
     public String generate() {

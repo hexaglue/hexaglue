@@ -9,27 +9,18 @@
 plugins:
   # JPA Plugin Configuration
   # Generates JPA entities and repositories from domain model
-  jpa:
-    enabled: false  # Temporarily disabled to test audit plugin
+  io.hexaglue.plugin.jpa:
     entitySuffix: "Entity"
-    repositoryPackage: "infra.persistence"
     generateRepositories: true
 
   # Living Documentation Plugin Configuration
   # Generates architecture documentation from analyzed code
-  living-doc:
-    outputFormat: "html"
-    includeMetrics: true
+  io.hexaglue.plugin.livingdoc:
+    generateDiagrams: true
 
   # DDD Audit Plugin Configuration
   # Validates DDD and Hexagonal Architecture constraints
   # All constraints are enabled by default
-  audit:
-    failOnBlocker: true
-    failOnCritical: false
-    # enabledConstraints: omit to enable ALL constraints (default)
-    # Or explicitly list to enable only specific ones:
-    # enabledConstraints:
-    #   - "ddd:entity-identity"
-    #   - "ddd:aggregate-repository"
-    #   - "hexagonal:port-interface"
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: true
+    errorOnCritical: false

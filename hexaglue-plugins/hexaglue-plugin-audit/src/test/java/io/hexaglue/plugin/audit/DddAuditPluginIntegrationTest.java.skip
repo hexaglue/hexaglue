@@ -231,7 +231,7 @@ class DddAuditPluginIntegrationTest {
     void shouldReturnCorrectPluginId() {
         // When/Then
         assertThat(plugin.id()).isEqualTo(DddAuditPlugin.PLUGIN_ID);
-        assertThat(plugin.id()).isEqualTo("io.hexaglue.plugin.audit.ddd");
+        assertThat(plugin.id()).isEqualTo("io.hexaglue.plugin.audit");
     }
 
     @Test

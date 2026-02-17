@@ -1,0 +1,4 @@
+plugins:
+  io.hexaglue.plugin.livingdoc:
+    generateDiagrams: true
+    maxPropertiesInDiagram: 2

@@ -84,7 +84,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * DDD Audit Plugin for HexaGlue.
@@ -101,8 +100,6 @@ import java.util.logging.Logger;
  *
  * <p><strong>Configuration:</strong> (via plugin config)
  * <pre>
- * audit.allowCriticalViolations=false
- * audit.enabledConstraints=ddd:entity-identity,ddd:aggregate-repository
  * audit.severity.ddd:entity-identity=BLOCKER
  * </pre>
  *
@@ -118,9 +115,7 @@ import java.util.logging.Logger;
  */
 public class DddAuditPlugin implements AuditPlugin {
 
-    private static final Logger LOG = Logger.getLogger(DddAuditPlugin.class.getName());
-
-    public static final String PLUGIN_ID = "io.hexaglue.plugin.audit.ddd";
+    public static final String PLUGIN_ID = "io.hexaglue.plugin.audit";
 
     private final ConstraintRegistry registry;
 
@@ -187,14 +182,8 @@ public class DddAuditPlugin implements AuditPlugin {
         // Use core's architecture query if available
         var architectureQuery = context.query().orElse(null);
 
-        // Execute audit with architecture query
-        AuditResult result = orchestrator.executeAudit(
-                archModel, // Pass the v5 architectural model
-                codebase,
-                architectureQuery,
-                config.enabledConstraints(),
-                config.enabledMetrics(),
-                config.allowCriticalViolations());
+        // Execute audit (all constraints, all metrics)
+        AuditResult result = orchestrator.executeAudit(archModel, codebase, architectureQuery);
 
         // Log summary
         diagnostics.info("Audit complete: %d violations, %d metrics"
@@ -527,17 +516,11 @@ public class DddAuditPlugin implements AuditPlugin {
         MetricAggregator metricAggregator = new MetricAggregator(buildCalculatorMap());
         AuditOrchestrator orchestrator = new AuditOrchestrator(constraintEngine, metricAggregator);
 
-        // B2: Get the actual executed constraint IDs (not just user-configured ones)
-        List<String> executedConstraintIds = orchestrator.getExecutedConstraintIds(config.enabledConstraints());
+        // Get all registered constraint IDs
+        List<String> executedConstraintIds = orchestrator.getExecutedConstraintIds();
 
-        // Execute audit with architecture query
-        AuditResult result = orchestrator.executeAudit(
-                model, // Pass the v5 architectural model
-                codebase,
-                coreQuery,
-                config.enabledConstraints(),
-                config.enabledMetrics(),
-                config.allowCriticalViolations());
+        // Execute audit (all constraints, all metrics)
+        AuditResult result = orchestrator.executeAudit(model, codebase, coreQuery);
 
         // Log summary
         diagnostics.info("Audit complete: %d violations, %d metrics"
@@ -624,7 +607,7 @@ public class DddAuditPlugin implements AuditPlugin {
             context.diagnostics().info(consoleOutput);
 
             // 4. Generate file reports based on configuration
-            List<ReportFormat> enabledFormats = getEnabledFormats(context.config());
+            List<ReportFormat> enabledFormats = getEnabledFormats();
             if (!enabledFormats.isEmpty()) {
                 Path baseDir = context.writer().getOutputDirectory();
                 Path outputDir = baseDir.resolve("audit");
@@ -737,30 +720,15 @@ public class DddAuditPlugin implements AuditPlugin {
     }
 
     /**
-     * Extracts enabled report formats from plugin configuration.
+     * Returns all report formats (JSON, HTML, Markdown).
      *
-     * @param config the plugin configuration
-     * @return list of enabled report formats
+     * <p>Console output is always generated separately.
+     *
+     * @return list of all report formats
+     * @since 5.1.0
      */
-    private List<ReportFormat> getEnabledFormats(io.hexaglue.spi.plugin.PluginConfig config) {
-        String formatsConfig = config.getString("audit.reportFormats").orElse("json,html,markdown");
-        if (formatsConfig.isBlank()) {
-            return List.of();
-        }
-
-        List<ReportFormat> formats = new ArrayList<>();
-        for (String formatName : formatsConfig.split(",")) {
-            String trimmed = formatName.trim().toUpperCase();
-            try {
-                ReportFormat format = ReportFormat.valueOf(trimmed);
-                if (format != ReportFormat.CONSOLE) { // Console is always output separately
-                    formats.add(format);
-                }
-            } catch (IllegalArgumentException e) {
-                LOG.warning("Invalid report format: " + trimmed);
-            }
-        }
-        return formats;
+    private List<ReportFormat> getEnabledFormats() {
+        return List.of(ReportFormat.JSON, ReportFormat.HTML, ReportFormat.MARKDOWN);
     }
 
     /**

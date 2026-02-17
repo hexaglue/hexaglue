@@ -35,7 +35,7 @@ The audit plugin checks 14 constraints in two categories:
 | Level | Build Impact | Usage |
 |-------|--------------|-------|
 | **BLOCKER** | Fails immediately | Critical architectural violations |
-| **CRITICAL** | Fails (unless allowed) | Serious DDD violations |
+| **CRITICAL** | Fails if `errorOnCritical: true` | Serious DDD violations |
 | **MAJOR** | Warning | Important issues to fix |
 | **MINOR** | Info | Best practice violations |
 
@@ -190,44 +190,46 @@ public class Order {
 
 ## Configuration Options
 
-Configure via `hexaglue.yaml`:
+Audit failure behavior is controlled by 3 properties, configurable via Maven POM, `-D`, or `hexaglue.yaml`.
+Precedence: **Maven POM / -D > YAML > defaults**.
+
+| Property | Default | Description |
+|----------|---------|-------------|
+| `failOnError` | `true` | Fail the Maven build when audit errors are found |
+| `errorOnBlocker` | `true` | Treat BLOCKER violations as errors |
+| `errorOnCritical` | `false` | Treat CRITICAL violations as errors |
+
+### YAML Configuration
 
 ```yaml
 plugins:
-  io.hexaglue.plugin.audit.ddd:
-    # Fail build on BLOCKER violations
-    failOnBlocker: true      # Default
-    # Fail build on CRITICAL violations
-    failOnCritical: true     # Default: false
-    # Report formats to generate
-    reportFormats: "json,html,markdown"  # Default
-    # Generate documentation
-    generateDocs: false      # Default
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: true       # Default
+    errorOnCritical: true      # Default: false
+    generateDocs: false        # Default
 ```
 
-### Allow Critical Violations (Development)
+### Strict Mode (CI/CD)
 
-During development, you may want to allow critical violations temporarily:
+Enable CRITICAL violations as errors in CI:
 
 ```yaml
 plugins:
-  io.hexaglue.plugin.audit.ddd:
-    failOnCritical: false
+  io.hexaglue.plugin.audit:
+    errorOnCritical: true
 ```
 
 Or via command line:
 ```bash
-mvn compile -Daudit.allowCriticalViolations=true
+mvn compile -Dhexaglue.errorOnCritical=true
 ```
 
-### Selective Constraints
+### Lenient Mode (Development)
 
-Enable only specific constraints:
+Disable build failure during development:
 
-```yaml
-plugins:
-  io.hexaglue.plugin.audit.ddd:
-    enabledConstraints: "ddd:entity-identity,ddd:aggregate-repository"
+```bash
+mvn compile -Dhexaglue.failOnError=false
 ```
 
 ## CI/CD Integration

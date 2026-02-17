@@ -26,6 +26,57 @@
         <module>tutorial-validation</module>
         <module>sample-regression-tests</module>
         <module>sample-multimodule</module>
+
+        <!-- Parameter regression tests -->
+        <!-- Maven POM - Common parameters -->
+        <module>test-param-skip</module>
+        <module>test-param-output-directory</module>
+        <module>test-param-fail-on-unclassified</module>
+        <module>test-param-skip-validation</module>
+        <module>test-param-validation-report-path</module>
+
+        <!-- Maven POM - Audit -->
+        <module>test-param-audit-fail-on-error</module>
+        <module>test-param-audit-no-fail-on-error</module>
+        <module>test-param-audit-error-on-blocker</module>
+        <module>test-param-audit-no-error-on-blocker</module>
+        <module>test-param-audit-error-on-critical</module>
+        <module>test-param-audit-no-error-on-critical</module>
+        <module>test-param-audit-report-directory</module>
+
+        <!-- YAML JPA - Suffixes & Naming -->
+        <module>test-param-jpa-entity-suffix</module>
+        <module>test-param-jpa-embeddable-suffix</module>
+        <module>test-param-jpa-repository-suffix</module>
+        <module>test-param-jpa-adapter-suffix</module>
+        <module>test-param-jpa-mapper-suffix</module>
+        <module>test-param-jpa-table-prefix</module>
+
+        <!-- YAML JPA - Package & Features -->
+        <module>test-param-jpa-infra-package</module>
+        <module>test-param-jpa-enable-auditing</module>
+        <module>test-param-jpa-enable-optimistic-locking</module>
+        <module>test-param-jpa-no-repositories</module>
+        <module>test-param-jpa-no-mappers</module>
+        <module>test-param-jpa-no-adapters</module>
+        <module>test-param-jpa-no-embeddables</module>
+
+        <!-- YAML Living-doc -->
+        <module>test-param-livingdoc-generate-diagrams</module>
+        <module>test-param-livingdoc-no-diagrams</module>
+        <module>test-param-livingdoc-output-dir</module>
+        <module>test-param-livingdoc-max-properties</module>
+        <module>test-param-livingdoc-include-debug</module>
+        <module>test-param-livingdoc-no-debug</module>
+
+        <!-- YAML Audit -->
+        <module>test-param-audit-generate-docs</module>
+
+        <!-- YAML Classification -->
+        <module>test-param-classification-exclude</module>
+        <module>test-param-classification-explicit</module>
+        <module>test-param-classification-fail-unclassified-yaml</module>
+        <module>test-param-classification-no-inferred</module>
     </modules>
 
 </project>

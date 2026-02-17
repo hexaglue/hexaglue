@@ -24,8 +24,8 @@ plugins:
 
   # Living Documentation Plugin
   io.hexaglue.plugin.livingdoc:
-    outputFormat: "markdown"
+    generateDiagrams: true
 
   # DDD Audit Plugin
-  io.hexaglue.plugin.audit.ddd:
-    failOnBlocker: false
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: false

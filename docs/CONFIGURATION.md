@@ -115,11 +115,13 @@ plugins:
   io.hexaglue.plugin.livingdoc:
     outputDir: "living-doc"
     generateDiagrams: true
+    maxPropertiesInDiagram: 5
+    includeDebugSections: true
 
   # Audit Plugin
-  io.hexaglue.plugin.audit.ddd:
-    failOnBlocker: true
-    failOnCritical: false
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: true
+    errorOnCritical: false
 ```
 
 ## Glob Pattern Syntax

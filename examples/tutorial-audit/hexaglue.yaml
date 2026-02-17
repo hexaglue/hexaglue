@@ -2,8 +2,7 @@
 # This example uses default values - shows a clean audit pass
 
 plugins:
-  audit:
+  io.hexaglue.plugin.audit:
     # Default settings - strict mode
-    failOnBlocker: true
-    failOnCritical: true
-    reportFormats: "json,html,markdown"
+    errorOnBlocker: true
+    errorOnCritical: true

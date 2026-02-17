@@ -582,6 +582,43 @@ class PortRendererTest {
         }
     }
 
+    @Nested
+    class IncludeDebugSectionsConfig {
+
+        @Test
+        void shouldIncludeDebugSectionByDefault() {
+            PortRenderer defaultRenderer = new PortRenderer();
+            PortDoc port = createSimpleDrivingPort();
+
+            String result = defaultRenderer.renderPort(port);
+
+            assertThat(result).contains("Debug Information");
+            assertThat(result).contains("<details>");
+        }
+
+        @Test
+        void shouldIncludeDebugSectionWhenEnabled() {
+            PortRenderer enabledRenderer = new PortRenderer(true);
+            PortDoc port = createSimpleDrivingPort();
+
+            String result = enabledRenderer.renderPort(port);
+
+            assertThat(result).contains("Debug Information");
+            assertThat(result).contains("<details>");
+        }
+
+        @Test
+        void shouldExcludeDebugSectionWhenDisabled() {
+            PortRenderer disabledRenderer = new PortRenderer(false);
+            PortDoc port = createSimpleDrivingPort();
+
+            String result = disabledRenderer.renderPort(port);
+
+            assertThat(result).doesNotContain("Debug Information");
+            assertThat(result).doesNotContain("<details>");
+        }
+    }
+
     // Helper methods
 
     private PortDoc createSimpleDrivingPort() {

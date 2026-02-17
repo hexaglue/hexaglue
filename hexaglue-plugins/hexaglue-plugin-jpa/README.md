@@ -67,7 +67,22 @@ target/generated-sources/hexaglue/
 | `embeddableSuffix` | `Embeddable` | Suffix for `@Embeddable` value object classes |
 | `generateEmbeddables` | `true` | Generate `@Embeddable` classes for value objects |
 | `infrastructurePackage` | `{basePackage}.infrastructure.persistence` | Target package for generated JPA artifacts |
+| `outputDirectory` | (global default) | Per-plugin override for the output directory. Set to `src/main/java` to write JPA artifacts directly into your source tree instead of `target/`. |
+| `overwrite` | `always` | Controls overwriting of existing files: `always` (overwrite unconditionally), `if-unchanged` (overwrite only if the file was not manually edited), `never` (never overwrite, for one-time scaffolding) |
 | `targetModule` | `null` | Multi-module: target module ID for routing generated artifacts |
+
+### Maven Parameters
+
+These parameters are set in the `<configuration>` block of the Maven plugin and control the generation behavior:
+
+| Parameter | Type | Default | Property | Description |
+|-----------|------|---------|----------|-------------|
+| `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. JPA artifacts are generated from domain types in this package. |
+| `outputDirectory` | string | `target/hexaglue/generated-sources` | `hexaglue.outputDirectory` | Directory where JPA entities, repositories, and mappers are written |
+| `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
+| `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
+| `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |
+| `failOnUnclassified` | boolean | `false` | `hexaglue.failOnUnclassified` | Fail the build if domain types cannot be classified |
 
 ### YAML Configuration
 
@@ -86,6 +101,8 @@ plugins:
     generateMappers: true
     generateAdapters: true
     generateEmbeddables: true
+    outputDirectory: "src/main/java"    # Write to source tree instead of target/
+    overwrite: "if-unchanged"           # Protect manually edited files
 ```
 
 ## Sample Output

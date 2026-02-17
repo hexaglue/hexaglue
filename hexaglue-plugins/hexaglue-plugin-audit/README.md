@@ -69,10 +69,12 @@ The audit behavior is controlled via the `<configuration>` parameters of the Hex
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
-        <!-- Fail build on ERROR or BLOCKER violations (default: true) -->
+        <!-- Fail build when audit errors are found (default: true) -->
         <failOnError>true</failOnError>
-        <!-- Fail build on WARNING violations (default: false) -->
-        <failOnWarning>false</failOnWarning>
+        <!-- Treat BLOCKER violations as errors (default: true) -->
+        <errorOnBlocker>true</errorOnBlocker>
+        <!-- Treat CRITICAL violations as errors (default: false) -->
+        <errorOnCritical>false</errorOnCritical>
         <!-- Custom report directory (default: ${project.build.directory}/hexaglue/reports) -->
         <reportDirectory>${project.build.directory}/hexaglue/reports</reportDirectory>
     </configuration>
@@ -86,12 +88,55 @@ The audit behavior is controlled via the `<configuration>` parameters of the Hex
 </plugin>
 ```
 
+### Audit Failure Properties
+
+These 3 properties control when the Maven build fails due to audit violations.
+They can be set in `pom.xml`, via `-D` on the command line, or in `hexaglue.yaml`.
+Precedence: **Maven POM / -D > YAML > defaults**.
+
+| Property | Type | Default | Description |
+|----------|------|---------|-------------|
+| `failOnError` | boolean | `true` | Fail the Maven build when audit errors are found |
+| `errorOnBlocker` | boolean | `true` | Treat BLOCKER violations as errors |
+| `errorOnCritical` | boolean | `false` | Treat CRITICAL violations as errors |
+
+**Decision logic:**
+```
+errors = (errorOnBlocker ? count(BLOCKER) : 0) + (errorOnCritical ? count(CRITICAL) : 0)
+if (failOnError && errors > 0) → build fails
+```
+
+### Maven Parameters
+
+These parameters are set in the `<configuration>` block of the Maven plugin:
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `failOnError` | boolean | `true` | Fail build on ERROR or BLOCKER violations |
-| `failOnWarning` | boolean | `false` | Fail build on WARNING violations |
-| `reportDirectory` | string | `${project.build.directory}/hexaglue/reports` | Output directory for audit reports |
-| `skip` | boolean | `false` | Disable audit entirely (also via `-Dhexaglue.skip=true`) |
+| `basePackage` | string | (required) | Base package to analyze for DDD and Hexagonal violations |
+| `reportDirectory` | string | `${project.build.directory}/hexaglue/reports` | Output directory for audit reports (HTML, Markdown, JSON) |
+| `skip` | boolean | `false` | Skip audit execution entirely (also via `-Dhexaglue.skip=true`) |
+| `failOnUnclassified` | boolean | `false` | Fail the build if unclassified types remain after analysis |
+| `validationReportPath` | string | `${project.build.directory}/hexaglue/reports/validation/validation-report.md` | Output path for the Markdown validation report (`validate` goal only) |
+
+### YAML Configuration
+
+Plugin-specific options are configured via `hexaglue.yaml`, placed at the project root alongside `pom.xml`. Options are set under `plugins.io.hexaglue.plugin.audit:`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `failOnError` | boolean | `true` | Fail build when audit errors are found |
+| `errorOnBlocker` | boolean | `true` | Treat BLOCKER violations as errors |
+| `errorOnCritical` | boolean | `false` | Treat CRITICAL violations as errors |
+| `generateDocs` | boolean | `false` | Generate additional documentation with reports |
+| `severityOverrides` | map | `{}` | Custom severity levels for specific constraints (e.g., `"ddd:aggregate-repository": "MINOR"`). Allows downgrading or upgrading the severity of individual constraints. *(Planned — API ready, YAML parsing not yet wired)* |
+
+```yaml
+plugins:
+  io.hexaglue.plugin.audit:
+    errorOnBlocker: true
+    errorOnCritical: false
+    generateDocs: false
+```
 
 ### Skip Audit
 

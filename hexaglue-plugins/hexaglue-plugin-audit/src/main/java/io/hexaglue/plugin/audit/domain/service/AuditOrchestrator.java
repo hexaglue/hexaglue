@@ -38,10 +38,12 @@ import java.util.Set;
  *
  * <p>The orchestrator applies the following build decision logic:
  * <ol>
- *   <li>If any BLOCKER violations exist, build fails (non-overridable)</li>
- *   <li>If CRITICAL violations exist and not allowed in config, build fails</li>
- *   <li>Otherwise, build succeeds (MAJOR/MINOR/INFO are warnings)</li>
+ *   <li>If any BLOCKER violations exist, build outcome is FAIL</li>
+ *   <li>Otherwise, build outcome is SUCCESS</li>
  * </ol>
+ *
+ * <p>The actual Maven build failure decision (based on errorOnBlocker,
+ * errorOnCritical, failOnError) is handled by the Maven mojos, not here.
  *
  * @since 1.0.0
  */
@@ -62,40 +64,28 @@ public class AuditOrchestrator {
     }
 
     /**
-     * Executes a complete audit.
+     * Executes a complete audit with all constraints and all metrics.
      *
-     * @param model                  the architectural model (may be null for legacy mode)
-     * @param codebase               the codebase to audit
-     * @param query                  architecture query for advanced analysis (may be null)
-     * @param enabledConstraints     the constraints to execute (empty = all)
-     * @param enabledMetrics         the metrics to calculate (empty = all)
-     * @param allowCriticalViolations whether CRITICAL violations should fail the build
+     * @param model    the architectural model (may be null for legacy mode)
+     * @param codebase the codebase to audit
+     * @param query    architecture query for advanced analysis (may be null)
      * @return the complete audit result
      * @since 5.0.0 Added model parameter for v5 ArchType API support
+     * @since 5.1.0 - Removed allowCriticalViolations (now handled by Maven mojos)
      */
     public AuditResult executeAudit(
-            io.hexaglue.arch.ArchitecturalModel model,
-            Codebase codebase,
-            ArchitectureQuery query,
-            Set<String> enabledConstraints,
-            Set<String> enabledMetrics,
-            boolean allowCriticalViolations) {
+            io.hexaglue.arch.ArchitecturalModel model, Codebase codebase, ArchitectureQuery query) {
 
         Objects.requireNonNull(codebase, "codebase required");
 
-        // Convert string constraint IDs to ConstraintId objects
-        Set<io.hexaglue.plugin.audit.domain.model.ConstraintId> constraintIds = enabledConstraints.stream()
-                .map(io.hexaglue.plugin.audit.domain.model.ConstraintId::of)
-                .collect(java.util.stream.Collectors.toSet());
+        // 1. Execute all constraints
+        List<Violation> violations = constraintEngine.executeConstraints(model, codebase, query, Set.of());
 
-        // 1. Execute constraints
-        List<Violation> violations = constraintEngine.executeConstraints(model, codebase, query, constraintIds);
+        // 2. Calculate all metrics (with architecture query for rich analysis)
+        Map<String, Metric> metrics = metricAggregator.calculateMetrics(model, codebase, query, Set.of());
 
-        // 2. Calculate metrics (with architecture query for rich analysis)
-        Map<String, Metric> metrics = metricAggregator.calculateMetrics(model, codebase, query, enabledMetrics);
-
-        // 3. Determine build outcome
-        BuildOutcome outcome = computeOutcome(violations, allowCriticalViolations);
+        // 3. Determine build outcome (BLOCKER → FAIL, otherwise SUCCESS)
+        BuildOutcome outcome = computeOutcome(violations);
 
         return new AuditResult(violations, metrics, outcome);
     }
@@ -103,43 +93,26 @@ public class AuditOrchestrator {
     /**
      * Computes the build outcome based on violations.
      *
-     * @param violations              the list of violations
-     * @param allowCriticalViolations whether CRITICAL violations are allowed
+     * <p>Only BLOCKER violations cause FAIL. The finer-grained failure decision
+     * (errorOnBlocker, errorOnCritical) is handled by Maven mojos.
+     *
+     * @param violations the list of violations
      * @return the build outcome
      */
-    private BuildOutcome computeOutcome(List<Violation> violations, boolean allowCriticalViolations) {
-        // Check for BLOCKER violations (non-overridable)
+    private BuildOutcome computeOutcome(List<Violation> violations) {
         boolean hasBlockers = violations.stream().anyMatch(v -> v.severity() == Severity.BLOCKER);
-
-        if (hasBlockers) {
-            return BuildOutcome.FAIL;
-        }
-
-        // Check for CRITICAL violations (overridable via config)
-        boolean hasCritical = violations.stream().anyMatch(v -> v.severity() == Severity.CRITICAL);
-
-        if (hasCritical && !allowCriticalViolations) {
-            return BuildOutcome.FAIL;
-        }
-
-        // MAJOR, MINOR, INFO are warnings only
-        return BuildOutcome.SUCCESS;
+        return hasBlockers ? BuildOutcome.FAIL : BuildOutcome.SUCCESS;
     }
 
     /**
-     * Returns the constraint IDs that would be executed given the enabled constraints.
+     * Returns all registered constraint IDs.
      *
-     * <p>If enabledConstraints is empty, returns all registered constraint IDs.
-     *
-     * @param enabledConstraints the set of user-enabled constraint IDs (empty = all)
-     * @return list of constraint ID strings that would actually be executed
+     * @return sorted list of all constraint ID strings
      * @since 5.0.0
+     * @since 5.1.0 - Always returns all constraints (no filtering)
      */
-    public List<String> getExecutedConstraintIds(Set<String> enabledConstraints) {
-        Set<io.hexaglue.plugin.audit.domain.model.ConstraintId> constraintIds = enabledConstraints.stream()
-                .map(io.hexaglue.plugin.audit.domain.model.ConstraintId::of)
-                .collect(java.util.stream.Collectors.toSet());
-        return constraintEngine.getExecutedConstraintIds(constraintIds).stream()
+    public List<String> getExecutedConstraintIds() {
+        return constraintEngine.getExecutedConstraintIds(Set.of()).stream()
                 .map(io.hexaglue.plugin.audit.domain.model.ConstraintId::value)
                 .sorted()
                 .toList();

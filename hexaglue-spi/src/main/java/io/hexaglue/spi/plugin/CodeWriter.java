@@ -34,6 +34,9 @@ public interface CodeWriter {
     /**
      * Writes a Java source file.
      *
+     * <p>If the file already exists, it is silently overwritten. Use {@link #exists(String, String)}
+     * before calling this method if you need to check for existing files.
+     *
      * @param packageName the package name (e.g., "com.example.infrastructure")
      * @param className the simple class name (e.g., "OrderEntity")
      * @param content the complete Java source code

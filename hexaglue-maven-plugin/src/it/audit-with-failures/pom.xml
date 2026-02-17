@@ -31,13 +31,6 @@
                         <configuration>
                             <basePackage>com.example</basePackage>
                             <failOnError>false</failOnError>
-                            <failOnWarning>false</failOnWarning>
-                            <auditConfig>
-                                <thresholds>
-                                    <maxCyclomaticComplexity>5</maxCyclomaticComplexity>
-                                    <maxMethodLength>20</maxMethodLength>
-                                </thresholds>
-                            </auditConfig>
                         </configuration>
                     </execution>
                 </executions>
