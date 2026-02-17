@@ -237,9 +237,9 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
 
     @Override
     public List<BoundedContextInfo> findBoundedContexts() {
-        // Group types by bounded context
-        Map<String, List<String>> contextToTypes = new HashMap<>();
-        Map<String, String> contextToRootPackage = new HashMap<>();
+        // Group types by bounded context (TreeMap for deterministic order)
+        Map<String, List<String>> contextToTypes = new TreeMap<>();
+        Map<String, String> contextToRootPackage = new TreeMap<>();
 
         for (TypeNode type : graph.typeNodes()) {
             String packageName = type.packageName();
@@ -735,6 +735,7 @@ public final class DefaultArchitectureQuery implements ArchitectureQuery {
                 graph.typeNodes().stream().map(TypeNode::packageName).collect(Collectors.toSet());
 
         return packages.stream()
+                .sorted()
                 .map(this::analyzePackageCoupling)
                 .flatMap(Optional::stream)
                 .toList();

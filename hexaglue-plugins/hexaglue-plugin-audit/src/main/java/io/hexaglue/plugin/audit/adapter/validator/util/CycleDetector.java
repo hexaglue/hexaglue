@@ -13,9 +13,13 @@
 
 package io.hexaglue.plugin.audit.adapter.validator.util;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -144,4 +148,150 @@ public class CycleDetector {
     public boolean hasCycles(Set<String> nodes, Map<String, Set<String>> edges) {
         return !findCycles(nodes, edges).isEmpty();
     }
+
+    /**
+     * Finds all strongly connected components (SCCs) of size &ge; 2 in the directed graph.
+     *
+     * <p>Uses an iterative implementation of Tarjan's algorithm to avoid stack overflow
+     * on large graphs. SCCs of size 1 (including self-loops) are excluded from the result
+     * since they do not represent mutual dependencies between distinct nodes.
+     *
+     * <p>Example usage:
+     * <pre>{@code
+     * Set<String> nodes = Set.of("A", "B", "C", "D");
+     * Map<String, Set<String>> edges = Map.of(
+     *     "A", Set.of("B"), "B", Set.of("A"),  // SCC: {A, B}
+     *     "C", Set.of("D")                      // no SCC
+     * );
+     *
+     * CycleDetector detector = new CycleDetector();
+     * List<Set<String>> sccs = detector.findStronglyConnectedComponents(nodes, edges);
+     * // Returns: [{A, B}]
+     * }</pre>
+     *
+     * @param nodes the set of all nodes in the graph
+     * @param edges the adjacency map (node &rarr; set of adjacent nodes)
+     * @return list of SCCs with size &ge; 2, each as an unmodifiable set
+     * @since 5.1.0
+     */
+    public List<Set<String>> findStronglyConnectedComponents(Set<String> nodes, Map<String, Set<String>> edges) {
+        List<Set<String>> allSccs = findAllSccs(nodes, edges);
+        List<Set<String>> result = new ArrayList<>();
+        for (Set<String> scc : allSccs) {
+            if (scc.size() >= 2) {
+                result.add(scc);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Computes a mapping from each node to its SCC representative.
+     *
+     * <p>Nodes that belong to the same SCC are mapped to the same representative string.
+     * Nodes that are not part of any cycle map to themselves. The representative is
+     * an arbitrary member of the SCC (determined by Tarjan's traversal order).
+     *
+     * <p>This mapping is useful for contracting SCCs into super-nodes when building
+     * a condensed DAG (e.g., for computing longest dependency paths).
+     *
+     * @param nodes the set of all nodes in the graph
+     * @param edges the adjacency map (node &rarr; set of adjacent nodes)
+     * @return unmodifiable map from each node to its SCC representative
+     * @since 5.1.0
+     */
+    public Map<String, String> computeSccMapping(Set<String> nodes, Map<String, Set<String>> edges) {
+        List<Set<String>> allSccs = findAllSccs(nodes, edges);
+
+        Map<String, String> mapping = new HashMap<>();
+        for (Set<String> scc : allSccs) {
+            String representative = scc.iterator().next();
+            for (String member : scc) {
+                mapping.put(member, representative);
+            }
+        }
+        // Nodes not in any SCC from findAllSccs map to themselves
+        for (String node : nodes) {
+            mapping.putIfAbsent(node, node);
+        }
+        return Collections.unmodifiableMap(mapping);
+    }
+
+    /**
+     * Finds all SCCs using iterative Tarjan's algorithm (including size-1 components).
+     */
+    private List<Set<String>> findAllSccs(Set<String> nodes, Map<String, Set<String>> edges) {
+        Map<String, Integer> index = new HashMap<>();
+        Map<String, Integer> lowlink = new HashMap<>();
+        Set<String> onStack = new HashSet<>();
+        Deque<String> tarjanStack = new ArrayDeque<>();
+        List<Set<String>> result = new ArrayList<>();
+        int[] counter = {0};
+
+        // Iterative call stack
+        Deque<TarjanFrame> callStack = new ArrayDeque<>();
+
+        for (String node : nodes) {
+            if (!index.containsKey(node)) {
+                // Push initial frame
+                index.put(node, counter[0]);
+                lowlink.put(node, counter[0]);
+                counter[0]++;
+                onStack.add(node);
+                tarjanStack.push(node);
+
+                Iterator<String> neighbors = edges.getOrDefault(node, Set.of()).iterator();
+                callStack.push(new TarjanFrame(node, neighbors, null));
+
+                while (!callStack.isEmpty()) {
+                    TarjanFrame frame = callStack.peek();
+
+                    if (frame.neighbors().hasNext()) {
+                        String neighbor = frame.neighbors().next();
+
+                        if (!index.containsKey(neighbor)) {
+                            // Discover new node
+                            index.put(neighbor, counter[0]);
+                            lowlink.put(neighbor, counter[0]);
+                            counter[0]++;
+                            onStack.add(neighbor);
+                            tarjanStack.push(neighbor);
+
+                            Iterator<String> neighborEdges =
+                                    edges.getOrDefault(neighbor, Set.of()).iterator();
+                            callStack.push(new TarjanFrame(neighbor, neighborEdges, frame.node()));
+                        } else if (onStack.contains(neighbor)) {
+                            // Update lowlink for back edge
+                            lowlink.put(frame.node(), Math.min(lowlink.get(frame.node()), index.get(neighbor)));
+                        }
+                    } else {
+                        // All neighbors explored, check if this is an SCC root
+                        if (lowlink.get(frame.node()).equals(index.get(frame.node()))) {
+                            Set<String> scc = new HashSet<>();
+                            String popped;
+                            do {
+                                popped = tarjanStack.pop();
+                                onStack.remove(popped);
+                                scc.add(popped);
+                            } while (!popped.equals(frame.node()));
+                            result.add(Collections.unmodifiableSet(scc));
+                        }
+
+                        // Propagate lowlink to parent
+                        callStack.pop();
+                        if (frame.parent() != null) {
+                            lowlink.put(
+                                    frame.parent(), Math.min(lowlink.get(frame.parent()), lowlink.get(frame.node())));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    /**
+     * Stack frame for iterative Tarjan's algorithm, replacing recursive calls.
+     */
+    private record TarjanFrame(String node, Iterator<String> neighbors, String parent) {}
 }

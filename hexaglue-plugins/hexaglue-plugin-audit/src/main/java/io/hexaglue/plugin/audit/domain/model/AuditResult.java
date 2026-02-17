@@ -13,9 +13,11 @@
 
 package io.hexaglue.plugin.audit.domain.model;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.TreeMap;
 
 /**
  * Result of an audit execution.
@@ -35,7 +37,7 @@ public record AuditResult(List<Violation> violations, Map<String, Metric> metric
      */
     public AuditResult {
         violations = violations != null ? List.copyOf(violations) : List.of();
-        metrics = metrics != null ? Map.copyOf(metrics) : Map.of();
+        metrics = metrics != null ? Collections.unmodifiableMap(new TreeMap<>(metrics)) : Map.of();
         Objects.requireNonNull(outcome, "outcome required");
     }
 

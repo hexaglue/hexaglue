@@ -134,6 +134,21 @@ public class TestModelBuilder {
      */
     public TestModelBuilder addAggregateRoot(
             String qualifiedName, List<String> entityRefs, List<String> valueObjectRefs) {
+        return addAggregateRoot(qualifiedName, entityRefs, valueObjectRefs, List.of());
+    }
+
+    /**
+     * Adds an aggregate root with entities, value objects, and domain events.
+     *
+     * @param qualifiedName the fully qualified name
+     * @param entityRefs the entity qualified names in this aggregate
+     * @param valueObjectRefs the value object qualified names in this aggregate
+     * @param domainEventRefs the domain event qualified names this aggregate emits
+     * @return this builder
+     * @since 5.1.0
+     */
+    public TestModelBuilder addAggregateRoot(
+            String qualifiedName, List<String> entityRefs, List<String> valueObjectRefs, List<String> domainEventRefs) {
         TypeId id = TypeId.of(qualifiedName);
         TypeStructure structure = defaultClassStructure();
         ClassificationTrace trace = defaultTrace(ElementKind.AGGREGATE_ROOT);
@@ -146,10 +161,23 @@ public class TestModelBuilder {
         AggregateRoot aggregate = AggregateRoot.builder(id, structure, trace, idField)
                 .entities(entityRefs.stream().map(TypeRef::of).toList())
                 .valueObjects(valueObjectRefs.stream().map(TypeRef::of).toList())
+                .domainEvents(domainEventRefs.stream().map(TypeRef::of).toList())
                 .build();
 
         aggregateRoots.add(aggregate);
         return this;
+    }
+
+    /**
+     * Adds an aggregate root that emits domain events.
+     *
+     * @param qualifiedName the fully qualified name
+     * @param domainEventRefs the domain event qualified names this aggregate emits
+     * @return this builder
+     * @since 5.1.0
+     */
+    public TestModelBuilder addAggregateRootWithEvents(String qualifiedName, List<String> domainEventRefs) {
+        return addAggregateRoot(qualifiedName, List.of(), List.of(), domainEventRefs);
     }
 
     /**
@@ -965,6 +993,49 @@ public class TestModelBuilder {
             builder.addApplicationService(name);
         }
         return builder.build();
+    }
+
+    /**
+     * Adds a value object with specific modifiers (for visibility metric tests).
+     *
+     * @param qualifiedName the fully qualified name
+     * @param modifiers the type modifiers
+     * @return this builder
+     * @since 5.1.0
+     */
+    public TestModelBuilder addValueObjectWithModifiers(String qualifiedName, Set<Modifier> modifiers) {
+        TypeId id = TypeId.of(qualifiedName);
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.CLASS).modifiers(modifiers).build();
+        ClassificationTrace trace = defaultTrace(ElementKind.VALUE_OBJECT);
+
+        ValueObject vo = ValueObject.of(id, structure, trace);
+        valueObjects.add(vo);
+        return this;
+    }
+
+    /**
+     * Adds an entity with specific modifiers (for visibility metric tests).
+     *
+     * @param qualifiedName the fully qualified name
+     * @param modifiers the type modifiers
+     * @return this builder
+     * @since 5.1.0
+     */
+    public TestModelBuilder addEntityWithModifiers(String qualifiedName, Set<Modifier> modifiers) {
+        TypeId id = TypeId.of(qualifiedName);
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.CLASS).modifiers(modifiers).build();
+        ClassificationTrace trace = defaultTrace(ElementKind.ENTITY);
+
+        Field idField = Field.builder("id", TypeRef.of("java.lang.Long"))
+                .modifiers(Set.of(Modifier.PRIVATE))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+
+        Entity entity = Entity.of(id, structure, trace, Optional.of(idField), Optional.empty());
+        entities.add(entity);
+        return this;
     }
 
     // === Helper methods ===

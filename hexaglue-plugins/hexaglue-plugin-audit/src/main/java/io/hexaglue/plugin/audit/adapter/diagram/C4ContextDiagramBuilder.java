@@ -14,9 +14,9 @@
 package io.hexaglue.plugin.audit.adapter.diagram;
 
 import io.hexaglue.plugin.audit.domain.model.report.PortComponent;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 /**
  * Builds Mermaid C4Context diagrams showing system context.
@@ -50,7 +50,7 @@ public class C4ContextDiagramBuilder {
         sb.append("    System(app, \"").append(projectName).append("\", \"Manages domain operations\")\n\n");
 
         // Infer external systems from driven ports
-        Set<String> externalSystems = new HashSet<>();
+        Set<String> externalSystems = new TreeSet<>();
         for (PortComponent port : drivenPorts) {
             String kind = port.kindOpt().orElse("OTHER");
             String externalSystem = inferExternalSystem(port.name(), kind);

@@ -14,10 +14,12 @@
 package io.hexaglue.arch.model;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.TreeMap;
 import java.util.stream.Stream;
 
 /**
@@ -53,7 +55,7 @@ public final class TypeRegistry {
     private final Map<TypeId, ArchType> typesByid;
 
     private TypeRegistry(Map<TypeId, ArchType> typesByid) {
-        this.typesByid = Map.copyOf(typesByid);
+        this.typesByid = Collections.unmodifiableMap(new TreeMap<>(typesByid));
     }
 
     /**

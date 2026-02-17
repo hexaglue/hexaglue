@@ -18,10 +18,12 @@ import io.hexaglue.arch.model.audit.Codebase;
 import io.hexaglue.plugin.audit.domain.model.Metric;
 import io.hexaglue.plugin.audit.domain.port.driving.MetricCalculator;
 import io.hexaglue.spi.audit.ArchitectureQuery;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
@@ -55,7 +57,8 @@ public class MetricAggregator {
      * @param calculators the map of calculators (metric name -> calculator)
      */
     public MetricAggregator(Map<String, MetricCalculator> calculators) {
-        this.calculators = Map.copyOf(Objects.requireNonNull(calculators, "calculators required"));
+        this.calculators =
+                Collections.unmodifiableMap(new TreeMap<>(Objects.requireNonNull(calculators, "calculators required")));
     }
 
     /**
@@ -101,7 +104,7 @@ public class MetricAggregator {
                         return Optional.<Map.Entry<String, Metric>>empty().stream();
                     }
                 })
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> a, TreeMap::new));
     }
 
     /**

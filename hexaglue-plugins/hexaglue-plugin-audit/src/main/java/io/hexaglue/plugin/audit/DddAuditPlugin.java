@@ -41,14 +41,26 @@ import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.arch.model.report.ClassificationReport;
 import io.hexaglue.plugin.audit.adapter.diagram.DiagramGenerator;
+import io.hexaglue.plugin.audit.adapter.metric.AdapterIndependenceMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateBoundaryMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.AggregateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.BoilerplateMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.CodeComplexityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.CouplingMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.DependencyDepthMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainCoverageMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.DomainEventCoverageMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.DomainPurityMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.FanOutMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.GraphModularityMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.InterAggregateCouplingMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.ModularityMaturityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.metric.PortCoverageMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.PropagationCostMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.RelationalCohesionMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.RelativeCyclicityMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.ValueObjectRatioMetricCalculator;
+import io.hexaglue.plugin.audit.adapter.metric.VisibilityMetricCalculator;
 import io.hexaglue.plugin.audit.adapter.report.ConsoleRenderer;
 import io.hexaglue.plugin.audit.adapter.report.HtmlRenderer;
 import io.hexaglue.plugin.audit.adapter.report.JsonReportRenderer;
@@ -326,24 +338,49 @@ public class DddAuditPlugin implements AuditPlugin {
      * @return map of metric name to calculator
      */
     private Map<String, MetricCalculator> buildCalculatorMap() {
+        AdapterIndependenceMetricCalculator adapterIndependenceMetric = new AdapterIndependenceMetricCalculator();
         AggregateBoundaryMetricCalculator aggregateBoundaryMetric = new AggregateBoundaryMetricCalculator();
         AggregateMetricCalculator aggregateMetric = new AggregateMetricCalculator();
         BoilerplateMetricCalculator boilerplateMetric = new BoilerplateMetricCalculator();
         CodeComplexityMetricCalculator codeComplexityMetric = new CodeComplexityMetricCalculator();
         CouplingMetricCalculator couplingMetric = new CouplingMetricCalculator();
+        DependencyDepthMetricCalculator dependencyDepthMetric = new DependencyDepthMetricCalculator();
         DomainCoverageMetricCalculator domainCoverageMetric = new DomainCoverageMetricCalculator();
+        DomainEventCoverageMetricCalculator domainEventCoverageMetric = new DomainEventCoverageMetricCalculator();
         DomainPurityMetricCalculator domainPurityMetric = new DomainPurityMetricCalculator();
+        FanOutMetricCalculator fanOutMetric = new FanOutMetricCalculator();
+        GraphModularityMetricCalculator graphModularityMetric = new GraphModularityMetricCalculator();
+        InterAggregateCouplingMetricCalculator interAggregateCouplingMetric =
+                new InterAggregateCouplingMetricCalculator();
+        ModularityMaturityMetricCalculator modularityMaturityMetric = new ModularityMaturityMetricCalculator();
         PortCoverageMetricCalculator portCoverageMetric = new PortCoverageMetricCalculator();
+        PropagationCostMetricCalculator propagationCostMetric = new PropagationCostMetricCalculator();
+        RelationalCohesionMetricCalculator relationalCohesionMetric = new RelationalCohesionMetricCalculator();
+        RelativeCyclicityMetricCalculator relativeCyclicityMetric = new RelativeCyclicityMetricCalculator();
+        ValueObjectRatioMetricCalculator valueObjectRatioMetric = new ValueObjectRatioMetricCalculator();
+        VisibilityMetricCalculator visibilityMetric = new VisibilityMetricCalculator();
 
         Map<String, MetricCalculator> map = new HashMap<>();
+        map.put(adapterIndependenceMetric.metricName(), adapterIndependenceMetric);
         map.put(aggregateBoundaryMetric.metricName(), aggregateBoundaryMetric);
         map.put(aggregateMetric.metricName(), aggregateMetric);
         map.put(boilerplateMetric.metricName(), boilerplateMetric);
         map.put(codeComplexityMetric.metricName(), codeComplexityMetric);
         map.put(couplingMetric.metricName(), couplingMetric);
+        map.put(dependencyDepthMetric.metricName(), dependencyDepthMetric);
         map.put(domainCoverageMetric.metricName(), domainCoverageMetric);
+        map.put(domainEventCoverageMetric.metricName(), domainEventCoverageMetric);
         map.put(domainPurityMetric.metricName(), domainPurityMetric);
+        map.put(fanOutMetric.metricName(), fanOutMetric);
+        map.put(graphModularityMetric.metricName(), graphModularityMetric);
+        map.put(interAggregateCouplingMetric.metricName(), interAggregateCouplingMetric);
+        map.put(modularityMaturityMetric.metricName(), modularityMaturityMetric);
         map.put(portCoverageMetric.metricName(), portCoverageMetric);
+        map.put(propagationCostMetric.metricName(), propagationCostMetric);
+        map.put(relationalCohesionMetric.metricName(), relationalCohesionMetric);
+        map.put(relativeCyclicityMetric.metricName(), relativeCyclicityMetric);
+        map.put(valueObjectRatioMetric.metricName(), valueObjectRatioMetric);
+        map.put(visibilityMetric.metricName(), visibilityMetric);
 
         return map;
     }

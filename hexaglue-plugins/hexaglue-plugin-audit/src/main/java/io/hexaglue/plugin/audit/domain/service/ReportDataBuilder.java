@@ -819,12 +819,9 @@ public class ReportDataBuilder {
                     IssueGroup.of(themeId(theme), theme, themeIcon(theme), themeDescription(theme), themeViolations));
         }
 
-        // Sort groups by severity (most severe first)
-        groups.sort((a, b) -> {
-            int aMax = maxSeverity(a.violations());
-            int bMax = maxSeverity(b.violations());
-            return Integer.compare(aMax, bMax);
-        });
+        // Sort groups by severity (most severe first), then by theme name for deterministic order
+        groups.sort(Comparator.comparingInt((IssueGroup g) -> maxSeverity(g.violations()))
+                .thenComparing(IssueGroup::theme));
 
         ViolationCounts counts = ViolationCounts.fromIssues(entries);
         return new IssuesSummary(counts, groups);
@@ -880,7 +877,8 @@ public class ReportDataBuilder {
 
         int priority = 1;
         for (var entry : byCorrection.entrySet().stream()
-                .sorted((a, b) -> maxSeverity(a.getValue()) - maxSeverity(b.getValue()))
+                .sorted(Comparator.<Map.Entry<String, List<IssueEntry>>>comparingInt(e -> maxSeverity(e.getValue()))
+                        .thenComparing(Map.Entry::getKey))
                 .toList()) {
 
             List<IssueEntry> relatedIssues = entry.getValue();
@@ -976,6 +974,7 @@ public class ReportDataBuilder {
 
         List<ConstraintResult> constraintsEvaluated = constraintViolations.entrySet().stream()
                 .map(e -> new ConstraintResult(e.getKey(), e.getValue().intValue()))
+                .sorted(Comparator.comparing(ConstraintResult::id))
                 .toList();
 
         // Package metrics using analyzeAllPackageCoupling
