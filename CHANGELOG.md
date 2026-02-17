@@ -7,6 +7,58 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [5.1.0] - 2026-02-17
+
+### Breaking Changes
+
+- **Manifest, stale file detection, and overwrite policy removed** - These features relied on a `target/hexaglue/manifest.txt` file that was destroyed by `mvn clean`, making them unusable in CI and standard workflows
+  - `GenerationManifest`, `StaleFileCleaner`, `StaleFilePolicy`, `OverwritePolicy` classes removed from `hexaglue-core`
+  - `ManifestSupport` removed from `hexaglue-maven-plugin`
+  - `staleFilePolicy` Maven parameter removed from all Mojos
+  - Generated files are now always overwritten (with a WARN log when the target file already exists)
+
+### Added
+
+- **Comprehensive parameter regression tests** - 30+ integration test projects (`test-param-*`) validating every plugin configuration parameter
+  - JPA plugin: `entitySuffix`, `repositorySuffix`, `adapterSuffix`, `mapperSuffix`, `embeddableSuffix`, `tablePrefix`, `infraPackage`, `outputDirectory`, `generateAdapters`, `generateRepositories`, `generateMappers`, `generateEmbeddables`, `enableAuditing`, `enableOptimisticLocking`
+  - Living-doc plugin: `outputDir`, `generateDiagrams`, `includeDebugInfo`, `maxProperties`
+  - Audit plugin: `failOnError`, `errorOnCritical`, `errorOnBlocker`, `generateDocs`, `reportDirectory`
+  - Core parameters: `skip`, `skipValidation`, `failOnUnclassified`, `outputDirectory`, `validationReportPath`
+  - Classification parameters: `classificationMode` (explicit, no-inferred, exclude patterns, fail-unclassified via YAML)
+
+- **Overwrite warning in `FileSystemCodeWriter`** - Logs `WARN Overwriting existing file: ...` when writing to an already existing file
+
+- **`AuditFailureResolver`** - New dedicated class for audit failure resolution logic, replacing inline code in Mojos
+
+### Changed
+
+- **Audit plugin configuration simplified** - `AuditConfiguration` refactored with cleaner parameter handling
+- **Audit XSD simplified** - Removed non-functional configuration options from `hexaglue-audit.xsd`
+- **Living-doc renderers** - `DomainRenderer` and `PortRenderer` improved with unit tests
+- **`FileSystemCodeWriter` simplified** - No longer tracks checksums or applies overwrite policies; always writes
+- **`MultiModuleCodeWriter` simplified** - Removed overwrite policy and checksums delegation
+- **`PluginExecutor` simplified** - Removed checksums and overwrite policy resolution logic
+- **`PluginResult` simplified** - Removed `checksums` field from record
+
+### Removed
+
+- **Manifest infrastructure** (~2,000 lines removed)
+  - `GenerationManifest` - SHA-256 checksums tracking
+  - `StaleFileCleaner` - Stale file detection and cleanup
+  - `StaleFilePolicy` (enum) - WARN/DELETE/FAIL policies
+  - `OverwritePolicy` (enum) - ALWAYS/IF_UNCHANGED/NEVER policies
+  - `ManifestSupport` - Maven plugin manifest integration
+  - All associated tests (`GenerationManifestTest`, `StaleFileCleanerTest`, `OverwritePolicyTest`, `ManifestSupportTest`)
+
+- **Stale/overwrite example projects removed**
+  - `sample-jpa-src-always`, `sample-jpa-src-if-unchanged`, `sample-jpa-src-never`
+  - `sample-jpa-src-stale-delete`
+
+### Fixed
+
+- **Audit plugin documentation** - Corrected distinction between Maven Mojo parameters and YAML plugin configuration keys
+- **Plugin documentation** - Fixed report paths, removed references to non-functional options
+
 ## [5.0.0] - 2026-02-13
 
 ### Breaking Changes
@@ -62,8 +114,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Glossary, structure, bounded contexts, and index sections
   - Javadoc and `sourceLocation` extraction pipeline
   - Type-level, field-level, and method-level Javadoc propagation
-
-- **Generation manifest** - SHA-256 checksums and overwrite policy for generated files
 
 - **Golden file tests for regression detection**
   - `GoldenFileTest` in `hexaglue-core` with 3 domain examples (Coffeeshop, Banking, E-commerce)
@@ -453,7 +503,10 @@ Initial stable release.
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 2.0.0-SNAPSHOT | In Development | Graph-based analysis rewrite |
+| 5.1.0 | 2026-02-17 | Remove manifest/stale/overwrite, add parameter regression tests |
+| 5.0.0 | 2026-02-13 | Sealed ArchType hierarchy, multi-module support, legacy IR removed |
+| 4.1.0 | 2026-01-20 | ElementRegistry API, DomainIndex, PortIndex |
+| 4.0.0 | 2026-01-16 | Unified ArchitecturalModel, IR deprecated |
 
 ---
 

@@ -254,6 +254,23 @@ mvn deploy -Prelease -DskipTests
 mvn deploy -Prelease -pl hexaglue-spi -DskipTests
 ```
 
+### Set Release Versions
+
+Remove `-SNAPSHOT` from all module versions before deploying:
+
+```zsh
+# Core, SPI, Maven plugin, and all non-plugin modules
+mvn versions:set -DnewVersion=5.1.0 -DgenerateBackupPoms=false
+
+# Plugins (separate versioning scheme)
+mvn versions:set -DnewVersion=2.1.0 -DgenerateBackupPoms=false \
+    -pl hexaglue-plugins/hexaglue-plugin-jpa,hexaglue-plugins/hexaglue-plugin-living-doc,hexaglue-plugins/hexaglue-plugin-audit
+
+# Update the core version referenced by plugins parent POM
+mvn versions:set-property -Dproperty=hexaglue.version -DnewVersion=5.1.0 \
+    -DgenerateBackupPoms=false -pl hexaglue-plugins
+```
+
 ### Full Release Process
 
 Complete release workflow:
@@ -268,7 +285,9 @@ mvn test
 # 3. Run quality checks
 mvn verify -Pquality -DskipTests
 
-# 4. Deploy to Maven Central
+# 4. Set release versions (see above)
+
+# 5. Deploy to Maven Central
 mvn deploy -Prelease -DskipTests
 ```
 

@@ -7,13 +7,17 @@
     <parent>
         <groupId>io.hexaglue</groupId>
         <artifactId>hexaglue-build</artifactId>
-        <version>5.1.0-SNAPSHOT</version>
+        <version>5.1.0</version>
     </parent>
 
     <artifactId>hexaglue-build-distribution</artifactId>
     <packaging>pom</packaging>
     <name>HexaGlue Distribution</name>
     <description>Maven Central publication configuration and documentation</description>
+
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
 
     <!-- This module contains documentation only, no build actions -->
 
