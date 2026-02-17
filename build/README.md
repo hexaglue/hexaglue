@@ -260,16 +260,25 @@ Remove `-SNAPSHOT` from all module versions before deploying:
 
 ```zsh
 # Core, SPI, Maven plugin, and all non-plugin modules
-mvn versions:set -DnewVersion=5.1.0 -DgenerateBackupPoms=false
+mvn versions:set -DnewVersion=X.Y.0 -DgenerateBackupPoms=false
 
 # Plugins (separate versioning scheme)
-mvn versions:set -DnewVersion=2.1.0 -DgenerateBackupPoms=false \
+mvn versions:set -DnewVersion=A.B.0 -DgenerateBackupPoms=false \
     -pl hexaglue-plugins/hexaglue-plugin-jpa,hexaglue-plugins/hexaglue-plugin-living-doc,hexaglue-plugins/hexaglue-plugin-audit
 
 # Update the core version referenced by plugins parent POM
-mvn versions:set-property -Dproperty=hexaglue.version -DnewVersion=5.1.0 \
+mvn versions:set-property -Dproperty=hexaglue.version -DnewVersion=X.Y.0 \
     -DgenerateBackupPoms=false -pl hexaglue-plugins
 ```
+
+**Fichiers non geres par `versions:set` (mise a jour manuelle requise) :**
+
+| Fichier | Propriete / element | Description |
+|---------|---------------------|-------------|
+| `build/tools/pom.xml` | `<version>` | Module standalone sans parent reactor |
+| `pom.xml` | `hexaglue-build-tools.version` | Propriete custom referant build-tools |
+| `hexaglue-plugins/hexaglue-plugins-bom/pom.xml` | `hexaglue-plugin-*.version` | 3 proprietes de version des plugins |
+| `build/coverage/pom.xml` | `<version>` des deps plugins | Versions hardcodees des plugins JPA et Living-doc |
 
 ### Full Release Process
 
@@ -285,11 +294,41 @@ mvn test
 # 3. Run quality checks
 mvn verify -Pquality -DskipTests
 
-# 4. Set release versions (see above)
+# 4. Set release versions (see "Set Release Versions" above)
+#    + mettre a jour manuellement les 4 fichiers listes
 
-# 5. Deploy to Maven Central
-mvn deploy -Prelease -DskipTests
+# 5. Build release artifacts (dry-run)
+make release-check
+
+# 6. Deploy to Maven Central
+make release
+
+# 7. Tag and GitHub release
+git tag -a vX.Y.0 -m "Release HexaGlue X.Y.0 / Plugins A.B.0"
+git push origin vX.Y.0
+gh release create vX.Y.0 --title "HexaGlue X.Y.0 / Plugins A.B.0" --notes "..."
+
+# 8. Bump to next SNAPSHOT (see "Bump to Next Development Cycle" below)
 ```
+
+### Bump to Next Development Cycle
+
+After a release, bump all versions to the next SNAPSHOT:
+
+```zsh
+# Core, SPI, Maven plugin, and all non-plugin modules
+mvn versions:set -DnewVersion=X.Z.0-SNAPSHOT -DgenerateBackupPoms=false
+
+# Plugins (separate versioning scheme)
+mvn versions:set -DnewVersion=A.C.0-SNAPSHOT -DgenerateBackupPoms=false \
+    -pl hexaglue-plugins/hexaglue-plugin-jpa,hexaglue-plugins/hexaglue-plugin-living-doc,hexaglue-plugins/hexaglue-plugin-audit
+
+# Update the core version referenced by plugins parent POM
+mvn versions:set-property -Dproperty=hexaglue.version -DnewVersion=X.Z.0-SNAPSHOT \
+    -DgenerateBackupPoms=false -pl hexaglue-plugins
+```
+
+**Mettre a jour manuellement les memes 4 fichiers que pour la release (voir tableau ci-dessus).**
 
 ---
 
