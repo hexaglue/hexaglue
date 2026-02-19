@@ -23,12 +23,19 @@ import java.util.Optional;
  * @param name display name
  * @param value metric value
  * @param unit unit of measurement
+ * @param description human-readable description of what this metric measures
  * @param threshold threshold configuration (may be null)
  * @param status status based on threshold comparison
  * @since 5.0.0
  */
 public record MetricEntry(
-        String id, String name, double value, String unit, MetricThreshold threshold, KpiStatus status) {
+        String id,
+        String name,
+        double value,
+        String unit,
+        String description,
+        MetricThreshold threshold,
+        KpiStatus status) {
 
     /**
      * Creates a metric entry with validation.
@@ -39,6 +46,9 @@ public record MetricEntry(
         Objects.requireNonNull(status, "status is required");
         if (unit == null) {
             unit = "";
+        }
+        if (description == null) {
+            description = "";
         }
     }
 

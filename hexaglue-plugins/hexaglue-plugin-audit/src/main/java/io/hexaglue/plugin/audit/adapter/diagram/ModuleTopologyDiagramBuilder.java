@@ -54,7 +54,7 @@ public class ModuleTopologyDiagramBuilder {
                     .append(nodeId)
                     .append("[\"")
                     .append(module.moduleId())
-                    .append("\\n")
+                    .append("<br>")
                     .append(module.role())
                     .append(" (")
                     .append(module.typeCount())

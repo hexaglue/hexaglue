@@ -490,9 +490,15 @@ public class MarkdownRenderer implements ReportRenderer {
                             case WARNING -> "\u26A0\uFE0F";
                             case CRITICAL -> "\u274C";
                         };
-                md.append("| ")
+                md.append("| **")
                         .append(metric.name())
-                        .append(" | ")
+                        .append("**");
+                if (!metric.description().isEmpty()) {
+                    md.append("<br><small>").append(metric.description());
+                    metric.thresholdOpt().ifPresent(t -> md.append(" (expected: ").append(t.formatted()).append(")"));
+                    md.append("</small>");
+                }
+                md.append(" | ")
                         .append(String.format(Locale.ROOT, "%.2f", metric.value()))
                         .append(" ")
                         .append(metric.unit())
@@ -514,6 +520,11 @@ public class MarkdownRenderer implements ReportRenderer {
         // Package metrics table
         if (!appendix.packageMetrics().isEmpty()) {
             md.append("### Package Metrics\n\n");
+            md.append("**Ca** = Afferent Coupling (incoming dependencies) · ");
+            md.append("**Ce** = Efferent Coupling (outgoing dependencies) · ");
+            md.append("**I** = Instability (0 = stable, 1 = unstable) · ");
+            md.append("**A** = Abstractness (0 = concrete, 1 = abstract) · ");
+            md.append("**D** = Distance from main sequence (0 = ideal)\n\n");
             md.append("| Package | Ca | Ce | I | A | D | Zone |\n");
             md.append("|---------|---:|---:|--:|--:|--:|------|\n");
             for (PackageMetric pm : appendix.packageMetrics()) {

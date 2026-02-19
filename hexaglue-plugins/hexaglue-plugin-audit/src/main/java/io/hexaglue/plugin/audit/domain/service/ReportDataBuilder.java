@@ -814,7 +814,9 @@ public class ReportDataBuilder {
         List<IssueGroup> groups = new ArrayList<>();
         for (var entry : byTheme.entrySet()) {
             String theme = entry.getKey();
-            List<IssueEntry> themeViolations = entry.getValue();
+            List<IssueEntry> themeViolations = entry.getValue().stream()
+                    .sorted(Comparator.comparingInt(e -> e.severity().ordinal()))
+                    .toList();
             groups.add(
                     IssueGroup.of(themeId(theme), theme, themeIcon(theme), themeDescription(theme), themeViolations));
         }
@@ -960,6 +962,7 @@ public class ReportDataBuilder {
                             m.name(),
                             m.value(),
                             m.unit(),
+                            m.description(),
                             m.threshold()
                                     .map(t -> new MetricEntry.MetricThreshold(
                                             t.min().orElse(null), t.max().orElse(null)))
