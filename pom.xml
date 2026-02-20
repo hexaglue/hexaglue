@@ -11,12 +11,14 @@
 
     <name>HexaGlue</name>
     <description>Code generation engine for Java applications following Hexagonal Architecture</description>
-    <url>https://github.com/hexaglue</url>
+    <url>https://github.com/hexaglue/hexaglue</url>
+    <inceptionYear>2025</inceptionYear>
 
     <licenses>
         <license>
             <name>Mozilla Public License, Version 2.0</name>
             <url>https://www.mozilla.org/MPL/2.0/</url>
+            <distribution>repo</distribution>
         </license>
     </licenses>
 
@@ -26,6 +28,7 @@
             <name>Jean-Jerome Levy</name>
             <email>info@hexaglue.io</email>
             <organization>HexaGlue</organization>
+            <organizationUrl>https://hexaglue.io</organizationUrl>
         </developer>
     </developers>
 
@@ -43,7 +46,7 @@
     </modules>
 
     <scm>
-        <connection>scm:git:git:https://github.com/hexaglue/hexaglue</connection>
+        <connection>scm:git:https://github.com/hexaglue/hexaglue.git</connection>
         <developerConnection>scm:git:ssh://git@github.com/hexaglue/hexaglue.git</developerConnection>
         <tag>HEAD</tag>
         <url>https://github.com/hexaglue/hexaglue/tree/main</url>
