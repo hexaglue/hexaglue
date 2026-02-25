@@ -116,6 +116,18 @@ public class ReactorAuditMojo extends AbstractMojo {
     @Parameter(property = "hexaglue.failOnUnclassified", defaultValue = "false")
     private boolean failOnUnclassified;
 
+    /**
+     * Enable tolerant type resolution for projects using annotation processors.
+     *
+     * <p>When enabled, HexaGlue accepts unresolved types during analysis instead of
+     * failing. This is useful for projects using annotation processors (MapStruct,
+     * Immutables) whose generated types are not yet on the classpath.
+     *
+     * @since 6.0.0
+     */
+    @Parameter(property = "hexaglue.tolerantResolution", defaultValue = "false")
+    private boolean tolerantResolution;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -146,6 +158,7 @@ public class ReactorAuditMojo extends AbstractMojo {
                 classificationConfig,
                 Set.of(PluginCategory.AUDIT),
                 true, // Include @Generated types so audit can see generated adapters
+                tolerantResolution,
                 getLog());
 
         // Validate targetModule references in plugin configurations
