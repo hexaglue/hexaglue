@@ -98,23 +98,26 @@ public class FullArchitectureDiagramBuilder {
         // Track rendered relationships to avoid duplicates
         Set<String> renderedRels = new HashSet<>();
 
+        // Track rendered component IDs to avoid duplicates and orphan references
+        Set<String> renderedIds = new HashSet<>();
+
         // Driving Side (Application Services + Driving Ports)
-        appendDrivingSide(sb, components);
+        appendDrivingSide(sb, components, renderedIds);
 
         // Domain Core (Aggregates)
-        appendDomainCore(sb, components);
+        appendDomainCore(sb, components, renderedIds);
 
         // Driven Side (Driven Ports + Adapters)
-        appendDrivenSide(sb, components);
+        appendDrivenSide(sb, components, renderedIds);
 
         // Relationships
-        appendRelationships(sb, components, relationships, renderedRels);
+        appendRelationships(sb, components, relationships, renderedRels, renderedIds);
 
         // Layout configuration
         sb.append("\n    UpdateLayoutConfig($c4ShapeInRow=\"3\", $c4BoundaryInRow=\"1\")\n\n");
 
         // Styles
-        appendStyles(sb, components, cycleParticipants);
+        appendStyles(sb, components, cycleParticipants, renderedIds);
 
         return Optional.of(sb.toString().trim());
     }
@@ -158,7 +161,7 @@ public class FullArchitectureDiagramBuilder {
     /**
      * Appends the driving side boundary (application services and driving ports).
      */
-    private void appendDrivingSide(StringBuilder sb, ComponentDetails components) {
+    private void appendDrivingSide(StringBuilder sb, ComponentDetails components, Set<String> renderedIds) {
         List<ApplicationServiceComponent> services = components.applicationServices();
         List<PortComponent> drivingPorts = components.drivingPorts();
 
@@ -173,6 +176,7 @@ public class FullArchitectureDiagramBuilder {
         for (ApplicationServiceComponent service : services) {
             if (serviceCount >= MAX_COMPONENTS_PER_LAYER) break;
             String serviceId = sanitizeId(service.name());
+            if (!renderedIds.add(serviceId)) continue;
             sb.append("        Component(")
                     .append(serviceId)
                     .append(", \"")
@@ -188,6 +192,7 @@ public class FullArchitectureDiagramBuilder {
         for (PortComponent port : drivingPorts) {
             if (serviceCount + portCount >= MAX_COMPONENTS_PER_LAYER) break;
             String portId = sanitizeId(port.name());
+            if (!renderedIds.add(portId)) continue;
             sb.append("        Component(")
                     .append(portId)
                     .append(", \"")
@@ -204,7 +209,7 @@ public class FullArchitectureDiagramBuilder {
     /**
      * Appends the domain core boundary (aggregates).
      */
-    private void appendDomainCore(StringBuilder sb, ComponentDetails components) {
+    private void appendDomainCore(StringBuilder sb, ComponentDetails components, Set<String> renderedIds) {
         List<AggregateComponent> aggregates = components.aggregates();
 
         if (aggregates.isEmpty()) {
@@ -217,6 +222,7 @@ public class FullArchitectureDiagramBuilder {
         for (AggregateComponent agg : aggregates) {
             if (count >= MAX_COMPONENTS_PER_LAYER) break;
             String aggId = sanitizeId(agg.name());
+            if (!renderedIds.add(aggId)) continue;
             sb.append("        Component(")
                     .append(aggId)
                     .append(", \"")
@@ -233,7 +239,7 @@ public class FullArchitectureDiagramBuilder {
     /**
      * Appends the driven side boundary (driven ports and adapters).
      */
-    private void appendDrivenSide(StringBuilder sb, ComponentDetails components) {
+    private void appendDrivenSide(StringBuilder sb, ComponentDetails components, Set<String> renderedIds) {
         List<PortComponent> drivenPorts = components.drivenPorts();
         List<AdapterComponent> drivenAdapters = components.adapters().stream()
                 .filter(a -> a.type() == AdapterComponent.AdapterType.DRIVEN)
@@ -250,6 +256,7 @@ public class FullArchitectureDiagramBuilder {
         for (PortComponent port : drivenPorts) {
             if (portCount >= MAX_COMPONENTS_PER_LAYER) break;
             String portId = sanitizeId(port.name());
+            if (!renderedIds.add(portId)) continue;
             String kind = port.kindOpt().orElse("Port");
             String componentType = "REPOSITORY".equals(kind) ? "ComponentDb" : "Component";
             String styleHint = "GATEWAY".equals(kind) ? "_Ext" : "";
@@ -277,6 +284,7 @@ public class FullArchitectureDiagramBuilder {
             for (AdapterComponent adapter : drivenAdapters) {
                 if (adapterCount >= MAX_COMPONENTS_PER_LAYER) break;
                 String adapterId = sanitizeId(adapter.name());
+                if (!renderedIds.add(adapterId)) continue;
                 sb.append("        Component(")
                         .append(adapterId)
                         .append(", \"")
@@ -294,17 +302,25 @@ public class FullArchitectureDiagramBuilder {
      * Appends relationships between components.
      */
     private void appendRelationships(
-            StringBuilder sb, ComponentDetails components, List<Relationship> relationships, Set<String> renderedRels) {
+            StringBuilder sb,
+            ComponentDetails components,
+            List<Relationship> relationships,
+            Set<String> renderedRels,
+            Set<String> renderedIds) {
 
         // Application service -> Aggregate orchestration
         for (ApplicationServiceComponent service : components.applicationServices()) {
+            String fromId = sanitizeId(service.name());
+            if (!renderedIds.contains(fromId)) continue;
             for (String agg : service.orchestrates()) {
+                String toId = sanitizeId(agg);
+                if (!renderedIds.contains(toId)) continue;
                 String relKey = service.name() + "->" + agg;
                 if (!renderedRels.contains(relKey)) {
                     sb.append("    Rel_D(")
-                            .append(sanitizeId(service.name()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(agg))
+                            .append(toId)
                             .append(", \"orchestrates\")\n");
                     renderedRels.add(relKey);
                 }
@@ -313,13 +329,17 @@ public class FullArchitectureDiagramBuilder {
 
         // Driving port -> Aggregate orchestration
         for (PortComponent port : components.drivingPorts()) {
+            String fromId = sanitizeId(port.name());
+            if (!renderedIds.contains(fromId)) continue;
             for (String agg : port.orchestrates()) {
+                String toId = sanitizeId(agg);
+                if (!renderedIds.contains(toId)) continue;
                 String relKey = port.name() + "->" + agg;
                 if (!renderedRels.contains(relKey)) {
                     sb.append("    Rel_D(")
-                            .append(sanitizeId(port.name()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(agg))
+                            .append(toId)
                             .append(", \"orchestrates\")\n");
                     renderedRels.add(relKey);
                 }
@@ -328,13 +348,17 @@ public class FullArchitectureDiagramBuilder {
 
         // Aggregate -> Port usage
         for (AggregateComponent agg : components.aggregates()) {
+            String fromId = sanitizeId(agg.name());
+            if (!renderedIds.contains(fromId)) continue;
             for (String portName : agg.usesPorts()) {
+                String toId = sanitizeId(portName);
+                if (!renderedIds.contains(toId)) continue;
                 String relKey = agg.name() + "->" + portName;
                 if (!renderedRels.contains(relKey)) {
                     sb.append("    Rel_D(")
-                            .append(sanitizeId(agg.name()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(portName))
+                            .append(toId)
                             .append(", \"uses\")\n");
                     renderedRels.add(relKey);
                 }
@@ -343,13 +367,12 @@ public class FullArchitectureDiagramBuilder {
 
         // Port -> Adapter implementation
         for (AdapterComponent adapter : components.adapters()) {
+            String fromId = sanitizeId(adapter.implementsPort());
+            String toId = sanitizeId(adapter.name());
+            if (!renderedIds.contains(fromId) || !renderedIds.contains(toId)) continue;
             String relKey = adapter.implementsPort() + "->" + adapter.name();
             if (!renderedRels.contains(relKey)) {
-                sb.append("    Rel_D(")
-                        .append(sanitizeId(adapter.implementsPort()))
-                        .append(", ")
-                        .append(sanitizeId(adapter.name()))
-                        .append(", \"implemented by\")\n");
+                sb.append("    Rel_D(").append(fromId).append(", ").append(toId).append(", \"implemented by\")\n");
                 renderedRels.add(relKey);
             }
         }
@@ -357,13 +380,16 @@ public class FullArchitectureDiagramBuilder {
         // Inter-aggregate cycles (special highlighting)
         for (Relationship rel : relationships) {
             if (rel.isCycle() && "references".equals(rel.type())) {
+                String fromId = sanitizeId(rel.from());
+                String toId = sanitizeId(rel.to());
+                if (!renderedIds.contains(fromId) || !renderedIds.contains(toId)) continue;
                 String relKey = rel.from() + "<->" + rel.to();
                 String reverseKey = rel.to() + "<->" + rel.from();
                 if (!renderedRels.contains(relKey) && !renderedRels.contains(reverseKey)) {
                     sb.append("    BiRel(")
-                            .append(sanitizeId(rel.from()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(rel.to()))
+                            .append(toId)
                             .append(", \"cycle!\")\n");
                     renderedRels.add(relKey);
                 }
@@ -374,20 +400,27 @@ public class FullArchitectureDiagramBuilder {
     /**
      * Appends style definitions for components.
      */
-    private void appendStyles(StringBuilder sb, ComponentDetails components, Set<String> cycleParticipants) {
+    private void appendStyles(
+            StringBuilder sb, ComponentDetails components, Set<String> cycleParticipants, Set<String> renderedIds) {
+        Set<String> styledIds = new HashSet<>();
+
         // Driving side styles
         for (ApplicationServiceComponent service : components.applicationServices()) {
+            String id = sanitizeId(service.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
             String style = cycleParticipants.contains(service.name()) ? CYCLE_COLOR : DRIVING_COLOR;
             sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(service.name()))
+                    .append(id)
                     .append(", $fontColor=\"white\", $bgColor=\"")
                     .append(style)
                     .append("\")\n");
         }
         for (PortComponent port : components.drivingPorts()) {
+            String id = sanitizeId(port.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
             String style = cycleParticipants.contains(port.name()) ? CYCLE_COLOR : DRIVING_COLOR;
             sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(port.name()))
+                    .append(id)
                     .append(", $fontColor=\"white\", $bgColor=\"")
                     .append(style)
                     .append("\")\n");
@@ -395,9 +428,11 @@ public class FullArchitectureDiagramBuilder {
 
         // Domain core styles
         for (AggregateComponent agg : components.aggregates()) {
+            String id = sanitizeId(agg.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
             String style = cycleParticipants.contains(agg.name()) ? CYCLE_COLOR : DOMAIN_COLOR;
             sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(agg.name()))
+                    .append(id)
                     .append(", $fontColor=\"white\", $bgColor=\"")
                     .append(style)
                     .append("\")\n");
@@ -405,9 +440,11 @@ public class FullArchitectureDiagramBuilder {
 
         // Driven side styles
         for (PortComponent port : components.drivenPorts()) {
+            String id = sanitizeId(port.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
             String style = cycleParticipants.contains(port.name()) ? CYCLE_COLOR : DRIVEN_COLOR;
             sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(port.name()))
+                    .append(id)
                     .append(", $fontColor=\"white\", $bgColor=\"")
                     .append(style)
                     .append("\")\n");
@@ -418,17 +455,13 @@ public class FullArchitectureDiagramBuilder {
                 .filter(a -> a.type() == AdapterComponent.AdapterType.DRIVEN)
                 .toList();
         for (AdapterComponent adapter : drivenAdapters) {
+            String id = sanitizeId(adapter.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
             sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(adapter.name()))
+                    .append(id)
                     .append(", $fontColor=\"white\", $bgColor=\"")
                     .append(DRIVEN_COLOR)
                     .append("\")\n");
-        }
-
-        // Cycle relationship styles
-        if (!cycleParticipants.isEmpty()) {
-            // For BiRel cycles, we don't have UpdateRelStyle with both directions,
-            // so we mark the elements instead (done above)
         }
     }
 

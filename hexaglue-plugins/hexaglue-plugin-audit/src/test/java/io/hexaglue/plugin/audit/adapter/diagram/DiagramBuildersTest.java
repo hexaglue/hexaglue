@@ -577,6 +577,87 @@ class DiagramBuildersTest {
         }
 
         @Test
+        @DisplayName("should not declare duplicate component for driven adapter matching app service")
+        void shouldNotDeclareDuplicateComponentForDrivenAdapterMatchingAppService() {
+            // Given: NotificationBusinessImpl is both AppService AND DRIVEN Adapter
+            var aggregates =
+                    List.of(AggregateComponent.of("Notification", "com.example.domain", 3, List.of(), List.of()));
+            var drivenPorts = List.of(PortComponent.driven(
+                    "NotificationPort", "com.example.port", "GATEWAY", 1, true, "NotificationBusinessImpl"));
+            var adapters = List.of(new AdapterComponent(
+                    "NotificationBusinessImpl",
+                    "com.example.app",
+                    "NotificationPort",
+                    AdapterComponent.AdapterType.DRIVEN));
+            var appServices = List.of(ApplicationServiceComponent.of(
+                    "NotificationBusinessImpl", "com.example.app", 2, List.of("Notification"), List.of()));
+            var components = new ComponentDetails(
+                    aggregates,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    appServices,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    drivenPorts,
+                    adapters);
+
+            // When
+            String diagram = builder.build("Test", components, List.of());
+
+            // Then: Component(notificationbusinessimpl should appear only once
+            long count = diagram.lines()
+                    .filter(l -> l.contains("Component(notificationbusinessimpl"))
+                    .count();
+            assertThat(count).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("should not double-style driven adapter matching app service")
+        void shouldNotDoubleStyleDrivenAdapterMatchingAppService() {
+            // Given: same dual-role setup
+            var aggregates =
+                    List.of(AggregateComponent.of("Notification", "com.example.domain", 3, List.of(), List.of()));
+            var drivenPorts = List.of(PortComponent.driven(
+                    "NotificationPort", "com.example.port", "GATEWAY", 1, true, "NotificationBusinessImpl"));
+            var adapters = List.of(new AdapterComponent(
+                    "NotificationBusinessImpl",
+                    "com.example.app",
+                    "NotificationPort",
+                    AdapterComponent.AdapterType.DRIVEN));
+            var appServices = List.of(ApplicationServiceComponent.of(
+                    "NotificationBusinessImpl", "com.example.app", 2, List.of("Notification"), List.of()));
+            var components = new ComponentDetails(
+                    aggregates,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    appServices,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    drivenPorts,
+                    adapters);
+
+            // When
+            String diagram = builder.build("Test", components, List.of());
+
+            // Then: should have blue (#2196F3) for app service, not green (#4CAF50)
+            assertThat(diagram)
+                    .contains(
+                            "UpdateElementStyle(notificationbusinessimpl, $fontColor=\"white\", $bgColor=\"#2196F3\")");
+            long greenCount = diagram.lines()
+                    .filter(l -> l.contains("notificationbusinessimpl") && l.contains("#4CAF50"))
+                    .count();
+            assertThat(greenCount).isZero();
+        }
+
+        @Test
         @DisplayName("should highlight cycles")
         void shouldHighlightCycles() {
             // Given
