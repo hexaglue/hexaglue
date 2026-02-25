@@ -829,7 +829,7 @@ class DomainCriteriaTest {
     }
 
     private ApplicationGraph buildGraph() {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false, false);
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =

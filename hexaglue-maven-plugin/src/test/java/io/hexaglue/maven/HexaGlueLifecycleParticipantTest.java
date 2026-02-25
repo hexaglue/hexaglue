@@ -27,6 +27,7 @@ import org.apache.maven.model.Build;
 import org.apache.maven.model.Dependency;
 import org.apache.maven.model.Model;
 import org.apache.maven.model.Plugin;
+import org.apache.maven.model.PluginExecution;
 import org.apache.maven.project.MavenProject;
 import org.codehaus.plexus.util.xml.Xpp3Dom;
 import org.junit.jupiter.api.BeforeEach;
@@ -544,6 +545,189 @@ class HexaGlueLifecycleParticipantTest {
             }
         }
         return false;
+    }
+
+    @Nested
+    @DisplayName("Lombok delombok injection")
+    class LombokDelombokInjection {
+
+        @TempDir
+        Path tempDir;
+
+        @Test
+        @DisplayName("should inject exec-maven-plugin with delombok when Lombok is present")
+        void shouldInjectDelombokWhenLombokPresent() throws Exception {
+            MavenProject project = createProjectWithLombok();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPlugin = findPlugin(project, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPlugin).isNotNull();
+            assertThat(execPlugin.getExecutions())
+                    .filteredOn(e -> "hexaglue-delombok".equals(e.getId()))
+                    .hasSize(1)
+                    .first()
+                    .satisfies(e -> {
+                        assertThat(e.getPhase()).isEqualTo("initialize");
+                        assertThat(e.getGoals()).contains("exec");
+                    });
+        }
+
+        @Test
+        @DisplayName("should inject maven-dependency-plugin:properties when Lombok is present")
+        void shouldInjectDependencyPropertiesWhenLombokPresent() throws Exception {
+            MavenProject project = createProjectWithLombok();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin depPlugin = findPlugin(project, "org.apache.maven.plugins", "maven-dependency-plugin");
+            assertThat(depPlugin).isNotNull();
+            assertThat(depPlugin.getExecutions())
+                    .filteredOn(e -> "hexaglue-dependency-properties".equals(e.getId()))
+                    .hasSize(1)
+                    .first()
+                    .satisfies(e -> {
+                        assertThat(e.getPhase()).isEqualTo("validate");
+                        assertThat(e.getGoals()).contains("properties");
+                    });
+        }
+
+        @Test
+        @DisplayName("should configure delombok with correct arguments")
+        void shouldConfigureDelombokWithCorrectArguments() throws Exception {
+            MavenProject project = createProjectWithLombok();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPlugin = findPlugin(project, "org.codehaus.mojo", "exec-maven-plugin");
+            PluginExecution delombokExec = execPlugin.getExecutions().stream()
+                    .filter(e -> "hexaglue-delombok".equals(e.getId()))
+                    .findFirst()
+                    .orElse(null);
+            assertThat(delombokExec).isNotNull();
+
+            Xpp3Dom config = (Xpp3Dom) delombokExec.getConfiguration();
+            assertThat(config.getChild("executable").getValue()).isEqualTo("java");
+
+            Xpp3Dom arguments = config.getChild("arguments");
+            assertThat(arguments).isNotNull();
+
+            String[] argValues = new String[arguments.getChildCount()];
+            for (int i = 0; i < arguments.getChildCount(); i++) {
+                argValues[i] = arguments.getChild(i).getValue();
+            }
+
+            assertThat(argValues)
+                    .containsExactly(
+                            "-jar",
+                            "${org.projectlombok:lombok:jar}",
+                            "delombok",
+                            project.getBuild().getSourceDirectory(),
+                            "-d",
+                            project.getBuild().getDirectory() + "/hexaglue/delombok-sources");
+        }
+
+        @Test
+        @DisplayName("should not inject delombok when Lombok is absent")
+        void shouldNotInjectDelombokWhenLombokAbsent() throws Exception {
+            MavenProject project = createProjectWithoutJpaPlugin();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPlugin = findPlugin(project, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPlugin).isNull();
+        }
+
+        @Test
+        @DisplayName("should not inject delombok when lombok-maven-plugin is already configured")
+        void shouldNotInjectWhenLombokMavenPluginPresent() throws Exception {
+            MavenProject project = createProjectWithLombok();
+            Plugin lombokPlugin = new Plugin();
+            lombokPlugin.setGroupId("org.projectlombok");
+            lombokPlugin.setArtifactId("lombok-maven-plugin");
+            project.getBuild().getPlugins().add(lombokPlugin);
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPlugin = findPlugin(project, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPlugin).isNull();
+        }
+
+        @Test
+        @DisplayName("should not double-inject delombok on repeated calls")
+        void shouldNotDoubleInjectDelombok() throws Exception {
+            MavenProject project = createProjectWithLombok();
+            MavenSession session = createSession(project);
+
+            participant.afterProjectsRead(session);
+            participant.afterProjectsRead(session);
+
+            Plugin execPlugin = findPlugin(project, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPlugin.getExecutions())
+                    .filteredOn(e -> "hexaglue-delombok".equals(e.getId()))
+                    .hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should inject delombok into child modules in multi-module build")
+        void shouldInjectDelombokInMultiModuleChildWithLombok() throws Exception {
+            MavenProject parent = createMultiModuleParentForDelombok();
+            MavenProject childWithLombok = createProjectWithLombok();
+            MavenProject childWithoutLombok = createProjectWithoutJpaPlugin();
+            MavenSession session = createSession(parent, childWithLombok, childWithoutLombok);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPluginWithLombok = findPlugin(childWithLombok, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPluginWithLombok).isNotNull();
+
+            Plugin execPluginWithoutLombok = findPlugin(childWithoutLombok, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPluginWithoutLombok).isNull();
+        }
+
+        private MavenProject createProjectWithLombok() {
+            MavenProject project = new MavenProject();
+            project.setArtifactId("test-lombok-module");
+            project.setPackaging("jar");
+
+            Dependency lombokDep = createDependency("org.projectlombok", "lombok", "1.18.34", "provided");
+            project.setDependencies(new ArrayList<>(List.of(lombokDep)));
+
+            Build build = new Build();
+            build.setSourceDirectory("/src/main/java");
+            build.setDirectory("/target");
+            Plugin hexagluePlugin = createPlugin("io.hexaglue", "hexaglue-maven-plugin");
+            build.setPlugins(new ArrayList<>(List.of(hexagluePlugin)));
+            project.setBuild(build);
+
+            return project;
+        }
+
+        private MavenProject createMultiModuleParentForDelombok() throws IOException {
+            Path parentDir = tempDir.resolve("parent");
+            Files.createDirectories(parentDir);
+
+            Model model = new Model();
+            model.setModules(List.of("child1", "child2"));
+            model.setPackaging("pom");
+
+            Build build = new Build();
+            Plugin hexagluePlugin = createPlugin("io.hexaglue", "hexaglue-maven-plugin");
+            build.setPlugins(new ArrayList<>(List.of(hexagluePlugin)));
+            model.setBuild(build);
+
+            MavenProject project = new MavenProject(model);
+            project.setArtifactId("parent");
+            project.setDependencies(new ArrayList<>());
+            project.setFile(parentDir.resolve("pom.xml").toFile());
+
+            return project;
+        }
     }
 
     @SuppressWarnings("deprecation") // No non-deprecated constructor available in Maven 3.9.x

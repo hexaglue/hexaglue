@@ -494,7 +494,7 @@ class ClassificationIntegrationTest {
     }
 
     private ApplicationGraph buildGraph(String basePackage) {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, basePackage, false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, basePackage, false, false);
 
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata =

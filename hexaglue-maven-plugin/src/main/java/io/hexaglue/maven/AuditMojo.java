@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -200,13 +199,9 @@ public class AuditMojo extends AbstractMojo {
     }
 
     private EngineConfig buildConfig() {
-        List<Path> sourceRoots =
-                project.getCompileSourceRoots().stream().map(Path::of).toList();
+        List<Path> sourceRoots = MojoSourceRootsResolver.resolveSourceRoots(project);
 
-        List<Path> classpath = project.getArtifacts().stream()
-                .map(Artifact::getFile)
-                .map(File::toPath)
-                .toList();
+        List<Path> classpath = MojoClasspathBuilder.buildClasspath(project);
 
         String javaVersionStr = project.getProperties().getProperty("maven.compiler.release", "21");
         int javaVersion;
@@ -238,7 +233,8 @@ public class AuditMojo extends AbstractMojo {
                 classificationConfig,
                 Set.of(PluginCategory.AUDIT), // Only run audit plugins
                 true, // Include @Generated types so audit can see generated adapters
-                List.of()); // Mono-module
+                List.of(), // Mono-module
+                false);
     }
 
     /**

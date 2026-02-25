@@ -138,7 +138,8 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                     config.classpathEntries(),
                     config.javaVersion(),
                     config.basePackage(),
-                    config.includeGenerated());
+                    config.includeGenerated(),
+                    config.tolerantResolution());
 
             JavaSemanticModel model = frontend.build(input);
             int typeCount = model.types().size();

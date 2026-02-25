@@ -39,9 +39,11 @@ import java.util.Set;
  * @param enabledCategories plugin categories to execute (null or empty for all categories)
  * @param includeGenerated whether to include {@code @Generated}-annotated types in the semantic model
  * @param moduleSourceSets module source sets for multi-module projects (empty list for mono-module)
+ * @param tolerantResolution whether to use tolerant (noClasspath) mode for Spoon type resolution
  * @since 5.0.0 added includeGenerated parameter
  * @since 5.0.0 added moduleSourceSets for multi-module support
  * @since 5.0.0 added reportsOutputDirectory to separate sources and reports output
+ * @since 6.0.0 added tolerantResolution for annotation processor compatibility
  */
 public record EngineConfig(
         List<Path> sourceRoots,
@@ -57,7 +59,8 @@ public record EngineConfig(
         ClassificationConfig classificationConfig,
         Set<PluginCategory> enabledCategories,
         boolean includeGenerated,
-        List<ModuleSourceSet> moduleSourceSets) {
+        List<ModuleSourceSet> moduleSourceSets,
+        boolean tolerantResolution) {
 
     /**
      * Compact constructor with validation.
@@ -120,7 +123,8 @@ public record EngineConfig(
                 null,
                 null,
                 false,
-                List.of());
+                List.of(),
+                false);
     }
 
     /**
@@ -142,7 +146,8 @@ public record EngineConfig(
                 null,
                 null,
                 false,
-                List.of());
+                List.of(),
+                false);
     }
 
     /**
@@ -170,7 +175,8 @@ public record EngineConfig(
                 classificationConfig,
                 null,
                 false,
-                List.of());
+                List.of(),
+                false);
     }
 
     /**
@@ -193,7 +199,8 @@ public record EngineConfig(
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR),
                 includeGenerated,
-                moduleSourceSets);
+                moduleSourceSets,
+                tolerantResolution);
     }
 
     /**
@@ -216,7 +223,8 @@ public record EngineConfig(
                 classificationConfig,
                 Set.of(PluginCategory.AUDIT),
                 includeGenerated,
-                moduleSourceSets);
+                moduleSourceSets,
+                tolerantResolution);
     }
 
     /**
@@ -239,7 +247,8 @@ public record EngineConfig(
                 classificationConfig,
                 null,
                 includeGenerated,
-                moduleSourceSets);
+                moduleSourceSets,
+                tolerantResolution);
     }
 
     /**
@@ -266,7 +275,8 @@ public record EngineConfig(
                 classificationConfig,
                 enabledCategories,
                 true,
-                moduleSourceSets);
+                moduleSourceSets,
+                tolerantResolution);
     }
 
     /**

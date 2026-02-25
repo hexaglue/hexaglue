@@ -19,7 +19,6 @@ import io.hexaglue.core.engine.ModuleSourceSet;
 import io.hexaglue.core.engine.MultiModuleOutputResolver;
 import io.hexaglue.spi.core.ClassificationConfig;
 import io.hexaglue.spi.generation.PluginCategory;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.execution.MavenSession;
 import org.apache.maven.plugin.logging.Log;
 import org.apache.maven.project.MavenProject;
@@ -149,21 +147,15 @@ final class ReactorEngineConfigBuilder {
             ModuleRole role = resolveModuleRole(moduleId, moduleRoles, log);
             Path moduleBaseDir = project.getBasedir().toPath();
 
-            // Collect source roots (filter to existing directories)
-            List<Path> moduleSourceRoots = project.getCompileSourceRoots().stream()
-                    .map(Path::of)
+            // Collect source roots (with delombok substitution when applicable)
+            List<Path> moduleSourceRoots = MojoSourceRootsResolver.resolveSourceRoots(project).stream()
                     .filter(Files::isDirectory)
                     .toList();
 
             allSourceRoots.addAll(moduleSourceRoots);
 
-            // Collect classpath entries
-            for (Artifact artifact : project.getArtifacts()) {
-                File file = artifact.getFile();
-                if (file != null) {
-                    classpathSet.add(file.toPath());
-                }
-            }
+            // Collect classpath entries (includes target/classes when available)
+            classpathSet.addAll(MojoClasspathBuilder.buildClasspath(project));
 
             // Module-specific output directory — placed under the parent's target/ so that
             // child module clean phases do not erase generated sources (see reactor-lifecycle-fix.md)
@@ -196,7 +188,8 @@ final class ReactorEngineConfigBuilder {
                 classificationConfig,
                 enabledCategories,
                 includeGenerated,
-                moduleSourceSets);
+                moduleSourceSets,
+                false);
     }
 
     /**

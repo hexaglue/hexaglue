@@ -71,7 +71,7 @@ class ProgressiveClassifierIntegrationTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false, false);
         JavaSemanticModel model = frontend.build(input);
 
         CachedSpoonAnalyzer analyzer = new CachedSpoonAnalyzer();
@@ -98,7 +98,7 @@ class ProgressiveClassifierIntegrationTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false, false);
         JavaSemanticModel model = frontend.build(input);
 
         GraphMetadata metadata =
@@ -146,7 +146,7 @@ class ProgressiveClassifierIntegrationTest {
                 }
                 """);
 
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 17, "com.example", false, false);
         JavaSemanticModel model = frontend.build(input);
 
         GraphMetadata metadata =

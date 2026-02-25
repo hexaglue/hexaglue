@@ -36,6 +36,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
  *   <li>Adds {@code generate} goal bound to {@code generate-sources} phase</li>
  *   <li>Adds {@code audit} goal bound to {@code verify} phase</li>
  *   <li>Injects MapStruct dependencies when the JPA plugin is detected</li>
+ *   <li>Injects delombok preprocessing when Lombok is detected (since 6.0.0)</li>
  * </ul>
  *
  * <p>MapStruct auto-configuration: when {@code hexaglue-plugin-jpa} is declared as a
@@ -79,6 +80,19 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
     private static final String COMPILER_PLUGIN_GROUP_ID = "org.apache.maven.plugins";
     private static final String COMPILER_PLUGIN_ARTIFACT_ID = "maven-compiler-plugin";
 
+    private static final String LOMBOK_GROUP_ID = "org.projectlombok";
+    private static final String LOMBOK_ARTIFACT_ID = "lombok";
+
+    private static final String EXEC_PLUGIN_GROUP_ID = "org.codehaus.mojo";
+    private static final String EXEC_PLUGIN_ARTIFACT_ID = "exec-maven-plugin";
+    private static final String EXEC_PLUGIN_VERSION = "3.6.3";
+    private static final String DELOMBOK_EXECUTION_ID = "hexaglue-delombok";
+
+    private static final String DEPENDENCY_PLUGIN_GROUP_ID = "org.apache.maven.plugins";
+    private static final String DEPENDENCY_PLUGIN_ARTIFACT_ID = "maven-dependency-plugin";
+    private static final String DEPENDENCY_PLUGIN_VERSION = "3.10.0";
+    private static final String DEPENDENCY_PROPS_EXECUTION_ID = "hexaglue-dependency-properties";
+
     @Override
     public void afterProjectsRead(MavenSession session) throws MavenExecutionException {
         MavenProject topLevel = session.getProjects().get(0);
@@ -92,18 +106,20 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
             // Register generated-sources roots early so IDEs discover them on import
             registerMultiModuleSourceRoots(session, topLevel);
 
-            // Inject MapStruct into child modules that have the JPA plugin
+            // Inject MapStruct and delombok into child modules as needed
             for (MavenProject project : session.getProjects()) {
                 Plugin hexagluePlugin = findHexaGluePlugin(project);
                 if (hexagluePlugin != null && hasJpaPlugin(hexagluePlugin)) {
                     injectMapStructDependencies(project);
                     injectMapStructAnnotationProcessor(project);
                 }
+                injectDelombokIfNeeded(project);
             }
         } else {
             // Mono-module: existing behavior
             for (MavenProject project : session.getProjects()) {
                 injectExecutionsIfNeeded(project);
+                injectDelombokIfNeeded(project);
             }
         }
     }
@@ -286,5 +302,130 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
         Xpp3Dom child = new Xpp3Dom(name);
         child.setValue(value);
         parent.addChild(child);
+    }
+
+    /**
+     * Detects whether the project has Lombok as a dependency (any scope).
+     *
+     * @since 6.0.0
+     */
+    private boolean hasLombok(MavenProject project) {
+        return project.getDependencies().stream()
+                .anyMatch(d -> LOMBOK_GROUP_ID.equals(d.getGroupId()) && LOMBOK_ARTIFACT_ID.equals(d.getArtifactId()));
+    }
+
+    /**
+     * Injects a delombok execution via {@code exec-maven-plugin} to expand Lombok
+     * annotations before Spoon analysis.
+     *
+     * <p>Uses {@code exec-maven-plugin} to invoke {@code java -jar lombok.jar delombok}
+     * directly, avoiding dependency on the unmaintained {@code lombok-maven-plugin}.
+     * This guarantees compatibility with any Lombok version declared by the project.
+     *
+     * <p>The delombok output is written to {@code target/hexaglue/delombok-sources}.
+     * This directory replaces the original source roots when passed to SpoonFrontend,
+     * so Spoon sees standard Java code with explicit getters, setters, etc.
+     *
+     * <p>To resolve the Lombok JAR path at execution time, a
+     * {@code maven-dependency-plugin:properties} execution is also injected at the
+     * {@code validate} phase. This exposes {@code ${org.projectlombok:lombok:jar}}
+     * as a Maven property, which is referenced in the exec plugin arguments.
+     *
+     * <p>The delombok execution is bound to the {@code initialize} phase to guarantee it runs
+     * before HexaGlue's generate goal at {@code generate-sources}.
+     *
+     * @since 6.0.0
+     */
+    private void injectDelombokIfNeeded(MavenProject project) {
+        if (!hasLombok(project)) {
+            return;
+        }
+
+        // Skip if user already manages delombok themselves via lombok-maven-plugin
+        if (findPlugin(project, LOMBOK_GROUP_ID, "lombok-maven-plugin") != null) {
+            return;
+        }
+
+        // Skip if delombok execution already injected
+        Plugin existingExecPlugin = findPlugin(project, EXEC_PLUGIN_GROUP_ID, EXEC_PLUGIN_ARTIFACT_ID);
+        if (existingExecPlugin != null && hasExecution(existingExecPlugin, DELOMBOK_EXECUTION_ID)) {
+            return;
+        }
+
+        // Inject maven-dependency-plugin:properties to expose ${org.projectlombok:lombok:jar}
+        injectDependencyPropertiesIfNeeded(project);
+
+        String sourceDir = project.getBuild().getSourceDirectory();
+        String outputDir = project.getBuild().getDirectory() + "/" + MojoSourceRootsResolver.DELOMBOK_OUTPUT_SUBDIR;
+
+        Plugin execPlugin = existingExecPlugin != null
+                ? existingExecPlugin
+                : createPlugin(EXEC_PLUGIN_GROUP_ID, EXEC_PLUGIN_ARTIFACT_ID, EXEC_PLUGIN_VERSION);
+
+        PluginExecution execution = new PluginExecution();
+        execution.setId(DELOMBOK_EXECUTION_ID);
+        execution.setPhase("initialize");
+        execution.addGoal("exec");
+
+        Xpp3Dom config = new Xpp3Dom("configuration");
+        addChild(config, "executable", "java");
+
+        Xpp3Dom arguments = new Xpp3Dom("arguments");
+        addChild(arguments, "argument", "-jar");
+        addChild(arguments, "argument", "${org.projectlombok:lombok:jar}");
+        addChild(arguments, "argument", "delombok");
+        addChild(arguments, "argument", sourceDir);
+        addChild(arguments, "argument", "-d");
+        addChild(arguments, "argument", outputDir);
+        config.addChild(arguments);
+
+        execution.setConfiguration(config);
+        execPlugin.addExecution(execution);
+
+        if (existingExecPlugin == null) {
+            project.getBuild().addPlugin(execPlugin);
+        }
+    }
+
+    /**
+     * Injects a {@code maven-dependency-plugin:properties} execution at the {@code validate}
+     * phase so that artifact paths are exposed as Maven properties (e.g.,
+     * {@code ${org.projectlombok:lombok:jar}}).
+     *
+     * @since 6.0.0
+     */
+    private void injectDependencyPropertiesIfNeeded(MavenProject project) {
+        Plugin depPlugin = findPlugin(project, DEPENDENCY_PLUGIN_GROUP_ID, DEPENDENCY_PLUGIN_ARTIFACT_ID);
+
+        if (depPlugin != null && hasExecution(depPlugin, DEPENDENCY_PROPS_EXECUTION_ID)) {
+            return;
+        }
+
+        Plugin plugin = depPlugin != null
+                ? depPlugin
+                : createPlugin(DEPENDENCY_PLUGIN_GROUP_ID, DEPENDENCY_PLUGIN_ARTIFACT_ID, DEPENDENCY_PLUGIN_VERSION);
+
+        PluginExecution execution = new PluginExecution();
+        execution.setId(DEPENDENCY_PROPS_EXECUTION_ID);
+        execution.setPhase("validate");
+        execution.addGoal("properties");
+
+        plugin.addExecution(execution);
+
+        if (depPlugin == null) {
+            project.getBuild().addPlugin(plugin);
+        }
+    }
+
+    private boolean hasExecution(Plugin plugin, String executionId) {
+        return plugin.getExecutions().stream().anyMatch(exec -> executionId.equals(exec.getId()));
+    }
+
+    private Plugin createPlugin(String groupId, String artifactId, String version) {
+        Plugin plugin = new Plugin();
+        plugin.setGroupId(groupId);
+        plugin.setArtifactId(artifactId);
+        plugin.setVersion(version);
+        return plugin;
     }
 }
