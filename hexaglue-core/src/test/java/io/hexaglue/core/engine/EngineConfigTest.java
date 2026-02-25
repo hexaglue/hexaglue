@@ -123,7 +123,8 @@ class EngineConfigTest {
                 null,
                 mutableSet,
                 false,
-                java.util.List.of());
+                java.util.List.of(),
+                false);
 
         // When: try to modify the original set
         mutableSet.add(PluginCategory.AUDIT);
@@ -152,7 +153,8 @@ class EngineConfigTest {
                 classificationConfig,
                 null,
                 false,
-                java.util.List.of());
+                java.util.List.of(),
+                false);
 
         // When: apply category filter
         EngineConfig filtered = config.onlyGenerators();
@@ -262,7 +264,8 @@ class EngineConfigTest {
                     null,
                     null,
                     false,
-                    java.util.List.of(module));
+                    java.util.List.of(module),
+                    false);
 
             assertThat(config.isMultiModule()).isTrue();
             assertThat(config.moduleSourceSets()).hasSize(1);
@@ -285,7 +288,8 @@ class EngineConfigTest {
                     null,
                     null,
                     false,
-                    null); // null moduleSourceSets
+                    null, // null moduleSourceSets
+                    false);
 
             assertThat(config.moduleSourceSets()).isNotNull().isEmpty();
             assertThat(config.isMultiModule()).isFalse();
@@ -313,7 +317,8 @@ class EngineConfigTest {
                     null,
                     null,
                     false,
-                    java.util.List.of());
+                    java.util.List.of(),
+                    false);
 
             assertThat(config.pluginsEnabled()).isTrue();
         }
@@ -335,7 +340,8 @@ class EngineConfigTest {
                     null,
                     null,
                     false,
-                    java.util.List.of());
+                    java.util.List.of(),
+                    false);
 
             assertThat(config.pluginsEnabled()).isTrue();
         }
@@ -357,7 +363,8 @@ class EngineConfigTest {
                     null,
                     null,
                     false,
-                    java.util.List.of());
+                    java.util.List.of(),
+                    false);
 
             assertThat(config.pluginsEnabled()).isFalse();
         }

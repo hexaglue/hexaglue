@@ -33,7 +33,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.apache.maven.artifact.Artifact;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -187,13 +186,9 @@ public class ValidateMojo extends AbstractMojo {
     }
 
     private EngineConfig buildConfig() {
-        List<Path> sourceRoots =
-                project.getCompileSourceRoots().stream().map(Path::of).toList();
+        List<Path> sourceRoots = MojoSourceRootsResolver.resolveSourceRoots(project);
 
-        List<Path> classpath = project.getArtifacts().stream()
-                .map(Artifact::getFile)
-                .map(File::toPath)
-                .toList();
+        List<Path> classpath = MojoClasspathBuilder.buildClasspath(project);
 
         String javaVersionStr = project.getProperties().getProperty("maven.compiler.release", "21");
         int javaVersion;
@@ -220,7 +215,8 @@ public class ValidateMojo extends AbstractMojo {
                 classificationConfig,
                 Set.of(), // No plugins
                 false, // Do not include @Generated types during validation
-                List.of()); // Mono-module
+                List.of(), // Mono-module
+                false);
     }
 
     // Suppressed: SnakeYAML returns untyped Map from yaml.load(), safe because we validate instanceof before cast

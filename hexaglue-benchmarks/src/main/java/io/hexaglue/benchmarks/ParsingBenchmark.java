@@ -77,11 +77,14 @@ public class ParsingBenchmark {
                 List.of(), // No classpath needed for this simple corpus
                 17, // Java 17
                 "com.example.ecommerce",
+                false,
                 false);
 
-        mediumInput = new JavaAnalysisInput(List.of(mediumSourceRoot), List.of(), 17, "com.example.ecommerce", false);
+        mediumInput =
+                new JavaAnalysisInput(List.of(mediumSourceRoot), List.of(), 17, "com.example.ecommerce", false, false);
 
-        largeInput = new JavaAnalysisInput(List.of(largeSourceRoot), List.of(), 17, "com.example.enterprise", false);
+        largeInput =
+                new JavaAnalysisInput(List.of(largeSourceRoot), List.of(), 17, "com.example.enterprise", false, false);
     }
 
     @Benchmark

@@ -396,10 +396,9 @@ public class HtmlRenderer implements ReportRenderer {
         if (items.isEmpty()) {
             html.append("-");
         } else {
-            items.stream()
-                    .map(this::extractName)
-                    .sorted()
-                    .forEach(name -> html.append("<span class=\"tag\">").append(escape(name)).append("</span> "));
+            items.stream().map(this::extractName).sorted().forEach(name -> html.append("<span class=\"tag\">")
+                    .append(escape(name))
+                    .append("</span> "));
         }
         html.append("</td></tr>\n");
     }
@@ -416,12 +415,9 @@ public class HtmlRenderer implements ReportRenderer {
         if (ports.isEmpty()) {
             html.append("-");
         } else {
-            ports.stream()
-                    .map(PortComponent::name)
-                    .sorted()
-                    .forEach(name -> html.append("<span class=\"tag port\">")
-                            .append(escape(name))
-                            .append("</span> "));
+            ports.stream().map(PortComponent::name).sorted().forEach(name -> html.append("<span class=\"tag port\">")
+                    .append(escape(name))
+                    .append("</span> "));
         }
         html.append("</td></tr>\n");
     }
@@ -718,7 +714,9 @@ public class HtmlRenderer implements ReportRenderer {
                 html.append("      <tr><td>").append(escape(metric.name()));
                 if (!metric.description().isEmpty()) {
                     html.append("<br><small class=\"text-muted\">").append(escape(metric.description()));
-                    metric.thresholdOpt().ifPresent(t -> html.append(" (expected: ").append(escape(t.formatted())).append(")"));
+                    metric.thresholdOpt().ifPresent(t -> html.append(" (expected: ")
+                            .append(escape(t.formatted()))
+                            .append(")"));
                     html.append("</small>");
                 }
                 html.append("</td>");
@@ -745,11 +743,12 @@ public class HtmlRenderer implements ReportRenderer {
                     "    <thead><tr><th>Package</th><th>Ca</th><th>Ce</th><th>I</th><th>A</th><th>D</th><th>Zone</th></tr></thead>\n");
             html.append("    <tbody>\n");
             for (PackageMetric pm : appendix.packageMetrics()) {
-                String zoneClass = switch (pm.zone()) {
-                    case STABLE_CORE, MAIN_SEQUENCE -> "status-ok";
-                    case ZONE_OF_PAIN -> "status-critical";
-                    case ZONE_OF_USELESSNESS -> "status-warning";
-                };
+                String zoneClass =
+                        switch (pm.zone()) {
+                            case STABLE_CORE, MAIN_SEQUENCE -> "status-ok";
+                            case ZONE_OF_PAIN -> "status-critical";
+                            case ZONE_OF_USELESSNESS -> "status-warning";
+                        };
                 html.append("      <tr><td>").append(escape(pm.packageName())).append("</td>");
                 html.append("<td>").append(pm.ca()).append("</td>");
                 html.append("<td>").append(pm.ce()).append("</td>");
@@ -762,19 +761,29 @@ public class HtmlRenderer implements ReportRenderer {
                 html.append("<td>")
                         .append(String.format(Locale.ROOT, "%.2f", pm.distance()))
                         .append("</td>");
-                html.append("<td class=\"").append(zoneClass).append("\">").append(pm.zone().label()).append("</td></tr>\n");
+                html.append("<td class=\"")
+                        .append(zoneClass)
+                        .append("\">")
+                        .append(pm.zone().label())
+                        .append("</td></tr>\n");
             }
             html.append("    </tbody>\n");
             html.append("  </table>\n");
             // Legend table
             html.append("  <table class=\"appendix-table legend-table\">\n");
-            html.append("    <thead><tr><th>Column</th><th>Name</th><th>Description</th><th>Expected</th></tr></thead>\n");
+            html.append(
+                    "    <thead><tr><th>Column</th><th>Name</th><th>Description</th><th>Expected</th></tr></thead>\n");
             html.append("    <tbody>\n");
-            html.append("      <tr><td><strong>Ca</strong></td><td>Afferent Coupling</td><td>Number of external classes depending on this package</td><td>Domain packages: high Ca</td></tr>\n");
-            html.append("      <tr><td><strong>Ce</strong></td><td>Efferent Coupling</td><td>Number of external classes this package depends on</td><td>Domain packages: low Ce</td></tr>\n");
-            html.append("      <tr><td><strong>I</strong></td><td>Instability</td><td>Ce / (Ca + Ce). Ratio of outgoing dependencies</td><td>0 = stable, 1 = unstable</td></tr>\n");
-            html.append("      <tr><td><strong>A</strong></td><td>Abstractness</td><td>Ratio of abstract classes and interfaces</td><td>0 = concrete, 1 = abstract</td></tr>\n");
-            html.append("      <tr><td><strong>D</strong></td><td>Distance</td><td>|A + I - 1|. Distance from the ideal main sequence</td><td>0 = ideal balance</td></tr>\n");
+            html.append(
+                    "      <tr><td><strong>Ca</strong></td><td>Afferent Coupling</td><td>Number of external classes depending on this package</td><td>Domain packages: high Ca</td></tr>\n");
+            html.append(
+                    "      <tr><td><strong>Ce</strong></td><td>Efferent Coupling</td><td>Number of external classes this package depends on</td><td>Domain packages: low Ce</td></tr>\n");
+            html.append(
+                    "      <tr><td><strong>I</strong></td><td>Instability</td><td>Ce / (Ca + Ce). Ratio of outgoing dependencies</td><td>0 = stable, 1 = unstable</td></tr>\n");
+            html.append(
+                    "      <tr><td><strong>A</strong></td><td>Abstractness</td><td>Ratio of abstract classes and interfaces</td><td>0 = concrete, 1 = abstract</td></tr>\n");
+            html.append(
+                    "      <tr><td><strong>D</strong></td><td>Distance</td><td>|A + I - 1|. Distance from the ideal main sequence</td><td>0 = ideal balance</td></tr>\n");
             html.append("    </tbody>\n");
             html.append("  </table>\n");
         }
@@ -783,10 +792,15 @@ public class HtmlRenderer implements ReportRenderer {
     }
 
     private void renderDimensionRow(StringBuilder html, String name, ScoreDimension dim) {
-        String scoreStatusClass = dim.score() >= 60 ? "status-ok" : dim.score() >= 48 ? "status-warning" : "status-critical";
+        String scoreStatusClass =
+                dim.score() >= 60 ? "status-ok" : dim.score() >= 48 ? "status-warning" : "status-critical";
         html.append("      <tr><td>").append(escape(name)).append("</td>");
         html.append("<td>").append(dim.weight()).append("%</td>");
-        html.append("<td class=\"").append(scoreStatusClass).append("\">").append(dim.score()).append("/100</td>");
+        html.append("<td class=\"")
+                .append(scoreStatusClass)
+                .append("\">")
+                .append(dim.score())
+                .append("/100</td>");
         html.append("<td>")
                 .append(String.format(Locale.ROOT, "%.1f", dim.contribution()))
                 .append("</td></tr>\n");

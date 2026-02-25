@@ -490,12 +490,12 @@ public class MarkdownRenderer implements ReportRenderer {
                             case WARNING -> "\u26A0\uFE0F";
                             case CRITICAL -> "\u274C";
                         };
-                md.append("| **")
-                        .append(metric.name())
-                        .append("**");
+                md.append("| **").append(metric.name()).append("**");
                 if (!metric.description().isEmpty()) {
                     md.append("<br><small>").append(metric.description());
-                    metric.thresholdOpt().ifPresent(t -> md.append(" (expected: ").append(t.formatted()).append(")"));
+                    metric.thresholdOpt().ifPresent(t -> md.append(" (expected: ")
+                            .append(t.formatted())
+                            .append(")"));
                     md.append("</small>");
                 }
                 md.append(" | ")

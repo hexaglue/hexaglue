@@ -37,7 +37,7 @@ public final class SpoonFrontend implements JavaFrontend {
         LOG.info("Building Spoon model for base package: {}", input.basePackage());
 
         Launcher launcher = new Launcher();
-        configureEnvironment(launcher.getEnvironment(), input.javaVersion());
+        configureEnvironment(launcher.getEnvironment(), input.javaVersion(), input.tolerantResolution());
 
         // Add source roots
         for (Path root : input.sourceRoots()) {
@@ -62,12 +62,16 @@ public final class SpoonFrontend implements JavaFrontend {
         return new SpoonSemanticModel(ctModel, input.basePackage(), input.includeGenerated());
     }
 
-    private void configureEnvironment(Environment env, int javaVersion) {
-        env.setNoClasspath(false); // We want type resolution
+    private void configureEnvironment(Environment env, int javaVersion, boolean tolerant) {
+        env.setNoClasspath(tolerant); // false = strict resolution, true = tolerant (unresolved types accepted)
         env.setAutoImports(false); // Don't rewrite imports
         env.setCommentEnabled(true); // Required for Javadoc extraction
         env.setComplianceLevel(javaVersion);
         env.setIgnoreDuplicateDeclarations(true);
         env.setShouldCompile(false); // We only need the model, not bytecode
+
+        if (tolerant) {
+            LOG.info("Spoon configured in tolerant mode (noClasspath=true): unresolved types will be accepted");
+        }
     }
 }

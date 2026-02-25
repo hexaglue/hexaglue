@@ -413,14 +413,14 @@ class ClassificationConfigIntegrationTest {
     }
 
     private ApplicationGraph buildGraph(String basePackage) {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, false);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, false, false);
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata = GraphMetadata.of(basePackage, 21, model.types().size());
         return builder.build(model, metadata);
     }
 
     private ApplicationGraph buildGraphIncludingGenerated(String basePackage) {
-        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, true);
+        JavaAnalysisInput input = new JavaAnalysisInput(List.of(tempDir), List.of(), 21, basePackage, true, false);
         JavaSemanticModel model = frontend.build(input);
         GraphMetadata metadata = GraphMetadata.of(basePackage, 21, model.types().size());
         return builder.build(model, metadata);

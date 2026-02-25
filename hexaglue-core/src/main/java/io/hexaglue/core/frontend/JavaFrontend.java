@@ -37,20 +37,23 @@ public interface JavaFrontend {
      * @param javaVersion the Java version (e.g., 17)
      * @param basePackage the base package to filter types (null for no filter)
      * @param includeGenerated whether to include {@code @Generated}-annotated types in the model
+     * @param tolerantResolution whether to use tolerant (noClasspath) mode for type resolution
      * @since 5.0.0
+     * @since 6.0.0 added tolerantResolution
      */
     record JavaAnalysisInput(
             List<Path> sourceRoots,
             List<Path> classpathEntries,
             int javaVersion,
             String basePackage,
-            boolean includeGenerated) {
+            boolean includeGenerated,
+            boolean tolerantResolution) {
 
         /**
          * Creates a minimal input for testing.
          */
         public static JavaAnalysisInput minimal(Path sourceRoot, String basePackage) {
-            return new JavaAnalysisInput(List.of(sourceRoot), List.of(), 17, basePackage, false);
+            return new JavaAnalysisInput(List.of(sourceRoot), List.of(), 17, basePackage, false, false);
         }
     }
 }
