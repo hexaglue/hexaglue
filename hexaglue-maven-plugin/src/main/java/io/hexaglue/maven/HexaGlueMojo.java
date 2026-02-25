@@ -110,6 +110,18 @@ public class HexaGlueMojo extends AbstractMojo {
     @Parameter(property = "hexaglue.skipValidation", defaultValue = "false")
     private boolean skipValidation;
 
+    /**
+     * Enable tolerant type resolution for projects using annotation processors.
+     *
+     * <p>When enabled, HexaGlue accepts unresolved types during analysis instead of
+     * failing. This is useful for projects using annotation processors (MapStruct,
+     * Immutables) whose generated types are not yet on the classpath.
+     *
+     * @since 6.0.0
+     */
+    @Parameter(property = "hexaglue.tolerantResolution", defaultValue = "false")
+    private boolean tolerantResolution;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -212,7 +224,7 @@ public class HexaGlueMojo extends AbstractMojo {
                 Set.of(PluginCategory.GENERATOR), // Only run generator plugins
                 false, // Do not include @Generated types during generation
                 List.of(), // Mono-module
-                false);
+                tolerantResolution);
     }
 
     private String formatDiagnostic(Diagnostic diag) {

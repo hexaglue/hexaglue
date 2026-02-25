@@ -61,9 +61,11 @@ final class ReactorEngineConfigBuilder {
      * @param classificationConfig classification configuration (exclusions, explicit mappings)
      * @param enabledCategories plugin categories to execute
      * @param includeGenerated whether to include {@code @Generated}-annotated types
+     * @param tolerantResolution whether to use tolerant (noClasspath) mode for type resolution
      * @param log the Maven logger
      * @return the unified engine configuration
      * @since 5.0.0 added separate sourcesOutputDirectory and reportsOutputDirectory
+     * @since 6.0.0 added tolerantResolution for annotation processor compatibility
      */
     static EngineConfig build(
             MavenSession session,
@@ -74,6 +76,7 @@ final class ReactorEngineConfigBuilder {
             ClassificationConfig classificationConfig,
             Set<PluginCategory> enabledCategories,
             boolean includeGenerated,
+            boolean tolerantResolution,
             Log log) {
         MavenProject topLevel = findTopLevelProject(session);
         return build(
@@ -85,6 +88,7 @@ final class ReactorEngineConfigBuilder {
                 classificationConfig,
                 enabledCategories,
                 includeGenerated,
+                tolerantResolution,
                 Map.of("hexaglue.projectRoot", topLevel.getBasedir().toPath()),
                 log);
     }
@@ -100,10 +104,12 @@ final class ReactorEngineConfigBuilder {
      * @param classificationConfig classification configuration (exclusions, explicit mappings)
      * @param enabledCategories plugin categories to execute
      * @param includeGenerated whether to include {@code @Generated}-annotated types
+     * @param tolerantResolution whether to use tolerant (noClasspath) mode for type resolution
      * @param options additional engine options (e.g. projectRoot)
      * @param log the Maven logger
      * @return the unified engine configuration
      * @since 5.0.0
+     * @since 6.0.0 added tolerantResolution for annotation processor compatibility
      */
     static EngineConfig build(
             MavenSession session,
@@ -114,6 +120,7 @@ final class ReactorEngineConfigBuilder {
             ClassificationConfig classificationConfig,
             Set<PluginCategory> enabledCategories,
             boolean includeGenerated,
+            boolean tolerantResolution,
             Map<String, Object> options,
             Log log) {
 
@@ -189,7 +196,7 @@ final class ReactorEngineConfigBuilder {
                 enabledCategories,
                 includeGenerated,
                 moduleSourceSets,
-                false);
+                tolerantResolution);
     }
 
     /**

@@ -89,6 +89,18 @@ public class ReactorGenerateMojo extends AbstractMojo {
     private boolean skipValidation;
 
     /**
+     * Enable tolerant type resolution for projects using annotation processors.
+     *
+     * <p>When enabled, HexaGlue accepts unresolved types during analysis instead of
+     * failing. This is useful for projects using annotation processors (MapStruct,
+     * Immutables) whose generated types are not yet on the classpath.
+     *
+     * @since 6.0.0
+     */
+    @Parameter(property = "hexaglue.tolerantResolution", defaultValue = "false")
+    private boolean tolerantResolution;
+
+    /**
      * Default output directory for generated sources (reactor-level).
      */
     @Parameter(
@@ -124,6 +136,7 @@ public class ReactorGenerateMojo extends AbstractMojo {
                 classificationConfig,
                 Set.of(PluginCategory.GENERATOR),
                 false, // Do not include @Generated types during generation
+                tolerantResolution,
                 getLog());
 
         // Validate targetModule references in plugin configurations

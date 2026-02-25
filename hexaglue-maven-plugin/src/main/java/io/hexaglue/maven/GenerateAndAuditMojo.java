@@ -147,6 +147,18 @@ public class GenerateAndAuditMojo extends AbstractMojo {
     @Parameter(property = "hexaglue.reportDirectory", defaultValue = "${project.build.directory}/hexaglue/reports")
     private File reportDirectory;
 
+    /**
+     * Enable tolerant type resolution for projects using annotation processors.
+     *
+     * <p>When enabled, HexaGlue accepts unresolved types during analysis instead of
+     * failing. This is useful for projects using annotation processors (MapStruct,
+     * Immutables) whose generated types are not yet on the classpath.
+     *
+     * @since 6.0.0
+     */
+    @Parameter(property = "hexaglue.tolerantResolution", defaultValue = "false")
+    private boolean tolerantResolution;
+
     @Override
     public void execute() throws MojoExecutionException, MojoFailureException {
         if (skip) {
@@ -280,7 +292,7 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 Set.of(PluginCategory.GENERATOR), // Only run generator plugins
                 false, // Do not include @Generated types during generation
                 List.of(), // Mono-module
-                false);
+                tolerantResolution);
     }
 
     private EngineConfig buildAuditConfig() {
@@ -319,7 +331,7 @@ public class GenerateAndAuditMojo extends AbstractMojo {
                 Set.of(PluginCategory.AUDIT), // Only run audit plugins
                 true, // Include @Generated types so audit can see generated adapters
                 List.of(), // Mono-module
-                false);
+                tolerantResolution);
     }
 
     /**
