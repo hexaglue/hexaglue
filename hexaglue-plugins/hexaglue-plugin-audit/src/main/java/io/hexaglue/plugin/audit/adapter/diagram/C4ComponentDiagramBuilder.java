@@ -46,12 +46,16 @@ public class C4ComponentDiagramBuilder {
         sb.append("C4Component\n");
         sb.append("    title Component Diagram - ").append(projectName).append("\n\n");
 
+        // Track rendered component IDs to avoid duplicates and orphan references
+        Set<String> renderedIds = new HashSet<>();
+
         // Driving Side
         if (!components.drivingPorts().isEmpty()
                 || !components.applicationServices().isEmpty()) {
             sb.append("    Container_Boundary(driving, \"Driving Side\") {\n");
             for (PortComponent port : components.drivingPorts()) {
                 String portId = sanitizeId(port.name());
+                if (!renderedIds.add(portId)) continue;
                 sb.append("        Component(")
                         .append(portId)
                         .append(", \"")
@@ -62,6 +66,7 @@ public class C4ComponentDiagramBuilder {
             }
             for (ApplicationServiceComponent service : components.applicationServices()) {
                 String serviceId = sanitizeId(service.name());
+                if (!renderedIds.add(serviceId)) continue;
                 sb.append("        Component(")
                         .append(serviceId)
                         .append(", \"")
@@ -78,6 +83,7 @@ public class C4ComponentDiagramBuilder {
             sb.append("    Container_Boundary(domain, \"Domain Core\") {\n");
             for (AggregateComponent agg : components.aggregates()) {
                 String aggId = sanitizeId(agg.name());
+                if (!renderedIds.add(aggId)) continue;
                 sb.append("        Component(")
                         .append(aggId)
                         .append(", \"")
@@ -94,6 +100,7 @@ public class C4ComponentDiagramBuilder {
             sb.append("    Container_Boundary(driven, \"Driven Side\") {\n");
             for (PortComponent port : components.drivenPorts()) {
                 String portId = sanitizeId(port.name());
+                if (!renderedIds.add(portId)) continue;
                 String kind = port.kindOpt().orElse("Port");
                 String componentType = "REPOSITORY".equals(kind) ? "ComponentDb" : "Component";
                 String styleHint = "GATEWAY".equals(kind) ? "_Ext" : "";
@@ -120,6 +127,7 @@ public class C4ComponentDiagramBuilder {
                 sb.append("    Container_Boundary(infra, \"Infrastructure Layer\") {\n");
                 for (AdapterComponent adapter : drivenAdapters) {
                     String adapterId = sanitizeId(adapter.name());
+                    if (!renderedIds.add(adapterId)) continue;
                     sb.append("        Component(")
                             .append(adapterId)
                             .append(", \"")
@@ -137,13 +145,17 @@ public class C4ComponentDiagramBuilder {
 
         // Driving port -> Aggregate orchestration
         for (PortComponent port : components.drivingPorts()) {
+            String fromId = sanitizeId(port.name());
+            if (!renderedIds.contains(fromId)) continue;
             for (String agg : port.orchestrates()) {
+                String toId = sanitizeId(agg);
+                if (!renderedIds.contains(toId)) continue;
                 String relKey = port.name() + "->" + agg;
                 if (!renderedRels.contains(relKey)) {
                     sb.append("    Rel_D(")
-                            .append(sanitizeId(port.name()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(agg))
+                            .append(toId)
                             .append(", \"orchestrates\")\n");
                     renderedRels.add(relKey);
                 }
@@ -152,13 +164,17 @@ public class C4ComponentDiagramBuilder {
 
         // Aggregate -> Port usage
         for (AggregateComponent agg : components.aggregates()) {
+            String fromId = sanitizeId(agg.name());
+            if (!renderedIds.contains(fromId)) continue;
             for (String portName : agg.usesPorts()) {
+                String toId = sanitizeId(portName);
+                if (!renderedIds.contains(toId)) continue;
                 String relKey = agg.name() + "->" + portName;
                 if (!renderedRels.contains(relKey)) {
                     sb.append("    Rel_D(")
-                            .append(sanitizeId(agg.name()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(portName))
+                            .append(toId)
                             .append(", \"uses\")\n");
                     renderedRels.add(relKey);
                 }
@@ -167,13 +183,12 @@ public class C4ComponentDiagramBuilder {
 
         // Port -> Adapter implementation
         for (AdapterComponent adapter : components.adapters()) {
+            String fromId = sanitizeId(adapter.implementsPort());
+            String toId = sanitizeId(adapter.name());
+            if (!renderedIds.contains(fromId) || !renderedIds.contains(toId)) continue;
             String relKey = adapter.implementsPort() + "->" + adapter.name();
             if (!renderedRels.contains(relKey)) {
-                sb.append("    Rel_D(")
-                        .append(sanitizeId(adapter.implementsPort()))
-                        .append(", ")
-                        .append(sanitizeId(adapter.name()))
-                        .append(", \"implemented by\")\n");
+                sb.append("    Rel_D(").append(fromId).append(", ").append(toId).append(", \"implemented by\")\n");
                 renderedRels.add(relKey);
             }
         }
@@ -181,13 +196,16 @@ public class C4ComponentDiagramBuilder {
         // Inter-aggregate cycles (special highlighting)
         for (Relationship rel : relationships) {
             if (rel.isCycle() && "references".equals(rel.type())) {
+                String fromId = sanitizeId(rel.from());
+                String toId = sanitizeId(rel.to());
+                if (!renderedIds.contains(fromId) || !renderedIds.contains(toId)) continue;
                 String relKey = rel.from() + "<->" + rel.to();
                 String reverseKey = rel.to() + "<->" + rel.from();
                 if (!renderedRels.contains(relKey) && !renderedRels.contains(reverseKey)) {
                     sb.append("    BiRel(")
-                            .append(sanitizeId(rel.from()))
+                            .append(fromId)
                             .append(", ")
-                            .append(sanitizeId(rel.to()))
+                            .append(toId)
                             .append(", \"cycle!\")\n");
                     renderedRels.add(relKey);
                 }
@@ -200,37 +218,41 @@ public class C4ComponentDiagramBuilder {
         sb.append("    UpdateLayoutConfig($c4ShapeInRow=\"3\", $c4BoundaryInRow=\"1\")\n\n");
 
         // Styles
+        Set<String> styledIds = new HashSet<>();
         for (PortComponent port : components.drivingPorts()) {
-            sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(port.name()))
-                    .append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
+            String id = sanitizeId(port.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
+            sb.append("    UpdateElementStyle(").append(id).append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
         }
         for (ApplicationServiceComponent service : components.applicationServices()) {
-            sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(service.name()))
-                    .append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
+            String id = sanitizeId(service.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
+            sb.append("    UpdateElementStyle(").append(id).append(", $fontColor=\"white\", $bgColor=\"#2196F3\")\n");
         }
         for (AggregateComponent agg : components.aggregates()) {
-            sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(agg.name()))
-                    .append(", $fontColor=\"white\", $bgColor=\"#FF9800\")\n");
+            String id = sanitizeId(agg.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
+            sb.append("    UpdateElementStyle(").append(id).append(", $fontColor=\"white\", $bgColor=\"#FF9800\")\n");
         }
         List<AdapterComponent> drivenAdaptersForStyle = components.adapters().stream()
                 .filter(a -> a.type() == AdapterComponent.AdapterType.DRIVEN)
                 .toList();
         for (AdapterComponent adapter : drivenAdaptersForStyle) {
-            sb.append("    UpdateElementStyle(")
-                    .append(sanitizeId(adapter.name()))
-                    .append(", $fontColor=\"white\", $bgColor=\"#4CAF50\")\n");
+            String id = sanitizeId(adapter.name());
+            if (!renderedIds.contains(id) || !styledIds.add(id)) continue;
+            sb.append("    UpdateElementStyle(").append(id).append(", $fontColor=\"white\", $bgColor=\"#4CAF50\")\n");
         }
 
         // Highlight cycles in red
         for (Relationship rel : relationships) {
             if (rel.isCycle()) {
+                String fromId = sanitizeId(rel.from());
+                String toId = sanitizeId(rel.to());
+                if (!renderedIds.contains(fromId) || !renderedIds.contains(toId)) continue;
                 sb.append("    UpdateRelStyle(")
-                        .append(sanitizeId(rel.from()))
+                        .append(fromId)
                         .append(", ")
-                        .append(sanitizeId(rel.to()))
+                        .append(toId)
                         .append(", $lineColor=\"red\", $textColor=\"red\")\n");
             }
         }

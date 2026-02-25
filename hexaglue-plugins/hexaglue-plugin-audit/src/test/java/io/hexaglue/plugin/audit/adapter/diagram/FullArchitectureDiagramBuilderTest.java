@@ -331,6 +331,85 @@ class FullArchitectureDiagramBuilderTest {
             // Allow for "Aggregate Root" label repetitions but limited actual components
             assertThat(count).isLessThanOrEqualTo(30); // 15 components * 2 mentions each max
         }
+
+        @Test
+        @DisplayName("should not emit relationships for truncated components")
+        void shouldNotEmitRelationshipsForTruncatedComponents() {
+            // Given: 20 services each orchestrating a unique aggregate
+            List<ApplicationServiceComponent> services = new java.util.ArrayList<>();
+            List<AggregateComponent> aggregates = new java.util.ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                services.add(ApplicationServiceComponent.of(
+                        "Service" + i, "com.example.app", 1, List.of("Aggregate" + i), List.of()));
+                aggregates.add(AggregateComponent.of("Aggregate" + i, "com.example", 5, List.of(), List.of()));
+            }
+            ComponentDetails components = new ComponentDetails(
+                    aggregates,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    services,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driven("SomeRepository", "com.example.port", "REPOSITORY", 3, false, null)),
+                    List.of());
+
+            // When
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
+
+            // Then: truncated services (index 15..19) should not appear in Rel_D
+            for (int i = 15; i < 20; i++) {
+                String truncatedServiceId = "service" + i;
+                long relCount = result.lines()
+                        .filter(l -> l.contains("Rel_D(") && l.contains(truncatedServiceId))
+                        .count();
+                assertThat(relCount)
+                        .as("Rel_D should not reference truncated service %s", truncatedServiceId)
+                        .isZero();
+            }
+        }
+
+        @Test
+        @DisplayName("should not emit styles for truncated components")
+        void shouldNotEmitStylesForTruncatedComponents() {
+            // Given: 20 aggregates
+            List<AggregateComponent> manyAggregates = new java.util.ArrayList<>();
+            for (int i = 0; i < 20; i++) {
+                manyAggregates.add(AggregateComponent.of("Aggregate" + i, "com.example", 5, List.of(), List.of()));
+            }
+            ComponentDetails components = new ComponentDetails(
+                    manyAggregates,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driven("SomeRepository", "com.example.port", "REPOSITORY", 3, false, null)),
+                    List.of());
+
+            // When
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
+
+            // Then: truncated aggregates (index 15..19) should not appear in UpdateElementStyle
+            for (int i = 15; i < 20; i++) {
+                String truncatedAggId = "aggregate" + i;
+                long styleCount = result.lines()
+                        .filter(l -> l.contains("UpdateElementStyle(") && l.contains(truncatedAggId))
+                        .count();
+                assertThat(styleCount)
+                        .as("UpdateElementStyle should not reference truncated aggregate %s", truncatedAggId)
+                        .isZero();
+            }
+        }
     }
 
     @Nested
@@ -466,6 +545,79 @@ class FullArchitectureDiagramBuilderTest {
     @Nested
     @DisplayName("Styling")
     class StylingTests {
+
+        @Test
+        @DisplayName("should not declare duplicate component for driven adapter matching app service")
+        void shouldNotDeclareDuplicateComponentForDrivenAdapterMatchingAppService() {
+            // Given: NotificationBusinessImpl is both an ApplicationService AND a DRIVEN Adapter
+            ComponentDetails components = new ComponentDetails(
+                    List.of(AggregateComponent.of("Notification", "com.example.domain", 3, List.of(), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(ApplicationServiceComponent.of(
+                            "NotificationBusinessImpl", "com.example.app", 2, List.of("Notification"), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driven(
+                            "NotificationPort", "com.example.port", "GATEWAY", 1, true, "NotificationBusinessImpl")),
+                    List.of(new AdapterComponent(
+                            "NotificationBusinessImpl",
+                            "com.example.app",
+                            "NotificationPort",
+                            AdapterComponent.AdapterType.DRIVEN)));
+
+            // When
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
+
+            // Then: Component(notificationbusinessimpl should appear only once
+            long count = result.lines()
+                    .filter(l -> l.contains("Component(notificationbusinessimpl"))
+                    .count();
+            assertThat(count).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("should not double-style driven adapter matching application service")
+        void shouldNotDoubleStyleDrivenAdapterMatchingApplicationService() {
+            // Given: same setup - NotificationBusinessImpl is AppService AND DRIVEN Adapter
+            ComponentDetails components = new ComponentDetails(
+                    List.of(AggregateComponent.of("Notification", "com.example.domain", 3, List.of(), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(ApplicationServiceComponent.of(
+                            "NotificationBusinessImpl", "com.example.app", 2, List.of("Notification"), List.of())),
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(PortComponent.driven(
+                            "NotificationPort", "com.example.port", "GATEWAY", 1, true, "NotificationBusinessImpl")),
+                    List.of(new AdapterComponent(
+                            "NotificationBusinessImpl",
+                            "com.example.app",
+                            "NotificationPort",
+                            AdapterComponent.AdapterType.DRIVEN)));
+
+            // When
+            String result = builder.build("TestProject", components, List.of(), List.of())
+                    .orElseThrow();
+
+            // Then: should keep blue (#2196F3) for app service, NOT override with green (#4CAF50)
+            assertThat(result)
+                    .contains(
+                            "UpdateElementStyle(notificationbusinessimpl, $fontColor=\"white\", $bgColor=\"#2196F3\")");
+            long greenCount = result.lines()
+                    .filter(l -> l.contains("notificationbusinessimpl") && l.contains("#4CAF50"))
+                    .count();
+            assertThat(greenCount).isZero();
+        }
 
         @Test
         @DisplayName("should not double-style application services as adapters")
