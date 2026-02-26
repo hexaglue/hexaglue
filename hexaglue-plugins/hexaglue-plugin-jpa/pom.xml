@@ -7,11 +7,11 @@
     <parent>
         <groupId>io.hexaglue.plugins</groupId>
         <artifactId>hexaglue-plugins</artifactId>
-        <version>6.0.0-SNAPSHOT</version>
+        <version>6.0.0</version>
     </parent>
 
     <artifactId>hexaglue-plugin-jpa</artifactId>
-    <version>3.0.0-SNAPSHOT</version>
+    <version>3.0.0</version>
     <packaging>jar</packaging>
 
     <name>HexaGlue JPA Plugin</name>

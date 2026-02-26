@@ -6,7 +6,7 @@
 
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-parent</artifactId>
-    <version>6.0.0-SNAPSHOT</version>
+    <version>6.0.0</version>
     <packaging>pom</packaging>
 
     <name>HexaGlue</name>
@@ -91,7 +91,7 @@
         <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
 
         <!-- Build tools version (fixed, not ${project.version} to work with child modules) -->
-        <hexaglue-build-tools.version>6.0.0-SNAPSHOT</hexaglue-build-tools.version>
+        <hexaglue-build-tools.version>6.0.0</hexaglue-build-tools.version>
 
         <!-- Root directory for license header (overridden in child modules) -->
         <hexaglue.root>${project.basedir}</hexaglue.root>
