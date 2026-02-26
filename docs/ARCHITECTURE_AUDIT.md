@@ -4,7 +4,7 @@ Validate your Domain-Driven Design and Hexagonal Architecture implementation. Th
 
 ## What the Audit Validates
 
-The audit plugin checks 14 constraints in two categories:
+The audit plugin checks 15 constraints in two categories:
 
 ### DDD Constraints
 
@@ -29,6 +29,7 @@ The audit plugin checks 14 constraints in two categories:
 | `hexagonal:port-direction` | MAJOR | Port direction matches usage |
 | `hexagonal:dependency-inversion` | CRITICAL | Dependencies on abstractions only |
 | `hexagonal:port-coverage` | MAJOR | Ports have adapter implementations |
+| `hexagonal:application-purity` | MAJOR | Application layer has no infrastructure framework dependencies |
 
 ### Severity Levels
 
@@ -56,7 +57,7 @@ The audit plugin checks 14 constraints in two categories:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -85,8 +86,8 @@ RESULT: PASSED
 
 SUMMARY
 -------
-Total Constraints: 14
-Passed: 14
+Total Constraints: 15
+Passed: 15
 Failed: 0
 Skipped: 0
 
@@ -293,26 +294,60 @@ audit:
 
 ## Metrics and Quality Scores
 
-The audit also calculates architecture metrics:
+The audit calculates 21 architecture metrics across 5 categories:
 
-| Metric | Description | Threshold |
-|--------|-------------|-----------|
-| Domain Coverage | % of types classified as domain | > 60% |
-| Domain Purity | % of domain types without infrastructure deps | 100% |
-| Port Coverage | % of ports with implementations | 100% |
-| Coupling | Average instability of packages | < 0.7 |
-| Aggregate Size | Average entities per aggregate | < 7 |
+### Domain & DDD
+
+| Metric | Description | Warning Threshold |
+|--------|-------------|-------------------|
+| `domain.coverage` | % of types classified as domain | < 30% |
+| `domain.purity` | % of domain types without infrastructure deps | < 100% |
+| `ddd.value.object.ratio` | % of domain types that are value objects | < 40% |
+| `ddd.event.coverage` | % of aggregates emitting domain events | < 50% |
+| `ddd.aggregate.coupling` | Average dependencies per aggregate | > 3.0 |
+
+### Aggregate
+
+| Metric | Description | Warning Threshold |
+|--------|-------------|-------------------|
+| `aggregate.avgSize` | Average methods per aggregate | > 20 |
+| `aggregate.repository.coverage` | % of aggregates with a repository | < 100% |
+| `aggregate.cohesion.lcom4` | LCOM4 cohesion (connected components) | > 2 |
+| `aggregate.boundary` | % of entities accessible only through their aggregate root | < 80% |
+| `aggregate.coupling.efferent` | Efferent coupling ratio | > 0.7 |
+
+### Architecture
+
+| Metric | Description | Warning Threshold |
+|--------|-------------|-------------------|
+| `architecture.propagation.cost` | Impact of a change across the codebase | > 35% |
+| `architecture.mmi` | Maintainability & Modularity Index | < 50 |
+| `architecture.modularity.q` | Newman modularity (community structure) | < 0.3 |
+| `architecture.cohesion.relational` | Relational cohesion ratio | outside [1.5, 4.0] |
+| `architecture.visibility.average` | Average type visibility | > 70% |
+| `architecture.fan.out.max` | Maximum outgoing dependencies | > 20 |
+| `architecture.dependency.depth` | Longest dependency chain | > 7 |
+| `architecture.cyclicity.relative` | % of types involved in cycles | > 5% |
+
+### Hexagonal & Code Quality
+
+| Metric | Description | Warning Threshold |
+|--------|-------------|-------------------|
+| `hexagonal.adapter.independence` | % of adapters with no cross-adapter dependency | < 80% |
+| `code.complexity.average` | Average cyclomatic complexity | > 10 |
+| `code.boilerplate.ratio` | % of boilerplate code (getters/setters, constructors) | > 50% |
 
 ### Metrics in Report
 
 ```json
 {
   "metrics": {
-    "domainCoverage": 0.75,
-    "domainPurity": 1.0,
-    "portCoverage": 1.0,
-    "averageCoupling": 0.45,
-    "aggregateCount": 3
+    "domain.coverage": 0.75,
+    "domain.purity": 1.0,
+    "aggregate.repository.coverage": 1.0,
+    "architecture.propagation.cost": 0.22,
+    "architecture.cyclicity.relative": 0.0,
+    "hexagonal.adapter.independence": 1.0
   }
 }
 ```
@@ -342,17 +377,17 @@ Full production configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </plugin>

@@ -115,7 +115,7 @@ Add this to your `pom.xml`:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>5.0.0</version>
+    <version>6.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -131,7 +131,7 @@ mvn compile
 HexaGlue analyzes your domain and outputs a classification summary:
 
 ```
-[INFO] --- hexaglue:5.0.0:generate (default-cli) @ my-project ---
+[INFO] --- hexaglue:6.0.0:generate (default-cli) @ my-project ---
 [INFO]
 [INFO] CLASSIFICATION SUMMARY
 [INFO] --------------------------------------------------------------
@@ -159,7 +159,7 @@ To generate JPA entities and repositories, add the plugin dependency:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>5.0.0</version>
+    <version>6.0.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -168,7 +168,7 @@ To generate JPA entities and repositories, add the plugin dependency:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>2.0.0</version>
+            <version>3.0.0</version>
         </dependency>
     </dependencies>
 </plugin>
