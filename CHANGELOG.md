@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.0.0] - 2026-02-26
+
+### Breaking Changes
+
+- **Major version bump** - Core 5.x → 6.0, plugins 2.x → 3.0
+
+### Added
+
+- **Automatic Lombok support** - Detection in Maven dependencies, transparent `delombok` phase during `initialize` (`HexaGlueLifecycleParticipant`)
+- **Tolerant mode (`noClasspath`)** - For projects using annotation processors (MapStruct, Immutables), configurable via `-Dhexaglue.tolerantResolution=true`
+- **`tolerantResolution` Maven parameter** - Exposed in all Mojos (`HexaGlueMojo`, `GenerateAndAuditMojo`, `ReactorGenerateMojo`, `ReactorAuditMojo`)
+- **`MojoClasspathBuilder`** - Centralized analysis classpath construction
+- **`MojoSourceRootsResolver`** - Centralized source roots resolution
+- **`TypeNameResolver`** - Tolerant type name resolution in the Spoon frontend
+- **12 new architecture metrics** in audit plugin (propagation cost, relative cyclicity, adapter independence, VO ratio, etc.)
+- **Audit appendix improvements** - Score coloring, metric descriptions, zone styling, sorted inventory, severity ordering
+
+### Fixed
+
+- **C4 Mermaid diagrams** - Fixed duplicate component IDs, contradictory styles, and orphan references
+- **Maven Central metadata** - Fixed URL, SCM, license, developer, inceptionYear
+
 ## [5.1.0] - 2026-02-17
 
 ### Breaking Changes
@@ -503,6 +525,7 @@ Initial stable release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 6.0.0 | 2026-02-26 | Automatic Lombok support, tolerant resolution, 12 new audit metrics |
 | 5.1.0 | 2026-02-17 | Remove manifest/stale/overwrite, add parameter regression tests |
 | 5.0.0 | 2026-02-13 | Sealed ArchType hierarchy, multi-module support, legacy IR removed |
 | 4.1.0 | 2026-01-20 | ElementRegistry API, DomainIndex, PortIndex |

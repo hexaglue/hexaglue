@@ -88,6 +88,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then
@@ -114,6 +115,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -149,6 +151,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -193,6 +196,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then
@@ -230,6 +234,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then
@@ -261,6 +266,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -305,6 +311,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then: YAML wins over convention
@@ -329,6 +336,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -360,6 +368,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then: output directory is under parent/target/generated-sources/hexaglue/modules/<moduleId>/
@@ -387,6 +396,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -429,6 +439,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then: module output directory should use the custom sources base
@@ -462,6 +473,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -499,6 +511,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
@@ -540,6 +553,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Then: both modules should use the custom sources base
@@ -574,6 +588,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             // Only jar module included
@@ -599,6 +614,7 @@ class ReactorEngineConfigBuilderTest {
                     null,
                     Set.of(PluginCategory.GENERATOR),
                     false,
+                    false,
                     log);
 
             assertThat(config.moduleSourceSets()).hasSize(1);
@@ -622,6 +638,7 @@ class ReactorEngineConfigBuilderTest {
                     Map.of(),
                     null,
                     Set.of(PluginCategory.GENERATOR),
+                    false,
                     false,
                     log);
 
