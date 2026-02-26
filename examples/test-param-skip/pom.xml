@@ -24,7 +24,7 @@
             <plugin>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>6.0.0-SNAPSHOT</version>
+                <version>6.1.0-SNAPSHOT</version>
                 <extensions>true</extensions>
                 <configuration>
                     <basePackage>com.example</basePackage>

@@ -64,7 +64,7 @@
             <plugin>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>6.0.0-SNAPSHOT</version>
+                <version>6.1.0-SNAPSHOT</version>
                 <extensions>true</extensions>
                 <configuration>
                     <basePackage>com.example.ecommerce</basePackage>
@@ -76,13 +76,13 @@
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-living-doc</artifactId>
-                        <version>3.0.0-SNAPSHOT</version>
+                        <version>3.1.0-SNAPSHOT</version>
                     </dependency>
                     <!-- DDD Audit Plugin -->
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-audit</artifactId>
-                        <version>3.0.0-SNAPSHOT</version>
+                        <version>3.1.0-SNAPSHOT</version>
                     </dependency>
                 </dependencies>
             </plugin>
