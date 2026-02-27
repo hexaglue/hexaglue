@@ -28,6 +28,7 @@ import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.TestUseCaseFactory;
 import io.hexaglue.plugin.rest.model.BindingKind;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
+import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.HttpMethod;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
@@ -314,6 +315,73 @@ class ControllerSpecBuilderTest {
             assertThat(spec.responseDtos()).hasSize(1);
             assertThat(spec.endpoints().get(0).responseDtoRef()).isEqualTo("AccountResponse");
             assertThat(spec.endpoints().get(1).responseDtoRef()).isEqualTo("AccountResponse");
+        }
+    }
+
+    @Nested
+    @DisplayName("With thrown exceptions")
+    class WithThrownExceptions {
+
+        @Test
+        @DisplayName("should collect thrown exceptions from use case methods")
+        void shouldCollectThrownExceptionsFromUseCases() {
+            UseCase closeAccount = TestUseCaseFactory.commandWithExceptions(
+                    "closeAccount", List.of(TypeRef.of("com.acme.core.exception.AccountNotFoundException")));
+            DrivingPort port =
+                    TestUseCaseFactory.drivingPort("com.acme.core.port.in.AccountUseCases", List.of(closeAccount));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .build();
+
+            assertThat(spec.endpoints().get(0).thrownExceptions()).hasSize(1);
+            assertThat(spec.endpoints().get(0).thrownExceptions().get(0).simpleName())
+                    .isEqualTo("AccountNotFoundException");
+        }
+
+        @Test
+        @DisplayName("should derive exception mappings with heuristics")
+        void shouldDeriveExceptionMappingsWithHeuristics() {
+            UseCase closeAccount = TestUseCaseFactory.commandWithExceptions(
+                    "closeAccount", List.of(TypeRef.of("com.acme.core.exception.AccountNotFoundException")));
+            UseCase transfer = TestUseCaseFactory.commandWithExceptions(
+                    "transfer",
+                    List.of(
+                            TypeRef.of("com.acme.core.exception.InsufficientFundsException"),
+                            TypeRef.of("com.acme.core.exception.TransferRejectedException")));
+            DrivingPort port = TestUseCaseFactory.drivingPort(
+                    "com.acme.core.port.in.AccountUseCases", List.of(closeAccount, transfer));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .build();
+
+            assertThat(spec.exceptionMappings()).hasSize(3);
+            assertThat(spec.exceptionMappings().stream().map(ExceptionMappingSpec::errorCode))
+                    .containsExactlyInAnyOrder("NOT_FOUND", "INSUFFICIENT_RESOURCE", "REJECTED");
+        }
+
+        @Test
+        @DisplayName("should deduplicate exception mappings within same controller")
+        void shouldDeduplicateExceptionMappings() {
+            UseCase close = TestUseCaseFactory.commandWithExceptions(
+                    "closeAccount", List.of(TypeRef.of("com.acme.core.exception.AccountNotFoundException")));
+            UseCase find = TestUseCaseFactory.commandWithExceptions(
+                    "findAccount", List.of(TypeRef.of("com.acme.core.exception.AccountNotFoundException")));
+            DrivingPort port =
+                    TestUseCaseFactory.drivingPort("com.acme.core.port.in.AccountUseCases", List.of(close, find));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .build();
+
+            assertThat(spec.exceptionMappings()).hasSize(1);
         }
     }
 }

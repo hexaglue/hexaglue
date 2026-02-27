@@ -32,13 +32,24 @@ public final class HttpVerbStrategyFactory {
     private final List<HttpVerbStrategy> strategies;
 
     /**
-     * Creates the factory with the default strategy chain.
+     * Creates the factory with the full strategy chain.
      *
-     * <p>Phase 1 only includes FallbackStrategy. Additional strategies
-     * will be added in later phases.
+     * <p>Strategies are ordered by priority (lower order = higher priority).
+     * The {@link FallbackStrategy} is always last and guarantees a match.
      */
     public HttpVerbStrategyFactory() {
-        this.strategies = List.of(new FallbackStrategy());
+        this.strategies = List.of(
+                new GetByIdStrategy(), // order 100
+                new GetByPropertyStrategy(), // order 200
+                new GetCollectionStrategy(), // order 300
+                new SearchStrategy(), // order 400
+                new CountStrategy(), // order 500
+                new ExistsStrategy(), // order 600
+                new CreateStrategy(), // order 700
+                new UpdateStrategy(), // order 800
+                new DeleteStrategy(), // order 900
+                new SubResourceActionStrategy(), // order 1000
+                new FallbackStrategy()); // order Integer.MAX_VALUE
     }
 
     /**

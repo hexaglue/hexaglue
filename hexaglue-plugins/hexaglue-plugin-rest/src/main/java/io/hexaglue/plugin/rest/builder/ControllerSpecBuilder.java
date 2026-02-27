@@ -28,6 +28,7 @@ import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.model.BindingKind;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.EndpointSpec;
+import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.HttpMapping;
 import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
@@ -152,9 +153,10 @@ public final class ControllerSpecBuilder {
 
             // Associate aggregate root
             ClassName aggregateType = null;
+            AggregateRoot aggregate = null;
             if (domainIndex != null) {
                 AggregateAssociator associator = new AggregateAssociator(domainIndex);
-                AggregateRoot aggregate = associator.associate(drivingPort).orElse(null);
+                aggregate = associator.associate(drivingPort).orElse(null);
                 if (aggregate != null) {
                     aggregateType = ClassName.get(
                             aggregate.id().packageName(), aggregate.id().simpleName());
@@ -165,9 +167,10 @@ public final class ControllerSpecBuilder {
             List<EndpointSpec> endpoints = new ArrayList<>();
             List<RequestDtoSpec> requestDtos = new ArrayList<>();
             Map<String, ResponseDtoSpec> responseDtoMap = new LinkedHashMap<>();
+            Map<String, ExceptionMappingSpec> exceptionMap = new LinkedHashMap<>();
 
             for (UseCase useCase : drivingPort.useCases()) {
-                HttpMapping mapping = strategyFactory.derive(useCase, null, basePath);
+                HttpMapping mapping = strategyFactory.derive(useCase, aggregate, basePath);
                 String summary = deriveOperationSummary(useCase.name());
                 TypeName returnType = ParameterizedTypeName.get(RESPONSE_ENTITY, WILDCARD_TYPE);
 
@@ -196,6 +199,16 @@ public final class ControllerSpecBuilder {
                     }
                 }
 
+                // Collect thrown exceptions from use case method
+                List<ClassName> thrownExceptions = useCase.method().thrownExceptions().stream()
+                        .map(ref -> DtoFieldMapper.toClassName(ref))
+                        .toList();
+
+                // Derive exception mappings using heuristics
+                for (ClassName exType : thrownExceptions) {
+                    exceptionMap.putIfAbsent(exType.canonicalName(), ExceptionHandlerSpecBuilder.deriveMapping(exType));
+                }
+
                 endpoints.add(new EndpointSpec(
                         useCase.name(),
                         mapping.httpMethod(),
@@ -207,12 +220,13 @@ public final class ControllerSpecBuilder {
                         responseDtoRef,
                         mapping.pathVariables(),
                         mapping.queryParams(),
-                        List.of(),
+                        thrownExceptions,
                         useCase.type(),
                         parameterBindings));
             }
 
             List<ResponseDtoSpec> responseDtos = List.copyOf(responseDtoMap.values());
+            List<ExceptionMappingSpec> exceptionMappings = List.copyOf(exceptionMap.values());
 
             return new ControllerSpec(
                     className,
@@ -225,7 +239,7 @@ public final class ControllerSpecBuilder {
                     endpoints,
                     requestDtos,
                     responseDtos,
-                    List.of());
+                    exceptionMappings);
         }
 
         private List<ParameterBindingSpec> buildParameterBindings(
@@ -236,8 +250,16 @@ public final class ControllerSpecBuilder {
 
                 Optional<Identifier> id = DtoFieldMapper.findIdentifier(param.type(), domainIndex);
                 if (id.isPresent()) {
-                    bindings.add(new ParameterBindingSpec(
-                            param.name(), domainType, BindingKind.CONSTRUCTOR_WRAP, List.of(param.name())));
+                    // Check if this identifier comes from a path variable
+                    boolean isPathVariable = mapping.pathVariables().stream().anyMatch(pv -> pv.isIdentifier());
+                    if (isPathVariable && bindings.isEmpty()) {
+                        // First identifier param matching a path variable → PATH_VARIABLE_WRAP
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of("id")));
+                    } else {
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.CONSTRUCTOR_WRAP, List.of(param.name())));
+                    }
                     continue;
                 }
 
