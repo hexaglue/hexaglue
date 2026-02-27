@@ -100,6 +100,28 @@ class PluginExecutorTest {
     }
 
     @Test
+    void mapPluginConfig_getIntegerMap() {
+        // Given
+        Map<String, Object> subMap = Map.of(
+                "com.acme.NotFoundException", 410,
+                "com.acme.CustomException", 503);
+        Map<String, Object> values = Map.of("exceptionMappings", subMap, "otherKey", "text");
+        MapPluginConfig config = new MapPluginConfig(values);
+
+        // Then - present key with valid map
+        assertThat(config.getIntegerMap("exceptionMappings")).isPresent();
+        assertThat(config.getIntegerMap("exceptionMappings").orElseThrow())
+                .containsEntry("com.acme.NotFoundException", 410)
+                .containsEntry("com.acme.CustomException", 503);
+
+        // Then - absent key
+        assertThat(config.getIntegerMap("missing")).isEmpty();
+
+        // Then - key exists but is not a map
+        assertThat(config.getIntegerMap("otherKey")).isEmpty();
+    }
+
+    @Test
     void mapPluginConfig_getInteger() {
         // Given
         Map<String, Object> values = Map.of(

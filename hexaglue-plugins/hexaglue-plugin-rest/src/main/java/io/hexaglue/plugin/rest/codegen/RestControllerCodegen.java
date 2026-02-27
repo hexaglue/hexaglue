@@ -139,7 +139,10 @@ public final class RestControllerCodegen {
         }
 
         // Delegation to port
-        if (endpoint.parameterBindings().isEmpty()) {
+        if (endpoint.isMergedCollection()) {
+            // Merged collection endpoint: conditional dispatch
+            generateMergedCollectionBody(method, endpoint, portFieldName, spec);
+        } else if (endpoint.parameterBindings().isEmpty()) {
             // No parameters: simple delegation
             if (endpoint.isVoid()) {
                 method.addStatement("$N.$N()", portFieldName, endpoint.methodName());
@@ -167,6 +170,36 @@ public final class RestControllerCodegen {
         return method.build();
     }
 
+    /**
+     * Generates the body for a merged collection endpoint with conditional dispatch.
+     *
+     * <p>Produces an if/else structure: when the first query param is non-null, delegates
+     * to the filtered method with reconstructed parameters; otherwise delegates to the
+     * default (no-arg) method.
+     */
+    private static void generateMergedCollectionBody(
+            MethodSpec.Builder method, EndpointSpec endpoint, String portFieldName, ControllerSpec spec) {
+        String firstQueryParam = endpoint.queryParams().get(0).javaName();
+
+        // Filtered branch: if (param != null)
+        CodeBlock filteredArgs = endpoint.parameterBindings().stream()
+                .map(RestControllerCodegen::generateBindingExpression)
+                .collect(CodeBlock.joining(", "));
+
+        method.beginControlFlow("if ($N != null)", firstQueryParam);
+        method.addStatement(CodeBlock.of(
+                "var result = $N.$N($L)",
+                portFieldName,
+                endpoint.filteredDelegateName().orElseThrow(),
+                filteredArgs));
+        addReturnStatement(method, endpoint, spec);
+        method.endControlFlow();
+
+        // Default branch: no args
+        method.addStatement("var result = $N.$N()", portFieldName, endpoint.methodName());
+        addReturnStatement(method, endpoint, spec);
+    }
+
     private static CodeBlock generateBindingExpression(ParameterBindingSpec binding) {
         return switch (binding.kind()) {
             case DIRECT -> CodeBlock.of("request.$N()", binding.sourceFields().get(0));
@@ -186,6 +219,7 @@ public final class RestControllerCodegen {
                         "new $T($N)",
                         binding.domainType(),
                         binding.sourceFields().get(0));
+            case QUERY_PARAM -> CodeBlock.of("$N", binding.sourceFields().get(0));
         };
     }
 

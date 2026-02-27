@@ -64,7 +64,7 @@ public record RestConfig(
                 config.getBoolean("generateExceptionHandler", true),
                 config.getString("exceptionHandlerClassName", "GlobalExceptionHandler"),
                 config.getString("targetModule").orElse(null),
-                Map.of());
+                config.getIntegerMap("exceptionMappings").orElse(Map.of()));
     }
 
     /**

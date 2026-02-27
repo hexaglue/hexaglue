@@ -257,6 +257,31 @@ public final class TestUseCaseFactory {
     }
 
     /**
+     * Creates a COMMAND_QUERY use case with parameters and thrown exceptions.
+     *
+     * @param name              the use case name
+     * @param returnType        the return type
+     * @param params            the method parameters
+     * @param thrownExceptions  the thrown exception types
+     * @return a command-query use case with parameters and thrown exceptions
+     */
+    public static UseCase commandQueryWithParamsAndExceptions(
+            String name, TypeRef returnType, List<Parameter> params, List<TypeRef> thrownExceptions) {
+        Method method = new Method(
+                name,
+                returnType,
+                params,
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                thrownExceptions,
+                Set.of(),
+                OptionalInt.empty(),
+                Optional.empty());
+        return UseCase.of(method, UseCaseType.COMMAND_QUERY);
+    }
+
+    /**
      * Creates a QUERY use case returning a collection type.
      *
      * @param name        the use case name

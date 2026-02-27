@@ -17,6 +17,8 @@ import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.UseCase.UseCaseType;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * Specification for a single REST endpoint.
@@ -32,8 +34,10 @@ import java.util.List;
  * @param pathVariables    path variable specifications
  * @param queryParams      query parameter specifications
  * @param thrownExceptions   exception types that this endpoint can throw
- * @param useCaseType        use case classification (COMMAND, QUERY, COMMAND_QUERY)
- * @param parameterBindings  how port parameters are reconstructed from DTO fields
+ * @param useCaseType          use case classification (COMMAND, QUERY, COMMAND_QUERY)
+ * @param parameterBindings    how port parameters are reconstructed from DTO fields
+ * @param filteredDelegateName when present, the port method name for the filtered (if-branch) call
+ *                             in a merged collection endpoint
  * @since 3.1.0
  */
 public record EndpointSpec(
@@ -49,7 +53,8 @@ public record EndpointSpec(
         List<QueryParamSpec> queryParams,
         List<ClassName> thrownExceptions,
         UseCaseType useCaseType,
-        List<ParameterBindingSpec> parameterBindings) {
+        List<ParameterBindingSpec> parameterBindings,
+        Optional<String> filteredDelegateName) {
 
     /**
      * Creates a new EndpointSpec with defensive copies.
@@ -59,6 +64,7 @@ public record EndpointSpec(
         queryParams = List.copyOf(queryParams);
         thrownExceptions = List.copyOf(thrownExceptions);
         parameterBindings = List.copyOf(parameterBindings);
+        filteredDelegateName = Objects.requireNonNull(filteredDelegateName);
     }
 
     /**
@@ -86,5 +92,40 @@ public record EndpointSpec(
      */
     public boolean isVoid() {
         return responseStatus == 204;
+    }
+
+    /**
+     * Returns a copy of this endpoint with a different path.
+     *
+     * @param newPath the new path to use
+     * @return a new EndpointSpec identical to this one except for the path
+     * @since 3.1.0
+     */
+    public EndpointSpec withPath(String newPath) {
+        return new EndpointSpec(
+                methodName,
+                httpMethod,
+                newPath,
+                operationSummary,
+                returnType,
+                responseStatus,
+                requestDtoRef,
+                responseDtoRef,
+                pathVariables,
+                queryParams,
+                thrownExceptions,
+                useCaseType,
+                parameterBindings,
+                filteredDelegateName);
+    }
+
+    /**
+     * Returns whether this endpoint is a merged collection endpoint with conditional dispatch.
+     *
+     * @return true if a filtered delegate method is present
+     * @since 3.1.0
+     */
+    public boolean isMergedCollection() {
+        return filteredDelegateName.isPresent();
     }
 }
