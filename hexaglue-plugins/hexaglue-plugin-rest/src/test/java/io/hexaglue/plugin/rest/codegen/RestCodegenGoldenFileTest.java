@@ -30,8 +30,11 @@ import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.TestUseCaseFactory;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
+import io.hexaglue.plugin.rest.builder.ExceptionHandlerSpecBuilder;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.DtoFieldSpec;
+import io.hexaglue.plugin.rest.model.ExceptionHandlerSpec;
+import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.ProjectionKind;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
@@ -327,6 +330,29 @@ class RestCodegenGoldenFileTest {
                 "Transfer");
         TypeSpec typeSpec = ResponseDtoCodegen.generate(spec);
         assertGoldenFile(typeSpec, API_PACKAGE + ".dto", "TransferResponse.java.txt");
+    }
+
+    @Test
+    @DisplayName("GlobalExceptionHandler with 3 domain exceptions + auto-includes")
+    void globalExceptionHandler() throws IOException {
+        ClassName notFound = ClassName.get("com.acme.banking.core.exception", "AccountNotFoundException");
+        ClassName insufficient = ClassName.get("com.acme.banking.core.exception", "InsufficientFundsException");
+        ClassName rejected = ClassName.get("com.acme.banking.core.exception", "TransferRejectedException");
+
+        List<ExceptionMappingSpec> mappings = List.of(
+                ExceptionHandlerSpecBuilder.deriveMapping(notFound),
+                ExceptionHandlerSpecBuilder.deriveMapping(insufficient),
+                ExceptionHandlerSpecBuilder.deriveMapping(rejected));
+
+        RestConfig config = RestConfig.defaults();
+        ExceptionHandlerSpec spec = ExceptionHandlerSpecBuilder.builder()
+                .exceptionMappings(mappings)
+                .config(config)
+                .apiPackage(API_PACKAGE)
+                .build();
+
+        TypeSpec typeSpec = ExceptionHandlerCodegen.generate(spec);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".exception", "GlobalExceptionHandler.java.txt");
     }
 
     private void assertGoldenFile(TypeSpec typeSpec, String packageName, String goldenFileName) throws IOException {

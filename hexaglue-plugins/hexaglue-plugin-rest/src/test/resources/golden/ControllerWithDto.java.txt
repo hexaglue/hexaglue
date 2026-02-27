@@ -38,10 +38,10 @@ public class AccountController {
             summary = "Open account"
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "201",
             description = "Open account completed successfully"
     )
-    @PostMapping("/open-account")
+    @PostMapping
     public ResponseEntity<Object> openAccount(@Valid @RequestBody OpenAccountRequest request) {
         var result = accountUseCases.openAccount(
                         new CustomerId(request.customerId()),

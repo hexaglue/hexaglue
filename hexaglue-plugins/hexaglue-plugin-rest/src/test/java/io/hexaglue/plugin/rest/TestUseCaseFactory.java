@@ -211,6 +211,86 @@ public final class TestUseCaseFactory {
     }
 
     /**
+     * Creates a COMMAND use case with thrown exceptions.
+     *
+     * @param name              the use case name
+     * @param thrownExceptions  the thrown exception types
+     * @return a command use case declaring thrown exceptions
+     */
+    public static UseCase commandWithExceptions(String name, List<TypeRef> thrownExceptions) {
+        Method method = new Method(
+                name,
+                TypeRef.of("void"),
+                List.of(),
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                thrownExceptions,
+                Set.of(),
+                OptionalInt.empty(),
+                Optional.empty());
+        return UseCase.of(method, UseCaseType.COMMAND);
+    }
+
+    /**
+     * Creates a COMMAND use case with parameters and thrown exceptions.
+     *
+     * @param name              the use case name
+     * @param params            the method parameters
+     * @param thrownExceptions  the thrown exception types
+     * @return a command use case with parameters and thrown exceptions
+     */
+    public static UseCase commandWithParamsAndExceptions(
+            String name, List<Parameter> params, List<TypeRef> thrownExceptions) {
+        Method method = new Method(
+                name,
+                TypeRef.of("void"),
+                params,
+                Set.of(),
+                List.of(),
+                Optional.empty(),
+                thrownExceptions,
+                Set.of(),
+                OptionalInt.empty(),
+                Optional.empty());
+        return UseCase.of(method, UseCaseType.COMMAND);
+    }
+
+    /**
+     * Creates a QUERY use case returning a collection type.
+     *
+     * @param name        the use case name
+     * @param elementType the collection element type qualified name
+     * @param params      the method parameters
+     * @return a query use case with List return type
+     */
+    public static UseCase queryWithCollectionReturn(String name, String elementType, List<Parameter> params) {
+        return queryWithParams(name, TypeRef.parameterized("java.util.List", List.of(TypeRef.of(elementType))), params);
+    }
+
+    /**
+     * Creates a QUERY use case returning boolean.
+     *
+     * @param name   the use case name
+     * @param params the method parameters
+     * @return a query use case with boolean return type
+     */
+    public static UseCase queryReturningBoolean(String name, List<Parameter> params) {
+        return queryWithParams(name, TypeRef.of("boolean"), params);
+    }
+
+    /**
+     * Creates a QUERY use case returning long.
+     *
+     * @param name   the use case name
+     * @param params the method parameters
+     * @return a query use case with long return type
+     */
+    public static UseCase queryReturningLong(String name, List<Parameter> params) {
+        return queryWithParams(name, TypeRef.of("long"), params);
+    }
+
+    /**
      * Creates a DomainIndex from the given arch types.
      *
      * @param types the arch types to register

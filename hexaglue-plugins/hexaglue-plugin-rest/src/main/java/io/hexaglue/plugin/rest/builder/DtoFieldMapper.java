@@ -235,6 +235,21 @@ public final class DtoFieldMapper {
     }
 
     /**
+     * Converts a TypeRef to a JavaPoet ClassName (for non-primitive types).
+     *
+     * @param typeRef the type reference
+     * @return the corresponding JavaPoet ClassName
+     */
+    static ClassName toClassName(TypeRef typeRef) {
+        String qn = typeRef.qualifiedName();
+        int lastDot = qn.lastIndexOf('.');
+        if (lastDot < 0) {
+            return ClassName.bestGuess(qn);
+        }
+        return ClassName.get(qn.substring(0, lastDot), qn.substring(lastDot + 1));
+    }
+
+    /**
      * Finds an Identifier in the domain index matching the given type ref.
      */
     static Optional<Identifier> findIdentifier(TypeRef typeRef, DomainIndex domainIndex) {

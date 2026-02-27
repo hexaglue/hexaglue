@@ -24,6 +24,8 @@ import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.EndpointSpec;
 import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
+import io.hexaglue.plugin.rest.model.PathVariableSpec;
+import io.hexaglue.plugin.rest.model.QueryParamSpec;
 import io.hexaglue.plugin.rest.util.NamingConventions;
 import io.hexaglue.plugin.rest.util.RestAnnotations;
 import java.util.stream.Collectors;
@@ -109,6 +111,22 @@ public final class RestControllerCodegen {
 
         // HTTP method mapping
         method.addAnnotation(RestAnnotations.httpMethodMapping(endpoint.httpMethod(), endpoint.path()));
+
+        // @PathVariable parameters
+        for (PathVariableSpec pv : endpoint.pathVariables()) {
+            ParameterSpec pathVar = ParameterSpec.builder(pv.javaType(), pv.javaName())
+                    .addAnnotation(RestAnnotations.pathVariable())
+                    .build();
+            method.addParameter(pathVar);
+        }
+
+        // @RequestParam parameters
+        for (QueryParamSpec qp : endpoint.queryParams()) {
+            ParameterSpec queryParam = ParameterSpec.builder(qp.javaType(), qp.javaName())
+                    .addAnnotation(RestAnnotations.requestParam(qp.required()))
+                    .build();
+            method.addParameter(queryParam);
+        }
 
         // @Valid @RequestBody parameter
         if (endpoint.hasRequestBody()) {

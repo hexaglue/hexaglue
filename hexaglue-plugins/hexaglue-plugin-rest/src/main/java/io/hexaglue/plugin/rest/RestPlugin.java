@@ -20,10 +20,14 @@ import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
+import io.hexaglue.plugin.rest.builder.ExceptionHandlerSpecBuilder;
+import io.hexaglue.plugin.rest.codegen.ExceptionHandlerCodegen;
 import io.hexaglue.plugin.rest.codegen.RequestDtoCodegen;
 import io.hexaglue.plugin.rest.codegen.ResponseDtoCodegen;
 import io.hexaglue.plugin.rest.codegen.RestControllerCodegen;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
+import io.hexaglue.plugin.rest.model.ExceptionHandlerSpec;
+import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
 import io.hexaglue.spi.generation.ArtifactWriter;
@@ -32,6 +36,7 @@ import io.hexaglue.spi.generation.GeneratorPlugin;
 import io.hexaglue.spi.plugin.DiagnosticReporter;
 import io.hexaglue.spi.plugin.PluginConfig;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -98,6 +103,8 @@ public final class RestPlugin implements GeneratorPlugin {
 
         int controllerCount = 0;
         int dtoCount = 0;
+        List<ExceptionMappingSpec> allExceptionMappings = new ArrayList<>();
+
         for (DrivingPort port : drivingPorts) {
             ControllerSpec spec = ControllerSpecBuilder.builder()
                     .drivingPort(port)
@@ -126,6 +133,22 @@ public final class RestPlugin implements GeneratorPlugin {
                 writeJavaSource(writer, responseDto.packageName(), responseDto.className(), dtoSource, diagnostics);
                 dtoCount++;
             }
+
+            // Collect exception mappings for global handler
+            allExceptionMappings.addAll(spec.exceptionMappings());
+        }
+
+        // Generate global exception handler (once, aggregated across all controllers)
+        if (config.generateExceptionHandler()) {
+            ExceptionHandlerSpec handlerSpec = ExceptionHandlerSpecBuilder.builder()
+                    .exceptionMappings(allExceptionMappings)
+                    .config(config)
+                    .apiPackage(apiPackage)
+                    .build();
+
+            TypeSpec handlerTypeSpec = ExceptionHandlerCodegen.generate(handlerSpec);
+            String handlerSource = toJavaSource(handlerSpec.packageName(), handlerTypeSpec);
+            writeJavaSource(writer, handlerSpec.packageName(), handlerSpec.className(), handlerSource, diagnostics);
         }
 
         diagnostics.info("REST plugin generated " + controllerCount + " controller(s) and " + dtoCount + " DTO(s).");
