@@ -15,6 +15,7 @@ package io.hexaglue.plugin.rest;
 
 import io.hexaglue.arch.ClassificationTrace;
 import io.hexaglue.arch.ElementKind;
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.ArchType;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Field;
@@ -189,6 +190,24 @@ public final class TestUseCaseFactory {
                 TypeId.of(qualifiedName),
                 structure,
                 ClassificationTrace.highConfidence(ElementKind.VALUE_OBJECT, "test", "test VO"));
+    }
+
+    /**
+     * Creates an AggregateRoot for testing.
+     *
+     * @param qualifiedName the fully qualified name (e.g., "com.acme.core.model.Account")
+     * @param identityField the identity field (must have FieldRole.IDENTITY)
+     * @param fields        all fields on the aggregate (including identity)
+     * @return an AggregateRoot
+     */
+    public static AggregateRoot aggregateRoot(String qualifiedName, Field identityField, List<Field> fields) {
+        TypeStructure structure =
+                TypeStructure.builder(TypeNature.RECORD).fields(fields).build();
+        ClassificationTrace trace =
+                ClassificationTrace.highConfidence(ElementKind.AGGREGATE_ROOT, "test", "test aggregate");
+        return AggregateRoot.builder(TypeId.of(qualifiedName), structure, trace, identityField)
+                .effectiveIdentityType(identityField.wrappedType().orElse(identityField.type()))
+                .build();
     }
 
     /**

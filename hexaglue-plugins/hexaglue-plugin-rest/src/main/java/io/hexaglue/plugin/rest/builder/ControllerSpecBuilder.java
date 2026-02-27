@@ -16,6 +16,7 @@ package io.hexaglue.plugin.rest.builder;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.ParameterizedTypeName;
 import com.palantir.javapoet.TypeName;
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.Identifier;
@@ -30,10 +31,14 @@ import io.hexaglue.plugin.rest.model.EndpointSpec;
 import io.hexaglue.plugin.rest.model.HttpMapping;
 import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
+import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
 import io.hexaglue.plugin.rest.strategy.HttpVerbStrategyFactory;
 import io.hexaglue.plugin.rest.util.NamingConventions;
+import io.hexaglue.syntax.TypeRef;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -145,9 +150,21 @@ public final class ControllerSpecBuilder {
             ClassName portType = ClassName.get(drivingPort.id().packageName(), portSimpleName);
             String dtoPackage = apiPackage + ".dto";
 
+            // Associate aggregate root
+            ClassName aggregateType = null;
+            if (domainIndex != null) {
+                AggregateAssociator associator = new AggregateAssociator(domainIndex);
+                AggregateRoot aggregate = associator.associate(drivingPort).orElse(null);
+                if (aggregate != null) {
+                    aggregateType = ClassName.get(
+                            aggregate.id().packageName(), aggregate.id().simpleName());
+                }
+            }
+
             HttpVerbStrategyFactory strategyFactory = new HttpVerbStrategyFactory();
             List<EndpointSpec> endpoints = new ArrayList<>();
             List<RequestDtoSpec> requestDtos = new ArrayList<>();
+            Map<String, ResponseDtoSpec> responseDtoMap = new LinkedHashMap<>();
 
             for (UseCase useCase : drivingPort.useCases()) {
                 HttpMapping mapping = strategyFactory.derive(useCase, null, basePath);
@@ -155,6 +172,7 @@ public final class ControllerSpecBuilder {
                 TypeName returnType = ParameterizedTypeName.get(RESPONSE_ENTITY, WILDCARD_TYPE);
 
                 String requestDtoRef = null;
+                String responseDtoRef = null;
                 List<ParameterBindingSpec> parameterBindings = List.of();
 
                 if (domainIndex != null) {
@@ -164,6 +182,17 @@ public final class ControllerSpecBuilder {
                         requestDtos.add(dtoSpec.get());
                         requestDtoRef = dtoSpec.get().className();
                         parameterBindings = buildParameterBindings(useCase, mapping, domainIndex);
+                    }
+
+                    // Response DTO
+                    TypeRef methodReturnType = useCase.method().returnType();
+                    if (!"void".equals(methodReturnType.qualifiedName())) {
+                        Optional<ResponseDtoSpec> responseDto =
+                                ResponseDtoSpecBuilder.build(methodReturnType, domainIndex, config, dtoPackage);
+                        if (responseDto.isPresent()) {
+                            responseDtoRef = responseDto.get().className();
+                            responseDtoMap.putIfAbsent(responseDtoRef, responseDto.get());
+                        }
                     }
                 }
 
@@ -175,7 +204,7 @@ public final class ControllerSpecBuilder {
                         returnType,
                         mapping.responseStatus(),
                         requestDtoRef,
-                        null,
+                        responseDtoRef,
                         mapping.pathVariables(),
                         mapping.queryParams(),
                         List.of(),
@@ -183,17 +212,19 @@ public final class ControllerSpecBuilder {
                         parameterBindings));
             }
 
+            List<ResponseDtoSpec> responseDtos = List.copyOf(responseDtoMap.values());
+
             return new ControllerSpec(
                     className,
                     packageName,
                     basePath,
                     portType,
-                    null,
+                    aggregateType,
                     tagName,
                     tagDescription,
                     endpoints,
                     requestDtos,
-                    List.of(),
+                    responseDtos,
                     List.of());
         }
 

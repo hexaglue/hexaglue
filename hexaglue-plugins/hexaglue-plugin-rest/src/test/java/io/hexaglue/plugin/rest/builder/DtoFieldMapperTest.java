@@ -18,6 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.TypeName;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.ValueObject;
@@ -29,6 +30,7 @@ import io.hexaglue.plugin.rest.model.ProjectionKind;
 import io.hexaglue.plugin.rest.model.ValidationKind;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -151,6 +153,130 @@ class DtoFieldMapperTest {
             assertThat(field.javaType()).isEqualTo(TypeName.INT);
             assertThat(field.validation()).isEqualTo(ValidationKind.NONE);
             assertThat(field.projectionKind()).isEqualTo(ProjectionKind.DIRECT);
+        }
+    }
+
+    @Nested
+    @DisplayName("Response mapping")
+    class ResponseMapping {
+
+        @Test
+        @DisplayName("should unwrap identity field to id")
+        void shouldUnwrapIdentityFieldToId() {
+            Identifier accountId = TestUseCaseFactory.identifier("com.acme.AccountId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(accountId);
+            Field field = Field.builder("id", TypeRef.of("com.acme.AccountId"))
+                    .wrappedType(TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(1);
+            DtoFieldSpec spec = fields.get(0);
+            assertThat(spec.fieldName()).isEqualTo("id");
+            assertThat(spec.javaType()).isEqualTo(ClassName.get("java.lang", "Long"));
+            assertThat(spec.accessorChain()).isEqualTo("id().value()");
+            assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
+            assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.IDENTITY_UNWRAP);
+        }
+
+        @Test
+        @DisplayName("should map direct string field")
+        void shouldMapDirectStringField() {
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
+            Field field = Field.of("accountNumber", TypeRef.of("java.lang.String"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(1);
+            DtoFieldSpec spec = fields.get(0);
+            assertThat(spec.fieldName()).isEqualTo("accountNumber");
+            assertThat(spec.javaType()).isEqualTo(ClassName.get(String.class));
+            assertThat(spec.accessorChain()).isEqualTo("accountNumber()");
+            assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
+            assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.DIRECT);
+        }
+
+        @Test
+        @DisplayName("should map direct primitive field")
+        void shouldMapDirectPrimitiveField() {
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
+            Field field = Field.of("active", TypeRef.of("boolean"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(1);
+            DtoFieldSpec spec = fields.get(0);
+            assertThat(spec.fieldName()).isEqualTo("active");
+            assertThat(spec.javaType()).isEqualTo(TypeName.BOOLEAN);
+            assertThat(spec.accessorChain()).isEqualTo("active()");
+            assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
+            assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.DIRECT);
+        }
+
+        @Test
+        @DisplayName("should flatten multi-field VO with prefix")
+        void shouldFlattenMultiFieldVoWithPrefix() {
+            ValueObject money = TestUseCaseFactory.multiFieldValueObject(
+                    "com.acme.Money",
+                    List.of(
+                            Field.of("amount", TypeRef.of("java.math.BigDecimal")),
+                            Field.of("currency", TypeRef.of("java.lang.String"))));
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(money);
+            Field field = Field.of("balance", TypeRef.of("com.acme.Money"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(2);
+            assertThat(fields.get(0).fieldName()).isEqualTo("balanceAmount");
+            assertThat(fields.get(0).javaType()).isEqualTo(ClassName.get("java.math", "BigDecimal"));
+            assertThat(fields.get(0).accessorChain()).isEqualTo("balance().amount()");
+            assertThat(fields.get(0).projectionKind()).isEqualTo(ProjectionKind.VALUE_OBJECT_FLATTEN);
+
+            assertThat(fields.get(1).fieldName()).isEqualTo("balanceCurrency");
+            assertThat(fields.get(1).javaType()).isEqualTo(ClassName.get(String.class));
+            assertThat(fields.get(1).accessorChain()).isEqualTo("balance().currency()");
+            assertThat(fields.get(1).projectionKind()).isEqualTo(ProjectionKind.VALUE_OBJECT_FLATTEN);
+        }
+
+        @Test
+        @DisplayName("should unwrap aggregate reference")
+        void shouldUnwrapAggregateReference() {
+            Identifier customerId = TestUseCaseFactory.identifier("com.acme.CustomerId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(customerId);
+            Field field = Field.builder("customerId", TypeRef.of("com.acme.CustomerId"))
+                    .roles(Set.of(FieldRole.AGGREGATE_REFERENCE))
+                    .build();
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(1);
+            DtoFieldSpec spec = fields.get(0);
+            assertThat(spec.fieldName()).isEqualTo("customerId");
+            assertThat(spec.javaType()).isEqualTo(ClassName.get("java.lang", "Long"));
+            assertThat(spec.accessorChain()).isEqualTo("customerId().value()");
+            assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
+            assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.AGGREGATE_REFERENCE);
+        }
+
+        @Test
+        @DisplayName("should unwrap single-field VO")
+        void shouldUnwrapSingleFieldVo() {
+            ValueObject email =
+                    TestUseCaseFactory.singleFieldValueObject("com.acme.Email", "value", "java.lang.String");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(email);
+            Field field = Field.of("email", TypeRef.of("com.acme.Email"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+
+            assertThat(fields).hasSize(1);
+            DtoFieldSpec spec = fields.get(0);
+            assertThat(spec.fieldName()).isEqualTo("email");
+            assertThat(spec.javaType()).isEqualTo(ClassName.get(String.class));
+            assertThat(spec.accessorChain()).isEqualTo("email().value()");
+            assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
+            assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.IDENTITY_UNWRAP);
         }
     }
 }
