@@ -1,0 +1,27 @@
+/*
+ * This Source Code Form is part of the HexaGlue project.
+ * Copyright (c) 2026 Scalastic
+ *
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/.
+ *
+ * Commercial licensing options are available for organizations wishing
+ * to use HexaGlue under terms different from the MPL 2.0.
+ * Contact: info@hexaglue.io
+ */
+
+package io.hexaglue.plugin.rest.model;
+
+/**
+ * HTTP methods used for REST endpoint mapping.
+ *
+ * @since 3.1.0
+ */
+public enum HttpMethod {
+    GET,
+    POST,
+    PUT,
+    DELETE,
+    PATCH
+}

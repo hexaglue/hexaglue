@@ -22,6 +22,7 @@
         <module>hexaglue-plugin-jpa</module>
         <module>hexaglue-plugin-living-doc</module>
         <module>hexaglue-plugin-audit</module>
+        <module>hexaglue-plugin-rest</module>
     </modules>
 
     <properties>
