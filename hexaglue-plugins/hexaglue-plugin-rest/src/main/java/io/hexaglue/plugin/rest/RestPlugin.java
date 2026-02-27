@@ -21,9 +21,11 @@ import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
 import io.hexaglue.plugin.rest.codegen.RequestDtoCodegen;
+import io.hexaglue.plugin.rest.codegen.ResponseDtoCodegen;
 import io.hexaglue.plugin.rest.codegen.RestControllerCodegen;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
+import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
 import io.hexaglue.spi.generation.GeneratorPlugin;
@@ -114,6 +116,14 @@ public final class RestPlugin implements GeneratorPlugin {
                 TypeSpec dtoTypeSpec = RequestDtoCodegen.generate(requestDto);
                 String dtoSource = toJavaSource(requestDto.packageName(), dtoTypeSpec);
                 writeJavaSource(writer, requestDto.packageName(), requestDto.className(), dtoSource, diagnostics);
+                dtoCount++;
+            }
+
+            // Generate response DTOs
+            for (ResponseDtoSpec responseDto : spec.responseDtos()) {
+                TypeSpec dtoTypeSpec = ResponseDtoCodegen.generate(responseDto);
+                String dtoSource = toJavaSource(responseDto.packageName(), dtoTypeSpec);
+                writeJavaSource(writer, responseDto.packageName(), responseDto.className(), dtoSource, diagnostics);
                 dtoCount++;
             }
         }

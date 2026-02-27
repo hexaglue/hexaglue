@@ -128,7 +128,7 @@ public final class RestControllerCodegen {
                 method.addStatement("return $T.noContent().build()", RESPONSE_ENTITY);
             } else {
                 method.addStatement("var result = $N.$N()", portFieldName, endpoint.methodName());
-                method.addStatement("return $T.ok(result)", RESPONSE_ENTITY);
+                addReturnStatement(method, endpoint, spec);
             }
         } else {
             // Delegation with parameter reconstruction
@@ -142,7 +142,7 @@ public final class RestControllerCodegen {
             } else {
                 method.addStatement(
                         CodeBlock.of("var result = $N.$N(\n$>$>$L$<$<)", portFieldName, endpoint.methodName(), args));
-                method.addStatement("return $T.ok(result)", RESPONSE_ENTITY);
+                addReturnStatement(method, endpoint, spec);
             }
         }
 
@@ -169,6 +169,23 @@ public final class RestControllerCodegen {
                         binding.domainType(),
                         binding.sourceFields().get(0));
         };
+    }
+
+    private static void addReturnStatement(MethodSpec.Builder method, EndpointSpec endpoint, ControllerSpec spec) {
+        if (endpoint.hasResponseBody()) {
+            ClassName responseDtoType = resolveResponseDtoType(endpoint.responseDtoRef(), spec);
+            method.addStatement("return $T.ok($T.from(result))", RESPONSE_ENTITY, responseDtoType);
+        } else {
+            method.addStatement("return $T.ok(result)", RESPONSE_ENTITY);
+        }
+    }
+
+    private static ClassName resolveResponseDtoType(String dtoClassName, ControllerSpec spec) {
+        return spec.responseDtos().stream()
+                .filter(dto -> dto.className().equals(dtoClassName))
+                .map(dto -> ClassName.get(dto.packageName(), dto.className()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Response DTO not found: " + dtoClassName));
     }
 
     private static ClassName resolveDtoType(String dtoClassName, ControllerSpec spec) {

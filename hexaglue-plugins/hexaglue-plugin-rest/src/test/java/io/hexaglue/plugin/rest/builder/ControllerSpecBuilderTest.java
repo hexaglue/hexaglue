@@ -15,8 +15,10 @@ package io.hexaglue.plugin.rest.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.UseCase;
@@ -29,6 +31,7 @@ import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.HttpMethod;
 import io.hexaglue.syntax.TypeRef;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -214,6 +217,103 @@ class ControllerSpecBuilderTest {
                     .isEqualTo(BindingKind.FACTORY_WRAP);
             assertThat(spec.endpoints().get(0).parameterBindings().get(1).sourceFields())
                     .containsExactly("amount", "currency");
+        }
+    }
+
+    @Nested
+    @DisplayName("With response DTOs")
+    class WithResponseDtos {
+
+        @Test
+        @DisplayName("should associate aggregate and populate aggregate type")
+        void shouldAssociateAggregateAndPopulateAggregateType() {
+            Field idField = Field.builder("id", TypeRef.of("com.acme.core.model.AccountId"))
+                    .wrappedType(TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+            AggregateRoot account =
+                    TestUseCaseFactory.aggregateRoot("com.acme.core.model.Account", idField, List.of(idField));
+            Identifier accountId = TestUseCaseFactory.identifier("com.acme.core.model.AccountId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(account, accountId);
+
+            DrivingPort port = TestUseCaseFactory.drivingPort(
+                    "com.acme.core.port.in.AccountUseCases", List.of(TestUseCaseFactory.query("getAccount")));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .domainIndex(domainIndex)
+                    .build();
+
+            assertThat(spec.hasAggregate()).isTrue();
+            assertThat(spec.aggregateType()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should generate response DTO for query returning aggregate")
+        void shouldGenerateResponseDtoForQueryReturningAggregate() {
+            Field idField = Field.builder("id", TypeRef.of("com.acme.core.model.AccountId"))
+                    .wrappedType(TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+            AggregateRoot account =
+                    TestUseCaseFactory.aggregateRoot("com.acme.core.model.Account", idField, List.of(idField));
+            Identifier accountId = TestUseCaseFactory.identifier("com.acme.core.model.AccountId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(account, accountId);
+
+            UseCase getAccount = TestUseCaseFactory.queryWithParams(
+                    "getAccount",
+                    TypeRef.of("com.acme.core.model.Account"),
+                    List.of(Parameter.of("id", TypeRef.of("java.lang.Long"))));
+            DrivingPort port =
+                    TestUseCaseFactory.drivingPort("com.acme.core.port.in.AccountUseCases", List.of(getAccount));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .domainIndex(domainIndex)
+                    .build();
+
+            assertThat(spec.responseDtos()).hasSize(1);
+            assertThat(spec.responseDtos().get(0).className()).isEqualTo("AccountResponse");
+            assertThat(spec.endpoints().get(0).responseDtoRef()).isEqualTo("AccountResponse");
+        }
+
+        @Test
+        @DisplayName("should deduplicate response DTOs for same return type")
+        void shouldDeduplicateResponseDtosForSameReturnType() {
+            Field idField = Field.builder("id", TypeRef.of("com.acme.core.model.AccountId"))
+                    .wrappedType(TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+            AggregateRoot account =
+                    TestUseCaseFactory.aggregateRoot("com.acme.core.model.Account", idField, List.of(idField));
+            Identifier accountId = TestUseCaseFactory.identifier("com.acme.core.model.AccountId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(account, accountId);
+
+            UseCase getAccount = TestUseCaseFactory.queryWithParams(
+                    "getAccount",
+                    TypeRef.of("com.acme.core.model.Account"),
+                    List.of(Parameter.of("id", TypeRef.of("java.lang.Long"))));
+            UseCase findAccount = TestUseCaseFactory.queryWithParams(
+                    "findAccount",
+                    TypeRef.of("com.acme.core.model.Account"),
+                    List.of(Parameter.of("name", TypeRef.of("java.lang.String"))));
+            DrivingPort port = TestUseCaseFactory.drivingPort(
+                    "com.acme.core.port.in.AccountUseCases", List.of(getAccount, findAccount));
+
+            ControllerSpec spec = ControllerSpecBuilder.builder()
+                    .drivingPort(port)
+                    .config(config)
+                    .apiPackage("com.acme.api")
+                    .domainIndex(domainIndex)
+                    .build();
+
+            assertThat(spec.responseDtos()).hasSize(1);
+            assertThat(spec.endpoints().get(0).responseDtoRef()).isEqualTo("AccountResponse");
+            assertThat(spec.endpoints().get(1).responseDtoRef()).isEqualTo("AccountResponse");
         }
     }
 }

@@ -18,8 +18,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.palantir.javapoet.ClassName;
 import com.palantir.javapoet.JavaFile;
 import com.palantir.javapoet.TypeSpec;
+import io.hexaglue.arch.model.AggregateRoot;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.Field;
+import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.UseCase;
@@ -32,6 +34,7 @@ import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.DtoFieldSpec;
 import io.hexaglue.plugin.rest.model.ProjectionKind;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
+import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
 import io.hexaglue.plugin.rest.model.ValidationKind;
 import io.hexaglue.syntax.TypeRef;
 import java.io.IOException;
@@ -39,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -171,6 +175,158 @@ class RestCodegenGoldenFileTest {
 
         TypeSpec typeSpec = RestControllerCodegen.generate(spec, config);
         assertGoldenFile(typeSpec, API_PACKAGE + ".controller", "ControllerWithDto.java.txt");
+    }
+
+    @Test
+    @DisplayName("AccountResponse DTO with from() factory")
+    void accountResponseDto() throws IOException {
+        ResponseDtoSpec spec = new ResponseDtoSpec(
+                "AccountResponse",
+                API_PACKAGE + ".dto",
+                List.of(
+                        new DtoFieldSpec(
+                                "id",
+                                ClassName.get("java.lang", "Long"),
+                                "id",
+                                "id().value()",
+                                ValidationKind.NONE,
+                                ProjectionKind.IDENTITY_UNWRAP),
+                        new DtoFieldSpec(
+                                "accountNumber",
+                                ClassName.get(String.class),
+                                "accountNumber",
+                                "accountNumber()",
+                                ValidationKind.NONE,
+                                ProjectionKind.DIRECT),
+                        new DtoFieldSpec(
+                                "balanceAmount",
+                                ClassName.get("java.math", "BigDecimal"),
+                                "balance",
+                                "balance().amount()",
+                                ValidationKind.NONE,
+                                ProjectionKind.VALUE_OBJECT_FLATTEN),
+                        new DtoFieldSpec(
+                                "balanceCurrency",
+                                ClassName.get(String.class),
+                                "balance",
+                                "balance().currency()",
+                                ValidationKind.NONE,
+                                ProjectionKind.VALUE_OBJECT_FLATTEN),
+                        new DtoFieldSpec(
+                                "type",
+                                ClassName.get("com.acme.core.model", "AccountType"),
+                                "type",
+                                "type()",
+                                ValidationKind.NONE,
+                                ProjectionKind.DIRECT),
+                        new DtoFieldSpec(
+                                "active",
+                                com.palantir.javapoet.TypeName.BOOLEAN,
+                                "active",
+                                "active()",
+                                ValidationKind.NONE,
+                                ProjectionKind.DIRECT),
+                        new DtoFieldSpec(
+                                "customerId",
+                                ClassName.get("java.lang", "Long"),
+                                "customerId",
+                                "customerId().value()",
+                                ValidationKind.NONE,
+                                ProjectionKind.AGGREGATE_REFERENCE)),
+                ClassName.get("com.acme.core.model", "Account"),
+                "Account");
+        TypeSpec typeSpec = ResponseDtoCodegen.generate(spec);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".dto", "AccountResponse.java.txt");
+    }
+
+    @Test
+    @DisplayName("Controller with response DTO wrapping")
+    void controllerWithResponseDto() throws IOException {
+        // Setup domain types
+        Field idField = Field.builder("id", TypeRef.of("com.acme.core.model.AccountId"))
+                .wrappedType(TypeRef.of("java.lang.Long"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+        Field accountNumber = Field.of("accountNumber", TypeRef.of("java.lang.String"));
+        Field balance = Field.of("balance", TypeRef.of("com.acme.core.model.Money"));
+        Field type = Field.of("type", TypeRef.of("com.acme.core.model.AccountType"));
+        Field active = Field.of("active", TypeRef.of("boolean"));
+        Field customerId = Field.builder("customerId", TypeRef.of("com.acme.core.model.CustomerId"))
+                .roles(Set.of(FieldRole.AGGREGATE_REFERENCE))
+                .build();
+
+        AggregateRoot account = TestUseCaseFactory.aggregateRoot(
+                "com.acme.core.model.Account",
+                idField,
+                List.of(idField, accountNumber, balance, type, active, customerId));
+        Identifier accountId = TestUseCaseFactory.identifier("com.acme.core.model.AccountId", "java.lang.Long");
+        Identifier customerIdType = TestUseCaseFactory.identifier("com.acme.core.model.CustomerId", "java.lang.Long");
+        ValueObject money = TestUseCaseFactory.multiFieldValueObject(
+                "com.acme.core.model.Money",
+                List.of(
+                        Field.of("amount", TypeRef.of("java.math.BigDecimal")),
+                        Field.of("currency", TypeRef.of("java.lang.String"))));
+        DomainIndex domainIndex = TestUseCaseFactory.domainIndex(account, accountId, customerIdType, money);
+
+        // Use cases: query returning Account, command-query returning Account
+        UseCase getAccount = TestUseCaseFactory.queryWithParams(
+                "getAccount",
+                TypeRef.of("com.acme.core.model.Account"),
+                List.of(Parameter.of("id", TypeRef.of("java.lang.Long"))));
+        UseCase openAccount = TestUseCaseFactory.commandQueryWithParams(
+                "openAccount",
+                TypeRef.of("com.acme.core.model.Account"),
+                List.of(
+                        Parameter.of("customerId", TypeRef.of("com.acme.core.model.CustomerId")),
+                        Parameter.of("type", TypeRef.of("com.acme.core.model.AccountType")),
+                        Parameter.of("accountNumber", TypeRef.of("java.lang.String"))));
+        DrivingPort port = TestUseCaseFactory.drivingPort(
+                "com.acme.core.port.in.AccountUseCases", List.of(getAccount, openAccount));
+
+        RestConfig config = RestConfig.defaults();
+        ControllerSpec spec = ControllerSpecBuilder.builder()
+                .drivingPort(port)
+                .config(config)
+                .apiPackage(API_PACKAGE)
+                .domainIndex(domainIndex)
+                .build();
+
+        TypeSpec typeSpec = RestControllerCodegen.generate(spec, config);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".controller", "ControllerWithResponseDto.java.txt");
+    }
+
+    @Test
+    @DisplayName("TransferResponse DTO with aggregate references")
+    void transferResponseDto() throws IOException {
+        ResponseDtoSpec spec = new ResponseDtoSpec(
+                "TransferResponse",
+                API_PACKAGE + ".dto",
+                List.of(
+                        new DtoFieldSpec(
+                                "id",
+                                ClassName.get("java.lang", "Long"),
+                                "id",
+                                "id().value()",
+                                ValidationKind.NONE,
+                                ProjectionKind.IDENTITY_UNWRAP),
+                        new DtoFieldSpec(
+                                "fromAccountId",
+                                ClassName.get("java.lang", "Long"),
+                                "fromAccountId",
+                                "fromAccountId().value()",
+                                ValidationKind.NONE,
+                                ProjectionKind.AGGREGATE_REFERENCE),
+                        new DtoFieldSpec(
+                                "toAccountId",
+                                ClassName.get("java.lang", "Long"),
+                                "toAccountId",
+                                "toAccountId().value()",
+                                ValidationKind.NONE,
+                                ProjectionKind.AGGREGATE_REFERENCE)),
+                ClassName.get("com.acme.core.model", "Transfer"),
+                "Transfer");
+        TypeSpec typeSpec = ResponseDtoCodegen.generate(spec);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".dto", "TransferResponse.java.txt");
     }
 
     private void assertGoldenFile(TypeSpec typeSpec, String packageName, String goldenFileName) throws IOException {
