@@ -13,6 +13,7 @@
 
 package io.hexaglue.spi.plugin;
 
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -55,6 +56,19 @@ public interface PluginConfig {
      */
     default String getString(String key, String defaultValue) {
         return getString(key).orElse(defaultValue);
+    }
+
+    /**
+     * Returns an integer map configuration value.
+     *
+     * <p>Useful for structured configuration like exception-to-status-code mappings.
+     *
+     * @param key the configuration key
+     * @return the map, or empty if not configured
+     * @since 3.1.0
+     */
+    default Optional<Map<String, Integer>> getIntegerMap(String key) {
+        return Optional.empty();
     }
 
     /**

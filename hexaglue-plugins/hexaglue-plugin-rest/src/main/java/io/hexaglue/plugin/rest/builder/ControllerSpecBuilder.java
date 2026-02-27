@@ -222,7 +222,8 @@ public final class ControllerSpecBuilder {
                         mapping.queryParams(),
                         thrownExceptions,
                         useCase.type(),
-                        parameterBindings));
+                        parameterBindings,
+                        Optional.empty()));
             }
 
             List<ResponseDtoSpec> responseDtos = List.copyOf(responseDtoMap.values());

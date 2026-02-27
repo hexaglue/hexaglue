@@ -20,6 +20,7 @@ import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.model.ExceptionHandlerSpec;
 import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -95,6 +96,80 @@ class ExceptionHandlerSpecBuilderTest {
             assertThat(mapping.httpStatus()).isEqualTo(500);
             assertThat(mapping.errorCode()).isEqualTo("INTERNAL_ERROR");
             assertThat(mapping.handlerMethod()).isEqualTo("handleSomeWeirdProblem");
+        }
+    }
+
+    @Nested
+    @DisplayName("Custom mappings")
+    class CustomMappings {
+
+        @Test
+        @DisplayName("should override heuristic status with custom mapping")
+        void shouldOverrideHeuristicStatusWithCustomMapping() {
+            // NotFoundException is 404 by heuristic — override to 410
+            ClassName notFound = ClassName.get("com.acme.core.exception", "AccountNotFoundException");
+            ExceptionMappingSpec mapping = ExceptionHandlerSpecBuilder.deriveMapping(notFound);
+
+            RestConfig customConfig = new RestConfig(
+                    null,
+                    "Controller",
+                    "Request",
+                    "Response",
+                    "/api",
+                    true,
+                    true,
+                    true,
+                    "GlobalExceptionHandler",
+                    null,
+                    Map.of("com.acme.core.exception.AccountNotFoundException", 410));
+
+            ExceptionHandlerSpec spec = ExceptionHandlerSpecBuilder.builder()
+                    .exceptionMappings(List.of(mapping))
+                    .config(customConfig)
+                    .apiPackage(API_PACKAGE)
+                    .build();
+
+            ExceptionMappingSpec overridden = spec.mappings().stream()
+                    .filter(m -> m.exceptionType().simpleName().equals("AccountNotFoundException"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(overridden.httpStatus()).isEqualTo(410);
+            // errorCode and handlerMethod preserved from heuristic
+            assertThat(overridden.errorCode()).isEqualTo("NOT_FOUND");
+            assertThat(overridden.handlerMethod()).isEqualTo("handleAccountNotFound");
+        }
+
+        @Test
+        @DisplayName("should add custom mapping for unknown exception")
+        void shouldAddCustomMappingForUnknownException() {
+            RestConfig customConfig = new RestConfig(
+                    null,
+                    "Controller",
+                    "Request",
+                    "Response",
+                    "/api",
+                    true,
+                    true,
+                    true,
+                    "GlobalExceptionHandler",
+                    null,
+                    Map.of("com.acme.infra.PaymentGatewayException", 502));
+
+            ExceptionHandlerSpec spec = ExceptionHandlerSpecBuilder.builder()
+                    .exceptionMappings(List.of())
+                    .config(customConfig)
+                    .apiPackage(API_PACKAGE)
+                    .build();
+
+            ExceptionMappingSpec added = spec.mappings().stream()
+                    .filter(m -> m.exceptionType().simpleName().equals("PaymentGatewayException"))
+                    .findFirst()
+                    .orElseThrow();
+
+            assertThat(added.httpStatus()).isEqualTo(502);
+            assertThat(added.errorCode()).isEqualTo("INTERNAL_ERROR");
+            assertThat(added.handlerMethod()).isEqualTo("handlePaymentGateway");
         }
     }
 

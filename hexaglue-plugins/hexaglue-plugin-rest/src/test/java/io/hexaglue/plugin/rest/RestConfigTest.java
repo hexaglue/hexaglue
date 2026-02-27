@@ -123,6 +123,38 @@ class RestConfigTest {
         }
     }
 
+    @Nested
+    @DisplayName("Exception Mappings")
+    class ExceptionMappings {
+
+        @Test
+        @DisplayName("should parse exception mappings from config")
+        void shouldParseExceptionMappings() {
+            Map<String, Object> values = new HashMap<>();
+            values.put(
+                    "exceptionMappings",
+                    Map.of(
+                            "com.acme.core.exception.PaymentFailedException",
+                            502,
+                            "com.acme.core.exception.RateLimitException",
+                            429));
+
+            RestConfig config = RestConfig.from(createPluginConfig(values));
+
+            assertThat(config.exceptionMappings())
+                    .containsEntry("com.acme.core.exception.PaymentFailedException", 502)
+                    .containsEntry("com.acme.core.exception.RateLimitException", 429);
+        }
+
+        @Test
+        @DisplayName("should default to empty map when no exception mappings configured")
+        void shouldDefaultToEmptyMap() {
+            RestConfig config = RestConfig.from(createPluginConfig(new HashMap<>()));
+
+            assertThat(config.exceptionMappings()).isEmpty();
+        }
+    }
+
     // =========================================================================
     // Helper Methods
     // =========================================================================
@@ -160,6 +192,22 @@ class RestConfigTest {
                 Object value = values.get(key);
                 if (value instanceof Integer i) {
                     return Optional.of(i);
+                }
+                return Optional.empty();
+            }
+
+            @Override
+            @SuppressWarnings("unchecked") // test helper: values map contains known types
+            public Optional<Map<String, Integer>> getIntegerMap(String key) {
+                Object value = values.get(key);
+                if (value instanceof Map<?, ?> map) {
+                    Map<String, Integer> result = new HashMap<>();
+                    for (Map.Entry<?, ?> entry : map.entrySet()) {
+                        if (entry.getValue() instanceof Integer i) {
+                            result.put(String.valueOf(entry.getKey()), i);
+                        }
+                    }
+                    return result.isEmpty() ? Optional.empty() : Optional.of(Map.copyOf(result));
                 }
                 return Optional.empty();
             }

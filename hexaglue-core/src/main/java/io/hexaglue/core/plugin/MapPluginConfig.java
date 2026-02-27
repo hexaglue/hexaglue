@@ -14,6 +14,7 @@
 package io.hexaglue.core.plugin;
 
 import io.hexaglue.spi.plugin.PluginConfig;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,5 +64,21 @@ final class MapPluginConfig implements PluginConfig {
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
+    }
+
+    @Override
+    public Optional<Map<String, Integer>> getIntegerMap(String key) {
+        Object value = values.get(key);
+        if (!(value instanceof Map)) {
+            return Optional.empty();
+        }
+        Map<String, Integer> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : ((Map<?, ?>) value).entrySet()) {
+            String k = String.valueOf(entry.getKey());
+            if (entry.getValue() instanceof Number n) {
+                result.put(k, n.intValue());
+            }
+        }
+        return result.isEmpty() ? Optional.empty() : Optional.of(Map.copyOf(result));
     }
 }

@@ -33,5 +33,8 @@ public enum BindingKind {
     FACTORY_WRAP,
 
     /** Field comes from a path variable: {@code new AccountId(id)}. */
-    PATH_VARIABLE_WRAP
+    PATH_VARIABLE_WRAP,
+
+    /** Field comes from a query parameter: {@code customerId}. */
+    QUERY_PARAM
 }

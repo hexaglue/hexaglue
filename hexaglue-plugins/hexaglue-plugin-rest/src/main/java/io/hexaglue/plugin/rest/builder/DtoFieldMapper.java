@@ -212,7 +212,7 @@ public final class DtoFieldMapper {
      * @param typeRef the type reference
      * @return the corresponding JavaPoet TypeName
      */
-    static TypeName toTypeName(TypeRef typeRef) {
+    public static TypeName toTypeName(TypeRef typeRef) {
         return switch (typeRef.qualifiedName()) {
             case "int" -> TypeName.INT;
             case "long" -> TypeName.LONG;
@@ -251,16 +251,24 @@ public final class DtoFieldMapper {
 
     /**
      * Finds an Identifier in the domain index matching the given type ref.
+     *
+     * @param typeRef     the type reference to look up
+     * @param domainIndex the domain index
+     * @return the matching Identifier, or empty
      */
-    static Optional<Identifier> findIdentifier(TypeRef typeRef, DomainIndex domainIndex) {
+    public static Optional<Identifier> findIdentifier(TypeRef typeRef, DomainIndex domainIndex) {
         TypeId typeId = TypeId.of(typeRef.qualifiedName());
         return domainIndex.identifiers().filter(id -> id.id().equals(typeId)).findFirst();
     }
 
     /**
      * Finds a ValueObject in the domain index matching the given type ref.
+     *
+     * @param typeRef     the type reference to look up
+     * @param domainIndex the domain index
+     * @return the matching ValueObject, or empty
      */
-    static Optional<ValueObject> findValueObject(TypeRef typeRef, DomainIndex domainIndex) {
+    public static Optional<ValueObject> findValueObject(TypeRef typeRef, DomainIndex domainIndex) {
         TypeId typeId = TypeId.of(typeRef.qualifiedName());
         return domainIndex.valueObjects().filter(vo -> vo.id().equals(typeId)).findFirst();
     }

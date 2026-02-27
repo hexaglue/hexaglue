@@ -173,6 +173,32 @@ public final class ExceptionHandlerSpecBuilder {
                 deduped.putIfAbsent(qualifiedName, mapping);
             }
 
+            // Apply custom exception mappings from config (override heuristics)
+            for (Map.Entry<String, Integer> entry : config.exceptionMappings().entrySet()) {
+                String fqn = entry.getKey();
+                int customStatus = entry.getValue();
+                ExceptionMappingSpec existing = deduped.get(fqn);
+                if (existing != null) {
+                    deduped.put(
+                            fqn,
+                            new ExceptionMappingSpec(
+                                    existing.exceptionType(),
+                                    customStatus,
+                                    existing.errorCode(),
+                                    existing.handlerMethod()));
+                } else {
+                    ClassName exType = ClassName.bestGuess(fqn);
+                    String simpleName = exType.simpleName();
+                    deduped.put(
+                            fqn,
+                            new ExceptionMappingSpec(
+                                    exType,
+                                    customStatus,
+                                    deriveErrorCode(simpleName),
+                                    deriveHandlerMethod(simpleName)));
+                }
+            }
+
             // Auto-include IllegalArgumentException (400) and Exception (500)
             ClassName illegalArg = ClassName.get("java.lang", "IllegalArgumentException");
             deduped.putIfAbsent(
