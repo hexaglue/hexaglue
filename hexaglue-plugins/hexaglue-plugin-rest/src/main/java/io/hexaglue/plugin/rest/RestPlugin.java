@@ -18,6 +18,9 @@ import com.palantir.javapoet.TypeSpec;
 import io.hexaglue.arch.ArchitecturalModel;
 import io.hexaglue.arch.model.DrivingPort;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.index.ModuleIndex;
+import io.hexaglue.arch.model.index.ModuleRole;
+import io.hexaglue.arch.model.index.ModuleRouting;
 import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
 import io.hexaglue.plugin.rest.builder.ExceptionHandlerSpecBuilder;
@@ -38,6 +41,7 @@ import io.hexaglue.spi.plugin.PluginConfig;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * REST plugin for HexaGlue.
@@ -88,6 +92,11 @@ public final class RestPlugin implements GeneratorPlugin {
 
         RestConfig config = RestConfig.from(pluginConfig);
 
+        String effectiveTargetModule = resolveEffectiveTargetModule(config, model, writer, diagnostics);
+        if (effectiveTargetModule != null) {
+            diagnostics.info("REST effectiveTargetModule: " + effectiveTargetModule);
+        }
+
         String basePackage = model.project().basePackage();
         String apiPackage = config.apiPackage() != null ? config.apiPackage() : deriveApiPackage(basePackage);
 
@@ -115,14 +124,20 @@ public final class RestPlugin implements GeneratorPlugin {
 
             TypeSpec typeSpec = RestControllerCodegen.generate(spec, config);
             String source = toJavaSource(spec.packageName(), typeSpec);
-            writeJavaSource(writer, spec.packageName(), spec.className(), source, diagnostics);
+            writeJavaSource(writer, effectiveTargetModule, spec.packageName(), spec.className(), source, diagnostics);
             controllerCount++;
 
             // Generate request DTOs
             for (RequestDtoSpec requestDto : spec.requestDtos()) {
                 TypeSpec dtoTypeSpec = RequestDtoCodegen.generate(requestDto);
                 String dtoSource = toJavaSource(requestDto.packageName(), dtoTypeSpec);
-                writeJavaSource(writer, requestDto.packageName(), requestDto.className(), dtoSource, diagnostics);
+                writeJavaSource(
+                        writer,
+                        effectiveTargetModule,
+                        requestDto.packageName(),
+                        requestDto.className(),
+                        dtoSource,
+                        diagnostics);
                 dtoCount++;
             }
 
@@ -130,7 +145,13 @@ public final class RestPlugin implements GeneratorPlugin {
             for (ResponseDtoSpec responseDto : spec.responseDtos()) {
                 TypeSpec dtoTypeSpec = ResponseDtoCodegen.generate(responseDto);
                 String dtoSource = toJavaSource(responseDto.packageName(), dtoTypeSpec);
-                writeJavaSource(writer, responseDto.packageName(), responseDto.className(), dtoSource, diagnostics);
+                writeJavaSource(
+                        writer,
+                        effectiveTargetModule,
+                        responseDto.packageName(),
+                        responseDto.className(),
+                        dtoSource,
+                        diagnostics);
                 dtoCount++;
             }
 
@@ -148,7 +169,13 @@ public final class RestPlugin implements GeneratorPlugin {
 
             TypeSpec handlerTypeSpec = ExceptionHandlerCodegen.generate(handlerSpec);
             String handlerSource = toJavaSource(handlerSpec.packageName(), handlerTypeSpec);
-            writeJavaSource(writer, handlerSpec.packageName(), handlerSpec.className(), handlerSource, diagnostics);
+            writeJavaSource(
+                    writer,
+                    effectiveTargetModule,
+                    handlerSpec.packageName(),
+                    handlerSpec.className(),
+                    handlerSource,
+                    diagnostics);
         }
 
         diagnostics.info("REST plugin generated " + controllerCount + " controller(s) and " + dtoCount + " DTO(s).");
@@ -160,15 +187,66 @@ public final class RestPlugin implements GeneratorPlugin {
 
     private static void writeJavaSource(
             ArtifactWriter writer,
+            String effectiveTargetModule,
             String packageName,
             String className,
             String source,
             DiagnosticReporter diagnostics) {
         try {
-            writer.writeJavaSource(packageName, className, source);
+            if (effectiveTargetModule != null && writer.isMultiModule()) {
+                writer.writeJavaSource(effectiveTargetModule, packageName, className, source);
+            } else {
+                writer.writeJavaSource(packageName, className, source);
+            }
         } catch (IOException e) {
             diagnostics.error("Failed to write " + packageName + "." + className, e);
         }
+    }
+
+    /**
+     * Resolves the effective target module for REST code routing.
+     *
+     * <p>Priority: explicit config &gt; auto-routing by {@link ModuleRole#API} &gt; null.
+     *
+     * @param config the REST configuration
+     * @param model the architectural model
+     * @param writer the artifact writer
+     * @param diagnostics the diagnostic reporter
+     * @return the target module ID, or null if not multi-module or not resolvable
+     * @since 3.1.0
+     */
+    private String resolveEffectiveTargetModule(
+            RestConfig config, ArchitecturalModel model, ArtifactWriter writer, DiagnosticReporter diagnostics) {
+        if (!writer.isMultiModule()) {
+            return null;
+        }
+
+        // Priority 1: explicit configuration
+        if (config.targetModule() != null) {
+            return config.targetModule();
+        }
+
+        // Priority 2: auto-routing by ModuleRole.API
+        Optional<ModuleIndex> moduleIndexOpt = model.moduleIndex();
+        if (moduleIndexOpt.isEmpty()) {
+            return null;
+        }
+
+        ModuleIndex moduleIndex = moduleIndexOpt.get();
+        Optional<String> autoRouted = ModuleRouting.resolveUniqueModuleByRole(moduleIndex, ModuleRole.API);
+
+        if (autoRouted.isPresent()) {
+            diagnostics.info("REST auto-routing: detected unique API module '" + autoRouted.get() + "'");
+            return autoRouted.get();
+        }
+
+        long apiCount = moduleIndex.modulesByRole(ModuleRole.API).count();
+        if (apiCount > 1) {
+            diagnostics.warn("REST auto-routing: " + apiCount + " API modules found. "
+                    + "Please configure 'targetModule' explicitly in hexaglue.yaml under plugins.rest.");
+        }
+
+        return null;
     }
 
     private static String deriveApiPackage(String basePackage) {
