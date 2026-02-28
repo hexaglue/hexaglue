@@ -1,6 +1,6 @@
 /*
  * Verify script for sample-multi-aggregate integration test.
- * Validates that the JPA plugin executed correctly with multiple aggregates.
+ * Validates that the JPA and REST plugins executed correctly with multiple aggregates.
  */
 
 def buildLog = new File(basedir, "build.log")
@@ -37,5 +37,9 @@ assert logContent.contains("io.hexaglue.plugin.jpa") :
 assert logContent.contains("JPA generation complete:") :
     "Build log should contain JPA generation completion message"
 
-println 'SUCCESS: sample-multi-aggregate integration test passed - JPA plugin executed correctly'
+// Verify REST plugin was loaded
+assert logContent.contains("io.hexaglue.plugin.rest") :
+    "Build log should contain REST plugin execution"
+
+println 'SUCCESS: sample-multi-aggregate integration test passed - JPA + REST plugins executed correctly'
 return true
