@@ -20,7 +20,7 @@ assert logContent.contains("Classification complete:") :
     "Should contain 'Classification complete:'"
 
 // Check generated sources directory
-def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
+def generatedSources = new File(basedir, "target/generated-sources/hexaglue")
 assert generatedSources.exists() :
     "Generated sources directory should exist"
 

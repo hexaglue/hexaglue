@@ -63,7 +63,7 @@ assert logContent.contains("Detected 1 bidirectional relationship mappings") :
 // GENERATED FILES VERIFICATION
 // =============================================================================
 
-def generatedSources = new File(basedir, "target/hexaglue/generated-sources")
+def generatedSources = new File(basedir, "target/generated-sources/hexaglue")
 assert generatedSources.exists() : "Generated sources directory should exist"
 
 def infraPackage = new File(generatedSources, "com/university/infrastructure/persistence")

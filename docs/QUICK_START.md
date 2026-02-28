@@ -197,10 +197,10 @@ mvn compile
 
 ## Step 4: Explore Generated Code
 
-Check `target/hexaglue/generated-sources/`. HexaGlue generated:
+Check `target/generated-sources/hexaglue/`. HexaGlue generated:
 
 ```
-target/hexaglue/generated-sources/
+target/generated-sources/hexaglue/
   com/example/infrastructure/
     persistence/
       TaskEntity.java          # JPA entity

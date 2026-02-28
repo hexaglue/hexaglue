@@ -10,7 +10,7 @@ assert !logText.contains("BUILD FAILURE") : "Build should not fail"
 assert logText.contains("generate-and-audit") : "Combined goal should execute"
 
 // Generated sources directory should exist
-def generatedDir = new File(basedir, "target/hexaglue/generated-sources")
+def generatedDir = new File(basedir, "target/generated-sources/hexaglue")
 assert generatedDir.exists() : "Generated sources directory should exist"
 
 // Report directory should exist

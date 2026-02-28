@@ -64,7 +64,7 @@ These parameters are set in the `<configuration>` block of the Maven plugin:
 | Parameter | Type | Default | Property | Description |
 |-----------|------|---------|----------|-------------|
 | `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. Documentation is generated from domain types in this package. |
-| `outputDirectory` | string | `target/hexaglue/generated-sources` | `hexaglue.outputDirectory` | Base directory for generated output |
+| `outputDirectory` | string | `target/generated-sources/hexaglue` | `hexaglue.outputDirectory` | Base directory for generated output |
 | `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
 | `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
 | `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |

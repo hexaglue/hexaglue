@@ -8,7 +8,7 @@ assert buildLog.contains('io.hexaglue.plugin.rest'):
     'Build log should contain REST plugin execution'
 
 // Check that BookController.java was generated
-def bookController = new File(basedir, 'target/hexaglue/generated-sources/com/example/api/controller/BookController.java')
+def bookController = new File(basedir, 'target/generated-sources/hexaglue/com/example/api/controller/BookController.java')
 assert bookController.exists(): 'BookController.java should be generated'
 
 // Verify generated source does NOT contain OpenAPI annotations

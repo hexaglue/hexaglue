@@ -8,11 +8,11 @@ assert buildLog.contains('io.hexaglue.plugin.rest'):
     'Build log should contain REST plugin execution'
 
 // Check that BookApiExceptionHandler.java was generated (custom className)
-def customHandler = new File(basedir, 'target/hexaglue/generated-sources/com/example/api/exception/BookApiExceptionHandler.java')
+def customHandler = new File(basedir, 'target/generated-sources/hexaglue/com/example/api/exception/BookApiExceptionHandler.java')
 assert customHandler.exists(): 'BookApiExceptionHandler.java should be generated with custom exceptionHandlerClassName'
 
 // Check that default GlobalExceptionHandler.java was NOT generated
-def defaultHandler = new File(basedir, 'target/hexaglue/generated-sources/com/example/api/exception/GlobalExceptionHandler.java')
+def defaultHandler = new File(basedir, 'target/generated-sources/hexaglue/com/example/api/exception/GlobalExceptionHandler.java')
 assert !defaultHandler.exists(): 'GlobalExceptionHandler.java should NOT be generated (default className should be overridden)'
 
 println "✓ BUILD SUCCESS"

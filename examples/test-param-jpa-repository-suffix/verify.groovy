@@ -4,10 +4,10 @@ def buildLog = new File(basedir, 'build.log').text
 assert buildLog.contains('BUILD SUCCESS'): 'Build should succeed'
 
 // Check that BookRepo.java was generated (NOT BookJpaRepository.java)
-def bookRepo = new File(basedir, 'target/hexaglue/generated-sources/com/example/infrastructure/persistence/BookRepo.java')
+def bookRepo = new File(basedir, 'target/generated-sources/hexaglue/com/example/infrastructure/persistence/BookRepo.java')
 assert bookRepo.exists(): 'BookRepo.java should be generated with custom repositorySuffix'
 
-def bookJpaRepository = new File(basedir, 'target/hexaglue/generated-sources/com/example/infrastructure/persistence/BookJpaRepository.java')
+def bookJpaRepository = new File(basedir, 'target/generated-sources/hexaglue/com/example/infrastructure/persistence/BookJpaRepository.java')
 assert !bookJpaRepository.exists(): 'BookJpaRepository.java should NOT be generated (default suffix should be overridden)'
 
 println "✓ BUILD SUCCESS"
