@@ -29,8 +29,7 @@
         <hexaglue.root>${project.basedir}/..</hexaglue.root>
         <!-- HexaGlue core version (explicit, cannot use ${project.version} because plugins have their own version) -->
         <hexaglue.version>6.1.0-SNAPSHOT</hexaglue.version>
-        <!-- Plugin-specific dependencies -->
-        <jakarta-persistence.version>3.2.0</jakarta-persistence.version>
+        <!-- jakarta-persistence.version inherited from hexaglue-parent -->
     </properties>
 
     <dependencyManagement>
