@@ -56,6 +56,7 @@ public final class PluginExecutor {
     private static final Logger log = LoggerFactory.getLogger(PluginExecutor.class);
 
     private final Path outputDirectory;
+    private final Path reportsDirectory;
     private final Map<String, Map<String, Object>> pluginConfigs;
     private final ApplicationGraph graph;
     private final Set<PluginCategory> enabledCategories;
@@ -99,7 +100,35 @@ public final class PluginExecutor {
             Set<PluginCategory> enabledCategories,
             ArchitecturalModel architecturalModel,
             List<ModuleSourceSet> moduleSourceSets) {
+        this(outputDirectory, null, pluginConfigs, graph, enabledCategories, architecturalModel, moduleSourceSets);
+    }
+
+    /**
+     * Creates a plugin executor with explicit reports directory.
+     *
+     * <p>In mono-module mode, the reports directory is passed to the {@link FileSystemCodeWriter}
+     * so that documentation/audit reports are written to the correct location regardless of
+     * the generated-sources output directory layout.
+     *
+     * @param outputDirectory the directory for generated sources (default/fallback)
+     * @param reportsDirectory explicit reports directory (may be null for derived)
+     * @param pluginConfigs plugin configurations keyed by plugin ID
+     * @param graph the application graph for architecture analysis (may be null)
+     * @param enabledCategories plugin categories to execute (null or empty for all categories)
+     * @param architecturalModel the architectural model (must not be null)
+     * @param moduleSourceSets module source sets for multi-module routing (empty for mono-module)
+     * @since 6.0.0
+     */
+    public PluginExecutor(
+            Path outputDirectory,
+            Path reportsDirectory,
+            Map<String, Map<String, Object>> pluginConfigs,
+            ApplicationGraph graph,
+            Set<PluginCategory> enabledCategories,
+            ArchitecturalModel architecturalModel,
+            List<ModuleSourceSet> moduleSourceSets) {
         this.outputDirectory = outputDirectory;
+        this.reportsDirectory = reportsDirectory;
         this.pluginConfigs = pluginConfigs;
         this.graph = graph;
         this.enabledCategories = enabledCategories;
@@ -364,8 +393,12 @@ public final class PluginExecutor {
             // absolute paths are used directly.
             return new MultiModuleCodeWriter(moduleSourceSets, outputDirectory, pluginOutputOverride);
         } else {
-            Path effectiveOutputDir = pluginOutputOverride != null ? pluginOutputOverride : outputDirectory;
-            return new FileSystemCodeWriter(effectiveOutputDir);
+            // Mono-module: use the 3-arg FileSystemCodeWriter for explicit directory control
+            Path effectiveSourcesDir = pluginOutputOverride != null ? pluginOutputOverride : outputDirectory;
+            return new FileSystemCodeWriter(
+                    effectiveSourcesDir,
+                    deriveResourcesDirectory(effectiveSourcesDir),
+                    reportsDirectory != null ? reportsDirectory : deriveReportsDirectory(effectiveSourcesDir));
         }
     }
 
@@ -378,6 +411,42 @@ public final class PluginExecutor {
             return Path.of(dir);
         }
         return null;
+    }
+
+    /**
+     * Derives the resources directory from a sources directory following the Maven convention.
+     *
+     * <p>Example: {@code target/generated-sources/hexaglue} → {@code target/generated-resources/hexaglue}
+     */
+    static Path deriveResourcesDirectory(Path sourcesDir) {
+        Path parent = sourcesDir.getParent();
+        String toolName = sourcesDir.getFileName().toString();
+        if (parent != null) {
+            Path targetDir = parent.getParent();
+            if (targetDir != null) {
+                return targetDir.resolve("generated-resources").resolve(toolName);
+            }
+        }
+        // Fallback: sibling directory
+        return sourcesDir.resolveSibling("generated-resources");
+    }
+
+    /**
+     * Derives the reports directory from a sources directory.
+     *
+     * <p>Example: {@code target/generated-sources/hexaglue} → {@code target/hexaglue/reports}
+     */
+    static Path deriveReportsDirectory(Path sourcesDir) {
+        Path parent = sourcesDir.getParent();
+        String toolName = sourcesDir.getFileName().toString();
+        if (parent != null) {
+            Path targetDir = parent.getParent();
+            if (targetDir != null) {
+                return targetDir.resolve(toolName).resolve("reports");
+            }
+        }
+        // Fallback: sibling directory
+        return sourcesDir.resolveSibling("reports");
     }
 
     /**
