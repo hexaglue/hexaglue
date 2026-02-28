@@ -35,7 +35,7 @@ assert logContent.contains("1 entities") :
 // OPTIMISTIC LOCKING VERIFICATION
 // =============================================================================
 
-def infraPackage = new File(basedir, "target/hexaglue/generated-sources/com/example/infrastructure/persistence")
+def infraPackage = new File(basedir, "target/generated-sources/hexaglue/com/example/infrastructure/persistence")
 assert infraPackage.exists() : "Infrastructure persistence package should exist"
 
 def bookEntity = new File(infraPackage, "BookEntity.java")

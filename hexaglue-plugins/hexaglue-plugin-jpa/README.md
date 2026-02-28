@@ -78,7 +78,7 @@ These parameters are set in the `<configuration>` block of the Maven plugin and 
 | Parameter | Type | Default | Property | Description |
 |-----------|------|---------|----------|-------------|
 | `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. JPA artifacts are generated from domain types in this package. |
-| `outputDirectory` | string | `target/hexaglue/generated-sources` | `hexaglue.outputDirectory` | Directory where JPA entities, repositories, and mappers are written |
+| `outputDirectory` | string | `target/generated-sources/hexaglue` | `hexaglue.outputDirectory` | Directory where JPA entities, repositories, and mappers are written |
 | `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
 | `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
 | `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |

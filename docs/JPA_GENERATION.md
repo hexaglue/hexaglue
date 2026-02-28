@@ -80,7 +80,7 @@ For each aggregate root with a repository port, HexaGlue generates:
 mvn compile
 ```
 
-Generated files appear in `target/hexaglue/generated-sources/`.
+Generated files appear in `target/generated-sources/hexaglue/`.
 
 ## Domain to JPA Mapping
 
@@ -212,7 +212,7 @@ public class OrderAdapter implements OrderRepository {
 ## Output Directory Structure
 
 ```
-target/hexaglue/generated-sources/
+target/generated-sources/hexaglue/
 └── com/example/infrastructure/
     ├── persistence/
     │   ├── OrderEntity.java

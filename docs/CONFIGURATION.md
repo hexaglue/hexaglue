@@ -36,7 +36,7 @@ The `<extensions>true</extensions>` enables automatic binding to `mvn compile`.
 | `basePackage` | (required) | Root package to analyze |
 | `failOnUnclassified` | `false` | Fail build if unclassified types exist |
 | `skip` | `false` | Skip HexaGlue execution |
-| `outputDirectory` | `target/hexaglue/generated-sources` | Generated sources location |
+| `outputDirectory` | `target/generated-sources/hexaglue` | Generated sources location |
 
 ### Production Configuration
 

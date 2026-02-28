@@ -112,7 +112,7 @@
                         </goals>
                         <configuration>
                             <sources>
-                                <source>${project.build.directory}/hexaglue/generated-sources</source>
+                                <source>${project.build.directory}/generated-sources/hexaglue</source>
                             </sources>
                         </configuration>
                     </execution>

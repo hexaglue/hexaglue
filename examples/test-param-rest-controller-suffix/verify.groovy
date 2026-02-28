@@ -8,11 +8,11 @@ assert buildLog.contains('io.hexaglue.plugin.rest'):
     'Build log should contain REST plugin execution'
 
 // Check that BookRestApi.java was generated (custom controllerSuffix)
-def bookRestApi = new File(basedir, 'target/hexaglue/generated-sources/com/example/api/controller/BookRestApi.java')
+def bookRestApi = new File(basedir, 'target/generated-sources/hexaglue/com/example/api/controller/BookRestApi.java')
 assert bookRestApi.exists(): 'BookRestApi.java should be generated with custom controllerSuffix'
 
 // Check that default BookController.java was NOT generated
-def bookController = new File(basedir, 'target/hexaglue/generated-sources/com/example/api/controller/BookController.java')
+def bookController = new File(basedir, 'target/generated-sources/hexaglue/com/example/api/controller/BookController.java')
 assert !bookController.exists(): 'BookController.java should NOT be generated (default suffix should be overridden)'
 
 // Verify generated source contains the custom class name

@@ -21,8 +21,8 @@ def entityFile = new File(infraDir, "BookEntity.java")
 assert entityFile.exists() : "BookEntity.java should exist in custom output directory"
 
 // Verify NOT in default location
-def defaultOutput = new File(basedir, "target/hexaglue/generated-sources/com/example/infrastructure/persistence")
-assert !defaultOutput.exists() : "Files should NOT be in default target/hexaglue/generated-sources/"
+def defaultOutput = new File(basedir, "target/generated-sources/hexaglue/com/example/infrastructure/persistence")
+assert !defaultOutput.exists() : "Files should NOT be in default target/generated-sources/hexaglue/"
 
 println """
 =============================================================================
@@ -30,7 +30,7 @@ SUCCESS: test-param-output-directory integration test passed!
 Validated:
   - outputDirectory correctly redirected to target/custom-output/
   - BookEntity.java generated in custom location
-  - Files NOT in default target/hexaglue/generated-sources/
+  - Files NOT in default target/generated-sources/hexaglue/
 =============================================================================
 """
 return true

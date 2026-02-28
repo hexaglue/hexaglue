@@ -35,7 +35,7 @@ assert logContent.contains("1 entities") :
 // CUSTOM PACKAGE VERIFICATION
 // =============================================================================
 
-def customPackage = new File(basedir, "target/hexaglue/generated-sources/com/example/custom/persistence")
+def customPackage = new File(basedir, "target/generated-sources/hexaglue/com/example/custom/persistence")
 assert customPackage.exists() : "Custom persistence package should exist at com/example/custom/persistence"
 
 ["BookEntity.java", "BookJpaRepository.java", "BookMapper.java", "BookRepositoryAdapter.java"].each { file ->
@@ -44,7 +44,7 @@ assert customPackage.exists() : "Custom persistence package should exist at com/
 }
 
 // Verify files are NOT in default location
-def defaultPackage = new File(basedir, "target/hexaglue/generated-sources/com/example/infrastructure/persistence")
+def defaultPackage = new File(basedir, "target/generated-sources/hexaglue/com/example/infrastructure/persistence")
 assert !defaultPackage.exists() :
     "Files should NOT be in default package (com/example/infrastructure/persistence)"
 
