@@ -197,7 +197,6 @@ class RestConfigTest {
             }
 
             @Override
-            @SuppressWarnings("unchecked") // test helper: values map contains known types
             public Optional<Map<String, Integer>> getIntegerMap(String key) {
                 Object value = values.get(key);
                 if (value instanceof Map<?, ?> map) {

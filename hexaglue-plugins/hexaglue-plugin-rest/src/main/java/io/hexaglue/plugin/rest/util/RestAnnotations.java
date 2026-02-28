@@ -60,6 +60,11 @@ public final class RestAnnotations {
     private static final ClassName EXCEPTION_HANDLER =
             ClassName.get("org.springframework.web.bind.annotation", "ExceptionHandler");
 
+    // --- Spring Context ---
+    private static final ClassName CONFIGURATION =
+            ClassName.get("org.springframework.context.annotation", "Configuration");
+    private static final ClassName BEAN = ClassName.get("org.springframework.context.annotation", "Bean");
+
     /** Spring HttpStatus class reference. */
     static final ClassName HTTP_STATUS = ClassName.get("org.springframework.http", "HttpStatus");
 
@@ -292,5 +297,25 @@ public final class RestAnnotations {
      */
     public static AnnotationSpec restControllerAdvice() {
         return AnnotationSpec.builder(REST_CONTROLLER_ADVICE).build();
+    }
+
+    /**
+     * Builds a {@code @Configuration} annotation.
+     *
+     * @return the annotation spec
+     * @since 3.1.0
+     */
+    public static AnnotationSpec configuration() {
+        return AnnotationSpec.builder(CONFIGURATION).build();
+    }
+
+    /**
+     * Builds a {@code @Bean} annotation.
+     *
+     * @return the annotation spec
+     * @since 3.1.0
+     */
+    public static AnnotationSpec bean() {
+        return AnnotationSpec.builder(BEAN).build();
     }
 }

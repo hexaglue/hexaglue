@@ -81,8 +81,15 @@ public final class ResponseDtoCodegen {
 
     private static CodeBlock generateFieldExpression(DtoFieldSpec field) {
         return switch (field.projectionKind()) {
-            case IDENTITY_UNWRAP, AGGREGATE_REFERENCE ->
-                CodeBlock.of("source.$L() != null ? source.$L : null", field.sourceFieldName(), field.accessorChain());
+            case IDENTITY_UNWRAP, AGGREGATE_REFERENCE -> {
+                // Derive the null-check accessor from the full accessor chain by stripping
+                // the terminal .value() call. This handles both record-style accessors
+                // (e.g., "id().value()" → "id()") and JavaBean-style accessors
+                // (e.g., "getId().value()" → "getId()"), so the null-check always uses
+                // the same style as the accessor chain itself.
+                String nullCheckAccessor = field.accessorChain().replace(".value()", "");
+                yield CodeBlock.of("source.$L != null ? source.$L : null", nullCheckAccessor, field.accessorChain());
+            }
             case DIRECT, VALUE_OBJECT_FLATTEN -> CodeBlock.of("source.$L", field.accessorChain());
             default -> CodeBlock.of("source.$L", field.accessorChain());
         };

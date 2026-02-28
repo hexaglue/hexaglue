@@ -21,6 +21,8 @@ import io.hexaglue.arch.model.Field;
 import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Parameter;
+import io.hexaglue.arch.model.TypeNature;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.rest.RestConfig;
@@ -160,8 +162,16 @@ class DtoFieldMapperTest {
     @DisplayName("Response mapping")
     class ResponseMapping {
 
+        /** Record parent structure: uses record-style accessors (fieldName()). */
+        private final TypeStructure recordParent =
+                TypeStructure.builder(TypeNature.RECORD).build();
+
+        /** Class parent structure: uses JavaBean-style getters (getFieldName()). */
+        private final TypeStructure classParent =
+                TypeStructure.builder(TypeNature.CLASS).build();
+
         @Test
-        @DisplayName("should unwrap identity field to id")
+        @DisplayName("should unwrap identity field to id for record parent")
         void shouldUnwrapIdentityFieldToId() {
             Identifier accountId = TestUseCaseFactory.identifier("com.acme.AccountId", "java.lang.Long");
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex(accountId);
@@ -170,7 +180,7 @@ class DtoFieldMapperTest {
                     .roles(Set.of(FieldRole.IDENTITY))
                     .build();
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(1);
             DtoFieldSpec spec = fields.get(0);
@@ -182,12 +192,28 @@ class DtoFieldMapperTest {
         }
 
         @Test
-        @DisplayName("should map direct string field")
+        @DisplayName("should use getter for identity field in class parent")
+        void shouldUseGetterForIdentityFieldInClassParent() {
+            Identifier accountId = TestUseCaseFactory.identifier("com.acme.AccountId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(accountId);
+            Field field = Field.builder("id", TypeRef.of("com.acme.AccountId"))
+                    .wrappedType(TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(1);
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getId().value()");
+        }
+
+        @Test
+        @DisplayName("should map direct string field for record parent")
         void shouldMapDirectStringField() {
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
             Field field = Field.of("accountNumber", TypeRef.of("java.lang.String"));
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(1);
             DtoFieldSpec spec = fields.get(0);
@@ -199,12 +225,24 @@ class DtoFieldMapperTest {
         }
 
         @Test
-        @DisplayName("should map direct primitive field")
+        @DisplayName("should use getter for direct string field in class parent")
+        void shouldUseGetterForDirectStringFieldInClassParent() {
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
+            Field field = Field.of("accountNumber", TypeRef.of("java.lang.String"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(1);
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getAccountNumber()");
+        }
+
+        @Test
+        @DisplayName("should map direct primitive field for record parent")
         void shouldMapDirectPrimitiveField() {
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
             Field field = Field.of("active", TypeRef.of("boolean"));
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(1);
             DtoFieldSpec spec = fields.get(0);
@@ -216,7 +254,19 @@ class DtoFieldMapperTest {
         }
 
         @Test
-        @DisplayName("should flatten multi-field VO with prefix")
+        @DisplayName("should use getter for primitive field in class parent")
+        void shouldUseGetterForPrimitiveFieldInClassParent() {
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex();
+            Field field = Field.of("active", TypeRef.of("boolean"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(1);
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getActive()");
+        }
+
+        @Test
+        @DisplayName("should flatten multi-field VO with prefix for record parent")
         void shouldFlattenMultiFieldVoWithPrefix() {
             ValueObject money = TestUseCaseFactory.multiFieldValueObject(
                     "com.acme.Money",
@@ -226,7 +276,7 @@ class DtoFieldMapperTest {
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex(money);
             Field field = Field.of("balance", TypeRef.of("com.acme.Money"));
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(2);
             assertThat(fields.get(0).fieldName()).isEqualTo("balanceAmount");
@@ -241,7 +291,26 @@ class DtoFieldMapperTest {
         }
 
         @Test
-        @DisplayName("should unwrap aggregate reference")
+        @DisplayName("should use getter prefix for flattened VO in class parent")
+        void shouldUseGetterPrefixForFlattenedVoInClassParent() {
+            ValueObject money = TestUseCaseFactory.multiFieldValueObject(
+                    "com.acme.Money",
+                    List.of(
+                            Field.of("amount", TypeRef.of("java.math.BigDecimal")),
+                            Field.of("currency", TypeRef.of("java.lang.String"))));
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(money);
+            Field field = Field.of("balance", TypeRef.of("com.acme.Money"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(2);
+            // Top-level uses getter; VO sub-fields remain record-style (VOs are always records)
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getBalance().amount()");
+            assertThat(fields.get(1).accessorChain()).isEqualTo("getBalance().currency()");
+        }
+
+        @Test
+        @DisplayName("should unwrap aggregate reference for record parent")
         void shouldUnwrapAggregateReference() {
             Identifier customerId = TestUseCaseFactory.identifier("com.acme.CustomerId", "java.lang.Long");
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex(customerId);
@@ -249,7 +318,7 @@ class DtoFieldMapperTest {
                     .roles(Set.of(FieldRole.AGGREGATE_REFERENCE))
                     .build();
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(1);
             DtoFieldSpec spec = fields.get(0);
@@ -261,14 +330,29 @@ class DtoFieldMapperTest {
         }
 
         @Test
-        @DisplayName("should unwrap single-field VO")
+        @DisplayName("should use getter for aggregate reference in class parent")
+        void shouldUseGetterForAggregateReferenceInClassParent() {
+            Identifier customerId = TestUseCaseFactory.identifier("com.acme.CustomerId", "java.lang.Long");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(customerId);
+            Field field = Field.builder("customerId", TypeRef.of("com.acme.CustomerId"))
+                    .roles(Set.of(FieldRole.AGGREGATE_REFERENCE))
+                    .build();
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(1);
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getCustomerId().value()");
+        }
+
+        @Test
+        @DisplayName("should unwrap single-field VO for record parent")
         void shouldUnwrapSingleFieldVo() {
             ValueObject email =
                     TestUseCaseFactory.singleFieldValueObject("com.acme.Email", "value", "java.lang.String");
             DomainIndex domainIndex = TestUseCaseFactory.domainIndex(email);
             Field field = Field.of("email", TypeRef.of("com.acme.Email"));
 
-            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config);
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, recordParent);
 
             assertThat(fields).hasSize(1);
             DtoFieldSpec spec = fields.get(0);
@@ -277,6 +361,20 @@ class DtoFieldMapperTest {
             assertThat(spec.accessorChain()).isEqualTo("email().value()");
             assertThat(spec.validation()).isEqualTo(ValidationKind.NONE);
             assertThat(spec.projectionKind()).isEqualTo(ProjectionKind.IDENTITY_UNWRAP);
+        }
+
+        @Test
+        @DisplayName("should use getter for single-field VO in class parent")
+        void shouldUseGetterForSingleFieldVoInClassParent() {
+            ValueObject email =
+                    TestUseCaseFactory.singleFieldValueObject("com.acme.Email", "value", "java.lang.String");
+            DomainIndex domainIndex = TestUseCaseFactory.domainIndex(email);
+            Field field = Field.of("email", TypeRef.of("com.acme.Email"));
+
+            List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
+
+            assertThat(fields).hasSize(1);
+            assertThat(fields.get(0).accessorChain()).isEqualTo("getEmail().value()");
         }
     }
 }

@@ -42,6 +42,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Builds a {@link ControllerSpec} from a {@link DrivingPort}.
@@ -184,8 +186,8 @@ public final class ControllerSpecBuilder {
                     if (dtoSpec.isPresent()) {
                         requestDtos.add(dtoSpec.get());
                         requestDtoRef = dtoSpec.get().className();
-                        parameterBindings = buildParameterBindings(useCase, mapping, domainIndex);
                     }
+                    parameterBindings = buildParameterBindings(useCase, mapping, domainIndex);
 
                     // Response DTO
                     TypeRef methodReturnType = useCase.method().returnType();
@@ -245,22 +247,50 @@ public final class ControllerSpecBuilder {
 
         private List<ParameterBindingSpec> buildParameterBindings(
                 UseCase useCase, HttpMapping mapping, DomainIndex domainIndex) {
+            // The identity path variable (if any) is always named "id" in generated REST code,
+            // regardless of the port param name (e.g., "accountId"). Detect it by checking
+            // whether any path variable has the isIdentifier flag set.
+            boolean hasIdentityPathVar = mapping.pathVariables().stream().anyMatch(pv -> pv.isIdentifier());
+            Set<String> pathVarNames =
+                    mapping.pathVariables().stream().map(pv -> pv.javaName()).collect(Collectors.toSet());
+            Set<String> queryParamNames =
+                    mapping.queryParams().stream().map(qp -> qp.javaName()).collect(Collectors.toSet());
+            boolean hasRequestBody = useCase.type() != UseCase.UseCaseType.QUERY;
+
             List<ParameterBindingSpec> bindings = new ArrayList<>();
             for (Parameter param : useCase.method().parameters()) {
                 TypeName domainType = DtoFieldMapper.toTypeName(param.type());
 
+                // Check if this param's name matches a path variable or query param directly.
+                boolean isPathVar = pathVarNames.contains(param.name());
+                boolean isQueryParam = queryParamNames.contains(param.name());
+
                 Optional<Identifier> id = DtoFieldMapper.findIdentifier(param.type(), domainIndex);
                 if (id.isPresent()) {
-                    // Check if this identifier comes from a path variable
-                    boolean isPathVariable = mapping.pathVariables().stream().anyMatch(pv -> pv.isIdentifier());
-                    if (isPathVariable && bindings.isEmpty()) {
-                        // First identifier param matching a path variable → PATH_VARIABLE_WRAP
+                    // Heuristic: the first Identifier param in a mapping with an identity path
+                    // variable is the aggregate root id, exposed as /{id} in the URL.
+                    // The port param may have a different name (e.g., "accountId") but it maps
+                    // to the path variable named "id".
+                    if (isPathVar || (hasIdentityPathVar && bindings.isEmpty())) {
                         bindings.add(new ParameterBindingSpec(
                                 param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of("id")));
                     } else {
                         bindings.add(new ParameterBindingSpec(
                                 param.name(), domainType, BindingKind.CONSTRUCTOR_WRAP, List.of(param.name())));
                     }
+                    continue;
+                }
+
+                if (isPathVar || isQueryParam) {
+                    // Direct-type path variable or query param: pass the raw Java argument as-is.
+                    bindings.add(new ParameterBindingSpec(
+                            param.name(), domainType, BindingKind.QUERY_PARAM, List.of(param.name())));
+                    continue;
+                }
+
+                // Params not exposed as path/query vars and not in a request DTO have no
+                // accessible source in the generated controller — skip them.
+                if (!hasRequestBody) {
                     continue;
                 }
 
@@ -279,7 +309,7 @@ public final class ControllerSpecBuilder {
                     continue;
                 }
 
-                // Direct
+                // Direct from request body
                 bindings.add(
                         new ParameterBindingSpec(param.name(), domainType, BindingKind.DIRECT, List.of(param.name())));
             }

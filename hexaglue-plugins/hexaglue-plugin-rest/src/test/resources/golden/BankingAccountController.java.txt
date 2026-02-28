@@ -51,7 +51,8 @@ public class AccountController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<Object> getAccount(@PathVariable Long id) {
-        var result = accountUseCases.getAccount();
+        var result = accountUseCases.getAccount(
+                        new AccountId(id));
         return ResponseEntity.ok(AccountResponse.from(result));
     }
 
@@ -75,32 +76,32 @@ public class AccountController {
             summary = "Deposit"
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "204",
             description = "Deposit completed successfully"
     )
     @PostMapping("/{id}/deposit")
     public ResponseEntity<Object> deposit(@PathVariable Long id,
             @Valid @RequestBody DepositRequest request) {
-        var result = accountUseCases.deposit(
+        accountUseCases.deposit(
                         new AccountId(id),
                         Money.of(request.amount(), request.currency()));
-        return ResponseEntity.ok(result);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(
             summary = "Withdraw"
     )
     @ApiResponse(
-            responseCode = "200",
+            responseCode = "204",
             description = "Withdraw completed successfully"
     )
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<Object> withdraw(@PathVariable Long id,
             @Valid @RequestBody WithdrawRequest request) {
-        var result = accountUseCases.withdraw(
+        accountUseCases.withdraw(
                         new AccountId(id),
                         Money.of(request.amount(), request.currency()));
-        return ResponseEntity.ok(result);
+        return ResponseEntity.noContent().build();
     }
 
     @Operation(

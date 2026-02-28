@@ -4,6 +4,7 @@ import com.acme.banking.api.dto.InitiateTransferRequest;
 import com.acme.banking.api.dto.TransferResponse;
 import com.acme.banking.core.model.AccountId;
 import com.acme.banking.core.model.Money;
+import com.acme.banking.core.model.TransferId;
 import com.acme.banking.core.port.in.TransferUseCases;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -46,7 +47,8 @@ public class TransferController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<Object> getTransfer(@PathVariable Long id) {
-        var result = transferUseCases.getTransfer();
+        var result = transferUseCases.getTransfer(
+                        new TransferId(id));
         return ResponseEntity.ok(TransferResponse.from(result));
     }
 
@@ -76,7 +78,8 @@ public class TransferController {
     )
     @GetMapping("/by-account/{accountId}")
     public ResponseEntity<Object> getTransfersByAccount(@PathVariable AccountId accountId) {
-        var result = transferUseCases.getTransfersByAccount();
+        var result = transferUseCases.getTransfersByAccount(
+                        new AccountId(id));
         return ResponseEntity.ok(result);
     }
 }

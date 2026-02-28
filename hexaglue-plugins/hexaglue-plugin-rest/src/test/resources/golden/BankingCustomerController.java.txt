@@ -48,7 +48,8 @@ public class CustomerController {
     )
     @GetMapping("/{id}")
     public ResponseEntity<Object> getCustomer(@PathVariable Long id) {
-        var result = customerUseCases.getCustomer();
+        var result = customerUseCases.getCustomer(
+                        new CustomerId(id));
         return ResponseEntity.ok(CustomerResponse.from(result));
     }
 

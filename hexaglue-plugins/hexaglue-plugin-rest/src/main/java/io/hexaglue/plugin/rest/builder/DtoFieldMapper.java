@@ -20,6 +20,7 @@ import io.hexaglue.arch.model.FieldRole;
 import io.hexaglue.arch.model.Identifier;
 import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.TypeId;
+import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
 import io.hexaglue.plugin.rest.RestConfig;
@@ -89,13 +90,19 @@ public final class DtoFieldMapper {
      * <p>Returns multiple specs for multi-field VOs (flattening with prefix).
      * Returns empty list for AUDIT/TECHNICAL fields.
      *
-     * @param field       the domain type field
-     * @param domainIndex the domain index
-     * @param config      the plugin configuration
+     * <p>Accessor style depends on the parent type nature: record types use
+     * record-style accessors ({@code fieldName()}), while class types use
+     * JavaBean-style getters ({@code getFieldName()}).
+     *
+     * @param field           the domain type field
+     * @param domainIndex     the domain index
+     * @param config          the plugin configuration
+     * @param parentStructure the structure of the type that declares this field
      * @return list of DTO field specs
      * @since 3.1.0
      */
-    public static List<DtoFieldSpec> mapForResponse(Field field, DomainIndex domainIndex, RestConfig config) {
+    public static List<DtoFieldSpec> mapForResponse(
+            Field field, DomainIndex domainIndex, RestConfig config, TypeStructure parentStructure) {
         // 1. Skip AUDIT and TECHNICAL fields
         if (field.roles().stream().anyMatch(r -> r == FieldRole.AUDIT || r == FieldRole.TECHNICAL)) {
             return List.of();
@@ -106,58 +113,91 @@ public final class DtoFieldMapper {
 
         // 2. Identity field: unwrap via .value()
         if (field.isIdentity()) {
-            return mapResponseIdentityField(fieldName, fieldType, domainIndex);
+            return mapResponseIdentityField(fieldName, fieldType, domainIndex, parentStructure);
         }
 
         // 3. Aggregate reference: unwrap identifier via .value()
         if (field.hasRole(FieldRole.AGGREGATE_REFERENCE)) {
-            return mapResponseAggregateReference(fieldName, fieldType, domainIndex);
+            return mapResponseAggregateReference(fieldName, fieldType, domainIndex, parentStructure);
         }
 
         // 4. Check if ValueObject
         Optional<ValueObject> vo = findValueObject(fieldType, domainIndex);
         if (vo.isPresent()) {
-            return mapResponseValueObject(fieldName, vo.get(), config);
+            return mapResponseValueObject(fieldName, vo.get(), config, parentStructure);
         }
 
         // 5. Check if Identifier (non-identity, non-aggregate-ref)
         Optional<Identifier> id = findIdentifier(fieldType, domainIndex);
         if (id.isPresent()) {
             TypeName unwrapped = toTypeName(id.get().wrappedType());
-            String accessor = fieldName + "().value()";
+            String accessor = accessorWithValue(fieldName, parentStructure);
             return List.of(new DtoFieldSpec(
                     fieldName, unwrapped, fieldName, accessor, ValidationKind.NONE, ProjectionKind.IDENTITY_UNWRAP));
         }
 
         // 6. Direct (String, enum, primitive, wrapper)
         TypeName javaType = toTypeName(fieldType);
-        String accessor = fieldName + "()";
+        String accessor = accessorFor(fieldName, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
 
+    /**
+     * Generates the accessor expression for a field, taking the parent type nature into account.
+     *
+     * <p>Records use {@code fieldName()}, non-record classes use {@code getFieldName()}.
+     *
+     * @param fieldName       the field name
+     * @param parentStructure the structure of the declaring type
+     * @return the accessor expression string
+     */
+    private static String accessorFor(String fieldName, TypeStructure parentStructure) {
+        if (parentStructure.isRecord()) {
+            return fieldName + "()";
+        }
+        return "get" + NamingConventions.capitalize(fieldName) + "()";
+    }
+
+    /**
+     * Generates a chained accessor expression ending in {@code .value()}.
+     *
+     * <p>Records use {@code fieldName().value()}, non-record classes use
+     * {@code getFieldName().value()}.
+     *
+     * @param fieldName       the field name
+     * @param parentStructure the structure of the declaring type
+     * @return the chained accessor expression string
+     */
+    private static String accessorWithValue(String fieldName, TypeStructure parentStructure) {
+        if (parentStructure.isRecord()) {
+            return fieldName + "().value()";
+        }
+        return "get" + NamingConventions.capitalize(fieldName) + "().value()";
+    }
+
     private static List<DtoFieldSpec> mapResponseIdentityField(
-            String fieldName, TypeRef fieldType, DomainIndex domainIndex) {
+            String fieldName, TypeRef fieldType, DomainIndex domainIndex, TypeStructure parentStructure) {
         Optional<Identifier> identifier = findIdentifier(fieldType, domainIndex);
         if (identifier.isPresent()) {
             TypeName unwrapped = toTypeName(identifier.get().wrappedType());
-            String accessor = fieldName + "().value()";
+            String accessor = accessorWithValue(fieldName, parentStructure);
             return List.of(new DtoFieldSpec(
                     fieldName, unwrapped, fieldName, accessor, ValidationKind.NONE, ProjectionKind.IDENTITY_UNWRAP));
         }
         // Identity without Identifier type: direct mapping
         TypeName javaType = toTypeName(fieldType);
-        String accessor = fieldName + "()";
+        String accessor = accessorFor(fieldName, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
 
     private static List<DtoFieldSpec> mapResponseAggregateReference(
-            String fieldName, TypeRef fieldType, DomainIndex domainIndex) {
+            String fieldName, TypeRef fieldType, DomainIndex domainIndex, TypeStructure parentStructure) {
         Optional<Identifier> identifier = findIdentifier(fieldType, domainIndex);
         if (identifier.isPresent()) {
             TypeName unwrapped = toTypeName(identifier.get().wrappedType());
-            String accessor = fieldName + "().value()";
+            String accessor = accessorWithValue(fieldName, parentStructure);
             return List.of(new DtoFieldSpec(
                     fieldName,
                     unwrapped,
@@ -168,16 +208,17 @@ public final class DtoFieldMapper {
         }
         // Fallback: direct
         TypeName javaType = toTypeName(fieldType);
-        String accessor = fieldName + "()";
+        String accessor = accessorFor(fieldName, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
 
-    private static List<DtoFieldSpec> mapResponseValueObject(String fieldName, ValueObject vo, RestConfig config) {
+    private static List<DtoFieldSpec> mapResponseValueObject(
+            String fieldName, ValueObject vo, RestConfig config, TypeStructure parentStructure) {
         if (vo.isSingleValue()) {
             Field wrappedField = vo.wrappedField().orElseThrow();
             TypeName fieldType = toTypeName(wrappedField.type());
-            String accessor = fieldName + "().value()";
+            String accessor = accessorWithValue(fieldName, parentStructure);
             return List.of(new DtoFieldSpec(
                     fieldName, fieldType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.IDENTITY_UNWRAP));
         }
@@ -187,7 +228,9 @@ public final class DtoFieldMapper {
             for (Field f : vo.structure().fields()) {
                 TypeName subType = toTypeName(f.type());
                 String prefixedName = fieldName + NamingConventions.capitalize(f.name());
-                String accessor = fieldName + "()." + f.name() + "()";
+                // VO sub-fields are always records in hexaglue; only the top-level accessor
+                // from the parent type needs to respect the parent's accessor style.
+                String accessor = accessorFor(fieldName, parentStructure) + "." + f.name() + "()";
                 fields.add(new DtoFieldSpec(
                         prefixedName,
                         subType,
@@ -201,7 +244,7 @@ public final class DtoFieldMapper {
 
         // Non-flattened multi-field VO: NESTED_DTO
         TypeName voType = toTypeName(TypeRef.of(vo.id().qualifiedName()));
-        String accessor = fieldName + "()";
+        String accessor = accessorFor(fieldName, parentStructure);
         return List.of(new DtoFieldSpec(
                 fieldName, voType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.NESTED_DTO));
     }

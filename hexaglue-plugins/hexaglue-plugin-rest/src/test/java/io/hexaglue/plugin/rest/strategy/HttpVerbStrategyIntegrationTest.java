@@ -128,7 +128,7 @@ class HttpVerbStrategyIntegrationTest {
                         200,
                         account),
 
-                // COMMAND: first param is identity + action verb (deposit) → SubResourceActionStrategy
+                // COMMAND (void): first param is identity + action verb (deposit) → SubResourceActionStrategy
                 Arguments.of(
                         "deposit",
                         TestUseCaseFactory.commandWithParams(
@@ -138,10 +138,10 @@ class HttpVerbStrategyIntegrationTest {
                                         Parameter.of("amount", TypeRef.of("com.acme.Money")))),
                         HttpMethod.POST,
                         "/{id}/deposit",
-                        200,
+                        204,
                         account),
 
-                // COMMAND: first param is identity + action verb (withdraw) → SubResourceActionStrategy
+                // COMMAND (void): first param is identity + action verb (withdraw) → SubResourceActionStrategy
                 Arguments.of(
                         "withdraw",
                         TestUseCaseFactory.commandWithParams(
@@ -151,7 +151,7 @@ class HttpVerbStrategyIntegrationTest {
                                         Parameter.of("amount", TypeRef.of("com.acme.Money")))),
                         HttpMethod.POST,
                         "/{id}/withdraw",
-                        200,
+                        204,
                         account),
 
                 // --- Customer use cases ---
@@ -230,7 +230,7 @@ class HttpVerbStrategyIntegrationTest {
                         201,
                         transfer),
 
-                // COMMAND: first param is TransferId + action verb → SubResourceActionStrategy
+                // COMMAND (void): first param is TransferId + action verb → SubResourceActionStrategy
                 Arguments.of(
                         "executeTransfer",
                         TestUseCaseFactory.commandWithParams(
@@ -238,10 +238,10 @@ class HttpVerbStrategyIntegrationTest {
                                 List.of(Parameter.of("transferId", TypeRef.of("com.acme.TransferId")))),
                         HttpMethod.POST,
                         "/{id}/execute-transfer",
-                        200,
+                        204,
                         transfer),
 
-                // COMMAND: first param is TransferId + action verb → SubResourceActionStrategy
+                // COMMAND (void): first param is TransferId + action verb → SubResourceActionStrategy
                 Arguments.of(
                         "cancelTransfer",
                         TestUseCaseFactory.commandWithParams(
@@ -249,7 +249,7 @@ class HttpVerbStrategyIntegrationTest {
                                 List.of(Parameter.of("transferId", TypeRef.of("com.acme.TransferId")))),
                         HttpMethod.POST,
                         "/{id}/cancel-transfer",
-                        200,
+                        204,
                         transfer),
 
                 // QUERY: single identity param → GetByIdStrategy

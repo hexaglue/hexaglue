@@ -120,6 +120,7 @@ class ExceptionHandlerSpecBuilderTest {
                     true,
                     true,
                     "GlobalExceptionHandler",
+                    true,
                     null,
                     Map.of("com.acme.core.exception.AccountNotFoundException", 410));
 
@@ -153,6 +154,7 @@ class ExceptionHandlerSpecBuilderTest {
                     true,
                     true,
                     "GlobalExceptionHandler",
+                    true,
                     null,
                     Map.of("com.acme.infra.PaymentGatewayException", 502));
 
