@@ -72,6 +72,15 @@
         <!-- YAML Audit -->
         <module>test-param-audit-generate-docs</module>
 
+        <!-- YAML REST -->
+        <module>test-param-rest-controller-suffix</module>
+        <module>test-param-rest-request-dto-suffix</module>
+        <module>test-param-rest-base-path</module>
+        <module>test-param-rest-no-openapi</module>
+        <module>test-param-rest-no-exception-handler</module>
+        <module>test-param-rest-exception-handler-classname</module>
+        <module>test-param-rest-api-package</module>
+
         <!-- YAML Classification -->
         <module>test-param-classification-exclude</module>
         <module>test-param-classification-explicit</module>
