@@ -31,6 +31,8 @@ import io.hexaglue.plugin.rest.RestConfig;
 import io.hexaglue.plugin.rest.TestUseCaseFactory;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
 import io.hexaglue.plugin.rest.builder.ExceptionHandlerSpecBuilder;
+import io.hexaglue.plugin.rest.model.ApplicationServiceBeanSpec;
+import io.hexaglue.plugin.rest.model.BeanDependencySpec;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
 import io.hexaglue.plugin.rest.model.DtoFieldSpec;
 import io.hexaglue.plugin.rest.model.ExceptionHandlerSpec;
@@ -38,6 +40,7 @@ import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.ProjectionKind;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
+import io.hexaglue.plugin.rest.model.RestConfigurationSpec;
 import io.hexaglue.plugin.rest.model.ValidationKind;
 import io.hexaglue.syntax.TypeRef;
 import java.io.IOException;
@@ -353,6 +356,52 @@ class RestCodegenGoldenFileTest {
 
         TypeSpec typeSpec = ExceptionHandlerCodegen.generate(spec);
         assertGoldenFile(typeSpec, API_PACKAGE + ".exception", "GlobalExceptionHandler.java.txt");
+    }
+
+    @Test
+    @DisplayName("RestConfiguration with 1 bean and 1 dependency")
+    void restConfiguration() throws IOException {
+        RestConfigurationSpec spec = new RestConfigurationSpec(
+                "RestConfiguration",
+                API_PACKAGE + ".config",
+                List.of(new ApplicationServiceBeanSpec(
+                        ClassName.get("com.acme.core.port.in", "TaskUseCases"),
+                        ClassName.get("com.acme.core.service", "TaskService"),
+                        "taskUseCases",
+                        List.of(new BeanDependencySpec(
+                                ClassName.get("com.acme.core.port.out", "TaskRepository"), "taskRepository")))));
+
+        TypeSpec typeSpec = RestConfigurationCodegen.generate(spec);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".config", "RestConfiguration.java.txt");
+    }
+
+    @Test
+    @DisplayName("RestConfiguration with 2 beans and multiple dependencies")
+    void restConfigurationMultipleBeans() throws IOException {
+        RestConfigurationSpec spec = new RestConfigurationSpec(
+                "RestConfiguration",
+                API_PACKAGE + ".config",
+                List.of(
+                        new ApplicationServiceBeanSpec(
+                                ClassName.get("com.acme.core.port.in", "TaskUseCases"),
+                                ClassName.get("com.acme.core.service", "TaskService"),
+                                "taskUseCases",
+                                List.of(new BeanDependencySpec(
+                                        ClassName.get("com.acme.core.port.out", "TaskRepository"), "taskRepository"))),
+                        new ApplicationServiceBeanSpec(
+                                ClassName.get("com.acme.core.port.in", "OrderUseCases"),
+                                ClassName.get("com.acme.core.service", "OrderService"),
+                                "orderUseCases",
+                                List.of(
+                                        new BeanDependencySpec(
+                                                ClassName.get("com.acme.core.port.out", "OrderRepository"),
+                                                "orderRepository"),
+                                        new BeanDependencySpec(
+                                                ClassName.get("com.acme.core.port.out", "PaymentGateway"),
+                                                "paymentGateway")))));
+
+        TypeSpec typeSpec = RestConfigurationCodegen.generate(spec);
+        assertGoldenFile(typeSpec, API_PACKAGE + ".config", "RestConfigurationMultiple.java.txt");
     }
 
     private void assertGoldenFile(TypeSpec typeSpec, String packageName, String goldenFileName) throws IOException {

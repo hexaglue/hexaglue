@@ -91,6 +91,7 @@ class BankingGoldenFileTest {
                     true,
                     true,
                     "GlobalExceptionHandler",
+                    true,
                     null,
                     Map.of());
             ControllerSpec spec = buildSpec(BankingTestModel.accountUseCases(), config);

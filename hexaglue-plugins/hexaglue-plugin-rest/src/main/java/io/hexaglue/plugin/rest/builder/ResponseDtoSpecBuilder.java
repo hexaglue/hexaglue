@@ -79,7 +79,7 @@ public final class ResponseDtoSpecBuilder {
         ClassName domainType = ClassName.get(typeId.packageName(), simpleName);
 
         List<DtoFieldSpec> fields = structure.fields().stream()
-                .flatMap(f -> DtoFieldMapper.mapForResponse(f, domainIndex, config).stream())
+                .flatMap(f -> DtoFieldMapper.mapForResponse(f, domainIndex, config, structure).stream())
                 .toList();
 
         return new ResponseDtoSpec(className, dtoPackage, fields, domainType, simpleName);

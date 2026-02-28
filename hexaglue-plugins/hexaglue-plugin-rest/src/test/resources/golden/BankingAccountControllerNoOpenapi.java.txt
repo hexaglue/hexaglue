@@ -37,7 +37,8 @@ public class AccountController {
 
     @GetMapping("/{id}")
     public ResponseEntity<Object> getAccount(@PathVariable Long id) {
-        var result = accountUseCases.getAccount();
+        var result = accountUseCases.getAccount(
+                        new AccountId(id));
         return ResponseEntity.ok(AccountResponse.from(result));
     }
 
@@ -53,19 +54,19 @@ public class AccountController {
     @PostMapping("/{id}/deposit")
     public ResponseEntity<Object> deposit(@PathVariable Long id,
             @Valid @RequestBody DepositRequest request) {
-        var result = accountUseCases.deposit(
+        accountUseCases.deposit(
                         new AccountId(id),
                         Money.of(request.amount(), request.currency()));
-        return ResponseEntity.ok(result);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/withdraw")
     public ResponseEntity<Object> withdraw(@PathVariable Long id,
             @Valid @RequestBody WithdrawRequest request) {
-        var result = accountUseCases.withdraw(
+        accountUseCases.withdraw(
                         new AccountId(id),
                         Money.of(request.amount(), request.currency()));
-        return ResponseEntity.ok(result);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

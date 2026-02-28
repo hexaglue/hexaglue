@@ -36,8 +36,8 @@ import java.util.Optional;
  * {@code deposit} &rarr; {@code deposit}, {@code executeTransfer} &rarr; {@code execute-transfer},
  * {@code blockCard} &rarr; {@code block-card}.
  *
- * <p>Result: {@code POST /{id}/{action-kebab}} with HTTP 200, one identity path variable,
- * no query params.
+ * <p>Result: {@code POST /{id}/{action-kebab}} with HTTP 200 for non-void return types or
+ * HTTP 204 for void methods, one identity path variable, no query params.
  *
  * @since 3.1.0
  */
@@ -83,10 +83,11 @@ public final class SubResourceActionStrategy implements HttpVerbStrategy {
             return Optional.empty();
         }
         String actionPath = NamingConventions.toKebabCase(useCase.name());
+        int status = StrategyHelper.isVoidReturn(useCase) ? 204 : 200;
         return Optional.of(new HttpMapping(
                 HttpMethod.POST,
                 "/{id}/" + actionPath,
-                200,
+                status,
                 List.of(StrategyHelper.identityPathVariable(aggregate)),
                 List.of()));
     }

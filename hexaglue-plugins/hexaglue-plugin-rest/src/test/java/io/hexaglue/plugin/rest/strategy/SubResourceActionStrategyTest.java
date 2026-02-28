@@ -68,8 +68,8 @@ class SubResourceActionStrategyTest {
     class Matching {
 
         @Test
-        @DisplayName("deposit(AccountId, Money) as COMMAND should match POST /{id}/deposit with 200")
-        void deposit_command_shouldMatchPostIdDepositWith200() {
+        @DisplayName("deposit(AccountId, Money) as void COMMAND should match POST /{id}/deposit with 204")
+        void deposit_voidCommand_shouldMatchPostIdDepositWith204() {
             AggregateRoot aggregate = accountAggregate();
             UseCase useCase = TestUseCaseFactory.commandWithParams(
                     "deposit",
@@ -83,7 +83,7 @@ class SubResourceActionStrategyTest {
             HttpMapping mapping = result.get();
             assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.POST);
             assertThat(mapping.path()).isEqualTo("/{id}/deposit");
-            assertThat(mapping.responseStatus()).isEqualTo(200);
+            assertThat(mapping.responseStatus()).isEqualTo(204);
             assertThat(mapping.pathVariables()).hasSize(1);
             assertThat(mapping.pathVariables().get(0).name()).isEqualTo("id");
             assertThat(mapping.pathVariables().get(0).isIdentifier()).isTrue();
@@ -91,8 +91,8 @@ class SubResourceActionStrategyTest {
         }
 
         @Test
-        @DisplayName("withdraw(AccountId, Money) as COMMAND should match POST /{id}/withdraw with 200")
-        void withdraw_command_shouldMatchPostIdWithdrawWith200() {
+        @DisplayName("withdraw(AccountId, Money) as void COMMAND should match POST /{id}/withdraw with 204")
+        void withdraw_voidCommand_shouldMatchPostIdWithdrawWith204() {
             AggregateRoot aggregate = accountAggregate();
             UseCase useCase = TestUseCaseFactory.commandWithParams(
                     "withdraw",
@@ -106,7 +106,7 @@ class SubResourceActionStrategyTest {
             HttpMapping mapping = result.get();
             assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.POST);
             assertThat(mapping.path()).isEqualTo("/{id}/withdraw");
-            assertThat(mapping.responseStatus()).isEqualTo(200);
+            assertThat(mapping.responseStatus()).isEqualTo(204);
             assertThat(mapping.pathVariables()).hasSize(1);
             assertThat(mapping.pathVariables().get(0).name()).isEqualTo("id");
             assertThat(mapping.pathVariables().get(0).isIdentifier()).isTrue();
@@ -114,8 +114,8 @@ class SubResourceActionStrategyTest {
         }
 
         @Test
-        @DisplayName("executeTransfer(TransferId) as COMMAND should match POST /{id}/execute-transfer with 200")
-        void executeTransfer_command_shouldMatchPostIdExecuteTransferWith200() {
+        @DisplayName("executeTransfer(TransferId) as void COMMAND should match POST /{id}/execute-transfer with 204")
+        void executeTransfer_voidCommand_shouldMatchPostIdExecuteTransferWith204() {
             AggregateRoot aggregate = transferAggregate();
             UseCase useCase = TestUseCaseFactory.commandWithParams(
                     "executeTransfer", List.of(Parameter.of("transferId", TypeRef.of("com.acme.TransferId"))));
@@ -126,7 +126,7 @@ class SubResourceActionStrategyTest {
             HttpMapping mapping = result.get();
             assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.POST);
             assertThat(mapping.path()).isEqualTo("/{id}/execute-transfer");
-            assertThat(mapping.responseStatus()).isEqualTo(200);
+            assertThat(mapping.responseStatus()).isEqualTo(204);
             assertThat(mapping.pathVariables()).hasSize(1);
             assertThat(mapping.pathVariables().get(0).name()).isEqualTo("id");
             assertThat(mapping.pathVariables().get(0).isIdentifier()).isTrue();
@@ -134,8 +134,8 @@ class SubResourceActionStrategyTest {
         }
 
         @Test
-        @DisplayName("cancelTransfer(TransferId) as COMMAND should match POST /{id}/cancel-transfer with 200")
-        void cancelTransfer_command_shouldMatchPostIdCancelTransferWith200() {
+        @DisplayName("cancelTransfer(TransferId) as void COMMAND should match POST /{id}/cancel-transfer with 204")
+        void cancelTransfer_voidCommand_shouldMatchPostIdCancelTransferWith204() {
             AggregateRoot aggregate = transferAggregate();
             UseCase useCase = TestUseCaseFactory.commandWithParams(
                     "cancelTransfer", List.of(Parameter.of("transferId", TypeRef.of("com.acme.TransferId"))));
@@ -146,7 +146,7 @@ class SubResourceActionStrategyTest {
             HttpMapping mapping = result.get();
             assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.POST);
             assertThat(mapping.path()).isEqualTo("/{id}/cancel-transfer");
-            assertThat(mapping.responseStatus()).isEqualTo(200);
+            assertThat(mapping.responseStatus()).isEqualTo(204);
             assertThat(mapping.pathVariables()).hasSize(1);
             assertThat(mapping.pathVariables().get(0).name()).isEqualTo("id");
             assertThat(mapping.pathVariables().get(0).isIdentifier()).isTrue();
@@ -154,8 +154,8 @@ class SubResourceActionStrategyTest {
         }
 
         @Test
-        @DisplayName("blockCard(CardId) as COMMAND should match POST /{id}/block-card with 200")
-        void blockCard_command_shouldMatchPostIdBlockCardWith200() {
+        @DisplayName("blockCard(CardId) as void COMMAND should match POST /{id}/block-card with 204")
+        void blockCard_voidCommand_shouldMatchPostIdBlockCardWith204() {
             AggregateRoot aggregate = cardAggregate();
             UseCase useCase = TestUseCaseFactory.commandWithParams(
                     "blockCard", List.of(Parameter.of("cardId", TypeRef.of("com.acme.CardId"))));
@@ -166,7 +166,7 @@ class SubResourceActionStrategyTest {
             HttpMapping mapping = result.get();
             assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.POST);
             assertThat(mapping.path()).isEqualTo("/{id}/block-card");
-            assertThat(mapping.responseStatus()).isEqualTo(200);
+            assertThat(mapping.responseStatus()).isEqualTo(204);
             assertThat(mapping.pathVariables()).hasSize(1);
             assertThat(mapping.pathVariables().get(0).name()).isEqualTo("id");
             assertThat(mapping.pathVariables().get(0).isIdentifier()).isTrue();

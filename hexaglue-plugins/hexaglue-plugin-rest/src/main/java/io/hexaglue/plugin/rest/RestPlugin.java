@@ -34,9 +34,11 @@ import io.hexaglue.arch.model.index.PortIndex;
 import io.hexaglue.plugin.rest.builder.ControllerSpecBuilder;
 import io.hexaglue.plugin.rest.builder.DtoFieldMapper;
 import io.hexaglue.plugin.rest.builder.ExceptionHandlerSpecBuilder;
+import io.hexaglue.plugin.rest.builder.RestConfigurationSpecBuilder;
 import io.hexaglue.plugin.rest.codegen.ExceptionHandlerCodegen;
 import io.hexaglue.plugin.rest.codegen.RequestDtoCodegen;
 import io.hexaglue.plugin.rest.codegen.ResponseDtoCodegen;
+import io.hexaglue.plugin.rest.codegen.RestConfigurationCodegen;
 import io.hexaglue.plugin.rest.codegen.RestControllerCodegen;
 import io.hexaglue.plugin.rest.model.BindingKind;
 import io.hexaglue.plugin.rest.model.ControllerSpec;
@@ -47,6 +49,7 @@ import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
 import io.hexaglue.plugin.rest.model.QueryParamSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
+import io.hexaglue.plugin.rest.model.RestConfigurationSpec;
 import io.hexaglue.plugin.rest.util.NamingConventions;
 import io.hexaglue.spi.generation.ArtifactWriter;
 import io.hexaglue.spi.generation.GeneratorContext;
@@ -209,6 +212,29 @@ public final class RestPlugin implements GeneratorPlugin {
                     handlerSpec.className(),
                     handlerSource,
                     diagnostics);
+        }
+
+        // Generate @Configuration class with @Bean methods for application services
+        if (config.generateConfiguration()) {
+            RestConfigurationSpec configSpec = RestConfigurationSpecBuilder.builder()
+                    .drivingPorts(drivingPorts)
+                    .model(model)
+                    .apiPackage(apiPackage)
+                    .build();
+
+            if (!configSpec.beans().isEmpty()) {
+                TypeSpec configTypeSpec = RestConfigurationCodegen.generate(configSpec);
+                String configSource = toJavaSource(configSpec.packageName(), configTypeSpec);
+                writeJavaSource(
+                        writer,
+                        effectiveTargetModule,
+                        configSpec.packageName(),
+                        configSpec.className(),
+                        configSource,
+                        diagnostics);
+                diagnostics.info("REST plugin generated @Configuration class with "
+                        + configSpec.beans().size() + " @Bean method(s).");
+            }
         }
 
         diagnostics.info("REST plugin generated " + controllerCount + " controller(s) and " + dtoCount + " DTO(s).");

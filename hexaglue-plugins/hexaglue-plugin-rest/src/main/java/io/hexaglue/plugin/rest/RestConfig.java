@@ -29,6 +29,7 @@ import java.util.Map;
  * @param flattenValueObjects        whether to flatten multi-field VOs in DTOs
  * @param generateExceptionHandler   whether to generate the global exception handler
  * @param exceptionHandlerClassName  class name of the exception handler
+ * @param generateConfiguration      whether to generate the {@code @Configuration} class
  * @param targetModule               target module for multi-module routing (null = auto)
  * @param exceptionMappings          custom exception-to-HTTP-status mappings
  * @since 3.1.0
@@ -43,6 +44,7 @@ public record RestConfig(
         boolean flattenValueObjects,
         boolean generateExceptionHandler,
         String exceptionHandlerClassName,
+        boolean generateConfiguration,
         String targetModule,
         Map<String, Integer> exceptionMappings) {
 
@@ -63,6 +65,7 @@ public record RestConfig(
                 config.getBoolean("flattenValueObjects", true),
                 config.getBoolean("generateExceptionHandler", true),
                 config.getString("exceptionHandlerClassName", "GlobalExceptionHandler"),
+                config.getBoolean("generateConfiguration", true),
                 config.getString("targetModule").orElse(null),
                 config.getIntegerMap("exceptionMappings").orElse(Map.of()));
     }
@@ -83,6 +86,7 @@ public record RestConfig(
                 true,
                 true,
                 "GlobalExceptionHandler",
+                true,
                 null,
                 Map.of());
     }
@@ -124,6 +128,17 @@ public record RestConfig(
             return apiPackage + ".exception";
         }
         return deriveApiPackage(domainPackage) + ".exception";
+    }
+
+    /**
+     * Resolves the configuration package from apiPackage.
+     *
+     * @param apiPackage the API package
+     * @return the configuration package name
+     * @since 3.1.0
+     */
+    public static String configPackage(String apiPackage) {
+        return apiPackage + ".config";
     }
 
     private static String deriveApiPackage(String domainPackage) {
