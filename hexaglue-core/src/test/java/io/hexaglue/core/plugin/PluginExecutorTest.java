@@ -49,7 +49,7 @@ class PluginExecutorTest {
 
     @BeforeEach
     void setUp() {
-        outputDir = tempDir.resolve("generated-sources");
+        outputDir = tempDir.resolve("target/generated-sources/hexaglue");
     }
 
     private ArchitecturalModel emptyModel() {
@@ -161,7 +161,7 @@ class PluginExecutorTest {
         writer.writeResource("config/test.json", "{\"key\": \"value\"}");
 
         // Then
-        Path expectedFile = outputDir.getParent().resolve("generated-resources/config/test.json");
+        Path expectedFile = tempDir.resolve("target/generated-resources/hexaglue/config/test.json");
         assertThat(expectedFile).exists();
         assertThat(Files.readString(expectedFile)).contains("\"key\"");
     }
@@ -192,7 +192,7 @@ class PluginExecutorTest {
         writer.writeDoc("architecture/domain.md", "# Domain Model\n\nDescription...");
 
         // Then
-        Path expectedFile = outputDir.getParent().resolve("reports/architecture/domain.md");
+        Path expectedFile = tempDir.resolve("target/hexaglue/reports/architecture/domain.md");
         assertThat(expectedFile).exists();
         assertThat(Files.readString(expectedFile)).contains("# Domain Model");
         assertThat(writer.docExists("architecture/domain.md")).isTrue();
@@ -207,7 +207,7 @@ class PluginExecutorTest {
         writer.writeMarkdown("api/ports", "# Ports\n\n...");
 
         // Then - .md extension added automatically
-        Path expectedFile = outputDir.getParent().resolve("reports/api/ports.md");
+        Path expectedFile = tempDir.resolve("target/hexaglue/reports/api/ports.md");
         assertThat(expectedFile).exists();
     }
 
@@ -218,8 +218,7 @@ class PluginExecutorTest {
 
         // Then
         assertThat(writer.getOutputDirectory()).isEqualTo(outputDir);
-        assertThat(writer.getDocsOutputDirectory())
-                .isEqualTo(outputDir.getParent().resolve("reports"));
+        assertThat(writer.getDocsOutputDirectory()).isEqualTo(tempDir.resolve("target/hexaglue/reports"));
     }
 
     @Test
@@ -440,6 +439,21 @@ class PluginExecutorTest {
         }
 
         @Test
+        @DisplayName("should use 7-arg constructor with explicit reportsDirectory")
+        void shouldUseExplicitReportsDirectory() {
+            // Given: explicit reports directory via 7-arg constructor
+            Path reportsDir = tempDir.resolve("target/hexaglue/reports");
+            PluginExecutor executor =
+                    new PluginExecutor(outputDir, reportsDir, Map.of(), null, null, emptyModel(), List.of());
+
+            // When
+            PluginExecutionResult result = executor.execute();
+
+            // Then: Executes successfully
+            assertThat(result.isSuccess()).isTrue();
+        }
+
+        @Test
         @DisplayName("should use MultiModuleCodeWriter when modules present")
         void shouldUseMultiModuleCodeWriterWhenModulesPresent() throws IOException {
             // Given: Modules are configured
@@ -459,6 +473,27 @@ class PluginExecutorTest {
 
             // Then: Executes successfully with multi-module writer
             assertThat(result.isSuccess()).isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Directory derivation")
+    class DirectoryDerivation {
+
+        @Test
+        @DisplayName("should derive resources directory from sources directory")
+        void shouldDeriveResourcesDirectory() {
+            Path sourcesDir = Path.of("target/generated-sources/hexaglue");
+            Path result = PluginExecutor.deriveResourcesDirectory(sourcesDir);
+            assertThat(result).isEqualTo(Path.of("target/generated-resources/hexaglue"));
+        }
+
+        @Test
+        @DisplayName("should derive reports directory from sources directory")
+        void shouldDeriveReportsDirectory() {
+            Path sourcesDir = Path.of("target/generated-sources/hexaglue");
+            Path result = PluginExecutor.deriveReportsDirectory(sourcesDir);
+            assertThat(result).isEqualTo(Path.of("target/hexaglue/reports"));
         }
     }
 

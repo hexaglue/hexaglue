@@ -94,7 +94,7 @@ public class GenerateAndAuditMojo extends AbstractMojo {
      */
     @Parameter(
             property = "hexaglue.outputDirectory",
-            defaultValue = "${project.build.directory}/hexaglue/generated-sources")
+            defaultValue = "${project.build.directory}/generated-sources/hexaglue")
     private File outputDirectory;
 
     /**

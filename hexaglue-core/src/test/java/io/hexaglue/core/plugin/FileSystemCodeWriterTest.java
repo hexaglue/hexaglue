@@ -43,7 +43,7 @@ class FileSystemCodeWriterTest {
         @DisplayName("should derive resources and docs directories from parent")
         void shouldDeriveDirectoriesFromParent() {
             // Given
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
 
             // When
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
@@ -57,7 +57,7 @@ class FileSystemCodeWriterTest {
         @DisplayName("should write Java sources to output directory")
         void shouldWriteJavaSourcesToOutputDirectory() throws IOException {
             // Given
-            Path outputDir = Files.createDirectories(tempDir.resolve("target/hexaglue/generated-sources"));
+            Path outputDir = Files.createDirectories(tempDir.resolve("target/generated-sources/hexaglue"));
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             // When
@@ -73,7 +73,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should always overwrite existing file")
         void shouldAlwaysOverwriteExistingFile() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer1 = new FileSystemCodeWriter(outputDir);
             writer1.writeJavaSource("com.example", "Foo", "class Foo { /* v1 */ }");
 
@@ -209,7 +209,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should remove from generated files on delete")
         void shouldRemoveFromGeneratedFilesOnDelete() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             writer.writeJavaSource("com.example", "Foo", "class Foo {}");
@@ -222,7 +222,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should remove resource from tracking on deleteResource")
         void shouldRemoveResourceFromTrackingOnDeleteResource() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             writer.writeResource("META-INF/test.txt", "content");
@@ -235,7 +235,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should remove doc from tracking on deleteDoc")
         void shouldRemoveDocFromTrackingOnDeleteDoc() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             writer.writeDoc("report.md", "# Report");
@@ -248,7 +248,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should return true when file exists")
         void shouldReturnTrueWhenFileExists() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             writer.writeJavaSource("com.example", "Foo", "class Foo {}");
@@ -259,7 +259,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should return false when file does not exist")
         void shouldReturnFalseWhenFileDoesNotExist() {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             assertThat(writer.exists("com.example", "NonExistent")).isFalse();
@@ -268,7 +268,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should check resource existence")
         void shouldCheckResourceExistence() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             assertThat(writer.resourceExists("META-INF/test.txt")).isFalse();
@@ -279,7 +279,7 @@ class FileSystemCodeWriterTest {
         @Test
         @DisplayName("should check doc existence")
         void shouldCheckDocExistence() throws IOException {
-            Path outputDir = tempDir.resolve("target/hexaglue/generated-sources");
+            Path outputDir = tempDir.resolve("target/generated-sources/hexaglue");
             FileSystemCodeWriter writer = new FileSystemCodeWriter(outputDir);
 
             assertThat(writer.docExists("report.md")).isFalse();

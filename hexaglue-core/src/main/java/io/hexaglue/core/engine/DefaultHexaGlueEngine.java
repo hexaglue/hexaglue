@@ -234,6 +234,7 @@ public final class DefaultHexaGlueEngine implements HexaGlueEngine {
                         config.outputDirectory() != null ? config.outputDirectory() : config.reportsOutputDirectory();
                 PluginExecutor executor = new PluginExecutor(
                         effectiveOutputDir,
+                        config.reportsOutputDirectory(),
                         config.pluginConfigs(),
                         graph,
                         config.enabledCategories(),

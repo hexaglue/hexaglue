@@ -70,18 +70,19 @@ final class FileSystemCodeWriter implements CodeWriter {
      * Convenience constructor that derives resources and docs directories from
      * the parent of {@code outputDirectory}.
      *
-     * <p>Assumes the layout: {@code <base>/generated-sources} where {@code <base>}
-     * also contains {@code generated-resources} and {@code reports}.
+     * <p>Assumes the Maven convention layout: {@code target/generated-sources/hexaglue}
+     * where {@code target} also contains {@code generated-resources/hexaglue} and
+     * {@code hexaglue/reports}.
      *
      * @param outputDirectory directory for generated Java source files
      */
     FileSystemCodeWriter(Path outputDirectory) {
         this.outputDirectory = outputDirectory;
-        // outputDirectory = target/hexaglue/generated-sources (or target/hexaglue/reports for audit)
-        // hexaglueBase = target/hexaglue
-        Path hexaglueBase = outputDirectory.getParent();
-        this.resourcesDirectory = hexaglueBase.resolve("generated-resources");
-        this.docsDirectory = hexaglueBase.resolve("reports");
+        // Convention: target/generated-sources/hexaglue
+        Path targetDir = outputDirectory.getParent().getParent();
+        String toolName = outputDirectory.getFileName().toString();
+        this.resourcesDirectory = targetDir.resolve("generated-resources").resolve(toolName);
+        this.docsDirectory = targetDir.resolve(toolName).resolve("reports");
     }
 
     // =========================================================================
