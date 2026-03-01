@@ -212,7 +212,7 @@ public final class RestControllerCodegen {
                 String accessors = binding.sourceFields().stream()
                         .map(f -> "request." + f + "()")
                         .collect(Collectors.joining(", "));
-                yield CodeBlock.of("$T.of($L)", binding.domainType(), accessors);
+                yield CodeBlock.of("new $T($L)", binding.domainType(), accessors);
             }
             case PATH_VARIABLE_WRAP ->
                 CodeBlock.of(

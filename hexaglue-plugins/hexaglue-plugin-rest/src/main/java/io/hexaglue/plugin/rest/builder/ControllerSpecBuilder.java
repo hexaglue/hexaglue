@@ -31,6 +31,7 @@ import io.hexaglue.plugin.rest.model.EndpointSpec;
 import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.HttpMapping;
 import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
+import io.hexaglue.plugin.rest.model.QueryParamSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
 import io.hexaglue.plugin.rest.strategy.HttpVerbStrategyFactory;
@@ -211,6 +212,10 @@ public final class ControllerSpecBuilder {
                     exceptionMap.putIfAbsent(exType.canonicalName(), ExceptionHandlerSpecBuilder.deriveMapping(exType));
                 }
 
+                List<QueryParamSpec> queryParams = domainIndex != null
+                        ? unwrapQueryParams(mapping.queryParams(), domainIndex)
+                        : mapping.queryParams();
+
                 endpoints.add(new EndpointSpec(
                         useCase.name(),
                         mapping.httpMethod(),
@@ -221,7 +226,7 @@ public final class ControllerSpecBuilder {
                         requestDtoRef,
                         responseDtoRef,
                         mapping.pathVariables(),
-                        mapping.queryParams(),
+                        queryParams,
                         thrownExceptions,
                         useCase.type(),
                         parameterBindings,
@@ -274,6 +279,11 @@ public final class ControllerSpecBuilder {
                     if (isPathVar || (hasIdentityPathVar && bindings.isEmpty())) {
                         bindings.add(new ParameterBindingSpec(
                                 param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of("id")));
+                    } else if (isQueryParam) {
+                        // Query param is unwrapped to primitive (e.g. UUID), but port expects
+                        // the Identifier type (e.g. CustomerId) → wrap via constructor.
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of(param.name())));
                     } else {
                         bindings.add(new ParameterBindingSpec(
                                 param.name(), domainType, BindingKind.CONSTRUCTOR_WRAP, List.of(param.name())));
@@ -314,6 +324,32 @@ public final class ControllerSpecBuilder {
                         new ParameterBindingSpec(param.name(), domainType, BindingKind.DIRECT, List.of(param.name())));
             }
             return bindings;
+        }
+
+        /**
+         * Unwraps Identifier types in query params to their wrapped primitive type.
+         *
+         * <p>For example, a query param of type {@code CustomerId} (wrapping {@code UUID})
+         * becomes a query param of type {@code UUID}.
+         */
+        private static List<QueryParamSpec> unwrapQueryParams(
+                List<QueryParamSpec> queryParams, DomainIndex domainIndex) {
+            return queryParams.stream()
+                    .map(qp -> {
+                        Optional<Identifier> id = domainIndex
+                                .identifiers()
+                                .filter(i -> DtoFieldMapper.toTypeName(TypeRef.of(i.id().qualifiedName()))
+                                        .equals(qp.javaType()))
+                                .findFirst();
+                        if (id.isPresent()) {
+                            TypeName unwrapped =
+                                    DtoFieldMapper.toTypeName(id.get().wrappedType());
+                            return new QueryParamSpec(
+                                    qp.name(), qp.javaName(), unwrapped, qp.required(), qp.defaultValue());
+                        }
+                        return qp;
+                    })
+                    .toList();
         }
 
         /**

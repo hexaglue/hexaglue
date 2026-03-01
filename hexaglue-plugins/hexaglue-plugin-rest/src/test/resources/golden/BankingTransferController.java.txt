@@ -65,7 +65,7 @@ public class TransferController {
         var result = transferUseCases.initiateTransfer(
                         new AccountId(request.fromAccountId()),
                         new AccountId(request.toAccountId()),
-                        Money.of(request.amount(), request.currency()));
+                        new Money(request.amount(), request.currency()));
         return ResponseEntity.ok(TransferResponse.from(result));
     }
 

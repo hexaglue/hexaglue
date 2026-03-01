@@ -9,12 +9,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Generated;
 import jakarta.validation.Valid;
+import java.lang.Long;
 import java.lang.Object;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Generated(
@@ -42,8 +44,9 @@ public class AccountController {
             description = "Get account completed successfully"
     )
     @GetMapping("/get-account")
-    public ResponseEntity<Object> getAccount() {
-        var result = accountUseCases.getAccount();
+    public ResponseEntity<Object> getAccount(@RequestParam(required = true) Long id) {
+        var result = accountUseCases.getAccount(
+                        id);
         return ResponseEntity.ok(AccountResponse.from(result));
     }
 

@@ -14,10 +14,12 @@
 package io.hexaglue.plugin.rest.strategy;
 
 import io.hexaglue.arch.model.AggregateRoot;
+import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.UseCase;
 import io.hexaglue.arch.model.UseCase.UseCaseType;
 import io.hexaglue.plugin.rest.model.HttpMapping;
 import io.hexaglue.plugin.rest.model.HttpMethod;
+import io.hexaglue.plugin.rest.model.QueryParamSpec;
 import io.hexaglue.plugin.rest.util.NamingConventions;
 import java.util.List;
 import java.util.Optional;
@@ -36,7 +38,19 @@ public final class FallbackStrategy implements HttpVerbStrategy {
     public Optional<HttpMapping> match(UseCase useCase, AggregateRoot aggregate, String basePath) {
         HttpMethod method = useCase.type() == UseCaseType.QUERY ? HttpMethod.GET : HttpMethod.POST;
         String path = "/" + NamingConventions.toKebabCase(useCase.name());
-        return Optional.of(new HttpMapping(method, path, 200, List.of(), List.of()));
+
+        List<QueryParamSpec> queryParams = List.of();
+        if (method == HttpMethod.GET) {
+            queryParams = useCase.method().parameters().stream()
+                    .map(FallbackStrategy::toQueryParam)
+                    .toList();
+        }
+
+        return Optional.of(new HttpMapping(method, path, 200, List.of(), queryParams));
+    }
+
+    private static QueryParamSpec toQueryParam(Parameter param) {
+        return new QueryParamSpec(param.name(), param.name(), StrategyHelper.toTypeName(param.type()), true, null);
     }
 
     @Override

@@ -61,7 +61,7 @@ public class AccountController {
     public ResponseEntity<Object> deposit(@Valid @RequestBody DepositRequest request) {
         var result = accountUseCases.deposit(
                         new CustomerId(request.accountId()),
-                        Money.of(request.amount(), request.currency()));
+                        new Money(request.amount(), request.currency()));
         return ResponseEntity.ok(result);
     }
 }

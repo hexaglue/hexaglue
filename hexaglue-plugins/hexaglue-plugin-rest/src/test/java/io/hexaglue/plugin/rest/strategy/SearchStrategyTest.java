@@ -87,15 +87,10 @@ class SearchStrategyTest {
             assertThat(mapping.responseStatus()).isEqualTo(200);
             assertThat(mapping.queryParams()).hasSize(2);
         }
-    }
-
-    @Nested
-    @DisplayName("NonMatching")
-    class NonMatching {
 
         @Test
-        @DisplayName("searchAccounts with only 1 parameter should not match")
-        void searchAccounts_withOneParam_shouldNotMatch() {
+        @DisplayName("searchAccounts with 1 parameter should match GET /search with 1 QueryParam")
+        void searchAccounts_withOneParam_shouldMatch() {
             UseCase useCase = TestUseCaseFactory.queryWithCollectionReturn(
                     "searchAccounts",
                     "com.acme.Account",
@@ -103,8 +98,18 @@ class SearchStrategyTest {
 
             Optional<HttpMapping> result = strategy.match(useCase, null, "/api/accounts");
 
-            assertThat(result).isEmpty();
+            assertThat(result).isPresent();
+            HttpMapping mapping = result.get();
+            assertThat(mapping.httpMethod()).isEqualTo(HttpMethod.GET);
+            assertThat(mapping.path()).isEqualTo("/search");
+            assertThat(mapping.queryParams()).hasSize(1);
+            assertThat(mapping.queryParams().get(0).name()).isEqualTo("status");
         }
+    }
+
+    @Nested
+    @DisplayName("NonMatching")
+    class NonMatching {
 
         @Test
         @DisplayName("searchAccounts with 2 parameters but non-collection return should not match")

@@ -30,7 +30,7 @@ import java.util.Optional;
  * <ul>
  *   <li>Use case type is {@code QUERY}</li>
  *   <li>Method name starts with {@code search}, {@code query}, or {@code find}</li>
- *   <li>Two or more parameters</li>
+ *   <li>At least one parameter</li>
  *   <li>Return type is a collection ({@code List}, {@code Set}, or {@code Collection})</li>
  * </ul>
  *
@@ -53,7 +53,7 @@ public final class SearchStrategy implements HttpVerbStrategy {
             return Optional.empty();
         }
         List<Parameter> params = useCase.method().parameters();
-        if (params.size() < 2) {
+        if (params.isEmpty()) {
             return Optional.empty();
         }
         if (!StrategyHelper.isCollectionReturn(useCase)) {
