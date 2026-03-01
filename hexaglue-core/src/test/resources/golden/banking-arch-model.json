@@ -101,6 +101,14 @@
   },
   "ports": [
     {
+      "qualifiedName": "com.example.banking.ports.in.TransferUseCase",
+      "simpleName": "TransferUseCase",
+      "direction": "DRIVING",
+      "kind": "USE_CASE",
+      "confidence": "HIGH",
+      "methods": ["transfer"]
+    },
+    {
       "qualifiedName": "com.example.banking.ports.out.AccountRepository",
       "simpleName": "AccountRepository",
       "direction": "DRIVEN",
@@ -109,11 +117,5 @@
       "methods": ["delete", "findById", "save"]
     }
   ],
-  "unclassified": [
-    {
-      "qualifiedName": "com.example.banking.ports.in.TransferUseCase",
-      "simpleName": "TransferUseCase",
-      "category": "AMBIGUOUS"
-    }
-  ]
+  "unclassified": []
 }

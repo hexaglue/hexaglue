@@ -85,6 +85,14 @@
   },
   "ports": [
     {
+      "qualifiedName": "com.coffeeshop.ports.in.OrderingCoffee",
+      "simpleName": "OrderingCoffee",
+      "direction": "DRIVING",
+      "kind": "USE_CASE",
+      "confidence": "HIGH",
+      "methods": ["createOrder", "findOrder"]
+    },
+    {
       "qualifiedName": "com.coffeeshop.ports.out.OrderRepository",
       "simpleName": "OrderRepository",
       "direction": "DRIVEN",
@@ -93,11 +101,5 @@
       "methods": ["findById", "save"]
     }
   ],
-  "unclassified": [
-    {
-      "qualifiedName": "com.coffeeshop.ports.in.OrderingCoffee",
-      "simpleName": "OrderingCoffee",
-      "category": "CONFLICTING"
-    }
-  ]
+  "unclassified": []
 }

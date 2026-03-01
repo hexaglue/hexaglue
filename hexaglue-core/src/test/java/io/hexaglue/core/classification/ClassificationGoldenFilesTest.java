@@ -76,7 +76,7 @@ class ClassificationGoldenFilesTest {
          *   <li>Task.java → AGGREGATE_ROOT (repository-dominant)</li>
          *   <li>TaskId.java → IDENTIFIER (record-single-id)</li>
          *   <li>TaskRepository.java → REPOSITORY (naming-repository or semantic-driven)</li>
-         *   <li>TaskUseCases.java → USE_CASE (naming-use-case or semantic-driving)</li>
+         *   <li>TaskUseCases.java → DRIVING_PORT (command-pattern, normalized)</li>
          * </ul>
          */
         @Test
@@ -97,8 +97,8 @@ class ClassificationGoldenFilesTest {
             assertClassification(resultsByType, "com.example.domain.Task", "AGGREGATE_ROOT", 80);
             assertClassification(resultsByType, "com.example.domain.TaskId", "IDENTIFIER", 80);
             assertPortClassification(resultsByType, "com.example.ports.out.TaskRepository", "REPOSITORY", "DRIVEN");
-            // Note: TaskUseCases is classified as COMMAND due to command-pattern criteria matching first
-            assertPortClassification(resultsByType, "com.example.ports.in.TaskUseCases", "COMMAND", "DRIVING");
+            // TaskUseCases matches command-pattern heuristic, normalized to DRIVING_PORT
+            assertPortClassification(resultsByType, "com.example.ports.in.TaskUseCases", "DRIVING_PORT", "DRIVING");
         }
 
         /**
@@ -215,7 +215,7 @@ class ClassificationGoldenFilesTest {
          *   <li>Money.java → VALUE_OBJECT (explicit-value-object)</li>
          *   <li>Transaction.java → ENTITY (explicit-entity)</li>
          *   <li>AccountRepository.java → REPOSITORY (explicit-repository)</li>
-         *   <li>TransferUseCase.java → USE_CASE (explicit-primary-port)</li>
+         *   <li>TransferUseCase.java → DRIVING_PORT (explicit-primary-port, normalized)</li>
          * </ul>
          */
         @Test
@@ -243,7 +243,7 @@ class ClassificationGoldenFilesTest {
             assertPortClassification(
                     resultsByType, "com.example.banking.ports.out.AccountRepository", "REPOSITORY", "DRIVEN");
             assertPortClassification(
-                    resultsByType, "com.example.banking.ports.in.TransferUseCase", "USE_CASE", "DRIVING");
+                    resultsByType, "com.example.banking.ports.in.TransferUseCase", "DRIVING_PORT", "DRIVING");
         }
 
         private void createBankingExample() throws IOException {

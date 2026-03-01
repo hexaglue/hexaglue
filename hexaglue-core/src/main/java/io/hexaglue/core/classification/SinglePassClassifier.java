@@ -335,7 +335,7 @@ public final class SinglePassClassifier {
 
             // Fallback to criteria-based classification
             ClassificationResult result = classifier.classify(type, query);
-            results.put(type.id(), result);
+            results.put(type.id(), normalizeDrivingPortKind(result));
         }
 
         return results;
@@ -405,6 +405,38 @@ public final class SinglePassClassifier {
                 List.of(),
                 PortDirection.DRIVEN,
                 trace);
+    }
+
+    /**
+     * Normalizes DRIVING port sub-types to {@code "DRIVING_PORT"}.
+     *
+     * <p>The {@link PortClassifier} heuristics produce fine-grained sub-types for driving ports
+     * ({@code "COMMAND"}, {@code "QUERY"}, {@code "USE_CASE"}) whereas the semantic path produces
+     * {@code "DRIVING_PORT"}. Downstream consumers (model builder, plugins) only recognise the
+     * canonical kind. Normalizing here preserves the detail in {@code matchedCriteria} and
+     * {@code justification} while ensuring the model builder constructs a {@code DrivingPort}.
+     *
+     * @param result the classification result to normalise
+     * @return a result with kind {@code "DRIVING_PORT"} if it was a DRIVING sub-type, otherwise unchanged
+     * @since 6.0.0
+     */
+    private ClassificationResult normalizeDrivingPortKind(ClassificationResult result) {
+        if (result.isClassified()
+                && result.portDirection() == PortDirection.DRIVING
+                && !"DRIVING_PORT".equals(result.kind())) {
+            return ClassificationResult.classifiedPort(
+                    result.subjectId(),
+                    "DRIVING_PORT",
+                    result.confidence(),
+                    result.matchedCriteria(),
+                    result.matchedPriority(),
+                    result.justification(),
+                    result.evidence(),
+                    result.conflicts(),
+                    PortDirection.DRIVING,
+                    result.reasonTrace());
+        }
+        return result;
     }
 
     /**
