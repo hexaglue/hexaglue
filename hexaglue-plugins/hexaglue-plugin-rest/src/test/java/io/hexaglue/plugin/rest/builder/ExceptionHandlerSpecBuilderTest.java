@@ -180,7 +180,8 @@ class ExceptionHandlerSpecBuilderTest {
     class BuilderBehavior {
 
         @Test
-        @DisplayName("should auto-include IllegalArgumentException and Exception catch-all")
+        @DisplayName(
+                "should auto-include IllegalArgumentException, MethodArgumentNotValidException, and Exception catch-all")
         void shouldAutoIncludeFallbacks() {
             ClassName notFound = ClassName.get("com.acme.core.exception", "AccountNotFoundException");
             ExceptionMappingSpec mapping = ExceptionHandlerSpecBuilder.deriveMapping(notFound);
@@ -191,9 +192,13 @@ class ExceptionHandlerSpecBuilderTest {
                     .apiPackage(API_PACKAGE)
                     .build();
 
-            assertThat(spec.mappings()).hasSize(3);
+            assertThat(spec.mappings()).hasSize(4);
             assertThat(spec.mappings().stream().map(m -> m.exceptionType().simpleName()))
-                    .containsExactly("AccountNotFoundException", "IllegalArgumentException", "Exception");
+                    .containsExactly(
+                            "AccountNotFoundException",
+                            "IllegalArgumentException",
+                            "MethodArgumentNotValidException",
+                            "Exception");
         }
 
         @Test
@@ -210,8 +215,8 @@ class ExceptionHandlerSpecBuilderTest {
                     .apiPackage(API_PACKAGE)
                     .build();
 
-            // 1 domain exception + 2 auto-includes
-            assertThat(spec.mappings()).hasSize(3);
+            // 1 domain exception + 3 auto-includes
+            assertThat(spec.mappings()).hasSize(4);
         }
 
         @Test

@@ -227,6 +227,11 @@ public final class JpaMapperCodegen {
             }
         }
 
+        // Add @AfterMapping method for boolean toggle fields
+        if (spec.afterMappingFields() != null && !spec.afterMappingFields().isEmpty()) {
+            builder.addMethod(createAfterMappingMethod(spec));
+        }
+
         return builder.build();
     }
 
@@ -852,6 +857,55 @@ public final class JpaMapperCodegen {
     }
 
     // =====================================================================
+    // @AfterMapping for boolean toggle fields
+    // =====================================================================
+
+    /**
+     * Creates a {@code default} method annotated with {@code @AfterMapping} that handles
+     * boolean toggle fields not settable via MapStruct's default strategy.
+     *
+     * <p>Generated code example:
+     * <pre>{@code
+     * @AfterMapping
+     * default void afterToDomainMapping(@MappingTarget Product target, ProductEntity source) {
+     *     if (!source.isActive()) {
+     *         target.deactivate();
+     *     }
+     * }
+     * }</pre>
+     *
+     * @param spec the mapper specification containing afterMappingFields
+     * @return the method spec for the @AfterMapping method
+     * @since 6.0.0
+     */
+    private static MethodSpec createAfterMappingMethod(MapperSpec spec) {
+        MethodSpec.Builder method = MethodSpec.methodBuilder("afterToDomainMapping")
+                .addModifiers(Modifier.PUBLIC, Modifier.DEFAULT)
+                .returns(void.class)
+                .addAnnotation(ClassName.get("org.mapstruct", "AfterMapping"))
+                .addParameter(com.palantir.javapoet.ParameterSpec.builder(spec.domainType(), "target")
+                        .addAnnotation(ClassName.get("org.mapstruct", "MappingTarget"))
+                        .build())
+                .addParameter(spec.entityType(), "source")
+                .addJavadoc("Post-processes the domain object after MapStruct mapping to handle\n")
+                .addJavadoc("boolean toggle fields that have no setter.\n\n")
+                .addJavadoc("@param target the domain object being constructed\n")
+                .addJavadoc("@param source the JPA entity being mapped from\n");
+
+        for (MapperSpec.AfterMappingFieldSpec afterField : spec.afterMappingFields()) {
+            if (afterField.invokeWhenFalse()) {
+                method.beginControlFlow("if (!source.$L())", afterField.entityGetter());
+            } else {
+                method.beginControlFlow("if (source.$L())", afterField.entityGetter());
+            }
+            method.addStatement("target.$L()", afterField.domainToggleMethod());
+            method.endControlFlow();
+        }
+
+        return method.build();
+    }
+
+    // =====================================================================
     // Annotation helpers
     // =====================================================================
 
@@ -872,7 +926,11 @@ public final class JpaMapperCodegen {
     private static AnnotationSpec buildMapperAnnotation(MapperSpec spec) {
         AnnotationSpec.Builder builder = AnnotationSpec.builder(ClassName.get("org.mapstruct", "Mapper"))
                 .addMember("componentModel", "$S", "spring")
-                .addMember("unmappedTargetPolicy", "$T.IGNORE", ClassName.get("org.mapstruct", "ReportingPolicy"));
+                .addMember("unmappedTargetPolicy", "$T.IGNORE", ClassName.get("org.mapstruct", "ReportingPolicy"))
+                .addMember(
+                        "collectionMappingStrategy",
+                        "$T.ADDER_PREFERRED",
+                        ClassName.get("org.mapstruct", "CollectionMappingStrategy"));
 
         // BUG-009 fix: Add uses clause if there are entity relationship mappers
         if (spec.usedMappers() != null && !spec.usedMappers().isEmpty()) {

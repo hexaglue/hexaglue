@@ -62,6 +62,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -88,6 +89,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -115,6 +117,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -122,7 +125,10 @@ class JpaMapperCodegenTest {
         String generatedCode = mapperInterface.toString();
 
         // Then
-        assertThat(generatedCode).contains("@org.mapstruct.Mapper").contains("componentModel = \"spring\"");
+        assertThat(generatedCode)
+                .contains("@org.mapstruct.Mapper")
+                .contains("componentModel = \"spring\"")
+                .contains("ADDER_PREFERRED");
     }
 
     @Test
@@ -140,6 +146,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -168,6 +175,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -199,6 +207,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -232,6 +241,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -264,6 +274,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -294,6 +305,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -322,6 +334,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -347,6 +360,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -384,6 +398,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -410,6 +425,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -435,6 +451,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -473,6 +490,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -515,6 +533,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -554,6 +573,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -591,6 +611,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -623,6 +644,7 @@ class JpaMapperCodegenTest {
                 List.of(),
                 List.of(),
                 null,
+                List.of(),
                 List.of());
 
         // When
@@ -668,6 +690,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -701,6 +724,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -734,6 +758,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -769,6 +794,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -802,6 +828,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -834,6 +861,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -872,6 +900,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -907,6 +936,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -950,6 +980,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -992,6 +1023,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -1031,6 +1063,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     reconstitutionSpec,
+                    List.of(),
                     List.of());
 
             // When
@@ -1060,6 +1093,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
+                    List.of(),
                     List.of());
 
             // When
@@ -1108,7 +1142,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1146,7 +1181,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1204,7 +1240,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1269,7 +1306,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1318,6 +1356,7 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     parentReconstitution,
+                    List.of(),
                     List.of());
 
             // When
@@ -1359,7 +1398,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1397,7 +1437,8 @@ class JpaMapperCodegenTest {
                     List.of(),
                     List.of(),
                     null,
-                    List.of(childSpec));
+                    List.of(childSpec),
+                    List.of());
 
             // When
             TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
@@ -1409,6 +1450,68 @@ class JpaMapperCodegenTest {
                     .contains("target = \"createdAt\"")
                     .contains("ignore = true")
                     .contains("target = \"updatedAt\"");
+        }
+    }
+
+    @Nested
+    @DisplayName("@AfterMapping for boolean toggle fields")
+    class AfterMappingToggle {
+
+        @Test
+        @DisplayName("should generate @AfterMapping method for boolean toggle field")
+        void shouldGenerateAfterMappingForBooleanToggle() {
+            MapperSpec.AfterMappingFieldSpec toggleSpec =
+                    new MapperSpec.AfterMappingFieldSpec("active", "isActive", "deactivate", true);
+
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(toggleSpec));
+
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            assertThat(generatedCode)
+                    .contains("@org.mapstruct.AfterMapping")
+                    .contains("afterToDomainMapping")
+                    .contains("@org.mapstruct.MappingTarget")
+                    .contains("if (!source.isActive())")
+                    .contains("target.deactivate()");
+        }
+
+        @Test
+        @DisplayName("should not generate @AfterMapping when list is empty")
+        void shouldNotGenerateAfterMappingWhenEmpty() {
+            MapperSpec spec = new MapperSpec(
+                    TEST_PACKAGE,
+                    MAPPER_NAME,
+                    DOMAIN_TYPE,
+                    ENTITY_TYPE,
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of(),
+                    List.of(),
+                    null,
+                    List.of(),
+                    List.of());
+
+            TypeSpec mapperInterface = JpaMapperCodegen.generate(spec);
+            String generatedCode = mapperInterface.toString();
+
+            assertThat(generatedCode).doesNotContain("@AfterMapping");
+            assertThat(generatedCode).doesNotContain("afterToDomainMapping");
         }
     }
 }

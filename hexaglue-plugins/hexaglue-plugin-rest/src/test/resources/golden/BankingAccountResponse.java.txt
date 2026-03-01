@@ -17,8 +17,8 @@ public record AccountResponse(Long id, String accountNumber, BigDecimal balanceA
         return new AccountResponse(
                         source.id() != null ? source.id().value() : null,
                         source.accountNumber(),
-                        source.balance().amount(),
-                        source.balance().currency(),
+                        source.balance() != null ? source.balance().amount() : null,
+                        source.balance() != null ? source.balance().currency() : null,
                         source.type(),
                         source.active(),
                         source.customerId() != null ? source.customerId().value() : null);

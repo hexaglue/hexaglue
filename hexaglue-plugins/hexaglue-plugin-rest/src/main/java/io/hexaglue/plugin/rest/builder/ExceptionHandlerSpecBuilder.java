@@ -199,11 +199,19 @@ public final class ExceptionHandlerSpecBuilder {
                 }
             }
 
-            // Auto-include IllegalArgumentException (400) and Exception (500)
+            // Auto-include IllegalArgumentException (400), MethodArgumentNotValidException (400),
+            // and Exception (500) as catch-alls
             ClassName illegalArg = ClassName.get("java.lang", "IllegalArgumentException");
             deduped.putIfAbsent(
                     illegalArg.canonicalName(),
                     new ExceptionMappingSpec(illegalArg, 400, "BAD_REQUEST", "handleIllegalArgument"));
+
+            ClassName methodArgNotValid =
+                    ClassName.get("org.springframework.web.bind", "MethodArgumentNotValidException");
+            deduped.putIfAbsent(
+                    methodArgNotValid.canonicalName(),
+                    new ExceptionMappingSpec(
+                            methodArgNotValid, 400, "VALIDATION_ERROR", "handleMethodArgumentNotValid"));
 
             ClassName genericException = ClassName.get("java.lang", "Exception");
             deduped.putIfAbsent(

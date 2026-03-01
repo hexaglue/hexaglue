@@ -72,7 +72,8 @@ public record MapperSpec(
         List<EmbeddableMappingSpec> embeddableMappings,
         List<ClassName> usedMappers,
         ReconstitutionSpec reconstitutionSpec,
-        List<ChildEntityConversionSpec> childEntityConversions) {
+        List<ChildEntityConversionSpec> childEntityConversions,
+        List<AfterMappingFieldSpec> afterMappingFields) {
 
     /**
      * Canonical constructor with defensive copies.
@@ -84,6 +85,7 @@ public record MapperSpec(
         embeddableMappings = List.copyOf(embeddableMappings);
         usedMappers = usedMappers == null ? List.of() : List.copyOf(usedMappers);
         childEntityConversions = childEntityConversions == null ? List.of() : List.copyOf(childEntityConversions);
+        afterMappingFields = afterMappingFields == null ? List.of() : List.copyOf(afterMappingFields);
     }
 
     /**
@@ -299,6 +301,24 @@ public record MapperSpec(
             embeddableMappings = embeddableMappings == null ? List.of() : List.copyOf(embeddableMappings);
         }
     }
+
+    /**
+     * Specification for a boolean field that requires an {@code @AfterMapping} method
+     * because the domain object has no setter but has a toggle method.
+     *
+     * <p>For example, a domain object with a boolean field {@code active} and a method
+     * {@code deactivate()} but no {@code setActive(boolean)} setter. The generated
+     * {@code @AfterMapping} method will call {@code target.deactivate()} when
+     * {@code !source.isActive()}.
+     *
+     * @param fieldName the boolean field name (e.g., "active")
+     * @param entityGetter the entity getter expression (e.g., "isActive")
+     * @param domainToggleMethod the domain toggle method to invoke (e.g., "deactivate")
+     * @param invokeWhenFalse true if toggle is invoked when source is false (e.g., deactivate)
+     * @since 6.0.0
+     */
+    public record AfterMappingFieldSpec(
+            String fieldName, String entityGetter, String domainToggleMethod, boolean invokeWhenFalse) {}
 
     /**
      * Describes how an entity field value is converted when passed to

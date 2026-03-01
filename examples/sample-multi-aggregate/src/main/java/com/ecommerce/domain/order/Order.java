@@ -19,12 +19,29 @@ public class Order {
     private OrderStatus status;
     private Address shippingAddress;
 
-    public Order(OrderId id, CustomerId customerId) {
+    private Order(OrderId id, CustomerId customerId, OrderStatus status,
+                  List<OrderLine> lines, Address shippingAddress, Instant createdAt) {
         this.id = id;
         this.customerId = customerId;
-        this.lines = new ArrayList<>();
-        this.createdAt = Instant.now();
-        this.status = OrderStatus.DRAFT;
+        this.status = status;
+        this.lines = lines;
+        this.shippingAddress = shippingAddress;
+        this.createdAt = createdAt;
+    }
+
+    public Order(OrderId id, CustomerId customerId) {
+        this(id, customerId, OrderStatus.DRAFT, new ArrayList<>(), null, Instant.now());
+    }
+
+    /**
+     * Reconstitutes an Order from its persisted state.
+     *
+     * @since 6.0.0
+     */
+    public static Order reconstitute(OrderId id, CustomerId customerId, OrderStatus status,
+                                      List<OrderLine> lines, Address shippingAddress,
+                                      Instant createdAt) {
+        return new Order(id, customerId, status, new ArrayList<>(lines), shippingAddress, createdAt);
     }
 
     public OrderId getId() {
