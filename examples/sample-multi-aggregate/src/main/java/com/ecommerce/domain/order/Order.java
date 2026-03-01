@@ -1,6 +1,7 @@
 package com.ecommerce.domain.order;
 
 import com.ecommerce.domain.customer.CustomerId;
+import com.ecommerce.domain.product.ProductId;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,6 +56,13 @@ public class Order {
             throw new IllegalStateException("Cannot modify a non-draft order");
         }
         lines.add(line);
+    }
+
+    public void removeLine(ProductId productId) {
+        if (status != OrderStatus.DRAFT) {
+            throw new IllegalStateException("Cannot modify a non-draft order");
+        }
+        lines.removeIf(line -> line.getProductId().equals(productId));
     }
 
     public void setShippingAddress(Address address) {
