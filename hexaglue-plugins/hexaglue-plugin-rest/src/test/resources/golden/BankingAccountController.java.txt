@@ -84,7 +84,7 @@ public class AccountController {
             @Valid @RequestBody DepositRequest request) {
         accountUseCases.deposit(
                         new AccountId(id),
-                        Money.of(request.amount(), request.currency()));
+                        new Money(request.amount(), request.currency()));
         return ResponseEntity.noContent().build();
     }
 
@@ -100,7 +100,7 @@ public class AccountController {
             @Valid @RequestBody WithdrawRequest request) {
         accountUseCases.withdraw(
                         new AccountId(id),
-                        Money.of(request.amount(), request.currency()));
+                        new Money(request.amount(), request.currency()));
         return ResponseEntity.noContent().build();
     }
 

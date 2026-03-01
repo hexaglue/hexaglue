@@ -262,7 +262,7 @@ class DtoFieldMapperTest {
             List<DtoFieldSpec> fields = DtoFieldMapper.mapForResponse(field, domainIndex, config, classParent);
 
             assertThat(fields).hasSize(1);
-            assertThat(fields.get(0).accessorChain()).isEqualTo("getActive()");
+            assertThat(fields.get(0).accessorChain()).isEqualTo("isActive()");
         }
 
         @Test

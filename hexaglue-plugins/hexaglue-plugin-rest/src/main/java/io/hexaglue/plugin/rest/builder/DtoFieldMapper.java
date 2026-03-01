@@ -124,7 +124,7 @@ public final class DtoFieldMapper {
         // 4. Check if ValueObject
         Optional<ValueObject> vo = findValueObject(fieldType, domainIndex);
         if (vo.isPresent()) {
-            return mapResponseValueObject(fieldName, vo.get(), config, parentStructure);
+            return mapResponseValueObject(fieldName, fieldType, vo.get(), config, parentStructure);
         }
 
         // 5. Check if Identifier (non-identity, non-aggregate-ref)
@@ -138,7 +138,7 @@ public final class DtoFieldMapper {
 
         // 6. Direct (String, enum, primitive, wrapper)
         TypeName javaType = toTypeName(fieldType);
-        String accessor = accessorFor(fieldName, parentStructure);
+        String accessor = accessorFor(fieldName, fieldType, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
@@ -146,15 +146,21 @@ public final class DtoFieldMapper {
     /**
      * Generates the accessor expression for a field, taking the parent type nature into account.
      *
-     * <p>Records use {@code fieldName()}, non-record classes use {@code getFieldName()}.
+     * <p>Records use {@code fieldName()}, non-record classes use JavaBean-style getters.
+     * For primitive {@code boolean} fields in classes, the prefix is {@code is} instead of
+     * {@code get}, following JavaBean conventions.
      *
      * @param fieldName       the field name
+     * @param fieldType       the type of the field
      * @param parentStructure the structure of the declaring type
      * @return the accessor expression string
      */
-    private static String accessorFor(String fieldName, TypeStructure parentStructure) {
+    private static String accessorFor(String fieldName, TypeRef fieldType, TypeStructure parentStructure) {
         if (parentStructure.isRecord()) {
             return fieldName + "()";
+        }
+        if ("boolean".equals(fieldType.qualifiedName())) {
+            return "is" + NamingConventions.capitalize(fieldName) + "()";
         }
         return "get" + NamingConventions.capitalize(fieldName) + "()";
     }
@@ -187,7 +193,7 @@ public final class DtoFieldMapper {
         }
         // Identity without Identifier type: direct mapping
         TypeName javaType = toTypeName(fieldType);
-        String accessor = accessorFor(fieldName, parentStructure);
+        String accessor = accessorFor(fieldName, fieldType, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
@@ -208,19 +214,24 @@ public final class DtoFieldMapper {
         }
         // Fallback: direct
         TypeName javaType = toTypeName(fieldType);
-        String accessor = accessorFor(fieldName, parentStructure);
+        String accessor = accessorFor(fieldName, fieldType, parentStructure);
         return List.of(
                 new DtoFieldSpec(fieldName, javaType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.DIRECT));
     }
 
     private static List<DtoFieldSpec> mapResponseValueObject(
-            String fieldName, ValueObject vo, RestConfig config, TypeStructure parentStructure) {
+            String fieldName, TypeRef fieldType, ValueObject vo, RestConfig config, TypeStructure parentStructure) {
         if (vo.isSingleValue()) {
             Field wrappedField = vo.wrappedField().orElseThrow();
-            TypeName fieldType = toTypeName(wrappedField.type());
+            TypeName wrappedTypeName = toTypeName(wrappedField.type());
             String accessor = accessorWithValue(fieldName, parentStructure);
             return List.of(new DtoFieldSpec(
-                    fieldName, fieldType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.IDENTITY_UNWRAP));
+                    fieldName,
+                    wrappedTypeName,
+                    fieldName,
+                    accessor,
+                    ValidationKind.NONE,
+                    ProjectionKind.IDENTITY_UNWRAP));
         }
 
         if (config.flattenValueObjects()) {
@@ -230,7 +241,7 @@ public final class DtoFieldMapper {
                 String prefixedName = fieldName + NamingConventions.capitalize(f.name());
                 // VO sub-fields are always records in hexaglue; only the top-level accessor
                 // from the parent type needs to respect the parent's accessor style.
-                String accessor = accessorFor(fieldName, parentStructure) + "." + f.name() + "()";
+                String accessor = accessorFor(fieldName, fieldType, parentStructure) + "." + f.name() + "()";
                 fields.add(new DtoFieldSpec(
                         prefixedName,
                         subType,
@@ -244,7 +255,7 @@ public final class DtoFieldMapper {
 
         // Non-flattened multi-field VO: NESTED_DTO
         TypeName voType = toTypeName(TypeRef.of(vo.id().qualifiedName()));
-        String accessor = accessorFor(fieldName, parentStructure);
+        String accessor = accessorFor(fieldName, fieldType, parentStructure);
         return List.of(new DtoFieldSpec(
                 fieldName, voType, fieldName, accessor, ValidationKind.NONE, ProjectionKind.NESTED_DTO));
     }
