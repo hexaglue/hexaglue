@@ -17,6 +17,7 @@ import com.palantir.javapoet.MethodSpec;
 import com.palantir.javapoet.ParameterSpec;
 import io.hexaglue.arch.model.ir.MethodKind;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
+import io.hexaglue.plugin.jpa.util.NamingConventions;
 import io.hexaglue.plugin.jpa.util.SpringDataQuerySupport;
 import javax.lang.model.element.Modifier;
 
@@ -62,6 +63,17 @@ public final class FindByPropertyMethodStrategy implements MethodBodyStrategy {
 
     @Override
     public MethodSpec generate(AdapterMethodSpec method, AdapterContext context) {
+        // No-parameter methods with a targetProperty from findAll<Property> pattern
+        // are implicit boolean queries (e.g., findAllActive → repository.findByActiveTrue())
+        // Exclude methods with embedded condition suffixes (e.g., findByActiveTrue, findByNameIsNull)
+        if (!method.hasParameters()
+                && method.targetProperty().isPresent()
+                && method.name().startsWith("findAll")
+                && !method.name().startsWith("findAllBy")
+                && !SpringDataQuerySupport.hasEmbeddedConditionSuffix(method.name())) {
+            return generateImplicitBooleanQuery(method, context);
+        }
+
         if (!method.hasParameters() && !SpringDataQuerySupport.hasEmbeddedConditionSuffix(method.name())) {
             throw new IllegalArgumentException(
                     "FIND_BY_PROPERTY method must have at least one parameter: " + method.name());
@@ -105,6 +117,46 @@ public final class FindByPropertyMethodStrategy implements MethodBodyStrategy {
         } else {
             // Direct return (nullable)
             builder.addStatement("var entity = $L.$L($L)", context.repositoryFieldName(), method.name(), paramList);
+            builder.addStatement("return entity != null ? $L.toDomain(entity) : null", context.mapperFieldName());
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Generates an adapter method for implicit boolean queries like {@code findAllActive()}.
+     *
+     * <p>Transforms the port method name to a Spring Data derived query:
+     * {@code findAllActive()} → {@code repository.findByActiveTrue()}.
+     *
+     * @param method the adapter method spec with a targetProperty but no parameters
+     * @param context the adapter context
+     * @return the generated method spec
+     */
+    private MethodSpec generateImplicitBooleanQuery(AdapterMethodSpec method, AdapterContext context) {
+        String property = method.targetProperty().get();
+        String capitalizedProperty = NamingConventions.capitalize(property);
+        String repositoryMethod = "findBy" + capitalizedProperty + "True";
+
+        MethodSpec.Builder builder = MethodSpec.methodBuilder(method.name())
+                .addModifiers(Modifier.PUBLIC)
+                .addAnnotation(Override.class)
+                .returns(method.returnType());
+
+        if (method.returnsCollection()) {
+            builder.addStatement(
+                    "return $L.$L().stream().map($L::toDomain).toList()",
+                    context.repositoryFieldName(),
+                    repositoryMethod,
+                    context.mapperFieldName());
+        } else if (method.returnsOptional()) {
+            builder.addStatement(
+                    "return $L.$L().map($L::toDomain)",
+                    context.repositoryFieldName(),
+                    repositoryMethod,
+                    context.mapperFieldName());
+        } else {
+            builder.addStatement("var entity = $L.$L()", context.repositoryFieldName(), repositoryMethod);
             builder.addStatement("return entity != null ? $L.toDomain(entity) : null", context.mapperFieldName());
         }
 
