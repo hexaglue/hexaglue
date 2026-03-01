@@ -694,6 +694,47 @@ class MapperSpecBuilderReconstitutionTest {
             assertThat(childConversion.reconstitutionSpec().parameters().get(1).parameterName())
                     .isEqualTo("quantity");
         }
+
+        @Test
+        @DisplayName("should detect embeddable collection conversion kind in reconstitution params")
+        void should_detectEmbeddableCollectionConversionKind_inReconstitutionParams() {
+            // Given: An aggregate with reconstitute() and a List<OrderLine> param
+            // where OrderLine is a VALUE_OBJECT mapped as an embeddable (not a child entity)
+            ValueObject orderLineVO = createMultiValueVO(
+                    "OrderLine",
+                    List.of(
+                            Field.of("productName", TypeRef.of("java.lang.String")),
+                            Field.of("quantity", TypeRef.of("int"))));
+
+            AggregateRoot aggregate = createOrderAggregateWithLines(
+                    "reconstitute",
+                    List.of(
+                            Parameter.of("id", TypeRef.of(DOMAIN_PKG + ".OrderId")),
+                            Parameter.of("orderNumber", TypeRef.of("java.lang.String")),
+                            Parameter.of(
+                                    "lines",
+                                    TypeRef.parameterized(
+                                            "java.util.List", List.of(TypeRef.of(DOMAIN_PKG + ".OrderLine"))))));
+
+            Identifier orderIdIdentifier = createIdentifier("OrderId", "java.util.UUID");
+            ArchitecturalModel model = buildModelWith(aggregate, orderIdIdentifier, orderLineVO);
+
+            // When: embeddableMapping contains OrderLine but childEntityFqns does NOT
+            MapperSpec spec = MapperSpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(model)
+                    .config(config)
+                    .infrastructurePackage(INFRA_PKG)
+                    .embeddableMapping(Map.of(DOMAIN_PKG + ".OrderLine", INFRA_PKG + ".OrderLineEmbeddable"))
+                    .build();
+
+            // Then: lines parameter should use CHILD_ENTITY_COLLECTION (stream-map toDomain)
+            assertThat(spec.reconstitutionSpec()).isNotNull();
+            assertThat(spec.reconstitutionSpec().parameters()).anySatisfy(param -> {
+                assertThat(param.parameterName()).isEqualTo("lines");
+                assertThat(param.conversionKind()).isEqualTo(ConversionKind.CHILD_ENTITY_COLLECTION);
+            });
+        }
     }
 
     // ===== Helper Methods =====

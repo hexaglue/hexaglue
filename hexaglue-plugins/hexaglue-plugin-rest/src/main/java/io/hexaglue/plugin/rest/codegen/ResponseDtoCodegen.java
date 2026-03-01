@@ -90,7 +90,18 @@ public final class ResponseDtoCodegen {
                 String nullCheckAccessor = field.accessorChain().replace(".value()", "");
                 yield CodeBlock.of("source.$L != null ? source.$L : null", nullCheckAccessor, field.accessorChain());
             }
-            case DIRECT, VALUE_OBJECT_FLATTEN -> CodeBlock.of("source.$L", field.accessorChain());
+            case VALUE_OBJECT_FLATTEN -> {
+                // Null-check the parent accessor to avoid NPE when the value object is null.
+                // e.g., "getBillingAddress().street()" → parent = "getBillingAddress()"
+                String chain = field.accessorChain();
+                int lastDot = chain.lastIndexOf('.');
+                if (lastDot > 0) {
+                    String parentAccessor = chain.substring(0, lastDot);
+                    yield CodeBlock.of("source.$L != null ? source.$L : null", parentAccessor, field.accessorChain());
+                }
+                yield CodeBlock.of("source.$L", field.accessorChain());
+            }
+            case DIRECT -> CodeBlock.of("source.$L", field.accessorChain());
             default -> CodeBlock.of("source.$L", field.accessorChain());
         };
     }

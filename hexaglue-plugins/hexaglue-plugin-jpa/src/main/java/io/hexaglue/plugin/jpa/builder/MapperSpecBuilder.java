@@ -270,6 +270,11 @@ public final class MapperSpecBuilder {
         // Issue-14: Detect child entity conversions
         List<MapperSpec.ChildEntityConversionSpec> childEntityConversions = detectChildEntityConversions();
 
+        // Detect boolean fields that need @AfterMapping toggle methods
+        TypeStructure structure = aggregateRoot != null ? aggregateRoot.structure() : entity.structure();
+        List<MapperSpec.AfterMappingFieldSpec> afterMappingFields =
+                detectAfterMappingFields(reconstitutionSpec, structure);
+
         return new MapperSpec(
                 infrastructurePackage,
                 interfaceName,
@@ -282,7 +287,8 @@ public final class MapperSpecBuilder {
                 embeddableMappings,
                 usedMappers,
                 reconstitutionSpec,
-                childEntityConversions);
+                childEntityConversions,
+                afterMappingFields);
     }
 
     /**
@@ -677,6 +683,98 @@ public final class MapperSpecBuilder {
     }
 
     // =====================================================================
+    // @AfterMapping detection for boolean toggle fields
+    // =====================================================================
+
+    /**
+     * Known boolean toggle method patterns: field name to toggle method name.
+     *
+     * <p>When a boolean field has no setter but has a toggle method following one of these
+     * patterns, an {@code @AfterMapping} method is generated to call the toggle.
+     */
+    private static final Map<String, String> BOOLEAN_TOGGLE_PATTERNS = Map.of(
+            "active", "deactivate",
+            "enabled", "disable",
+            "locked", "lock",
+            "published", "unpublish",
+            "archived", "archive",
+            "suspended", "suspend",
+            "verified", "unverify",
+            "visible", "hide");
+
+    /**
+     * Detects boolean fields that need {@code @AfterMapping} toggle methods.
+     *
+     * <p>Only applies when {@code reconstitutionSpec == null} (abstract toDomain, not default).
+     * For each boolean field NOT in the constructor parameters and with no setter,
+     * detects a toggle method via known patterns.
+     *
+     * @param reconstitutionSpec the reconstitution spec (null for abstract toDomain)
+     * @param structure the domain type structure
+     * @return list of after-mapping field specifications
+     * @since 6.0.0
+     */
+    private List<MapperSpec.AfterMappingFieldSpec> detectAfterMappingFields(
+            ReconstitutionSpec reconstitutionSpec, TypeStructure structure) {
+        // Only for abstract toDomain (no reconstitution spec)
+        if (reconstitutionSpec != null) {
+            return List.of();
+        }
+
+        // Collect constructor parameter names
+        Set<String> ctorParamNames = structure.constructors().stream()
+                .flatMap(ctor -> ctor.parameters().stream())
+                .map(Parameter::name)
+                .collect(Collectors.toSet());
+
+        // Collect setter field names
+        Set<String> setterFieldNames = structure.methods().stream()
+                .filter(m -> m.hasRole(MethodRole.SETTER))
+                .map(m -> {
+                    String name = m.name();
+                    if (name.startsWith("set") && name.length() > 3) {
+                        return Character.toLowerCase(name.charAt(3)) + name.substring(4);
+                    }
+                    return name;
+                })
+                .collect(Collectors.toSet());
+
+        // Collect all method names for toggle detection
+        Set<String> methodNames = structure.methods().stream().map(Method::name).collect(Collectors.toSet());
+
+        List<MapperSpec.AfterMappingFieldSpec> result = new ArrayList<>();
+
+        for (Field field : structure.fields()) {
+            // Only boolean fields
+            if (!"boolean".equals(field.type().qualifiedName())
+                    && !"java.lang.Boolean".equals(field.type().qualifiedName())) {
+                continue;
+            }
+
+            String fieldName = field.name();
+
+            // Skip if field is in constructor params (already handled by MapStruct or reconstitution)
+            if (ctorParamNames.contains(fieldName)) {
+                continue;
+            }
+
+            // Skip if field has a setter (MapStruct handles it)
+            if (setterFieldNames.contains(fieldName)) {
+                continue;
+            }
+
+            // Look for a known toggle method
+            String toggleMethod = BOOLEAN_TOGGLE_PATTERNS.get(fieldName);
+            if (toggleMethod != null && methodNames.contains(toggleMethod)) {
+                String entityGetter = "is" + Character.toUpperCase(fieldName.charAt(0)) + fieldName.substring(1);
+                result.add(new MapperSpec.AfterMappingFieldSpec(fieldName, entityGetter, toggleMethod, true));
+            }
+        }
+
+        return result;
+    }
+
+    // =====================================================================
     // Reconstitution detection (Issue-3)
     // =====================================================================
 
@@ -835,8 +933,8 @@ public final class MapperSpecBuilder {
                     && AUDIT_FIELD_NAMES.contains(param.name())
                     && LOCAL_DATE_TIME_FQN.equals(paramTypeFqn)) {
                 conversionKind = ConversionKind.AUDIT_TEMPORAL;
-            } else if (isCollectionOfChildEntity(param)) {
-                // Issue-14: Collection of child entities needs stream-map conversion
+            } else if (isCollectionOfChildEntity(param) || isCollectionOfEmbeddable(param)) {
+                // Issue-14: Collection of child entities or embeddable VOs needs stream-map conversion
                 conversionKind = ConversionKind.CHILD_ENTITY_COLLECTION;
             } else {
                 conversionKind = resolveConversionKind(paramTypeFqn, identityTypeFqn);
@@ -941,6 +1039,33 @@ public final class MapperSpecBuilder {
             return false;
         }
         return childEntityFqns.contains(typeArgs.get(0).qualifiedName());
+    }
+
+    /**
+     * Checks whether a reconstitution parameter is a collection type whose element
+     * type is a known embeddable value object.
+     *
+     * <p>This handles {@code List<ValueObject>} parameters in reconstitution methods
+     * where the value object is mapped to a JPA embeddable. The generated code uses
+     * {@code stream().map(this::toDomain)} to convert each embeddable element.
+     *
+     * @param param the reconstitution parameter to check
+     * @return true if the parameter is a collection of embeddable value objects
+     * @since 6.0.0
+     */
+    private boolean isCollectionOfEmbeddable(Parameter param) {
+        if (embeddableMapping.isEmpty()) {
+            return false;
+        }
+        String paramTypeFqn = param.type().qualifiedName();
+        if (!COLLECTION_TYPE_FQNS.contains(paramTypeFqn)) {
+            return false;
+        }
+        var typeArgs = param.type().typeArguments();
+        if (typeArgs.isEmpty()) {
+            return false;
+        }
+        return embeddableMapping.containsKey(typeArgs.get(0).qualifiedName());
     }
 
     /**
