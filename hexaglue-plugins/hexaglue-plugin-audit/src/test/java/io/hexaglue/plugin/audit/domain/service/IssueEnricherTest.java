@@ -117,6 +117,57 @@ class IssueEnricherTest {
     }
 
     @Nested
+    @DisplayName("Port coverage template")
+    class PortCoverageTemplate {
+
+        @Test
+        @DisplayName("should suggest automatable REST adapter for driving port without adapter")
+        void shouldSuggestAutomatableRestAdapterForDrivingPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driving port OrderService has no adapter")
+                    .affectedType("com.example.port.OrderService")
+                    .location(SourceLocation.of("OrderService.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("REST API");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("2 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isTrue();
+            assertThat(suggestion.hexagluePluginOpt()).isPresent().hasValue("hexaglue-plugin-rest");
+        }
+
+        @Test
+        @DisplayName("should suggest automatable JPA adapter for driven port without adapter")
+        void shouldSuggestAutomatableJpaAdapterForDrivenPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driven port OrderRepository has no adapter")
+                    .affectedType("com.example.port.OrderRepository")
+                    .location(SourceLocation.of("OrderRepository.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("infrastructure adapter");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("3 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isTrue();
+            assertThat(suggestion.hexagluePluginOpt()).isPresent().hasValue("hexaglue-plugin-jpa");
+        }
+    }
+
+    @Nested
     @DisplayName("All constraint templates coverage")
     class AllConstraintTemplates {
 
