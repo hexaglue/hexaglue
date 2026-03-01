@@ -113,10 +113,21 @@ public record DerivedMethodSpec(
             return Optional.empty();
         }
 
+        // Transform findAll<Property> (no "By") to findBy<Property>True for Spring Data JPA
+        // e.g., "findAllActive" → "findByActiveTrue"
+        String repoMethodName = methodName;
+        if (kind == MethodKind.FIND_ALL_BY_PROPERTY
+                && !methodName.startsWith("findAllBy")
+                && methodName.startsWith("findAll")
+                && method.parameters().isEmpty()) {
+            String property = methodName.substring("findAll".length());
+            repoMethodName = "findBy" + property + "True";
+        }
+
         TypeName returnType = resolveReturnType(method, kind, entityTypeName);
         List<ParameterSpec> params = buildParameters(method, domainIndex);
 
-        return Optional.of(new DerivedMethodSpec(methodName, returnType, params, kind));
+        return Optional.of(new DerivedMethodSpec(repoMethodName, returnType, params, kind));
     }
 
     /**
@@ -127,6 +138,10 @@ public record DerivedMethodSpec(
             return MethodKind.FIND_BY_PROPERTY;
         }
         if (name.startsWith("findAllBy")) {
+            return MethodKind.FIND_ALL_BY_PROPERTY;
+        }
+        // Recognize findAll<Property> (no "By") as implicit boolean query
+        if (name.startsWith("findAll") && name.length() > "findAll".length()) {
             return MethodKind.FIND_ALL_BY_PROPERTY;
         }
         if (name.startsWith("existsBy")) {

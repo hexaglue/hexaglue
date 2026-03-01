@@ -237,6 +237,11 @@ public record AdapterMethodSpec(
         if (name.equals("findAll")) {
             return MethodKind.FIND_ALL;
         }
+        // Recognize findAll<Property> (no "By") as implicit boolean query
+        // e.g., "findAllActive" → FIND_ALL_BY_PROPERTY with targetProperty "active"
+        if (name.startsWith("findAll") && name.length() > "findAll".length() && !name.startsWith("findAllBy")) {
+            return MethodKind.FIND_ALL_BY_PROPERTY;
+        }
         if (name.equals("existsById")) {
             return MethodKind.EXISTS_BY_ID;
         }
@@ -280,7 +285,11 @@ public record AdapterMethodSpec(
     private static Optional<String> extractTargetProperty(String name, MethodKind kind) {
         return switch (kind) {
             case FIND_BY_PROPERTY -> extractPropertyFromPrefix(name, "findBy");
-            case FIND_ALL_BY_PROPERTY -> extractPropertyFromPrefix(name, "findAllBy");
+            case FIND_ALL_BY_PROPERTY -> {
+                // Try "findAllBy" first (e.g., "findAllByStatus"), then "findAll" (e.g., "findAllActive")
+                Optional<String> result = extractPropertyFromPrefix(name, "findAllBy");
+                yield result.isPresent() ? result : extractPropertyFromPrefix(name, "findAll");
+            }
             case EXISTS_BY_PROPERTY -> extractPropertyFromPrefix(name, "existsBy");
             case COUNT_BY_PROPERTY -> extractPropertyFromPrefix(name, "countBy");
             case DELETE_BY_PROPERTY -> extractPropertyFromPrefix(name, "deleteBy");
