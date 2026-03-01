@@ -213,19 +213,29 @@ public class IssueEnricher {
             public Suggestion suggestion(Violation v) {
                 boolean isDriving = v.message().toLowerCase().contains("driving");
                 if (isDriving) {
-                    return Suggestion.complete(
-                            "Create an application service implementing this port",
+                    // Driving port: requires REST controller exposing the port as an API
+                    // Can be automated by hexaglue-plugin-rest
+                    return Suggestion.automatable(
+                            "Create a driving adapter exposing this port as a REST API",
                             List.of(
-                                    "Create a new class implementing the port interface",
-                                    "Implement all required methods",
-                                    "Register the implementation with your DI container"),
-                            "@Service\n" + "public class PortImplementation implements PortInterface {\n"
-                                    + "    @Override\n"
-                                    + "    public void method() {\n"
-                                    + "        // implementation\n"
+                                    "Create a REST controller delegating to the driving port",
+                                    "Create request DTOs for each endpoint",
+                                    "Create response DTOs for each endpoint",
+                                    "Map HTTP verbs to port methods",
+                                    "Register the controller with your DI container"),
+                            "@RestController\n"
+                                    + "@RequestMapping(\"/api/orders\")\n"
+                                    + "public class OrderController {\n"
+                                    + "    private final OrderService orderService; // driving port\n"
+                                    + "    \n"
+                                    + "    @PostMapping\n"
+                                    + "    public ResponseEntity<OrderResponse> create(@RequestBody CreateOrderRequest request) {\n"
+                                    + "        Order order = orderService.placeOrder(request.toDomain());\n"
+                                    + "        return ResponseEntity.ok(OrderResponse.from(order));\n"
                                     + "    }\n"
                                     + "}",
-                            "0.5 days");
+                            "2 days",
+                            "hexaglue-plugin-rest");
                 } else {
                     // Driven port: requires full persistence chain (adapter, entity, mapper, converters)
                     // Can be automated by hexaglue-plugin-jpa
