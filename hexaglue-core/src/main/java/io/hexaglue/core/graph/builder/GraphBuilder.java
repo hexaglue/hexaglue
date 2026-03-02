@@ -239,6 +239,7 @@ public final class GraphBuilder {
                 .simpleName(method.simpleName())
                 .returnType(method.returnType())
                 .parameters(toParameterInfos(method.parameters()))
+                .thrownTypes(method.thrownTypes())
                 .modifiers(method.modifiers())
                 .annotations(toAnnotationRefs(method.annotations()))
                 .sourceRef(method.sourceRef().orElse(null))
