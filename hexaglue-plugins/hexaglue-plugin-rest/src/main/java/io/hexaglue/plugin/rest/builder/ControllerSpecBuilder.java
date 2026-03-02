@@ -31,6 +31,7 @@ import io.hexaglue.plugin.rest.model.EndpointSpec;
 import io.hexaglue.plugin.rest.model.ExceptionMappingSpec;
 import io.hexaglue.plugin.rest.model.HttpMapping;
 import io.hexaglue.plugin.rest.model.ParameterBindingSpec;
+import io.hexaglue.plugin.rest.model.PathVariableSpec;
 import io.hexaglue.plugin.rest.model.QueryParamSpec;
 import io.hexaglue.plugin.rest.model.RequestDtoSpec;
 import io.hexaglue.plugin.rest.model.ResponseDtoSpec;
@@ -215,6 +216,9 @@ public final class ControllerSpecBuilder {
                 List<QueryParamSpec> queryParams = domainIndex != null
                         ? unwrapQueryParams(mapping.queryParams(), domainIndex)
                         : mapping.queryParams();
+                List<PathVariableSpec> pathVariables = domainIndex != null
+                        ? unwrapPathVariables(mapping.pathVariables(), domainIndex)
+                        : mapping.pathVariables();
 
                 endpoints.add(new EndpointSpec(
                         useCase.name(),
@@ -225,7 +229,7 @@ public final class ControllerSpecBuilder {
                         mapping.responseStatus(),
                         requestDtoRef,
                         responseDtoRef,
-                        mapping.pathVariables(),
+                        pathVariables,
                         queryParams,
                         thrownExceptions,
                         useCase.type(),
@@ -272,11 +276,16 @@ public final class ControllerSpecBuilder {
 
                 Optional<Identifier> id = DtoFieldMapper.findIdentifier(param.type(), domainIndex);
                 if (id.isPresent()) {
-                    // Heuristic: the first Identifier param in a mapping with an identity path
-                    // variable is the aggregate root id, exposed as /{id} in the URL.
-                    // The port param may have a different name (e.g., "accountId") but it maps
-                    // to the path variable named "id".
-                    if (isPathVar || (hasIdentityPathVar && bindings.isEmpty())) {
+                    if (isPathVar) {
+                        // Named path variable that is an Identifier (e.g. /by-customer/{customerId}).
+                        // Use the actual path variable name.
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of(param.name())));
+                    } else if (hasIdentityPathVar && bindings.isEmpty()) {
+                        // Heuristic: the first Identifier param in a mapping with an identity path
+                        // variable is the aggregate root id, exposed as /{id} in the URL.
+                        // The port param may have a different name (e.g., "accountId") but it maps
+                        // to the path variable named "id".
                         bindings.add(new ParameterBindingSpec(
                                 param.name(), domainType, BindingKind.PATH_VARIABLE_WRAP, List.of("id")));
                     } else if (isQueryParam) {
@@ -314,8 +323,14 @@ public final class ControllerSpecBuilder {
                     List<String> fieldNames = vo.get().structure().fields().stream()
                             .map(Field::name)
                             .toList();
-                    bindings.add(
-                            new ParameterBindingSpec(param.name(), domainType, BindingKind.FACTORY_WRAP, fieldNames));
+                    if (fieldNames.isEmpty()) {
+                        // Enum or fieldless value object: pass directly from request body.
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.DIRECT, List.of(param.name())));
+                    } else {
+                        bindings.add(new ParameterBindingSpec(
+                                param.name(), domainType, BindingKind.FACTORY_WRAP, fieldNames));
+                    }
                     continue;
                 }
 
@@ -348,6 +363,35 @@ public final class ControllerSpecBuilder {
                                     qp.name(), qp.javaName(), unwrapped, qp.required(), qp.defaultValue());
                         }
                         return qp;
+                    })
+                    .toList();
+        }
+
+        /**
+         * Unwraps Identifier types in non-identity path variables to their wrapped primitive type.
+         *
+         * <p>For example, a path variable of type {@code CustomerId} (wrapping {@code Long})
+         * becomes a path variable of type {@code Long}. Identity path variables (flagged with
+         * {@code isIdentifier=true}) are already unwrapped by the strategy.
+         */
+        private static List<PathVariableSpec> unwrapPathVariables(
+                List<PathVariableSpec> pathVariables, DomainIndex domainIndex) {
+            return pathVariables.stream()
+                    .map(pv -> {
+                        if (pv.isIdentifier()) {
+                            return pv;
+                        }
+                        Optional<Identifier> id = domainIndex
+                                .identifiers()
+                                .filter(i -> DtoFieldMapper.toTypeName(TypeRef.of(i.id().qualifiedName()))
+                                        .equals(pv.javaType()))
+                                .findFirst();
+                        if (id.isPresent()) {
+                            TypeName unwrapped =
+                                    DtoFieldMapper.toTypeName(id.get().wrappedType());
+                            return new PathVariableSpec(pv.name(), pv.javaName(), unwrapped, pv.isIdentifier());
+                        }
+                        return pv;
                     })
                     .toList();
         }
