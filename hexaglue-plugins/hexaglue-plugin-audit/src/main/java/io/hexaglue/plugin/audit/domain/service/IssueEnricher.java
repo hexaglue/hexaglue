@@ -240,7 +240,7 @@ public class IssueEnricher {
                     // Driven port: requires full persistence chain (adapter, entity, mapper, converters)
                     // Can be automated by hexaglue-plugin-jpa
                     return Suggestion.automatable(
-                            "Create an infrastructure adapter implementing this port",
+                            "Create a driven adapter implementing this port as a JPA persistence layer",
                             List.of(
                                     "Create JPA entity mapping the aggregate",
                                     "Create mapper to convert between domain and JPA entity",

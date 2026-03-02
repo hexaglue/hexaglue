@@ -159,7 +159,7 @@ class IssueEnricherTest {
 
             // Then
             Suggestion suggestion = entry.suggestion();
-            assertThat(suggestion.action()).contains("infrastructure adapter");
+            assertThat(suggestion.action()).contains("driven adapter");
             assertThat(suggestion.hasSteps()).isTrue();
             assertThat(suggestion.effortOpt()).isPresent().hasValue("3 days");
             assertThat(suggestion.isAutomatableByHexaglue()).isTrue();

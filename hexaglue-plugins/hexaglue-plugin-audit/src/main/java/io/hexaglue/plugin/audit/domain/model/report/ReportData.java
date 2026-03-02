@@ -19,7 +19,7 @@ import java.util.Objects;
  * Root data structure for the audit report (JSON pivot format).
  *
  * <p>This record contains all the structured data for the audit report,
- * organized into 5 sections as per specification:
+ * organized into sections as per specification:
  * <ol>
  *   <li>Verdict - Score, grade, status, KPIs</li>
  *   <li>Architecture - Inventory, components, relationships</li>
