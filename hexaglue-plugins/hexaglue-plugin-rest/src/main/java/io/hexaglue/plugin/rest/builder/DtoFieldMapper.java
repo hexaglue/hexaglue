@@ -337,7 +337,7 @@ public final class DtoFieldMapper {
                     paramName, fieldType, paramName, null, validation, ProjectionKind.IDENTITY_UNWRAP));
         }
 
-        if (config.flattenValueObjects()) {
+        if (config.flattenValueObjects() && !vo.structure().fields().isEmpty()) {
             // Multi-field VO: flatten
             List<DtoFieldSpec> fields = new ArrayList<>();
             for (Field f : vo.structure().fields()) {

@@ -77,9 +77,9 @@ public class TransferController {
             description = "Get transfers by account completed successfully"
     )
     @GetMapping("/by-account/{accountId}")
-    public ResponseEntity<Object> getTransfersByAccount(@PathVariable AccountId accountId) {
+    public ResponseEntity<Object> getTransfersByAccount(@PathVariable Long accountId) {
         var result = transferUseCases.getTransfersByAccount(
-                        new AccountId(id));
+                        new AccountId(accountId));
         return ResponseEntity.ok(result);
     }
 }
