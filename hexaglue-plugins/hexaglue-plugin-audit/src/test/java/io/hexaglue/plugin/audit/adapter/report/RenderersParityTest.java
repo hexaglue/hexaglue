@@ -93,7 +93,7 @@ class RenderersParityTest {
     class SectionParity {
 
         @Test
-        @DisplayName("should have all 5 sections in HTML")
+        @DisplayName("should have all sections in HTML")
         void htmlShouldHaveAllSections() {
             // When
             String html = htmlRenderer.render(testData, diagrams);
@@ -107,7 +107,7 @@ class RenderersParityTest {
         }
 
         @Test
-        @DisplayName("should have all 5 sections in Markdown")
+        @DisplayName("should have all sections in Markdown")
         void markdownShouldHaveAllSections() {
             // When
             String markdown = markdownRenderer.render(testData, diagrams);

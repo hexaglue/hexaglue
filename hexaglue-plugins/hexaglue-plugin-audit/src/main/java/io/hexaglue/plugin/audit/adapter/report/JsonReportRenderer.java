@@ -587,9 +587,48 @@ public class JsonReportRenderer implements ReportRenderer {
             json.append("        \"dailyRate\": ")
                     .append(String.format(Locale.US, "%.0f", cost.dailyRate()))
                     .append("\n");
+            json.append("      },\n");
+        } else {
+            json.append("      \"cost\": null,\n");
+        }
+        // HexaGlue savings
+        json.append("      \"hexaglueSavingsDays\": ")
+                .append(String.format(Locale.US, "%.1f", effort.hexaglueSavingsDays()))
+                .append(",\n");
+        if (effort.hexaglueSavingsCostOpt().isPresent()) {
+            CostEstimate savingsCost = effort.hexaglueSavingsCostOpt().get();
+            json.append("      \"hexaglueSavingsCost\": {\n");
+            json.append("        \"amount\": ")
+                    .append(String.format(Locale.US, "%.0f", savingsCost.amount()))
+                    .append(",\n");
+            json.append("        \"currency\": ")
+                    .append(quote(savingsCost.currency()))
+                    .append(",\n");
+            json.append("        \"dailyRate\": ")
+                    .append(String.format(Locale.US, "%.0f", savingsCost.dailyRate()))
+                    .append("\n");
+            json.append("      },\n");
+        } else {
+            json.append("      \"hexaglueSavingsCost\": null,\n");
+        }
+        json.append("      \"effectiveDays\": ")
+                .append(String.format(Locale.US, "%.1f", effort.effectiveDays()))
+                .append(",\n");
+        if (effort.effectiveCostOpt().isPresent()) {
+            CostEstimate effectiveCost = effort.effectiveCostOpt().get();
+            json.append("      \"effectiveCost\": {\n");
+            json.append("        \"amount\": ")
+                    .append(String.format(Locale.US, "%.0f", effectiveCost.amount()))
+                    .append(",\n");
+            json.append("        \"currency\": ")
+                    .append(quote(effectiveCost.currency()))
+                    .append(",\n");
+            json.append("        \"dailyRate\": ")
+                    .append(String.format(Locale.US, "%.0f", effectiveCost.dailyRate()))
+                    .append("\n");
             json.append("      }\n");
         } else {
-            json.append("      \"cost\": null\n");
+            json.append("      \"effectiveCost\": null\n");
         }
         json.append("    }\n");
 
@@ -627,6 +666,9 @@ public class JsonReportRenderer implements ReportRenderer {
                     .append(",\n");
             json.append("        \"relatedIssues\": ")
                     .append(toJsonArray(action.relatedIssues()))
+                    .append(",\n");
+            json.append("        \"hexagluePlugin\": ")
+                    .append(quote(action.hexagluePlugin()))
                     .append("\n");
             json.append("      }");
             if (i < actions.size() - 1) json.append(",");
