@@ -191,6 +191,12 @@ def exceptionHandler = new File(basedir, "target/generated-sources/hexaglue/com/
 assert exceptionHandler.exists() : "GlobalExceptionHandler.java should be generated"
 assert exceptionHandler.text.contains("@RestControllerAdvice") : "GlobalExceptionHandler should have @RestControllerAdvice"
 
+def handlerContent = exceptionHandler.text
+assert handlerContent.contains("ResourceNotFoundException") : "GlobalExceptionHandler should handle ResourceNotFoundException (404)"
+assert handlerContent.contains("BusinessRuleViolationException") : "GlobalExceptionHandler should handle BusinessRuleViolationException (409)"
+assert handlerContent.contains("HttpStatus.NOT_FOUND") : "GlobalExceptionHandler should map ResourceNotFoundException to NOT_FOUND"
+assert handlerContent.contains("HttpStatus.CONFLICT") : "GlobalExceptionHandler should map BusinessRuleViolationException to CONFLICT"
+
 // ─────────────────────────────────────────────────────────────────────
 // 11. LivingDoc plugin: reports
 // ─────────────────────────────────────────────────────────────────────
@@ -254,11 +260,11 @@ assert auditJson.contains('"hexagonal-compliance"') : "Audit JSON should contain
 // 13. Compilation: all generated + source code compiled
 // ─────────────────────────────────────────────────────────────────────
 
-assert logContent.contains("Compiling 63 source files") :
-    "Should compile 63 source files (23 source + 40 generated Java files)"
+assert logContent.contains("Compiling 65 source files") :
+    "Should compile 65 source files (25 source + 40 generated Java files)"
 
-assert logContent.contains("Tests run: 1, Failures: 0, Errors: 0") :
-    "Spring Boot contextLoads() test should pass"
+assert logContent.contains("Tests run: 32, Failures: 0, Errors: 0") :
+    "All 32 tests (contextLoads + end-to-end) should pass"
 
 // ─────────────────────────────────────────────────────────────────────
 // 14. Total generated files count
@@ -282,9 +288,10 @@ Validated:
   - JPA plugin: 3 entities, 3 embeddables, 3 repos, 3 mappers, 3 adapters
   - REST plugin: 3 controllers, 20 DTOs, RestConfiguration with 3 @Bean
   - REST @Bean wiring: CustomerService, ProductService, OrderService
+  - REST exception handling: ResourceNotFoundException (404), BusinessRuleViolationException (409)
   - LivingDoc plugin: domain.md, ports.md, diagrams.md, README.md
   - Audit plugin: 0 violations, PASSED, JSON/HTML/Markdown reports
-  - Compilation: 63 source files, contextLoads() test green
+  - Compilation: 65 source files, 32 tests green
   - Total: 44 files generated (40 Java + 4 living-doc)
 =============================================================================
 """

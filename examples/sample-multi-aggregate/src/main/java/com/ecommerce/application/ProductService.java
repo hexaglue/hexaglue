@@ -6,8 +6,8 @@ import com.ecommerce.domain.product.ProductId;
 import com.ecommerce.ports.in.ManagingProducts;
 import com.ecommerce.ports.out.ProductRepository;
 
+import com.ecommerce.domain.exception.ResourceNotFoundException;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 /**
@@ -83,6 +83,6 @@ public class ProductService implements ManagingProducts {
 
     private Product findOrThrow(ProductId productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new NoSuchElementException("Product not found: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
     }
 }

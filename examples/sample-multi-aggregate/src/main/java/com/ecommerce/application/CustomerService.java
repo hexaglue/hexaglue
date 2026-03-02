@@ -7,8 +7,8 @@ import com.ecommerce.domain.order.Address;
 import com.ecommerce.ports.in.ManagingCustomers;
 import com.ecommerce.ports.out.CustomerRepository;
 
+import com.ecommerce.domain.exception.ResourceNotFoundException;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 /**
@@ -65,6 +65,6 @@ public class CustomerService implements ManagingCustomers {
 
     private Customer findOrThrow(CustomerId customerId) {
         return customerRepository.findById(customerId)
-                .orElseThrow(() -> new NoSuchElementException("Customer not found: " + customerId));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found: " + customerId));
     }
 }

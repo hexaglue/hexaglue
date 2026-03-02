@@ -274,7 +274,7 @@ class EcommerceEndToEndTest {
         }
 
         @Test
-        void should_return_500_when_stock_goes_negative() throws Exception {
+        void should_return_409_when_stock_goes_negative() throws Exception {
             MvcResult createResult = createProduct("Limited", "Low stock", 5.0, 3);
             UUID productId = extractId(createResult);
 
@@ -288,7 +288,8 @@ class EcommerceEndToEndTest {
             mockMvc.perform(post("/api/managing-productses/{id}/adjust-stock", productId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error", is("BUSINESS_RULE_VIOLATION")));
         }
 
         @Test
@@ -647,7 +648,8 @@ class EcommerceEndToEndTest {
             mockMvc.perform(post("/api/ordering-productses/{id}/confirm-order", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(confirmBody))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error", is("BUSINESS_RULE_VIOLATION")));
         }
 
         @Test
@@ -683,7 +685,8 @@ class EcommerceEndToEndTest {
             mockMvc.perform(post("/api/ordering-productses/add-line-item")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(addLineBody))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error", is("BUSINESS_RULE_VIOLATION")));
         }
 
         @Test
@@ -710,7 +713,8 @@ class EcommerceEndToEndTest {
             mockMvc.perform(post("/api/ordering-productses/{id}/ship-order", orderId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(shipBody))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error", is("BUSINESS_RULE_VIOLATION")));
         }
     }
 
@@ -739,14 +743,14 @@ class EcommerceEndToEndTest {
         }
 
         @Test
-        void should_return_500_for_nonexistent_order() throws Exception {
+        void should_return_404_for_nonexistent_order() throws Exception {
             mockMvc.perform(get("/api/ordering-productses/{id}", UUID.randomUUID()))
-                    .andExpect(status().isInternalServerError())
-                    .andExpect(jsonPath("$.error", is("INTERNAL_SERVER_ERROR")));
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error", is("NOT_FOUND")));
         }
 
         @Test
-        void should_return_500_for_nonexistent_product() throws Exception {
+        void should_return_404_for_nonexistent_product() throws Exception {
             UUID nonExistentId = UUID.randomUUID();
             String body = """
                     {
@@ -761,7 +765,8 @@ class EcommerceEndToEndTest {
             mockMvc.perform(put("/api/managing-productses/{id}", nonExistentId)
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(body))
-                    .andExpect(status().isInternalServerError());
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error", is("NOT_FOUND")));
         }
     }
 }

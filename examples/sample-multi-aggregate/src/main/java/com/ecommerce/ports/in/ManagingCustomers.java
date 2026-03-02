@@ -3,6 +3,7 @@ package com.ecommerce.ports.in;
 import com.ecommerce.domain.customer.Customer;
 import com.ecommerce.domain.customer.CustomerId;
 import com.ecommerce.domain.customer.Email;
+import com.ecommerce.domain.exception.ResourceNotFoundException;
 import com.ecommerce.domain.order.Address;
 
 import java.util.List;
@@ -15,9 +16,11 @@ public interface ManagingCustomers {
 
     Customer registerCustomer(String firstName, String lastName, Email email);
 
-    Customer updateProfile(CustomerId customerId, String firstName, String lastName, Email email);
+    Customer updateProfile(CustomerId customerId, String firstName, String lastName, Email email)
+            throws ResourceNotFoundException;
 
-    Customer updateBillingAddress(CustomerId customerId, Address billingAddress);
+    Customer updateBillingAddress(CustomerId customerId, Address billingAddress)
+            throws ResourceNotFoundException;
 
     Optional<Customer> findCustomer(CustomerId customerId);
 
@@ -25,5 +28,5 @@ public interface ManagingCustomers {
 
     List<Customer> listAllCustomers();
 
-    void deleteCustomer(CustomerId customerId);
+    void deleteCustomer(CustomerId customerId) throws ResourceNotFoundException;
 }
