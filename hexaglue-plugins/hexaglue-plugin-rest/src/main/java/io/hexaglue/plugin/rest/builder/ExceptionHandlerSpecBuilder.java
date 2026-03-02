@@ -73,6 +73,7 @@ public final class ExceptionHandlerSpecBuilder {
         if (simpleName.endsWith("InsufficientException") || simpleName.contains("Insufficient")) return 400;
         if (simpleName.endsWith("RejectedException")) return 422;
         if (simpleName.endsWith("ExpiredException")) return 410;
+        if (simpleName.endsWith("ViolationException")) return 409;
         if ("IllegalArgumentException".equals(simpleName)) return 400;
         if ("IllegalStateException".equals(simpleName)) return 409;
         return 500;
@@ -92,6 +93,7 @@ public final class ExceptionHandlerSpecBuilder {
             return "INSUFFICIENT_RESOURCE";
         if (simpleName.endsWith("RejectedException")) return "REJECTED";
         if (simpleName.endsWith("ExpiredException")) return "EXPIRED";
+        if (simpleName.endsWith("ViolationException")) return "BUSINESS_RULE_VIOLATION";
         if ("IllegalArgumentException".equals(simpleName)) return "BAD_REQUEST";
         if ("IllegalStateException".equals(simpleName)) return "ILLEGAL_STATE";
         return "INTERNAL_ERROR";

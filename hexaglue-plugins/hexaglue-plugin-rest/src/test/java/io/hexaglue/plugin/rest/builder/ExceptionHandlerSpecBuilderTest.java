@@ -87,6 +87,18 @@ class ExceptionHandlerSpecBuilderTest {
         }
 
         @Test
+        @DisplayName("should map ViolationException to 409")
+        void shouldMapViolationTo409() {
+            ClassName exception = ClassName.get("com.acme.domain.exception", "BusinessRuleViolationException");
+
+            ExceptionMappingSpec mapping = ExceptionHandlerSpecBuilder.deriveMapping(exception);
+
+            assertThat(mapping.httpStatus()).isEqualTo(409);
+            assertThat(mapping.errorCode()).isEqualTo("BUSINESS_RULE_VIOLATION");
+            assertThat(mapping.handlerMethod()).isEqualTo("handleBusinessRuleViolation");
+        }
+
+        @Test
         @DisplayName("should map unknown exception to 500")
         void shouldMapUnknownTo500() {
             ClassName exception = ClassName.get("com.acme.core.exception", "SomeWeirdProblem");
