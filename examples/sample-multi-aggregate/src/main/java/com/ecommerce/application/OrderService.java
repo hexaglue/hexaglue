@@ -12,8 +12,8 @@ import com.ecommerce.ports.in.OrderingProducts;
 import com.ecommerce.ports.out.OrderRepository;
 import com.ecommerce.ports.out.ProductRepository;
 
+import com.ecommerce.domain.exception.ResourceNotFoundException;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 /**
  * Application service implementing ordering use cases.
@@ -91,11 +91,11 @@ public class OrderService implements OrderingProducts {
 
     private Order findOrderOrThrow(OrderId orderId) {
         return orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementException("Order not found: " + orderId));
+                .orElseThrow(() -> new ResourceNotFoundException("Order not found: " + orderId));
     }
 
     private Product findProductOrThrow(ProductId productId) {
         return productRepository.findById(productId)
-                .orElseThrow(() -> new NoSuchElementException("Product not found: " + productId));
+                .orElseThrow(() -> new ResourceNotFoundException("Product not found: " + productId));
     }
 }

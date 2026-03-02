@@ -1,6 +1,7 @@
 package com.ecommerce.domain.order;
 
 import com.ecommerce.domain.customer.CustomerId;
+import com.ecommerce.domain.exception.BusinessRuleViolationException;
 import com.ecommerce.domain.product.ProductId;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -70,14 +71,14 @@ public class Order {
 
     public void addLine(OrderLine line) {
         if (status != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Cannot modify a non-draft order");
+            throw new BusinessRuleViolationException("Cannot modify a non-draft order");
         }
         lines.add(line);
     }
 
     public void removeLine(ProductId productId) {
         if (status != OrderStatus.DRAFT) {
-            throw new IllegalStateException("Cannot modify a non-draft order");
+            throw new BusinessRuleViolationException("Cannot modify a non-draft order");
         }
         lines.removeIf(line -> line.getProductId().equals(productId));
     }
@@ -94,38 +95,38 @@ public class Order {
 
     public void place() {
         if (lines.isEmpty()) {
-            throw new IllegalStateException("Cannot place an empty order");
+            throw new BusinessRuleViolationException("Cannot place an empty order");
         }
         if (shippingAddress == null) {
-            throw new IllegalStateException("Shipping address is required");
+            throw new BusinessRuleViolationException("Shipping address is required");
         }
         this.status = OrderStatus.PLACED;
     }
 
     public void pay() {
         if (status != OrderStatus.PLACED) {
-            throw new IllegalStateException("Order must be placed before payment");
+            throw new BusinessRuleViolationException("Order must be placed before payment");
         }
         this.status = OrderStatus.PAID;
     }
 
     public void ship() {
         if (status != OrderStatus.PAID) {
-            throw new IllegalStateException("Order must be paid before shipping");
+            throw new BusinessRuleViolationException("Order must be paid before shipping");
         }
         this.status = OrderStatus.SHIPPED;
     }
 
     public void deliver() {
         if (status != OrderStatus.SHIPPED) {
-            throw new IllegalStateException("Order must be shipped before delivery");
+            throw new BusinessRuleViolationException("Order must be shipped before delivery");
         }
         this.status = OrderStatus.DELIVERED;
     }
 
     public void cancel() {
         if (status == OrderStatus.SHIPPED || status == OrderStatus.DELIVERED) {
-            throw new IllegalStateException("Cannot cancel a shipped or delivered order");
+            throw new BusinessRuleViolationException("Cannot cancel a shipped or delivered order");
         }
         this.status = OrderStatus.CANCELLED;
     }

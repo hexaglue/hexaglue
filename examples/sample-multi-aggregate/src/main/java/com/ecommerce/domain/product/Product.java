@@ -1,5 +1,6 @@
 package com.ecommerce.domain.product;
 
+import com.ecommerce.domain.exception.BusinessRuleViolationException;
 import com.ecommerce.domain.order.Money;
 
 /**
@@ -56,7 +57,7 @@ public class Product {
     public void adjustStock(int quantity) {
         this.stockQuantity += quantity;
         if (this.stockQuantity < 0) {
-            throw new IllegalStateException("Stock cannot be negative");
+            throw new BusinessRuleViolationException("Stock cannot be negative");
         }
     }
 

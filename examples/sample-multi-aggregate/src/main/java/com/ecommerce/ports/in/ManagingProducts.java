@@ -1,5 +1,7 @@
 package com.ecommerce.ports.in;
 
+import com.ecommerce.domain.exception.BusinessRuleViolationException;
+import com.ecommerce.domain.exception.ResourceNotFoundException;
 import com.ecommerce.domain.order.Money;
 import com.ecommerce.domain.product.Product;
 import com.ecommerce.domain.product.ProductId;
@@ -14,13 +16,15 @@ public interface ManagingProducts {
 
     Product createProduct(String name, String description, Money price, int initialStock);
 
-    Product updateProduct(ProductId productId, String name, String description, Money price);
+    Product updateProduct(ProductId productId, String name, String description, Money price)
+            throws ResourceNotFoundException;
 
-    Product adjustStock(ProductId productId, int quantityDelta);
+    Product adjustStock(ProductId productId, int quantityDelta)
+            throws ResourceNotFoundException, BusinessRuleViolationException;
 
-    Product activateProduct(ProductId productId);
+    Product activateProduct(ProductId productId) throws ResourceNotFoundException;
 
-    Product deactivateProduct(ProductId productId);
+    Product deactivateProduct(ProductId productId) throws ResourceNotFoundException;
 
     Optional<Product> findProduct(ProductId productId);
 
@@ -30,5 +34,5 @@ public interface ManagingProducts {
 
     List<Product> listAllProducts();
 
-    void deleteProduct(ProductId productId);
+    void deleteProduct(ProductId productId) throws ResourceNotFoundException;
 }
