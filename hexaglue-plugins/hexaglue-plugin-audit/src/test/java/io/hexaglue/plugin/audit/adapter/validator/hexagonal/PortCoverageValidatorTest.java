@@ -126,6 +126,7 @@ class PortCoverageValidatorTest {
         assertThat(violations).hasSize(1);
         assertThat(violations.get(0).message())
                 .contains("OrderRepository")
+                .contains("[REPOSITORY]")
                 .contains("no adapter implementation")
                 .startsWith("Driven");
     }
@@ -199,7 +200,38 @@ class PortCoverageValidatorTest {
         assertThat(violations)
                 .extracting(Violation::message)
                 .anySatisfy(msg -> assertThat(msg).startsWith("Driving port"))
-                .anySatisfy(msg -> assertThat(msg).startsWith("Driven port"));
+                .anySatisfy(msg -> {
+                    assertThat(msg).startsWith("Driven port");
+                    assertThat(msg).contains("[REPOSITORY]");
+                });
+    }
+
+    @Test
+    @DisplayName("Should include port type in driven port violation message")
+    void shouldIncludePortTypeInDrivenPortViolationMessage() {
+        // Given - Driven ports of different types, all without adapters
+        ArchitecturalModel model = new TestModelBuilder()
+                .addDrivenPort(PORT_PACKAGE + ".OrderRepository", DrivenPortType.REPOSITORY)
+                .addDrivenPort(PORT_PACKAGE + ".FraudDetection", DrivenPortType.GATEWAY)
+                .addDrivenPort(PORT_PACKAGE + ".EventBus", DrivenPortType.EVENT_PUBLISHER)
+                .addDrivenPort(PORT_PACKAGE + ".NotificationSender", DrivenPortType.NOTIFICATION)
+                .addDrivenPort(PORT_PACKAGE + ".SomePort", DrivenPortType.OTHER)
+                .build();
+        Codebase codebase = new TestCodebaseBuilder().build();
+
+        // When
+        List<Violation> violations = validator.validate(model, codebase, null);
+
+        // Then - Each violation message should contain the correct port type
+        assertThat(violations).hasSize(5);
+        assertThat(violations)
+                .extracting(Violation::message)
+                .anySatisfy(msg -> assertThat(msg).contains("OrderRepository").contains("[REPOSITORY]"))
+                .anySatisfy(msg -> assertThat(msg).contains("FraudDetection").contains("[GATEWAY]"))
+                .anySatisfy(msg -> assertThat(msg).contains("EventBus").contains("[EVENT_PUBLISHER]"))
+                .anySatisfy(
+                        msg -> assertThat(msg).contains("NotificationSender").contains("[NOTIFICATION]"))
+                .anySatisfy(msg -> assertThat(msg).contains("SomePort").contains("[OTHER]"));
     }
 
     @Test

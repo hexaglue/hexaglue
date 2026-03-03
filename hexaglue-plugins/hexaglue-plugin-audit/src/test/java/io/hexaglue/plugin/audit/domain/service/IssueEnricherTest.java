@@ -144,12 +144,12 @@ class IssueEnricherTest {
         }
 
         @Test
-        @DisplayName("should suggest automatable JPA adapter for driven port without adapter")
+        @DisplayName("should suggest automatable JPA adapter for driven port with REPOSITORY type")
         void shouldSuggestAutomatableJpaAdapterForDrivenPort() {
             // Given
             Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
                     .severity(Severity.MAJOR)
-                    .message("Driven port OrderRepository has no adapter")
+                    .message("Driven port 'OrderRepository' [REPOSITORY] has no adapter implementation")
                     .affectedType("com.example.port.OrderRepository")
                     .location(SourceLocation.of("OrderRepository.java", 5, 1))
                     .build();
@@ -159,11 +159,99 @@ class IssueEnricherTest {
 
             // Then
             Suggestion suggestion = entry.suggestion();
-            assertThat(suggestion.action()).contains("driven adapter");
+            assertThat(suggestion.action()).contains("JPA persistence layer");
             assertThat(suggestion.hasSteps()).isTrue();
             assertThat(suggestion.effortOpt()).isPresent().hasValue("3 days");
             assertThat(suggestion.isAutomatableByHexaglue()).isTrue();
             assertThat(suggestion.hexagluePluginOpt()).isPresent().hasValue("hexaglue-plugin-jpa");
+        }
+
+        @Test
+        @DisplayName("should suggest external service adapter for GATEWAY port")
+        void shouldSuggestExternalServiceAdapterForGatewayPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driven port 'FraudDetection' [GATEWAY] has no adapter implementation")
+                    .affectedType("com.example.port.FraudDetection")
+                    .location(SourceLocation.of("FraudDetection.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("external service");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("2 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should suggest event publisher adapter for EVENT_PUBLISHER port")
+        void shouldSuggestEventPublisherAdapterForEventPublisherPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driven port 'EventBus' [EVENT_PUBLISHER] has no adapter implementation")
+                    .affectedType("com.example.port.EventBus")
+                    .location(SourceLocation.of("EventBus.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("event publisher");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("2 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should suggest notification adapter for NOTIFICATION port")
+        void shouldSuggestNotificationAdapterForNotificationPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driven port 'NotificationSender' [NOTIFICATION] has no adapter implementation")
+                    .affectedType("com.example.port.NotificationSender")
+                    .location(SourceLocation.of("NotificationSender.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("notification");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("2 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isFalse();
+        }
+
+        @Test
+        @DisplayName("should suggest generic adapter for OTHER port")
+        void shouldSuggestGenericAdapterForOtherPort() {
+            // Given
+            Violation violation = Violation.builder(ConstraintId.of("hexagonal:port-coverage"))
+                    .severity(Severity.MAJOR)
+                    .message("Driven port 'SomePort' [OTHER] has no adapter implementation")
+                    .affectedType("com.example.port.SomePort")
+                    .location(SourceLocation.of("SomePort.java", 5, 1))
+                    .build();
+
+            // When
+            IssueEntry entry = enricher.enrich(violation);
+
+            // Then
+            Suggestion suggestion = entry.suggestion();
+            assertThat(suggestion.action()).contains("infrastructure adapter");
+            assertThat(suggestion.hasSteps()).isTrue();
+            assertThat(suggestion.effortOpt()).isPresent().hasValue("2 days");
+            assertThat(suggestion.isAutomatableByHexaglue()).isFalse();
         }
     }
 
