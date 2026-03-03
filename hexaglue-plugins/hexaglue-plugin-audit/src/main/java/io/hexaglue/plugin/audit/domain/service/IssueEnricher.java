@@ -237,27 +237,8 @@ public class IssueEnricher {
                             "2 days",
                             "hexaglue-plugin-rest");
                 } else {
-                    // Driven port: requires full persistence chain (adapter, entity, mapper, converters)
-                    // Can be automated by hexaglue-plugin-jpa
-                    return Suggestion.automatable(
-                            "Create a driven adapter implementing this port as a JPA persistence layer",
-                            List.of(
-                                    "Create JPA entity mapping the aggregate",
-                                    "Create mapper to convert between domain and JPA entity",
-                                    "Create JPA repository adapter implementing the port",
-                                    "Add identity converters if using typed identifiers",
-                                    "Register the implementation with your DI container"),
-                            "@Repository\n" + "public class JpaOrderRepository implements OrderRepository {\n"
-                                    + "    private final SpringDataOrderRepository springRepo;\n"
-                                    + "    private final OrderMapper mapper;\n"
-                                    + "    \n"
-                                    + "    @Override\n"
-                                    + "    public void save(Order order) {\n"
-                                    + "        springRepo.save(mapper.toEntity(order));\n"
-                                    + "    }\n"
-                                    + "}",
-                            "3 days",
-                            "hexaglue-plugin-jpa");
+                    // Driven port: suggestion depends on the port type
+                    return drivenPortSuggestion(v);
                 }
             }
         });
@@ -632,6 +613,129 @@ public class IssueEnricher {
         });
 
         return map;
+    }
+
+    /**
+     * Generates a type-aware suggestion for a driven port without adapter.
+     *
+     * <p>Parses the {@code [TYPE]} tag from the violation message to determine
+     * the driven port type and returns an appropriate suggestion. Only REPOSITORY
+     * ports get a JPA-specific automatable suggestion; other types get contextual
+     * manual suggestions.
+     *
+     * @param v the violation for a driven port without adapter
+     * @return a suggestion tailored to the driven port type
+     */
+    private Suggestion drivenPortSuggestion(Violation v) {
+        String portType = extractDrivenPortType(v.message());
+        return switch (portType) {
+            case "REPOSITORY" ->
+                Suggestion.automatable(
+                        "Create a driven adapter implementing this port as a JPA persistence layer",
+                        List.of(
+                                "Create JPA entity mapping the aggregate",
+                                "Create mapper to convert between domain and JPA entity",
+                                "Create JPA repository adapter implementing the port",
+                                "Add identity converters if using typed identifiers",
+                                "Register the implementation with your DI container"),
+                        "@Repository\n" + "public class JpaOrderRepository implements OrderRepository {\n"
+                                + "    private final SpringDataOrderRepository springRepo;\n"
+                                + "    private final OrderMapper mapper;\n"
+                                + "    \n"
+                                + "    @Override\n"
+                                + "    public void save(Order order) {\n"
+                                + "        springRepo.save(mapper.toEntity(order));\n"
+                                + "    }\n"
+                                + "}",
+                        "3 days",
+                        "hexaglue-plugin-jpa");
+            case "GATEWAY" ->
+                Suggestion.complete(
+                        "Create a driven adapter implementing this port as an external service client",
+                        List.of(
+                                "Create an infrastructure adapter implementing the port interface",
+                                "Configure the HTTP client or SDK for the external service",
+                                "Implement error handling and retry policies",
+                                "Register the implementation with your DI container"),
+                        "@Component\n" + "public class HttpFraudDetectionAdapter implements FraudDetection {\n"
+                                + "    private final RestClient restClient;\n"
+                                + "    \n"
+                                + "    @Override\n"
+                                + "    public FraudScore evaluate(Order order) {\n"
+                                + "        return restClient.post()\n"
+                                + "            .uri(\"/api/fraud/evaluate\")\n"
+                                + "            .body(order)\n"
+                                + "            .retrieve()\n"
+                                + "            .body(FraudScore.class);\n"
+                                + "    }\n"
+                                + "}",
+                        "2 days");
+            case "EVENT_PUBLISHER" ->
+                Suggestion.complete(
+                        "Create a driven adapter implementing this port as an event publisher",
+                        List.of(
+                                "Create an infrastructure adapter implementing the port interface",
+                                "Choose an event transport (Spring Events, Kafka, RabbitMQ, etc.)",
+                                "Implement event serialization and publishing logic",
+                                "Register the implementation with your DI container"),
+                        "@Component\n" + "public class SpringEventPublisherAdapter implements DomainEventPublisher {\n"
+                                + "    private final ApplicationEventPublisher publisher;\n"
+                                + "    \n"
+                                + "    @Override\n"
+                                + "    public void publish(DomainEvent event) {\n"
+                                + "        publisher.publishEvent(event);\n"
+                                + "    }\n"
+                                + "}",
+                        "2 days");
+            case "NOTIFICATION" ->
+                Suggestion.complete(
+                        "Create a driven adapter implementing this port as a notification service",
+                        List.of(
+                                "Create an infrastructure adapter implementing the port interface",
+                                "Choose a notification channel (email, SMS, push, etc.)",
+                                "Configure the messaging provider (SMTP, Twilio, etc.)",
+                                "Register the implementation with your DI container"),
+                        "@Component\n" + "public class EmailNotificationAdapter implements NotificationSender {\n"
+                                + "    private final JavaMailSender mailSender;\n"
+                                + "    \n"
+                                + "    @Override\n"
+                                + "    public void send(Notification notification) {\n"
+                                + "        SimpleMailMessage message = new SimpleMailMessage();\n"
+                                + "        message.setTo(notification.recipient());\n"
+                                + "        message.setSubject(notification.subject());\n"
+                                + "        message.setText(notification.body());\n"
+                                + "        mailSender.send(message);\n"
+                                + "    }\n"
+                                + "}",
+                        "2 days");
+            default ->
+                Suggestion.complete(
+                        "Create a driven adapter implementing this port as an infrastructure adapter",
+                        List.of(
+                                "Create an infrastructure adapter implementing the port interface",
+                                "Implement the required methods with the appropriate technology",
+                                "Register the implementation with your DI container"),
+                        null,
+                        "2 days");
+        };
+    }
+
+    /**
+     * Extracts the driven port type from a violation message.
+     *
+     * <p>Parses the {@code [TYPE]} tag from messages like
+     * {@code "Driven port 'OrderRepository' [REPOSITORY] has no adapter implementation"}.
+     *
+     * @param message the violation message
+     * @return the port type string, or {@code "OTHER"} if not found
+     */
+    private String extractDrivenPortType(String message) {
+        int start = message.indexOf('[');
+        int end = message.indexOf(']', start + 1);
+        if (start >= 0 && end > start) {
+            return message.substring(start + 1, end);
+        }
+        return "OTHER";
     }
 
     /**
