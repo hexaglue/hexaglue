@@ -15,6 +15,7 @@ package io.hexaglue.plugin.jpa;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.spi.plugin.PluginConfig;
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +47,7 @@ class JpaConfigTest {
             assertThat(config.generateMappers()).isTrue();
             assertThat(config.generateAdapters()).isTrue();
             assertThat(config.targetModule()).isNull();
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.ASSIGNED);
         }
     }
 
@@ -161,6 +163,66 @@ class JpaConfigTest {
             JpaConfig config = JpaConfig.from(pluginConfig);
 
             assertThat(config.targetModule()).isEqualTo("banking-persistence");
+        }
+
+        @Test
+        @DisplayName("should read idStrategy IDENTITY")
+        void from_shouldReadIdStrategy_IDENTITY() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("idStrategy", "IDENTITY"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should read idStrategy SEQUENCE")
+        void from_shouldReadIdStrategy_SEQUENCE() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("idStrategy", "SEQUENCE"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.SEQUENCE);
+        }
+
+        @Test
+        @DisplayName("should read idStrategy AUTO")
+        void from_shouldReadIdStrategy_AUTO() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("idStrategy", "AUTO"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.AUTO);
+        }
+
+        @Test
+        @DisplayName("should read idStrategy UUID")
+        void from_shouldReadIdStrategy_UUID() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("idStrategy", "UUID"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.UUID);
+        }
+
+        @Test
+        @DisplayName("should read idStrategy ASSIGNED")
+        void from_shouldReadIdStrategy_ASSIGNED() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of("idStrategy", "ASSIGNED"));
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.ASSIGNED);
+        }
+
+        @Test
+        @DisplayName("should default to ASSIGNED when idStrategy not set")
+        void from_shouldDefaultToAssignedWhenIdStrategyNotSet() {
+            PluginConfig pluginConfig = createPluginConfig(Map.of());
+
+            JpaConfig config = JpaConfig.from(pluginConfig);
+
+            assertThat(config.idStrategy()).isEqualTo(IdentityStrategy.ASSIGNED);
         }
 
         @Test

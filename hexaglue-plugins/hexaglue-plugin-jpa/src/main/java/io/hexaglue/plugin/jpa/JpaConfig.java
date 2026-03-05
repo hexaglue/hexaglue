@@ -13,6 +13,7 @@
 
 package io.hexaglue.plugin.jpa;
 
+import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.spi.plugin.PluginConfig;
 
 /**
@@ -37,6 +38,7 @@ import io.hexaglue.spi.plugin.PluginConfig;
  *       generateRepositories: true
  *       generateMappers: true
  *       generateAdapters: true
+ *       idStrategy: IDENTITY
  * </pre>
  *
  * @param entitySuffix suffix for generated JPA entity classes (default: "Entity")
@@ -52,8 +54,10 @@ import io.hexaglue.spi.plugin.PluginConfig;
  * @param generateAdapters true to generate port adapter implementations
  * @param generateEmbeddables true to generate JPA embeddable classes for value objects
  * @param targetModule target module for multi-module routing (null = no routing)
+ * @param idStrategy fallback identity generation strategy when domain fields lack @GeneratedValue (default: IDENTITY)
  * @since 2.0.0
  * @since 5.0.0 added targetModule for multi-module support
+ * @since 6.1.0 added idStrategy fallback for identity generation
  */
 public record JpaConfig(
         String entitySuffix,
@@ -68,7 +72,8 @@ public record JpaConfig(
         boolean generateMappers,
         boolean generateAdapters,
         boolean generateEmbeddables,
-        String targetModule) {
+        String targetModule,
+        IdentityStrategy idStrategy) {
 
     /**
      * Creates configuration from plugin config.
@@ -87,7 +92,8 @@ public record JpaConfig(
                 config.getBoolean("generateMappers", true),
                 config.getBoolean("generateAdapters", true),
                 config.getBoolean("generateEmbeddables", true),
-                config.getString("targetModule").orElse(null));
+                config.getString("targetModule").orElse(null),
+                IdentityStrategy.valueOf(config.getString("idStrategy", "ASSIGNED")));
     }
 
     /**
@@ -107,6 +113,7 @@ public record JpaConfig(
                 true,
                 true,
                 true,
-                null);
+                null,
+                IdentityStrategy.ASSIGNED);
     }
 }

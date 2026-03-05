@@ -29,8 +29,8 @@ import java.util.Set;
 /**
  * Provides a complete banking domain model for integration and golden file tests.
  *
- * <p>The model includes three aggregates (Account, Customer, Transfer),
- * three identifiers, two value objects, and three driving ports with
+ * <p>The model includes four aggregates (Account, Customer, Transfer, Card),
+ * four identifiers, two value objects, and four driving ports with
  * realistic use cases exercising most HTTP verb strategies.
  *
  * @since 3.1.0
@@ -83,6 +83,15 @@ public final class BankingTestModel {
      */
     public static Identifier transferId() {
         return TestUseCaseFactory.identifier(MODEL_PACKAGE + ".TransferId", "java.lang.Long");
+    }
+
+    /**
+     * CardId identifier wrapping Long.
+     *
+     * @return the CardId identifier
+     */
+    public static Identifier cardId() {
+        return TestUseCaseFactory.identifier(MODEL_PACKAGE + ".CardId", "java.lang.Long");
     }
 
     // === Value Objects ===
@@ -173,6 +182,31 @@ public final class BankingTestModel {
                 MODEL_PACKAGE + ".Transfer", idField, List.of(idField, fromAcct, toAcct, amount, status));
     }
 
+    /**
+     * Card aggregate with 7 fields.
+     *
+     * @return the Card aggregate root
+     */
+    public static AggregateRoot card() {
+        Field idField = Field.builder("id", TypeRef.of(MODEL_PACKAGE + ".CardId"))
+                .wrappedType(TypeRef.of("java.lang.Long"))
+                .roles(Set.of(FieldRole.IDENTITY))
+                .build();
+        Field cardNumber = Field.of("cardNumber", TypeRef.of("java.lang.String"));
+        Field expiryDate = Field.of("expiryDate", TypeRef.of("java.time.LocalDate"));
+        Field cvv = Field.of("cvv", TypeRef.of("java.lang.String"));
+        Field acctId = Field.builder("accountId", TypeRef.of(MODEL_PACKAGE + ".AccountId"))
+                .roles(Set.of(FieldRole.AGGREGATE_REFERENCE))
+                .build();
+        Field status = Field.of("status", TypeRef.of(MODEL_PACKAGE + ".CardStatus"));
+        Field dailyLimit = Field.of("dailyLimit", TypeRef.of(MODEL_PACKAGE + ".Money"));
+
+        return TestUseCaseFactory.aggregateRoot(
+                MODEL_PACKAGE + ".Card",
+                idField,
+                List.of(idField, cardNumber, expiryDate, cvv, acctId, status, dailyLimit));
+    }
+
     // === Domain Index ===
 
     /**
@@ -182,7 +216,16 @@ public final class BankingTestModel {
      */
     public static DomainIndex domainIndex() {
         return TestUseCaseFactory.domainIndex(
-                account(), customer(), transfer(), accountId(), customerId(), transferId(), money(), email());
+                account(),
+                customer(),
+                transfer(),
+                card(),
+                accountId(),
+                customerId(),
+                transferId(),
+                cardId(),
+                money(),
+                email());
     }
 
     // === Exception TypeRefs ===
@@ -341,5 +384,47 @@ public final class BankingTestModel {
 
         return TestUseCaseFactory.drivingPort(
                 PORT_PACKAGE + ".TransferUseCases", List.of(getTransfer, initiateTransfer, getTransfersByAccount));
+    }
+
+    /**
+     * CardUseCases driving port with 4 use cases.
+     *
+     * <p>Use cases:
+     * <ol>
+     *   <li>{@code issueCard(AccountId, String, LocalDate, String, Money)} — COMMAND_QUERY, CreateStrategy</li>
+     *   <li>{@code blockCard(CardId)} — COMMAND_QUERY, SubResourceActionStrategy</li>
+     *   <li>{@code activateCard(CardId)} — COMMAND_QUERY, SubResourceActionStrategy</li>
+     *   <li>{@code getCardsByAccount(AccountId)} — QUERY, GetByPropertyStrategy</li>
+     * </ol>
+     *
+     * @return the CardUseCases driving port
+     */
+    public static DrivingPort cardUseCases() {
+        TypeRef cardRef = TypeRef.of(MODEL_PACKAGE + ".Card");
+        TypeRef cardIdRef = TypeRef.of(MODEL_PACKAGE + ".CardId");
+        TypeRef accountIdRef = TypeRef.of(MODEL_PACKAGE + ".AccountId");
+        TypeRef moneyRef = TypeRef.of(MODEL_PACKAGE + ".Money");
+
+        UseCase issueCard = TestUseCaseFactory.commandQueryWithParams(
+                "issueCard",
+                cardRef,
+                List.of(
+                        Parameter.of("accountId", accountIdRef),
+                        Parameter.of("cardNumber", TypeRef.of("java.lang.String")),
+                        Parameter.of("expiryDate", TypeRef.of("java.time.LocalDate")),
+                        Parameter.of("cvv", TypeRef.of("java.lang.String")),
+                        Parameter.of("dailyLimit", moneyRef)));
+
+        UseCase blockCard = TestUseCaseFactory.commandQueryWithParams(
+                "blockCard", cardRef, List.of(Parameter.of("cardId", cardIdRef)));
+
+        UseCase activateCard = TestUseCaseFactory.commandQueryWithParams(
+                "activateCard", cardRef, List.of(Parameter.of("cardId", cardIdRef)));
+
+        UseCase getCardsByAccount = TestUseCaseFactory.queryWithCollectionReturn(
+                "getCardsByAccount", MODEL_PACKAGE + ".Card", List.of(Parameter.of("accountId", accountIdRef)));
+
+        return TestUseCaseFactory.drivingPort(
+                PORT_PACKAGE + ".CardUseCases", List.of(issueCard, blockCard, activateCard, getCardsByAccount));
     }
 }

@@ -173,8 +173,6 @@ public record UseCase(Method method, Optional<String> description, UseCaseType t
 
         boolean hasReturn = !isVoidReturn(method);
         boolean hasParameters = !method.parameters().isEmpty();
-        String name = method.name().toLowerCase();
-
         // void return → COMMAND
         if (!hasReturn) {
             return UseCaseType.COMMAND;
@@ -186,7 +184,7 @@ public record UseCase(Method method, Optional<String> description, UseCaseType t
         }
 
         // Query-like method names → QUERY
-        if (isQueryMethodName(name)) {
+        if (isQueryMethodName(method.name())) {
             return UseCaseType.QUERY;
         }
 
@@ -238,17 +236,42 @@ public record UseCase(Method method, Optional<String> description, UseCaseType t
     }
 
     private static boolean isQueryMethodName(String name) {
-        return name.startsWith("get")
-                || name.startsWith("find")
-                || name.startsWith("list")
-                || name.startsWith("search")
-                || name.startsWith("count")
-                || name.startsWith("exists")
-                || name.startsWith("is")
-                || name.startsWith("has")
-                || name.startsWith("load")
-                || name.startsWith("fetch")
-                || name.startsWith("query")
-                || name.startsWith("read");
+        String lower = name.toLowerCase();
+        return lower.startsWith("get")
+                || lower.startsWith("find")
+                || lower.startsWith("list")
+                || lower.startsWith("search")
+                || lower.startsWith("count")
+                || lower.startsWith("exists")
+                || matchesBooleanPrefix(name, "is")
+                || matchesBooleanPrefix(name, "has")
+                || lower.startsWith("load")
+                || lower.startsWith("fetch")
+                || lower.startsWith("query")
+                || lower.startsWith("read");
+    }
+
+    /**
+     * Matches short boolean-style prefixes ("is", "has") with word boundary detection.
+     *
+     * <p>Short prefixes like "is" and "has" require a camelCase word boundary (next character
+     * must be uppercase) to avoid false positives: {@code isActive} matches, but {@code issueCard}
+     * does not. Similarly, {@code hasRole} matches but {@code hashCode} does not.
+     *
+     * @param name   the original (non-lowercased) method name
+     * @param prefix the short prefix to check (lowercase)
+     * @return true if the name matches the prefix with a word boundary
+     */
+    private static boolean matchesBooleanPrefix(String name, String prefix) {
+        String lower = name.toLowerCase();
+        if (!lower.startsWith(prefix)) {
+            return false;
+        }
+        // Exact match (e.g., method named just "is")
+        if (name.length() == prefix.length()) {
+            return true;
+        }
+        // Word boundary: next char must be uppercase in the original name
+        return Character.isUpperCase(name.charAt(prefix.length()));
     }
 }

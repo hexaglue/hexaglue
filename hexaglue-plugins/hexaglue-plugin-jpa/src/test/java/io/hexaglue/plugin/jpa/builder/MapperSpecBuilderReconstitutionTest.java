@@ -34,6 +34,7 @@ import io.hexaglue.arch.model.TypeRegistry;
 import io.hexaglue.arch.model.TypeStructure;
 import io.hexaglue.arch.model.ValueObject;
 import io.hexaglue.arch.model.index.DomainIndex;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.MapperSpec;
 import io.hexaglue.plugin.jpa.model.MapperSpec.ConversionKind;
@@ -83,7 +84,8 @@ class MapperSpecBuilderReconstitutionTest {
                 true,
                 true,
                 true,
-                null);
+                null,
+                IdentityStrategy.IDENTITY);
     }
 
     private ClassificationTrace highConfidence(ElementKind kind) {
@@ -442,7 +444,8 @@ class MapperSpecBuilderReconstitutionTest {
                     true,
                     true,
                     true,
-                    null);
+                    null,
+                    IdentityStrategy.IDENTITY);
 
             AggregateRoot aggregate = createAggregateWithAuditFields(
                     "reconstitute",
@@ -490,7 +493,8 @@ class MapperSpecBuilderReconstitutionTest {
                     true,
                     true,
                     true,
-                    null);
+                    null,
+                    IdentityStrategy.IDENTITY);
 
             AggregateRoot aggregate = createAggregateWithAuditFields(
                     "reconstitute",

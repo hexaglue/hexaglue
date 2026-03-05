@@ -243,6 +243,104 @@ class IdFieldSpecTest {
     }
 
     /**
+     * Tests for fallback identity strategy support.
+     *
+     * <p>Validates that when a field has no {@code @GeneratedValue} annotation (detected as ASSIGNED),
+     * the configured fallback strategy is used instead. Explicit annotations always take precedence.
+     *
+     * @since 6.1.0
+     */
+    @Nested
+    @DisplayName("Fallback strategy")
+    class FallbackStrategyTests {
+
+        @Test
+        @DisplayName("should use IDENTITY fallback when no @GeneratedValue annotation")
+        void from_withFallbackIdentity_shouldUseIdentityWhenNoAnnotation() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.IDENTITY);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should use SEQUENCE fallback when no @GeneratedValue annotation")
+        void from_withFallbackSequence_shouldUseSequenceWhenNoAnnotation() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.SEQUENCE);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.SEQUENCE);
+        }
+
+        @Test
+        @DisplayName("should use AUTO fallback when no @GeneratedValue annotation")
+        void from_withFallbackAuto_shouldUseAutoWhenNoAnnotation() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.AUTO);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.AUTO);
+        }
+
+        @Test
+        @DisplayName("should use UUID fallback when no @GeneratedValue annotation")
+        void from_withFallbackUuid_shouldUseUuidWhenNoAnnotation() {
+            Field field = Field.builder("id", TypeRef.of("java.util.UUID"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.UUID);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.UUID);
+        }
+
+        @Test
+        @DisplayName("should stay ASSIGNED when fallback is ASSIGNED")
+        void from_withFallbackAssigned_shouldStayAssignedWhenNoAnnotation() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.ASSIGNED);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.ASSIGNED);
+        }
+
+        @Test
+        @DisplayName("should preserve explicit @GeneratedValue annotation over fallback")
+        void from_withFallback_shouldPreserveExplicitAnnotationOverFallback() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .annotations(List.of(generatedValueAnnotation("SEQUENCE")))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, IdentityStrategy.IDENTITY);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.SEQUENCE);
+        }
+
+        @Test
+        @DisplayName("should default to ASSIGNED when fallback is null (backward compat)")
+        void from_withNullFallback_shouldDefaultToAssigned() {
+            Field field = Field.builder("id", TypeRef.of("java.lang.Long"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .build();
+
+            IdFieldSpec spec = IdFieldSpec.from(field, null, null);
+
+            assertThat(spec.strategy()).isEqualTo(IdentityStrategy.ASSIGNED);
+        }
+    }
+
+    /**
      * Tests for {@link IdFieldSpec#surrogateId()} factory method.
      *
      * <p>Validates that surrogate IDs are correctly generated for entities without

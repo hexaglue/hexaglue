@@ -188,6 +188,20 @@ class UseCaseTest {
         }
 
         @Test
+        @DisplayName("issueCard should be COMMAND_QUERY, not QUERY (is-prefix word boundary)")
+        void issueCardShouldBeCommandQuery() {
+            Method method = createMethod("issueCard", STRING, List.of(param("accountId", LONG)));
+            assertThat(UseCase.deriveType(method)).isEqualTo(UseCase.UseCaseType.COMMAND_QUERY);
+        }
+
+        @Test
+        @DisplayName("hashCode-like method should not match has-prefix")
+        void hashCodeLikeMethodShouldNotMatchHasPrefix() {
+            Method method = createMethod("hashData", STRING, List.of(param("input", STRING)));
+            assertThat(UseCase.deriveType(method)).isEqualTo(UseCase.UseCaseType.COMMAND_QUERY);
+        }
+
+        @Test
         @DisplayName("method with return and non-query name should be COMMAND_QUERY")
         void methodWithReturnAndNonQueryNameShouldBeCommandQuery() {
             Method method = createMethod("createAndReturn", STRING, List.of(param("data", STRING)));
