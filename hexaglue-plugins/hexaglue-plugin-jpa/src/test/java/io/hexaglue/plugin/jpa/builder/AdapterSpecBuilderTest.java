@@ -27,6 +27,7 @@ import io.hexaglue.arch.model.Parameter;
 import io.hexaglue.arch.model.TypeId;
 import io.hexaglue.arch.model.TypeNature;
 import io.hexaglue.arch.model.TypeStructure;
+import io.hexaglue.arch.model.ir.IdentityStrategy;
 import io.hexaglue.plugin.jpa.JpaConfig;
 import io.hexaglue.plugin.jpa.model.AdapterMethodSpec;
 import io.hexaglue.plugin.jpa.model.AdapterSpec;
@@ -73,7 +74,8 @@ class AdapterSpecBuilderTest {
                 true,
                 true,
                 true,
-                null);
+                null,
+                IdentityStrategy.IDENTITY);
         orderAggregate = createOrderAggregate();
     }
 
@@ -501,7 +503,8 @@ class AdapterSpecBuilderTest {
                     true,
                     true,
                     true,
-                    null);
+                    null,
+                    IdentityStrategy.IDENTITY);
 
             DrivenPort port = createSimplePort("CustomerRepository");
 
@@ -555,7 +558,8 @@ class AdapterSpecBuilderTest {
                     true,
                     true,
                     true,
-                    null);
+                    null,
+                    IdentityStrategy.IDENTITY);
 
             DrivenPort port1 = createSimplePort("ReadableOrderRepository");
             DrivenPort port2 = createSimplePort("WritableOrderRepository");

@@ -67,12 +67,36 @@ public record IdFieldSpec(
      * @since 5.0.0
      */
     public static IdFieldSpec from(Field field, TypeStructure identityTypeStructure) {
+        return from(field, identityTypeStructure, null);
+    }
+
+    /**
+     * Creates an IdFieldSpec from a v5 model Field with IDENTITY role, using a fallback strategy.
+     *
+     * <p>When the field has no {@code @GeneratedValue} annotation (detected as ASSIGNED),
+     * the fallback strategy is used instead. This allows configuring a default ID generation
+     * strategy in hexaglue.yaml for domain models that don't use JPA annotations.
+     *
+     * <p>If the field has an explicit {@code @GeneratedValue} annotation, it takes precedence
+     * over the fallback.
+     *
+     * @param field the identity field from arch.model (should have IDENTITY role)
+     * @param identityTypeStructure the TypeStructure of the identity type (for wrapper detection), may be null
+     * @param fallbackStrategy the strategy to use when no @GeneratedValue is found, null means ASSIGNED
+     * @return an IdFieldSpec ready for code generation
+     * @since 6.1.0
+     */
+    public static IdFieldSpec from(
+            Field field, TypeStructure identityTypeStructure, IdentityStrategy fallbackStrategy) {
         TypeName javaType = JpaModelUtils.resolveTypeName(field.type().qualifiedName());
         TypeName unwrappedType = field.wrappedType()
                 .map(t -> JpaModelUtils.resolveTypeName(t.qualifiedName()))
                 .orElse(javaType);
 
         IdentityStrategy strategy = detectStrategyFromField(field);
+        if (strategy == IdentityStrategy.ASSIGNED && fallbackStrategy != null) {
+            strategy = fallbackStrategy;
+        }
         IdentityWrapperKind wrapperKind = detectWrapperKindFromField(field, identityTypeStructure);
 
         return new IdFieldSpec(field.name(), javaType, unwrappedType, strategy, wrapperKind);

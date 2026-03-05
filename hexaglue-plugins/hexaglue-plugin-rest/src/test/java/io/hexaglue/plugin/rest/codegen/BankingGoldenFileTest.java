@@ -79,6 +79,14 @@ class BankingGoldenFileTest {
         }
 
         @Test
+        @DisplayName("CardController with 4 endpoints (POST, POST/{id}/action x2, GET/by-{prop})")
+        void cardController() throws IOException {
+            ControllerSpec spec = buildSpec(BankingTestModel.cardUseCases());
+            TypeSpec typeSpec = RestControllerCodegen.generate(spec, RestConfig.defaults());
+            assertGoldenFile(typeSpec, spec.packageName(), "BankingCardController.java.txt");
+        }
+
+        @Test
         @DisplayName("AccountController without OpenAPI annotations")
         void accountControllerNoOpenapi() throws IOException {
             RestConfig config = new RestConfig(
@@ -114,6 +122,15 @@ class BankingGoldenFileTest {
         }
 
         @Test
+        @DisplayName("IssueCardRequest with identity unwrap and VO flatten")
+        void issueCardRequest() throws IOException {
+            ControllerSpec spec = buildSpec(BankingTestModel.cardUseCases());
+            RequestDtoSpec dto = findRequestDto(spec, "IssueCardRequest");
+            TypeSpec typeSpec = RequestDtoCodegen.generate(dto);
+            assertGoldenFile(typeSpec, dto.packageName(), "BankingIssueCardRequest.java.txt");
+        }
+
+        @Test
         @DisplayName("InitiateTransferRequest with multiple identity unwraps and VO flatten")
         void initiateTransferRequest() throws IOException {
             ControllerSpec spec = buildSpec(BankingTestModel.transferUseCases());
@@ -143,6 +160,15 @@ class BankingGoldenFileTest {
             ResponseDtoSpec dto = findResponseDto(spec, "CustomerResponse");
             TypeSpec typeSpec = ResponseDtoCodegen.generate(dto);
             assertGoldenFile(typeSpec, dto.packageName(), "BankingCustomerResponse.java.txt");
+        }
+
+        @Test
+        @DisplayName("CardResponse with VO flattening and identity unwrap")
+        void cardResponse() throws IOException {
+            ControllerSpec spec = buildSpec(BankingTestModel.cardUseCases());
+            ResponseDtoSpec dto = findResponseDto(spec, "CardResponse");
+            TypeSpec typeSpec = ResponseDtoCodegen.generate(dto);
+            assertGoldenFile(typeSpec, dto.packageName(), "BankingCardResponse.java.txt");
         }
     }
 

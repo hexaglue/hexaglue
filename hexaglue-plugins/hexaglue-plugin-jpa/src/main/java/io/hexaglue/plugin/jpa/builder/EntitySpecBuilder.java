@@ -272,7 +272,7 @@ public final class EntitySpecBuilder {
         // Build IdFieldSpec from v5 Field
         TypeStructure identityTypeStructure =
                 findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
-        IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure);
+        IdFieldSpec idField = IdFieldSpec.from(identityField, identityTypeStructure, config.idStrategy());
 
         // Build properties and relations from v5 structure
         String typeFqn = aggregateRoot.id().qualifiedName();
@@ -312,7 +312,7 @@ public final class EntitySpecBuilder {
             identityFieldName = identityField.name();
             TypeStructure identityTypeStructure =
                     findTypeStructureV5(identityField.type().qualifiedName()).orElse(null);
-            idField = IdFieldSpec.from(identityField, identityTypeStructure);
+            idField = IdFieldSpec.from(identityField, identityTypeStructure, config.idStrategy());
         } else {
             // Entity without detected identity: generate surrogate Long ID
             idField = IdFieldSpec.surrogateId();

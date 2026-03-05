@@ -89,7 +89,8 @@ class EntitySpecBuilderTest {
                 true, // generateMappers
                 true, // generateRepositories
                 true, // generateEmbeddables
-                null);
+                null,
+                IdentityStrategy.IDENTITY);
     }
 
     /**
@@ -340,6 +341,110 @@ class EntitySpecBuilderTest {
             assertThat(spec.domainQualifiedName()).isEqualTo(TEST_PKG + ".OrderLine");
             assertThat(spec.packageName()).isEqualTo(INFRA_PKG);
             assertThat(spec.idField()).isNotNull();
+        }
+    }
+
+    /**
+     * Tests for idStrategy configuration.
+     *
+     * <p>Validates that the configured fallback identity strategy is correctly propagated
+     * to EntitySpec via IdFieldSpec when domain fields lack @GeneratedValue annotations.
+     *
+     * @since 6.1.0
+     */
+    @Nested
+    @DisplayName("When idStrategy is configured")
+    class WhenIdStrategyIsConfigured {
+
+        private static JpaConfig configWithIdStrategy(IdentityStrategy idStrategy) {
+            return new JpaConfig(
+                    "Entity",
+                    "Embeddable",
+                    "JpaRepository",
+                    "Adapter",
+                    "Mapper",
+                    "",
+                    false,
+                    false,
+                    true,
+                    true,
+                    true,
+                    true,
+                    null,
+                    idStrategy);
+        }
+
+        @Test
+        @DisplayName("should use IDENTITY strategy when configured")
+        void shouldUseIdentityStrategy_whenConfigured() {
+            // Given: An aggregate without @GeneratedValue annotation
+            AggregateRoot aggregate = createAggregate(List.of());
+
+            // When: Building with idStrategy=IDENTITY
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(minimalModel())
+                    .config(configWithIdStrategy(IdentityStrategy.IDENTITY))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: IdFieldSpec should use IDENTITY strategy
+            assertThat(spec.idField().strategy()).isEqualTo(IdentityStrategy.IDENTITY);
+        }
+
+        @Test
+        @DisplayName("should use SEQUENCE strategy when configured")
+        void shouldUseSequenceStrategy_whenConfigured() {
+            AggregateRoot aggregate = createAggregate(List.of());
+
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(minimalModel())
+                    .config(configWithIdStrategy(IdentityStrategy.SEQUENCE))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            assertThat(spec.idField().strategy()).isEqualTo(IdentityStrategy.SEQUENCE);
+        }
+
+        @Test
+        @DisplayName("should preserve explicit @GeneratedValue annotation over config")
+        void shouldPreserveExplicitAnnotation_overConfig() {
+            // Given: An aggregate with explicit @GeneratedValue(UUID)
+            Field identityField = Field.builder("id", TypeRef.of("java.util.UUID"))
+                    .roles(Set.of(FieldRole.IDENTITY))
+                    .annotations(List.of(io.hexaglue.arch.model.Annotation.of(
+                            "jakarta.persistence.GeneratedValue",
+                            java.util.Map.of("strategy", "UUID"),
+                            java.util.Map.of(
+                                    "strategy",
+                                    new io.hexaglue.arch.model.AnnotationValue.EnumVal(
+                                            "jakarta.persistence.GenerationType", "UUID")))))
+                    .build();
+
+            TypeStructure structure = TypeStructure.builder(TypeNature.CLASS)
+                    .modifiers(Set.of(Modifier.PUBLIC))
+                    .fields(List.of(identityField))
+                    .build();
+
+            AggregateRoot aggregate = AggregateRoot.builder(
+                            TypeId.of(TEST_PKG + ".Order"),
+                            structure,
+                            highConfidence(ElementKind.AGGREGATE_ROOT),
+                            identityField)
+                    .effectiveIdentityType(TypeRef.of("java.util.UUID"))
+                    .build();
+
+            // When: Building with idStrategy=IDENTITY (should be overridden by annotation)
+            EntitySpec spec = EntitySpecBuilder.builder()
+                    .aggregateRoot(aggregate)
+                    .model(minimalModel())
+                    .config(configWithIdStrategy(IdentityStrategy.IDENTITY))
+                    .infrastructurePackage(INFRA_PKG)
+                    .build();
+
+            // Then: Explicit annotation should win
+            assertThat(spec.idField().strategy()).isEqualTo(IdentityStrategy.UUID);
         }
     }
 
