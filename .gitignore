@@ -26,3 +26,6 @@ replay_pid*
 
 # macOS
 .DS_Store
+
+# secrets
+.env
