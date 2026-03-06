@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.0] - 2026-03-XX
+
+### Added
+
+- **Plugin REST** - New plugin for generating Spring MVC REST infrastructure from driving ports
+  - Controller generation (`@RestController`, `@RequestMapping`, `@Tag`) for each driving port
+  - Request DTO records with Bean Validation annotations (`@NotNull`, `@NotBlank`, `@Positive`)
+  - Response DTO records with `from()` factory method for domain-to-REST projection
+  - 10 HTTP verb derivation strategies based on method name prefixes (`create` → POST 201, `get` → GET 200, `delete` → DELETE 204, etc.)
+  - Filtered collection endpoint merging with optional query params and conditional dispatch
+  - `ViolationException` heuristic mapping to 409 Conflict
+  - Automatic collision resolution when two methods produce the same verb and path
+  - Identifier wrapper unwrapping in `@PathVariable` (e.g., `OrderId` → `UUID`)
+  - Value object flattening in DTOs (`flattenValueObjects` option)
+  - `@RestControllerAdvice` exception handler generation with custom exception-to-status mappings
+  - `@Configuration` class with `@Bean` methods exposing application services via driving ports
+  - Multi-module routing via `targetModule` (auto-routes to `API` module by convention)
+  - OpenAPI annotations (`@Tag`, `@Operation`, `@ApiResponse`) via `generateOpenApiAnnotations`
+  - 7 parametric integration tests validating plugin configuration
+- **`PluginConfig.getIntegerMap()`** - New SPI method for structured configuration maps (e.g., exception-to-status-code mappings)
+- **JPA `idStrategy` parameter** - Controls the `@GeneratedValue` strategy on the `@Id` field of generated JPA entities (`ASSIGNED`, `IDENTITY`, `SEQUENCE`, `AUTO`, `UUID`, `TABLE`; default: `ASSIGNED`)
+- **JPA implicit boolean query methods** - Support for derived queries like `findAllActive` on boolean fields
+- **JPA boolean toggle fields** - Detection and `@AfterMapping` method generation for boolean toggle fields
+- **Audit HexaGlue savings in JSON report** - New fields `hexaglueSavingsDays`, `hexaglueSavingsCost`, `effectiveDays`, `effectiveCost` in the remediation section
+- **Audit port-coverage remediation** - Remediation suggestions adapted to driven port type (REPOSITORY, GATEWAY, EVENT_PUBLISHER)
+- **Driving port sub-type normalization** - `COMMAND`, `QUERY`, `USE_CASE` sub-types normalized to `DRIVING_PORT` in `SinglePassClassifier` for model builder consistency
+- **`thrownTypes` propagation** - Exception types propagated from Spoon frontend to `MethodNode` in `GraphBuilder`
+- **`sample-multi-aggregate` enhancements** - Application services, domain exceptions, and end-to-end test script
+- **`check-updates.sh`** - Script for dependency version auditing
+
+### Changed
+
+- **Output directory convention** - Mono-module output directory aligned with Maven convention (`target/generated-sources/hexaglue` instead of `target/hexaglue/generated-sources`)
+- **Dependency versions centralized** - All dependency versions managed in root POM `dependencyManagement`
+- **JPA mapper null-check** - Null-check for flattened value objects in mapper reconstitution
+- **Audit remediation wording** - Refined suggestion messages for audit violations
+- **Dependency bumps** - AssertJ 3.27.7, Mockito 5.22.0, SnakeYAML 2.6, Checkstyle 13.2.0, Maven Compiler 3.15.0, Maven Surefire 3.5.5, Spotless 3.2.1, PITest 1.22.1, Central Publishing 0.10.0
+
+### Fixed
+
+- **`UseCase.isQueryMethodName()`** - False positive on `is`/`has` prefixes prevented
+- **Audit `IssueEnricher`** - Null fields handling in enrichment pipeline
+- **REST value object query params** - Correct unwrapping and DTO field mapping
+
 ## [6.0.0] - 2026-02-26
 
 ### Breaking Changes
@@ -525,6 +569,7 @@ Initial stable release.
 
 | Version | Date | Description |
 |---------|------|-------------|
+| 6.1.0 | 2026-03-XX | Plugin REST, JPA idStrategy, audit savings, Maven convention output dir |
 | 6.0.0 | 2026-02-26 | Automatic Lombok support, tolerant resolution, 12 new audit metrics |
 | 5.1.0 | 2026-02-17 | Remove manifest/stale/overwrite, add parameter regression tests |
 | 5.0.0 | 2026-02-13 | Sealed ArchType hierarchy, multi-module support, legacy IR removed |
