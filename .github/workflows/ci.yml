@@ -46,7 +46,7 @@ jobs:
           cache: maven
 
       - name: Install artifacts locally
-        run: mvn install -DskipTests -q
+        run: mvn install -DskipTests -Dinvoker.skip=true -q
 
       - name: Run quality checks
         run: make quality
