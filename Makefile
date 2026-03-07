@@ -26,6 +26,7 @@ REPORTS_DIR := target/quality
 # Shared command fragments (DRY)
 QUALITY_PREPARE = mkdir -p $(BUILD_DIR) && rm -rf $(REPORTS_DIR) target/reports
 QUALITY_GOALS = checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate
+INVOKER_SKIP = -Dinvoker.skip=true
 
 ## help: Show this help message
 help:
@@ -108,7 +109,7 @@ format-check:
 quality:
 	@echo "$(CYAN)Running quality checks...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn verify $(QUALITY_GOALS) -Pquality -DskipTests 2>&1 | tee $(BUILD_DIR)/build.log
+	@mvn verify $(QUALITY_GOALS) -Pquality -DskipTests $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
 	@mv target/reports $(REPORTS_DIR)
 	@echo ""
 	@echo "$(GREEN)Quality reports generated:$(RESET)"
@@ -152,7 +153,7 @@ pmd:
 ## coverage: Run tests and generate aggregated coverage report
 coverage:
 	@echo "$(CYAN)Running tests with coverage...$(RESET)"
-	@mvn verify -pl !build/distribution
+	@mvn verify $(INVOKER_SKIP) -pl !build/distribution
 	@echo "$(GREEN)Coverage report: target/coverage/index.html$(RESET)"
 
 ## mutation: Run mutation testing with PITest on hexaglue-core
@@ -185,7 +186,7 @@ quick:
 verify:
 	@echo "$(CYAN)Running tests and quality checks...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn verify $(QUALITY_GOALS) -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
+	@mvn verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
 	@mv target/reports $(REPORTS_DIR)
 	@echo "$(GREEN)Done. Reports in $(REPORTS_DIR)/$(RESET)"
 
@@ -193,7 +194,7 @@ verify:
 ci:
 	@echo "$(CYAN)Full CI pipeline...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn clean verify $(QUALITY_GOALS) -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
+	@mvn clean verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
 	@mv target/reports $(REPORTS_DIR)
 	@echo "$(GREEN)CI build complete. Reports in $(REPORTS_DIR)/$(RESET)"
 
@@ -201,7 +202,7 @@ ci:
 all:
 	@echo "$(CYAN)Full build with coverage...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn clean verify $(QUALITY_GOALS) -Pquality -pl !build/distribution 2>&1 | tee $(BUILD_DIR)/build.log
+	@mvn clean verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) -pl !build/distribution 2>&1 | tee $(BUILD_DIR)/build.log
 	@mv target/reports $(REPORTS_DIR)
 	@echo "$(GREEN)Full build complete. Reports in $(REPORTS_DIR)/ and target/coverage/$(RESET)"
 
