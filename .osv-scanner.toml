@@ -1,0 +1,12 @@
+# OSV Scanner configuration
+# Exclude example projects and integration test projects from vulnerability scanning.
+# These are sample/test projects with intentionally pinned dependency versions
+# that do not represent the HexaGlue library's own dependency surface.
+
+[[IgnoredPaths]]
+path = "examples/"
+reason = "Sample projects for documentation and testing, not production code"
+
+[[IgnoredPaths]]
+path = "hexaglue-maven-plugin/src/it/"
+reason = "Maven plugin integration test projects, not production code"
