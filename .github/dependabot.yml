@@ -11,6 +11,9 @@ updates:
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: com.puppycrawl.tools:checkstyle
+        versions: [">=13"]
     open-pull-requests-limit: 10
 
   - package-ecosystem: github-actions

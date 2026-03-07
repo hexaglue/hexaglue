@@ -25,9 +25,8 @@ REPORTS_DIR := target/quality
 
 # Shared command fragments (DRY)
 QUALITY_PREPARE = mkdir -p $(BUILD_DIR) && rm -rf $(REPORTS_DIR) target/reports
-QUALITY_AGGREGATE = echo "$(CYAN)Generating aggregated reports...$(RESET)" \
-    && mvn checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate -DskipTests -q \
-    && mv target/reports $(REPORTS_DIR)
+QUALITY_GOALS = checkstyle:checkstyle-aggregate pmd:aggregate-pmd jxr:aggregate
+INVOKER_SKIP = -Dinvoker.skip=true
 
 ## help: Show this help message
 help:
@@ -110,8 +109,8 @@ format-check:
 quality:
 	@echo "$(CYAN)Running quality checks...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn verify -Pquality -DskipTests 2>&1 | tee $(BUILD_DIR)/build.log
-	@$(QUALITY_AGGREGATE)
+	@mvn verify $(QUALITY_GOALS) -Pquality -DskipTests $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
+	@mv target/reports $(REPORTS_DIR)
 	@echo ""
 	@echo "$(GREEN)Quality reports generated:$(RESET)"
 	@echo "  - Checkstyle: $(REPORTS_DIR)/checkstyle-aggregate.html"
@@ -154,14 +153,13 @@ pmd:
 ## coverage: Run tests and generate aggregated coverage report
 coverage:
 	@echo "$(CYAN)Running tests with coverage...$(RESET)"
-	@mvn verify -pl !build/distribution
+	@mvn verify $(INVOKER_SKIP) -pl !build/distribution
 	@echo "$(GREEN)Coverage report: target/coverage/index.html$(RESET)"
 
 ## mutation: Run mutation testing with PITest on hexaglue-core
 mutation:
 	@echo "$(CYAN)Running mutation tests on hexaglue-core...$(RESET)"
-	@mvn test -pl hexaglue-core -q
-	@mvn org.pitest:pitest-maven:mutationCoverage -pl hexaglue-core
+	@mvn test org.pitest:pitest-maven:mutationCoverage -pl hexaglue-core
 	@echo "$(GREEN)Mutation report: hexaglue-core/target/pit-reports/index.html$(RESET)"
 
 ## integration: Run integration tests on examples
@@ -174,7 +172,9 @@ integration:
 # =============================================================================
 
 ## build: Clean build with tests (clean + test)
-build: clean test
+build:
+	@echo "$(CYAN)Clean build with tests...$(RESET)"
+	@mvn clean test
 	@echo "$(GREEN)Build complete.$(RESET)"
 
 ## quick: Clean install without tests
@@ -186,17 +186,25 @@ quick:
 verify:
 	@echo "$(CYAN)Running tests and quality checks...$(RESET)"
 	@$(QUALITY_PREPARE)
-	@mvn verify -Pquality 2>&1 | tee $(BUILD_DIR)/build.log
-	@$(QUALITY_AGGREGATE)
+	@mvn verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
+	@mv target/reports $(REPORTS_DIR)
 	@echo "$(GREEN)Done. Reports in $(REPORTS_DIR)/$(RESET)"
 
 ## ci: Full CI pipeline (clean + verify)
-ci: clean verify
+ci:
+	@echo "$(CYAN)Full CI pipeline...$(RESET)"
+	@$(QUALITY_PREPARE)
+	@mvn clean verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) 2>&1 | tee $(BUILD_DIR)/build.log
+	@mv target/reports $(REPORTS_DIR)
 	@echo "$(GREEN)CI build complete. Reports in $(REPORTS_DIR)/$(RESET)"
 
 ## all: Full build (ci + coverage)
-all: ci coverage
-	@echo "$(GREEN)Full build complete.$(RESET)"
+all:
+	@echo "$(CYAN)Full build with coverage...$(RESET)"
+	@$(QUALITY_PREPARE)
+	@mvn clean verify $(QUALITY_GOALS) -Pquality $(INVOKER_SKIP) -pl !build/distribution 2>&1 | tee $(BUILD_DIR)/build.log
+	@mv target/reports $(REPORTS_DIR)
+	@echo "$(GREEN)Full build complete. Reports in $(REPORTS_DIR)/ and target/coverage/$(RESET)"
 
 # =============================================================================
 # Release
