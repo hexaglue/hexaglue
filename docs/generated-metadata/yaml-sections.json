@@ -1,0 +1,68 @@
+{
+  "sections": [
+    {
+      "name": "classification",
+      "keys": [
+        {
+          "name": "exclude",
+          "type": "List<String>",
+          "description": "Glob patterns for types to exclude from classification"
+        },
+        {
+          "name": "explicit",
+          "type": "Map<String, String>",
+          "description": "Explicit type classifications (qualified name to ElementKind)"
+        },
+        {
+          "name": "validation.failOnUnclassified",
+          "type": "boolean",
+          "description": "Fail build if unclassified types remain"
+        },
+        {
+          "name": "validation.allowInferred",
+          "type": "boolean",
+          "description": "Allow inferred classifications"
+        }
+      ]
+    },
+    {
+      "name": "plugins",
+      "description": "Per-plugin configuration maps, keyed by plugin fully-qualified ID",
+      "keys": [
+        {
+          "name": "<pluginId>",
+          "type": "Map<String, Object>",
+          "description": "Plugin-specific configuration (see each plugin doc)"
+        }
+      ]
+    },
+    {
+      "name": "modules",
+      "description": "Module role assignments for multi-module projects",
+      "keys": [
+        {
+          "name": "<moduleName>",
+          "type": "ModuleRole",
+          "description": "DOMAIN, APPLICATION, INFRASTRUCTURE, or SHARED"
+        }
+      ]
+    },
+    {
+      "name": "output",
+      "keys": [
+        {
+          "name": "sources",
+          "type": "String",
+          "defaultValue": "target/generated-sources/hexaglue",
+          "description": "Base directory for generated sources"
+        },
+        {
+          "name": "reports",
+          "type": "String",
+          "defaultValue": "target/hexaglue/reports",
+          "description": "Base directory for reports"
+        }
+      ]
+    }
+  ]
+}

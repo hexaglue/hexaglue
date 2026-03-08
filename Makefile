@@ -5,7 +5,8 @@
         quality checkstyle spotbugs pmd \
         coverage mutation integration \
         build quick verify ci all \
-        release-check release install
+        release-check release install \
+        doc-metadata doc-readmes doc-check
 
 .DELETE_ON_ERROR:
 
@@ -59,6 +60,11 @@ help:
 	@echo "  $(GREEN)verify$(RESET)         test + quality (incremental, no clean)"
 	@echo "  $(GREEN)ci$(RESET)             clean + verify"
 	@echo "  $(GREEN)all$(RESET)            ci + coverage"
+	@echo ""
+	@echo "$(YELLOW)Documentation:$(RESET)"
+	@echo "  $(GREEN)doc-metadata$(RESET)   Extract doc metadata from source to JSON"
+	@echo "  $(GREEN)doc-readmes$(RESET)    Generate README config sections"
+	@echo "  $(GREEN)doc-check$(RESET)      Validate doc metadata is up-to-date"
 	@echo ""
 	@echo "$(YELLOW)Release:$(RESET)"
 	@echo "  $(GREEN)release-check$(RESET)  Build release artifacts (dry-run)"
@@ -216,3 +222,25 @@ release:
 install:
 	@echo "$(CYAN)Building and installing to local repo...$(RESET)"
 	@mvn clean install
+
+# =============================================================================
+# Documentation Targets
+# =============================================================================
+
+## doc-metadata: Extract documentation metadata from source code to JSON
+doc-metadata: compile
+	@echo "$(CYAN)Extracting doc metadata...$(RESET)"
+	@node scripts/extract-doc-metadata.js
+	@echo "$(GREEN)Metadata extracted to docs/generated-metadata/$(RESET)"
+
+## doc-readmes: Generate README config sections from metadata
+doc-readmes: doc-metadata
+	@echo "$(CYAN)Generating README sections...$(RESET)"
+	@node scripts/generate-readmes.js
+	@echo "$(GREEN)READMEs updated.$(RESET)"
+
+## doc-check: Validate documentation metadata is up-to-date
+doc-check: compile
+	@echo "$(CYAN)Checking doc metadata freshness...$(RESET)"
+	@node scripts/doc-check.js
+	@echo "$(GREEN)Documentation metadata is up-to-date.$(RESET)"

@@ -1,0 +1,32 @@
+{
+  "pluginId": "io.hexaglue.plugin.livingdoc",
+  "configClass": "LivingDocConfig",
+  "configFile": "hexaglue-plugins/hexaglue-plugin-living-doc/src/main/java/io/hexaglue/plugin/livingdoc/config/LivingDocConfig.java",
+  "parameters": [
+    {
+      "name": "outputDir",
+      "type": "String",
+      "defaultValue": "\"living-doc\"",
+      "description": "the output directory for documentation files"
+    },
+    {
+      "name": "generateDiagrams",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to generate Mermaid diagrams"
+    },
+    {
+      "name": "includeDebugSections",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to include debug information sections"
+    },
+    {
+      "name": "maxPropertiesInDiagram",
+      "type": "int",
+      "defaultValue": "5",
+      "description": "maximum number of properties to show per class in diagrams"
+    }
+  ],
+  "extraParameters": []
+}

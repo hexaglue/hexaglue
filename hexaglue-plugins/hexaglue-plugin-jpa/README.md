@@ -52,37 +52,40 @@ target/generated-sources/hexaglue/
 
 ## Configuration Options
 
+<!-- GENERATED:CONFIG:START -->
 | Option | Default | Description |
 |--------|---------|-------------|
-| `entitySuffix` | `Entity` | Suffix for generated JPA entity classes |
-| `repositorySuffix` | `JpaRepository` | Suffix for Spring Data repository interfaces |
-| `adapterSuffix` | `Adapter` | Suffix for port adapter classes |
-| `mapperSuffix` | `Mapper` | Suffix for MapStruct mapper interfaces |
-| `tablePrefix` | `""` | Prefix for database table names |
-| `enableAuditing` | `false` | Add `@CreatedDate` and `@LastModifiedDate` fields |
-| `enableOptimisticLocking` | `false` | Add `@Version` field for optimistic locking |
-| `generateRepositories` | `true` | Generate Spring Data JPA repository interfaces |
-| `generateMappers` | `true` | Generate MapStruct mapper interfaces |
-| `generateAdapters` | `true` | Generate port adapter implementations |
-| `embeddableSuffix` | `Embeddable` | Suffix for `@Embeddable` value object classes |
-| `generateEmbeddables` | `true` | Generate `@Embeddable` classes for value objects |
-| `infrastructurePackage` | `{basePackage}.infrastructure.persistence` | Target package for generated JPA artifacts |
-| `outputDirectory` | (global default) | Per-plugin override for the output directory. Set to `src/main/java` to write JPA artifacts directly into your source tree instead of `target/`. |
-| `overwrite` | `always` | Controls overwriting of existing files: `always` (overwrite unconditionally), `if-unchanged` (overwrite only if the file was not manually edited), `never` (never overwrite, for one-time scaffolding) |
-| `targetModule` | `null` | Multi-module: target module ID for routing generated artifacts |
+| `entitySuffix` | `Entity` | suffix for generated JPA entity classes (default: "Entity") |
+| `embeddableSuffix` | `Embeddable` | suffix for generated JPA embeddable classes (default: "Embeddable") |
+| `repositorySuffix` | `JpaRepository` | suffix for Spring Data repository interfaces (default: "JpaRepository") |
+| `adapterSuffix` | `Adapter` | suffix for port adapter classes (default: "Adapter") |
+| `mapperSuffix` | `Mapper` | suffix for MapStruct mapper interfaces (default: "Mapper") |
+| `tablePrefix` | `""` | prefix for database table names (default: "") |
+| `idStrategy` | `ASSIGNED` | fallback identity generation strategy when domain fields lack |
+| `targetModule` | `null` | target module for multi-module routing (null = no routing) |
+| `enableAuditing` | `false` | true to add JPA auditing annotations (createdDate, lastModifiedDate) |
+| `enableOptimisticLocking` | `false` | true to add |
+| `generateRepositories` | `true` | true to generate Spring Data JPA repository interfaces |
+| `generateMappers` | `true` | true to generate MapStruct mapper interfaces |
+| `generateAdapters` | `true` | true to generate port adapter implementations |
+| `generateEmbeddables` | `true` | true to generate JPA embeddable classes for value objects |
+| `infrastructurePackage` | `basePackage + ".infrastructure.persistence` |  |
+<!-- GENERATED:CONFIG:END -->
 
 ### Maven Parameters
 
 These parameters are set in the `<configuration>` block of the Maven plugin and control the generation behavior:
 
-| Parameter | Type | Default | Property | Description |
-|-----------|------|---------|----------|-------------|
-| `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. JPA artifacts are generated from domain types in this package. |
-| `outputDirectory` | string | `target/generated-sources/hexaglue` | `hexaglue.outputDirectory` | Directory where JPA entities, repositories, and mappers are written |
-| `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
-| `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
-| `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |
-| `failOnUnclassified` | boolean | `false` | `hexaglue.failOnUnclassified` | Fail the build if domain types cannot be classified |
+<!-- GENERATED:MAVEN:START -->
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `basePackage` | string | (required) | The base package to analyze. Types outside this package are ignored |
+| `failOnUnclassified` | boolean | `false` | Whether to fail the build if unclassified types remain. When enabled, the build will fail if any domain types cannot be classified with sufficient confidence |
+| `outputDirectory` | string | `${project.build.directory}/generated-sources/hexaglue` | Output directory for generated sources |
+| `skip` | boolean | `false` | Skip HexaGlue execution |
+| `skipValidation` | boolean | `false` | Skip validation step before generation. When true, generation will proceed even if there are unclassified types |
+| `tolerantResolution` | boolean | `false` | Enable tolerant type resolution for projects using annotation processors. When enabled, HexaGlue accepts unresolved types during analysis instead of failing |
+<!-- GENERATED:MAVEN:END -->
 
 ### YAML Configuration
 
