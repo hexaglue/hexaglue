@@ -6,7 +6,8 @@
         coverage mutation integration \
         build quick verify ci all \
         release-check release install \
-        doc-metadata doc-readmes doc-check
+        doc-metadata doc-readmes doc-check \
+        bump-versions bump-site-versions
 
 .DELETE_ON_ERROR:
 
@@ -67,8 +68,10 @@ help:
 	@echo "  $(GREEN)doc-check$(RESET)      Validate doc metadata is up-to-date"
 	@echo ""
 	@echo "$(YELLOW)Release:$(RESET)"
-	@echo "  $(GREEN)release-check$(RESET)  Build release artifacts (dry-run)"
-	@echo "  $(GREEN)release$(RESET)        Deploy to Maven Central"
+	@echo "  $(GREEN)release-check$(RESET)       Build release artifacts (dry-run)"
+	@echo "  $(GREEN)release$(RESET)             Deploy to Maven Central"
+	@echo "  $(GREEN)bump-versions$(RESET)       Bump versions in POMs, examples, and docs"
+	@echo "  $(GREEN)bump-site-versions$(RESET)  Bump versions in hexaglue-site"
 	@echo ""
 	@echo "$(YELLOW)Reports location:$(RESET)"
 	@echo "  - Checkstyle: $(REPORTS_DIR)/checkstyle-aggregate.html"
@@ -222,6 +225,14 @@ release:
 install:
 	@echo "$(CYAN)Building and installing to local repo...$(RESET)"
 	@mvn clean install
+
+## bump-versions: Bump versions in POMs, examples, and docs
+bump-versions:
+	@node scripts/bump-versions.js $(ARGS)
+
+## bump-site-versions: Bump versions in hexaglue-site
+bump-site-versions:
+	@node scripts/bump-site-versions.js $(ARGS)
 
 # =============================================================================
 # Documentation Targets
