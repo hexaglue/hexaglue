@@ -12,6 +12,8 @@
 [![Maven Central - Core](https://img.shields.io/maven-central/v/io.hexaglue/hexaglue-core?label=Maven%20Central%20-%20HexaGlue)](https://central.sonatype.com/artifact/io.hexaglue/hexaglue-core)
 <br>
 [![Maven Central - Plugins](https://img.shields.io/maven-central/v/io.hexaglue.plugins/hexaglue-plugin-jpa?label=Maven%20Central%20-%20HexaGlue%20Plugins)](https://central.sonatype.com/artifact/io.hexaglue.plugins/hexaglue-plugin-jpa)
+<br>
+[![CI](https://github.com/hexaglue/hexaglue/actions/workflows/ci.yml/badge.svg)](https://github.com/hexaglue/hexaglue/actions/workflows/ci.yml)
 
 </div>
 
