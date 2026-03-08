@@ -1,12 +1,14 @@
 # HexaGlue Module Architecture Reference
 
-> Version: 4.0.0
-> Date: 2026-01-16
-> Status: Reference Document
+> **DEPRECATED**: This document describes v4.0.0 and is significantly outdated.
+> The IR layer (`hexaglue-spi-arch`, `IrExporter`, `IrSnapshot`) has been removed since v5.0.0.
+> Plugins now use `PluginContext.model()` to access the `ArchitecturalModel` directly.
+> The REST plugin (v3.1.0) is not covered here.
+> For current module structure, see the main project CLAUDE.md.
 
-> **Note v4.0.0**: Le package `io.hexaglue.spi.ir` est **deprecated** et sera supprimé en v5.0.0.
-> Les plugins doivent utiliser `PluginContext.model()` au lieu de `ir()`.
-> Le module `hexaglue-spi-arch` sera également supprimé en v5.0.0.
+> Version: 4.0.0 (outdated)
+> Date: 2026-01-16
+> Status: Deprecated
 
 ## Table of Contents
 

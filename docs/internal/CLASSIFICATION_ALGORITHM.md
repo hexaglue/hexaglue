@@ -43,17 +43,9 @@ Source Code
     │
     ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ PHASE 4: IR Export                                           │
-│   IrExporter → IrSnapshot                                    │
-│   - RelationAnalyzer (ONE_TO_MANY, MANY_TO_MANY, etc.)       │
-│   - CascadeInference (infer cascade types)                   │
-│   - MappedByDetector (detect owning side)                    │
-└─────────────────────────────────────────────────────────────┘
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│ PHASE 5: Plugin Execution                                    │
+│ PHASE 4: Plugin Execution                                    │
 │   PluginExecutor → Generated Code                           │
+│   Plugins receive ArchitecturalModel via PluginContext        │
 └─────────────────────────────────────────────────────────────┘
 ```
 

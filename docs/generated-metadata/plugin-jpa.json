@@ -1,0 +1,99 @@
+{
+  "pluginId": "io.hexaglue.plugin.jpa",
+  "configClass": "JpaConfig",
+  "configFile": "hexaglue-plugins/hexaglue-plugin-jpa/src/main/java/io/hexaglue/plugin/jpa/JpaConfig.java",
+  "parameters": [
+    {
+      "name": "entitySuffix",
+      "type": "String",
+      "defaultValue": "\"Entity\"",
+      "description": "suffix for generated JPA entity classes (default: \"Entity\")"
+    },
+    {
+      "name": "embeddableSuffix",
+      "type": "String",
+      "defaultValue": "\"Embeddable\"",
+      "description": "suffix for generated JPA embeddable classes (default: \"Embeddable\")"
+    },
+    {
+      "name": "repositorySuffix",
+      "type": "String",
+      "defaultValue": "\"JpaRepository\"",
+      "description": "suffix for Spring Data repository interfaces (default: \"JpaRepository\")"
+    },
+    {
+      "name": "adapterSuffix",
+      "type": "String",
+      "defaultValue": "\"Adapter\"",
+      "description": "suffix for port adapter classes (default: \"Adapter\")"
+    },
+    {
+      "name": "mapperSuffix",
+      "type": "String",
+      "defaultValue": "\"Mapper\"",
+      "description": "suffix for MapStruct mapper interfaces (default: \"Mapper\")"
+    },
+    {
+      "name": "tablePrefix",
+      "type": "String",
+      "defaultValue": "\"\"",
+      "description": "prefix for database table names (default: \"\")"
+    },
+    {
+      "name": "idStrategy",
+      "type": "IdentityStrategy",
+      "defaultValue": "ASSIGNED",
+      "description": "fallback identity generation strategy when domain fields lack"
+    },
+    {
+      "name": "targetModule",
+      "type": "String",
+      "defaultValue": "null",
+      "description": "target module for multi-module routing (null = no routing)"
+    },
+    {
+      "name": "enableAuditing",
+      "type": "boolean",
+      "defaultValue": "false",
+      "description": "true to add JPA auditing annotations (createdDate, lastModifiedDate)"
+    },
+    {
+      "name": "enableOptimisticLocking",
+      "type": "boolean",
+      "defaultValue": "false",
+      "description": "true to add"
+    },
+    {
+      "name": "generateRepositories",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "true to generate Spring Data JPA repository interfaces"
+    },
+    {
+      "name": "generateMappers",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "true to generate MapStruct mapper interfaces"
+    },
+    {
+      "name": "generateAdapters",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "true to generate port adapter implementations"
+    },
+    {
+      "name": "generateEmbeddables",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "true to generate JPA embeddable classes for value objects"
+    }
+  ],
+  "extraParameters": [
+    {
+      "name": "infrastructurePackage",
+      "type": "String",
+      "defaultValue": "basePackage + \".infrastructure.persistence\"",
+      "description": ""
+    }
+  ]
+}

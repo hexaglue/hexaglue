@@ -48,5 +48,13 @@ jobs:
       - name: Install artifacts locally
         run: mvn install -DskipTests -Dinvoker.skip=true -q
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check documentation freshness
+        run: make doc-check
+
       - name: Run quality checks
         run: make quality

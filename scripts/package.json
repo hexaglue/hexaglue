@@ -1,0 +1,7 @@
+{
+  "name": "hexaglue-doc-scripts",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Documentation metadata extraction and validation scripts for HexaGlue",
+  "type": "module"
+}

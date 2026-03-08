@@ -122,6 +122,14 @@ plugins:
   io.hexaglue.plugin.audit:
     errorOnBlocker: true
     errorOnCritical: false
+
+  # REST Plugin
+  io.hexaglue.plugin.rest:
+    basePath: "/api"
+    generateOpenApiAnnotations: true
+    flattenValueObjects: true
+    generateExceptionHandler: true
+    generateConfiguration: true
 ```
 
 ## Glob Pattern Syntax
@@ -146,6 +154,8 @@ For `exclude` patterns:
 | `validate` | VALIDATE | Classify and validate only |
 | `audit` | VERIFY | Run architecture audit |
 | `generate-and-audit` | GENERATE_SOURCES | Generate code + run audit |
+| `reactor-generate` | GENERATE_SOURCES | Multi-module: unified analysis + routed generation |
+| `reactor-audit` | VERIFY | Multi-module: aggregated cross-module audit |
 
 ### Running Specific Goals
 
@@ -254,6 +264,10 @@ plugins:
   io.hexaglue.plugin.jpa:
     enableAuditing: true
 ```
+
+## Generated Metadata
+
+HexaGlue can extract documentation metadata from the source code into JSON files for use in external documentation systems. Run `make doc-metadata` to generate these files in `docs/generated-metadata/`. See plugin README files for per-plugin configuration details (tables are kept in sync via `make doc-check`).
 
 ## What's Next?
 

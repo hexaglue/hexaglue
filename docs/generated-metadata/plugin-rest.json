@@ -1,0 +1,80 @@
+{
+  "pluginId": "io.hexaglue.plugin.rest",
+  "configClass": "RestConfig",
+  "configFile": "hexaglue-plugins/hexaglue-plugin-rest/src/main/java/io/hexaglue/plugin/rest/RestConfig.java",
+  "parameters": [
+    {
+      "name": "controllerSuffix",
+      "type": "String",
+      "defaultValue": "\"Controller\"",
+      "description": "suffix for controller classes"
+    },
+    {
+      "name": "requestDtoSuffix",
+      "type": "String",
+      "defaultValue": "\"Request\"",
+      "description": "suffix for request DTO records"
+    },
+    {
+      "name": "responseDtoSuffix",
+      "type": "String",
+      "defaultValue": "\"Response\"",
+      "description": "suffix for response DTO records"
+    },
+    {
+      "name": "basePath",
+      "type": "String",
+      "defaultValue": "\"/api\"",
+      "description": "URL prefix for all endpoints"
+    },
+    {
+      "name": "exceptionHandlerClassName",
+      "type": "String",
+      "defaultValue": "\"GlobalExceptionHandler\"",
+      "description": "class name of the exception handler"
+    },
+    {
+      "name": "apiPackage",
+      "type": "String",
+      "defaultValue": "null",
+      "description": "base package for generated code (null = auto-detect)"
+    },
+    {
+      "name": "targetModule",
+      "type": "String",
+      "defaultValue": "null",
+      "description": "target module for multi-module routing (null = auto)"
+    },
+    {
+      "name": "generateOpenApiAnnotations",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to generate OpenAPI annotations"
+    },
+    {
+      "name": "flattenValueObjects",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to flatten multi-field VOs in DTOs"
+    },
+    {
+      "name": "generateExceptionHandler",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to generate the global exception handler"
+    },
+    {
+      "name": "generateConfiguration",
+      "type": "boolean",
+      "defaultValue": "true",
+      "description": "whether to generate the {"
+    },
+    {
+      "name": "exceptionMappings",
+      "type": "Map<String, Integer>",
+      "defaultValue": "{}",
+      "description": "custom exception-to-HTTP-status mappings"
+    }
+  ],
+  "extraParameters": []
+}

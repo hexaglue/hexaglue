@@ -1,0 +1,14 @@
+{
+  "pluginId": "io.hexaglue.plugin.audit",
+  "configClass": "AuditConfiguration",
+  "configFile": "hexaglue-plugins/hexaglue-plugin-audit/src/main/java/io/hexaglue/plugin/audit/config/AuditConfiguration.java",
+  "parameters": [],
+  "extraParameters": [
+    {
+      "name": "generateDocs",
+      "type": "boolean",
+      "defaultValue": "false",
+      "description": ""
+    }
+  ]
+}

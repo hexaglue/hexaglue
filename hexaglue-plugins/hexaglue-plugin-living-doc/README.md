@@ -48,27 +48,29 @@ target/hexaglue/reports/{outputDir}/
 
 Configuration is done via `hexaglue.yaml`, placed at the project root alongside `pom.xml`. Options are set under `plugins.io.hexaglue.plugin.livingdoc:`.
 
+<!-- GENERATED:CONFIG:START -->
 | Option | Default | Description |
 |--------|---------|-------------|
-| `outputDir` | `living-doc` | Output directory for generated documentation (relative to `target/hexaglue/reports/`) |
-| `generateDiagrams` | `true` | Whether to generate Mermaid diagrams |
-| `maxPropertiesInDiagram` | `5` | Maximum properties shown per class in diagrams |
-| `includeDebugSections` | `true` | Include debug sections (classification trace, source location) in `domain.md` and `ports.md`. Set to `false` for more concise documentation. |
-| `outputDirectory` | (global default) | Per-plugin override for the output directory |
-| `overwrite` | `always` | Controls overwriting of existing files: `always` (overwrite unconditionally), `if-unchanged` (overwrite only if the file was not manually edited), `never` (never overwrite) |
+| `outputDir` | `living-doc` | the output directory for documentation files |
+| `generateDiagrams` | `true` | whether to generate Mermaid diagrams |
+| `includeDebugSections` | `true` | whether to include debug information sections |
+| `maxPropertiesInDiagram` | `5` | maximum number of properties to show per class in diagrams |
+<!-- GENERATED:CONFIG:END -->
 
 ### Maven Parameters
 
 These parameters are set in the `<configuration>` block of the Maven plugin:
 
-| Parameter | Type | Default | Property | Description |
-|-----------|------|---------|----------|-------------|
-| `basePackage` | string | (required) | `hexaglue.basePackage` | Base package to analyze. Documentation is generated from domain types in this package. |
-| `outputDirectory` | string | `target/generated-sources/hexaglue` | `hexaglue.outputDirectory` | Base directory for generated output |
-| `skip` | boolean | `false` | `hexaglue.skip` | Skip HexaGlue execution entirely |
-| `skipValidation` | boolean | `false` | `hexaglue.skipValidation` | Skip classification validation before generation |
-| `staleFilePolicy` | WARN / DELETE / FAIL | `WARN` | `hexaglue.staleFilePolicy` | How to handle previously generated files no longer needed |
-| `failOnUnclassified` | boolean | `false` | `hexaglue.failOnUnclassified` | Fail the build if domain types cannot be classified |
+<!-- GENERATED:MAVEN:START -->
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `basePackage` | string | (required) | The base package to analyze. Types outside this package are ignored |
+| `failOnUnclassified` | boolean | `false` | Whether to fail the build if unclassified types remain. When enabled, the build will fail if any domain types cannot be classified with sufficient confidence |
+| `outputDirectory` | string | `${project.build.directory}/generated-sources/hexaglue` | Output directory for generated sources |
+| `skip` | boolean | `false` | Skip HexaGlue execution |
+| `skipValidation` | boolean | `false` | Skip validation step before generation. When true, generation will proceed even if there are unclassified types |
+| `tolerantResolution` | boolean | `false` | Enable tolerant type resolution for projects using annotation processors. When enabled, HexaGlue accepts unresolved types during analysis instead of failing |
+<!-- GENERATED:MAVEN:END -->
 
 ### YAML Configuration
 
