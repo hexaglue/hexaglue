@@ -48,7 +48,7 @@ The audit plugin checks 15 constraints in two categories:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
+    <version>6.1.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -57,7 +57,7 @@ The audit plugin checks 15 constraints in two categories:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
     </dependencies>
 </plugin>
@@ -367,7 +367,7 @@ Full production configuration:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>${hexaglue.version}</version>
+    <version>6.1.0</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -377,17 +377,17 @@ Full production configuration:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-living-doc</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-audit</artifactId>
-            <version>3.0.0</version>
+            <version>3.1.0</version>
         </dependency>
     </dependencies>
 </plugin>
