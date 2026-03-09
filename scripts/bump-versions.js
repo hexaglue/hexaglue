@@ -232,6 +232,15 @@ function stepManualProperties(coreVersion, pluginsVersion, dryRun) {
     }
   }
 
+  // hexaglue-maven-plugin/pom.xml: <hexaglue-plugins.version> (used by Invoker IT tests)
+  const mavenPluginPomPath = path.join(ROOT, 'hexaglue-maven-plugin', 'pom.xml');
+  let mavenPluginPom = fs.readFileSync(mavenPluginPomPath, 'utf8');
+  const newMavenPluginPom = replaceXmlProperty(mavenPluginPom, 'hexaglue-plugins.version', pluginsVersion);
+  if (newMavenPluginPom !== mavenPluginPom) {
+    changes.push({ file: rel(mavenPluginPomPath), description: `<hexaglue-plugins.version> → ${pluginsVersion}` });
+    if (!dryRun) fs.writeFileSync(mavenPluginPomPath, newMavenPluginPom, 'utf8');
+  }
+
   // hexaglue-plugins-bom/pom.xml: 3 plugin version properties
   const bomPomPath = path.join(PLUGINS_DIR, 'hexaglue-plugins-bom', 'pom.xml');
   let bomPom = fs.readFileSync(bomPomPath, 'utf8');
