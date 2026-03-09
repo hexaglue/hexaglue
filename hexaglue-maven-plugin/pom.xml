@@ -18,6 +18,7 @@
 
     <properties>
         <hexaglue.root>${project.basedir}/..</hexaglue.root>
+        <hexaglue-plugins.version>3.1.0</hexaglue-plugins.version>
     </properties>
 
     <dependencies>
@@ -98,6 +99,9 @@
                         <goal>compile</goal>
                     </goals>
                     <streamLogs>true</streamLogs>
+                    <filterProperties>
+                        <hexaglue-plugins.version>${hexaglue-plugins.version}</hexaglue-plugins.version>
+                    </filterProperties>
                 </configuration>
                 <executions>
                     <execution>
