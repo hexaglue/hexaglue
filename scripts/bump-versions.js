@@ -152,23 +152,43 @@ function detectCurrentVersions() {
 // ---------------------------------------------------------------------------
 
 /**
- * Step 1: Run mvn versions:set for core and plugins.
+ * Step 1: Run mvn versions:set for core, then update each plugin POM individually.
+ *
+ * The plugins parent POM (hexaglue-plugins) inherits its version from hexaglue-parent,
+ * so mvn versions:set cannot be used on it directly. Instead, we update each child
+ * plugin module's {@code <version>} tag via direct file replacement.
  */
 function stepMvnVersionsSet(coreVersion, pluginsVersion, dryRun) {
   const changes = [];
 
+  // --- Core: use mvn versions:set (works because core parent has its own <version>) ---
   if (dryRun) {
     changes.push({ file: '(mvn versions:set)', description: `Core → ${coreVersion}` });
-    changes.push({ file: '(mvn versions:set)', description: `Plugins → ${pluginsVersion}` });
   } else {
     console.log(`  Running mvn versions:set for core → ${coreVersion} ...`);
     execSync(`mvn versions:set -DnewVersion=${coreVersion} -DgenerateBackupPoms=false -q`, { cwd: ROOT, stdio: 'inherit' });
-
-    console.log(`  Running mvn versions:set for plugins → ${pluginsVersion} ...`);
-    execSync(`mvn versions:set -DnewVersion=${pluginsVersion} -DgenerateBackupPoms=false -q`, { cwd: PLUGINS_DIR, stdio: 'inherit' });
-
     changes.push({ file: '(mvn versions:set)', description: `Core → ${coreVersion}` });
-    changes.push({ file: '(mvn versions:set)', description: `Plugins → ${pluginsVersion}` });
+  }
+
+  // --- Plugins: update <version> in each child plugin POM directly ---
+  const pluginModules = PLUGIN_ARTIFACTS;
+  for (const mod of pluginModules) {
+    const pomPath = path.join(PLUGINS_DIR, mod, 'pom.xml');
+    if (!fs.existsSync(pomPath)) continue;
+    const content = fs.readFileSync(pomPath, 'utf8');
+    // Match the module's own <version> (not parent's): first <version> after </parent> closing tag,
+    // or the <version> right after <artifactId> (line 14 in each plugin POM).
+    // We use a targeted regex: <artifactId>mod</artifactId>\n    <version>...</version>
+    const re = new RegExp(
+      `(<artifactId>${escapeRegex(mod)}</artifactId>\\s*\\n\\s*<version>)[^<]+(<\\/version>)`
+    );
+    if (re.test(content)) {
+      const newContent = content.replace(re, `$1${pluginsVersion}$2`);
+      if (newContent !== content) {
+        changes.push({ file: rel(pomPath), description: `<version> → ${pluginsVersion}` });
+        if (!dryRun) fs.writeFileSync(pomPath, newContent, 'utf8');
+      }
+    }
   }
 
   return changes;
@@ -196,6 +216,20 @@ function stepManualProperties(coreVersion, pluginsVersion, dryRun) {
   if (newRootPom !== rootPom) {
     changes.push({ file: rel(rootPomPath), description: `<hexaglue-build-tools.version> → ${coreVersion}` });
     if (!dryRun) fs.writeFileSync(rootPomPath, newRootPom, 'utf8');
+  }
+
+  // build/tools/pom.xml: standalone <version> (no parent, not handled by versions:set)
+  const buildToolsPomPath = path.join(ROOT, 'build', 'tools', 'pom.xml');
+  if (fs.existsSync(buildToolsPomPath)) {
+    const content = fs.readFileSync(buildToolsPomPath, 'utf8');
+    const re = /(<artifactId>hexaglue-build-tools<\/artifactId>\s*\n\s*<version>)[^<]+(<\/version>)/;
+    if (re.test(content)) {
+      const newContent = content.replace(re, `$1${coreVersion}$2`);
+      if (newContent !== content) {
+        changes.push({ file: rel(buildToolsPomPath), description: `<version> → ${coreVersion}` });
+        if (!dryRun) fs.writeFileSync(buildToolsPomPath, newContent, 'utf8');
+      }
+    }
   }
 
   // hexaglue-plugins-bom/pom.xml: 3 plugin version properties
