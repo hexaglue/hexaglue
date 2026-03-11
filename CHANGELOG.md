@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [6.1.1] - 2026-03-11
+
+### Fixed
+
+- **Lombok delombok in multi-module builds** - `HexaGlueLifecycleParticipant` now correctly triggers delombok in reactor multi-module builds
+- **IT plugin version resolution** - Use Invoker `filterProperties` for integration test plugin version and remove remaining SNAPSHOTs from release artifacts
+
+### Added
+
+- **`sample-lombok-multimodule` integration test** - New multi-module example with Lombok domain, validating delombok + JPA generation in reactor mode
+
 ## [6.1.0] - 2026-03-09
 
 ### Added
@@ -569,7 +580,8 @@ Initial stable release.
 
 | Version | Date | Description |
 |---------|------|-------------|
-| 6.1.0 | 2026-03-XX | Plugin REST, JPA idStrategy, audit savings, Maven convention output dir |
+| 6.1.1 | 2026-03-11 | Fix Lombok delombok in multi-module, fix IT plugin version resolution |
+| 6.1.0 | 2026-03-09 | Plugin REST, JPA idStrategy, audit savings, Maven convention output dir |
 | 6.0.0 | 2026-02-26 | Automatic Lombok support, tolerant resolution, 12 new audit metrics |
 | 5.1.0 | 2026-02-17 | Remove manifest/stale/overwrite, add parameter regression tests |
 | 5.0.0 | 2026-02-13 | Sealed ArchType hierarchy, multi-module support, legacy IR removed |
