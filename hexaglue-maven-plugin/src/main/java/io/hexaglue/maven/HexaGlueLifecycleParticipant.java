@@ -15,6 +15,7 @@ package io.hexaglue.maven;
 
 import io.hexaglue.core.engine.MultiModuleOutputResolver;
 import java.nio.file.Path;
+import java.util.List;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import org.apache.maven.AbstractMavenLifecycleParticipant;
@@ -106,7 +107,11 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
             // Register generated-sources roots early so IDEs discover them on import
             registerMultiModuleSourceRoots(session, topLevel);
 
-            // Inject MapStruct and delombok into child modules as needed
+            // Inject reactor-level delombok on the parent POM so it runs before reactor-generate.
+            // Child module delombok (injected below) runs too late — after the parent's lifecycle.
+            injectReactorDelombokIfNeeded(session, topLevel);
+
+            // Inject MapStruct and per-module delombok into child modules as needed
             for (MavenProject project : session.getProjects()) {
                 Plugin hexagluePlugin = findHexaGluePlugin(project);
                 if (hexagluePlugin != null && hasJpaPlugin(hexagluePlugin)) {
@@ -315,6 +320,71 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
     }
 
     /**
+     * Injects delombok executions at the parent POM level for multi-module reactor builds.
+     *
+     * <p>In multi-module builds, {@code reactor-generate} runs at the parent's
+     * {@code generate-sources} phase, before any child module has been built.
+     * Delombok injected into child modules (at their {@code initialize} phase) would run
+     * too late. This method injects one exec-maven-plugin execution per Lombok child
+     * on the parent POM at {@code initialize}, ensuring delombok output is available
+     * when {@code reactor-generate} fires.</p>
+     *
+     * @since 6.1.1
+     */
+    private void injectReactorDelombokIfNeeded(MavenSession session, MavenProject topLevel) {
+        List<MavenProject> lombokChildren = session.getProjects().stream()
+                .filter(p -> !"pom".equals(p.getPackaging()))
+                .filter(this::hasLombok)
+                .filter(p -> findPlugin(p, LOMBOK_GROUP_ID, "lombok-maven-plugin") == null)
+                .toList();
+
+        if (lombokChildren.isEmpty()) {
+            return;
+        }
+
+        // Ensure dependency:properties is available on the parent to resolve ${org.projectlombok:lombok:jar}
+        injectDependencyPropertiesIfNeeded(topLevel);
+
+        Plugin execPlugin = findPlugin(topLevel, EXEC_PLUGIN_GROUP_ID, EXEC_PLUGIN_ARTIFACT_ID);
+        if (execPlugin == null) {
+            execPlugin = createPlugin(EXEC_PLUGIN_GROUP_ID, EXEC_PLUGIN_ARTIFACT_ID, EXEC_PLUGIN_VERSION);
+            topLevel.getBuild().addPlugin(execPlugin);
+        }
+
+        for (MavenProject child : lombokChildren) {
+            String moduleId = child.getArtifactId();
+            String executionId = DELOMBOK_EXECUTION_ID + "-" + moduleId;
+
+            if (hasExecution(execPlugin, executionId)) {
+                continue;
+            }
+
+            String sourceDir = child.getBuild().getSourceDirectory();
+            String outputDir = child.getBuild().getDirectory() + "/" + MojoSourceRootsResolver.DELOMBOK_OUTPUT_SUBDIR;
+
+            PluginExecution execution = new PluginExecution();
+            execution.setId(executionId);
+            execution.setPhase("initialize");
+            execution.addGoal("exec");
+
+            Xpp3Dom config = new Xpp3Dom("configuration");
+            addChild(config, "executable", "java");
+
+            Xpp3Dom arguments = new Xpp3Dom("arguments");
+            addChild(arguments, "argument", "-jar");
+            addChild(arguments, "argument", "${org.projectlombok:lombok:jar}");
+            addChild(arguments, "argument", "delombok");
+            addChild(arguments, "argument", sourceDir);
+            addChild(arguments, "argument", "-d");
+            addChild(arguments, "argument", outputDir);
+            config.addChild(arguments);
+
+            execution.setConfiguration(config);
+            execPlugin.addExecution(execution);
+        }
+    }
+
+    /**
      * Injects a delombok execution via {@code exec-maven-plugin} to expand Lombok
      * annotations before Spoon analysis.
      *
@@ -337,6 +407,10 @@ public class HexaGlueLifecycleParticipant extends AbstractMavenLifecycleParticip
      * @since 6.0.0
      */
     private void injectDelombokIfNeeded(MavenProject project) {
+        // POM-packaged projects (parent aggregators) have no source to delombok
+        if ("pom".equals(project.getPackaging())) {
+            return;
+        }
         if (!hasLombok(project)) {
             return;
         }
