@@ -21,7 +21,7 @@ mvn hexaglue:validate
 ## Understanding the Output
 
 ```
-[INFO] --- hexaglue:6.1.0:validate ---
+[INFO] --- hexaglue:6.1.1-SNAPSHOT:validate ---
 [INFO]
 [INFO] CLASSIFICATION SUMMARY
 [INFO] --------------------------------------------------------------

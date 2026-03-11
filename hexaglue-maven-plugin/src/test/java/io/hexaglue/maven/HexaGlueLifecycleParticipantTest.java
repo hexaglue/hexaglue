@@ -690,6 +690,95 @@ class HexaGlueLifecycleParticipantTest {
             assertThat(execPluginWithoutLombok).isNull();
         }
 
+        @Test
+        @DisplayName("should not inject per-module delombok on POM-packaged parent")
+        void shouldNotInjectPerModuleDelombokOnPomPackagedParent() throws Exception {
+            MavenProject parent = createMultiModuleParentWithLombok();
+            MavenProject child = createProjectWithLombok();
+            MavenSession session = createSession(parent, child);
+
+            participant.afterProjectsRead(session);
+
+            // Parent POM should NOT get the per-module delombok execution
+            Plugin execPluginOnParent = findPlugin(parent, "org.codehaus.mojo", "exec-maven-plugin");
+            if (execPluginOnParent != null) {
+                assertThat(execPluginOnParent.getExecutions())
+                        .filteredOn(e -> "hexaglue-delombok".equals(e.getId()))
+                        .isEmpty();
+            }
+
+            // Child JAR module should still get per-module delombok injection
+            Plugin execPluginOnChild = findPlugin(child, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPluginOnChild).isNotNull();
+            assertThat(execPluginOnChild.getExecutions())
+                    .filteredOn(e -> "hexaglue-delombok".equals(e.getId()))
+                    .hasSize(1);
+        }
+
+        @Test
+        @DisplayName("should inject reactor-level delombok on parent for Lombok children")
+        void shouldInjectReactorDelombokOnParentForLombokChildren() throws Exception {
+            MavenProject parent = createMultiModuleParentWithLombok();
+            MavenProject child = createProjectWithLombok();
+            MavenSession session = createSession(parent, child);
+
+            participant.afterProjectsRead(session);
+
+            // Parent should get reactor delombok execution for each Lombok child
+            Plugin execPluginOnParent = findPlugin(parent, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPluginOnParent).isNotNull();
+            assertThat(execPluginOnParent.getExecutions())
+                    .filteredOn(e -> e.getId().startsWith("hexaglue-delombok-"))
+                    .hasSize(1)
+                    .first()
+                    .satisfies(e -> {
+                        assertThat(e.getId()).isEqualTo("hexaglue-delombok-test-lombok-module");
+                        assertThat(e.getPhase()).isEqualTo("initialize");
+                        assertThat(e.getGoals()).contains("exec");
+                    });
+
+            // Parent should also get dependency:properties
+            Plugin depPlugin = findPlugin(parent, "org.apache.maven.plugins", "maven-dependency-plugin");
+            assertThat(depPlugin).isNotNull();
+        }
+
+        @Test
+        @DisplayName("should not inject reactor delombok when no child has Lombok")
+        void shouldNotInjectReactorDelombokWhenNoChildHasLombok() throws Exception {
+            MavenProject parent = createMultiModuleParentForDelombok();
+            MavenProject childWithoutLombok = createProjectWithoutJpaPlugin();
+            MavenSession session = createSession(parent, childWithoutLombok);
+
+            participant.afterProjectsRead(session);
+
+            Plugin execPluginOnParent = findPlugin(parent, "org.codehaus.mojo", "exec-maven-plugin");
+            assertThat(execPluginOnParent).isNull();
+        }
+
+        private MavenProject createMultiModuleParentWithLombok() throws IOException {
+            Path parentDir = tempDir.resolve("parent-with-lombok");
+            Files.createDirectories(parentDir);
+
+            Model model = new Model();
+            model.setModules(List.of("child1"));
+            model.setPackaging("pom");
+
+            Build build = new Build();
+            Plugin hexagluePlugin = createPlugin("io.hexaglue", "hexaglue-maven-plugin");
+            build.setPlugins(new ArrayList<>(List.of(hexagluePlugin)));
+            model.setBuild(build);
+
+            MavenProject project = new MavenProject(model);
+            project.setArtifactId("parent-with-lombok");
+
+            // Parent declares Lombok (inherited by children)
+            Dependency lombokDep = createDependency("org.projectlombok", "lombok", "1.18.34", "provided");
+            project.setDependencies(new ArrayList<>(List.of(lombokDep)));
+            project.setFile(parentDir.resolve("pom.xml").toFile());
+
+            return project;
+        }
+
         private MavenProject createProjectWithLombok() {
             MavenProject project = new MavenProject();
             project.setArtifactId("test-lombok-module");
