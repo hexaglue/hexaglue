@@ -7,7 +7,7 @@
     <parent>
         <groupId>io.hexaglue</groupId>
         <artifactId>hexaglue-parent</artifactId>
-        <version>6.1.1-SNAPSHOT</version>
+        <version>6.1.1</version>
     </parent>
 
     <artifactId>hexaglue-maven-plugin</artifactId>
@@ -18,7 +18,7 @@
 
     <properties>
         <hexaglue.root>${project.basedir}/..</hexaglue.root>
-        <hexaglue-plugins.version>3.1.1-SNAPSHOT</hexaglue-plugins.version>
+        <hexaglue-plugins.version>3.1.1</hexaglue-plugins.version>
     </properties>
 
     <dependencies>
@@ -100,7 +100,7 @@
                     </goals>
                     <streamLogs>true</streamLogs>
                     <filterProperties>
-                        <hexaglue-plugins.version>3.1.1-SNAPSHOT</hexaglue-plugins.version>
+                        <hexaglue-plugins.version>3.1.1</hexaglue-plugins.version>
                     </filterProperties>
                 </configuration>
                 <executions>

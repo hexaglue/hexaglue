@@ -24,13 +24,13 @@
             <plugin>
                 <groupId>io.hexaglue</groupId>
                 <artifactId>hexaglue-maven-plugin</artifactId>
-                <version>6.1.1-SNAPSHOT</version>
+                <version>6.1.1</version>
                 <extensions>true</extensions>
                 <dependencies>
                     <dependency>
                         <groupId>io.hexaglue.plugins</groupId>
                         <artifactId>hexaglue-plugin-living-doc</artifactId>
-                        <version>3.1.1-SNAPSHOT</version>
+                        <version>3.1.1</version>
                     </dependency>
                 </dependencies>
                 <configuration>

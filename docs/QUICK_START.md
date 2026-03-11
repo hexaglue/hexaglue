@@ -115,7 +115,7 @@ Add this to your `pom.xml`:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>6.1.1-SNAPSHOT</version>
+    <version>6.1.1</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -159,7 +159,7 @@ To generate JPA entities and repositories, add the plugin dependency:
 <plugin>
     <groupId>io.hexaglue</groupId>
     <artifactId>hexaglue-maven-plugin</artifactId>
-    <version>6.1.1-SNAPSHOT</version>
+    <version>6.1.1</version>
     <extensions>true</extensions>
     <configuration>
         <basePackage>com.example</basePackage>
@@ -168,7 +168,7 @@ To generate JPA entities and repositories, add the plugin dependency:
         <dependency>
             <groupId>io.hexaglue.plugins</groupId>
             <artifactId>hexaglue-plugin-jpa</artifactId>
-            <version>3.1.1-SNAPSHOT</version>
+            <version>3.1.1</version>
         </dependency>
     </dependencies>
 </plugin>
