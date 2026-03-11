@@ -8,8 +8,8 @@ HexaGlue utilise un versioning à deux niveaux :
 
 | Composant | GroupId | Version actuelle | Exemple |
 |-----------|---------|------------------|---------|
-| Core + Maven plugin | `io.hexaglue` | 6.1.1-SNAPSHOT | `hexaglue-parent`, `hexaglue-core`, `hexaglue-maven-plugin` |
-| Plugins | `io.hexaglue.plugins` | 3.1.1-SNAPSHOT | `hexaglue-plugin-jpa`, `hexaglue-plugin-rest`, etc. |
+| Core + Maven plugin | `io.hexaglue` | 6.1.1 | `hexaglue-parent`, `hexaglue-core`, `hexaglue-maven-plugin` |
+| Plugins | `io.hexaglue.plugins` | 3.1.1 | `hexaglue-plugin-jpa`, `hexaglue-plugin-rest`, etc. |
 
 Les plugins ont leur propre cycle de version, indépendant du core.
 
