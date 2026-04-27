@@ -63,7 +63,7 @@
         <spoon.version>11.3.0</spoon.version>
         <junit.version>5.14.1</junit.version>
         <assertj.version>3.27.7</assertj.version>
-        <mockito.version>5.22.0</mockito.version>
+        <mockito.version>5.23.0</mockito.version>
         <slf4j.version>2.0.17</slf4j.version>
         <snakeyaml.version>2.6</snakeyaml.version>
         <jmolecules-bom.version>2025.0.2</jmolecules-bom.version>
@@ -73,14 +73,14 @@
         <maven-compiler-plugin.version>3.15.0</maven-compiler-plugin.version>
         <maven-surefire-plugin.version>3.5.5</maven-surefire-plugin.version>
         <maven-plugin-plugin.version>3.15.2</maven-plugin-plugin.version>
-        <maven-invoker-plugin.version>3.9.1</maven-invoker-plugin.version>
+        <maven-invoker-plugin.version>3.10.0</maven-invoker-plugin.version>
 
         <!-- Maven API (provided scope, for hexaglue-maven-plugin) -->
-        <maven-plugin-api.version>3.9.12</maven-plugin-api.version>
+        <maven-plugin-api.version>3.9.15</maven-plugin-api.version>
         <maven-plugin-annotations.version>3.15.2</maven-plugin-annotations.version>
-        <maven-core.version>3.9.12</maven-core.version>
+        <maven-core.version>3.9.15</maven-core.version>
         <jacoco-maven-plugin.version>0.8.14</jacoco-maven-plugin.version>
-        <spotless-maven-plugin.version>3.2.1</spotless-maven-plugin.version>
+        <spotless-maven-plugin.version>3.4.0</spotless-maven-plugin.version>
         <palantir-java-format.version>2.83.0</palantir-java-format.version>
 
         <!-- Release plugins -->
@@ -95,7 +95,7 @@
         <spotbugs-maven-plugin.version>4.9.8.2</spotbugs-maven-plugin.version>
         <maven-pmd-plugin.version>3.28.0</maven-pmd-plugin.version>
         <maven-jxr-plugin.version>3.6.0</maven-jxr-plugin.version>
-        <pitest-maven-plugin.version>1.22.1</pitest-maven-plugin.version>
+        <pitest-maven-plugin.version>1.23.1</pitest-maven-plugin.version>
         <pitest-junit5-plugin.version>1.2.3</pitest-junit5-plugin.version>
 
         <!-- Build tools version (fixed, not ${project.version} to work with child modules) -->
